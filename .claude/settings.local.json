@@ -6,7 +6,9 @@
       "Bash(npm run build:*)",
       "Bash(dotnet ef migrations:*)",
       "Bash(dotnet tool list:*)",
-      "WebFetch(domain:localhost)"
+      "WebFetch(domain:localhost)",
+      "Bash(tree:*)",
+      "Bash(dotnet add:*)"
     ]
   }
 }

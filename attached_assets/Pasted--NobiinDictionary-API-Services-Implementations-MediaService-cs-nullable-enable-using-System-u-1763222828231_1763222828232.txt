@@ -1,0 +1,723 @@
+// NobiinDictionary.API/Services/Implementations/MediaService.cs
+#nullable enable
+using System;
+using System.IO;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Caching.Distributed;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Metadata;
+using WebDav;
+using NobiinDictionary.API.Models;
+using NobiinDictionary.API.Services.Interfaces;
+using NobiinDictionary.DAL;
+using VirtualUpon.Storage.Factories;
+using VirtualUpon.Storage.Utilities;
+using IStorageService = VirtualUpon.Storage.Factories.IStorageService;
+using Image = NobiinDictionary.API.Models.Image;
+
+namespace NobiinDictionary.API.Services.Implementations;
+
+public class MediaService : IMediaService
+{
+    private readonly ApplicationDbContext _context;
+    private readonly ILogger<MediaService> _logger;
+    private readonly IDistributedCache _cache;
+    private readonly StorageConfiguration _storageConfig;
+    private readonly IStorageService _storageService;
+    private readonly int _currentStorageType;
+
+    public MediaService(
+        ApplicationDbContext context,
+        ILogger<MediaService> logger,
+        StorageConfiguration storageConfig,
+        IDistributedCache cache,
+        IStorageService storageService)
+    {
+        _context = context;
+        _logger = logger;
+        _cache = cache;
+        _storageConfig = storageConfig;
+        _storageService = storageService;
+        _currentStorageType = StorageTypeHelper.ConvertStorageTypeToInt(storageConfig.StorageType);
+    }
+
+    // ============================================
+    // AUDIO OPERATIONS
+    // ============================================
+
+    public async Task<AudioFile> SaveAudioFileAsync(
+        int wordId,
+        string base64Audio,
+        string? fileName = null,
+        string? mimeType = null,
+        string? speakerName = null,
+        string? dialect = null)
+    {
+        try
+        {
+            // Convert Base64 to bytes
+            var audioBytes = Base64ToBytes(base64Audio);
+
+            // Determine file extension
+            var extension = string.IsNullOrEmpty(fileName)
+                ? GetExtensionFromMimeType(mimeType ?? "audio/webm")
+                : Path.GetExtension(fileName);
+
+            // Generate unique filename
+          //  var audioFileName = $"{Guid.NewGuid()}{extension}";
+            var audioFileName = $"Word_Audio_{Guid.NewGuid()}{extension}";
+
+            string[] pathSegments = new[] { "words", "audio", wordId.ToString() };
+
+            // Upload to storage
+            var storageService = _storageService;  // Use injected service
+            var savedAudioInfo = await storageService.UploadFileAsync(
+                pathSegments,
+                audioFileName,
+                audioBytes
+            );
+
+            // Create audio file record
+            var audioFile = new AudioFile
+            {
+                WordID = (int)wordId,
+                URL = savedAudioInfo.ImagePath,
+                StorageType = _currentStorageType,
+                SpeakerName = speakerName,
+                Dialect = dialect,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _context.AudioFiles.AddAsync(audioFile);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "Saved audio file {FileName} for word {WordId}",
+                audioFileName,
+                wordId);
+
+            return audioFile;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving audio file for word {WordId}", wordId);
+            throw;
+        }
+    }
+
+    public async Task<string?> GetAudioAsBase64Async(int audioId)
+    {
+        try
+        {
+            var audioFile = await _context.AudioFiles
+                            .AsNoTracking()
+                             .FirstOrDefaultAsync(a => a.AudioID == audioId);
+
+
+            //var audioFile = await _context.AudioFiles.FindAsync(audioId);
+            if (audioFile == null || string.IsNullOrEmpty(audioFile.URL))
+                return null;
+
+            var storageService = GetStorageServiceByType(audioFile.StorageType);
+            var response = await storageService.DownloadFileAsync(audioFile.URL);
+
+            // Extract bytes from response
+            var audioBytes = response.FileData; // or response.Data depending on the DTO
+
+            return BytesToBase64(audioBytes);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving audio file {AudioId}", audioId);
+            return null;
+        }
+    }
+
+
+
+    public async Task<bool> DeleteAudioFileAsync(int audioId)
+    {
+        try
+        {
+            var audioFile = await _context.AudioFiles.FindAsync(audioId);
+            if (audioFile == null)
+                return false;
+
+            // Delete from storage
+            if (!string.IsNullOrEmpty(audioFile.URL))
+            {
+                try
+                {
+                    var storageService = GetStorageServiceByType(audioFile.StorageType);
+                    await storageService.DeleteFileAsync(audioFile.URL);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to delete audio file from storage: {URL}", audioFile.URL);
+                }
+            }
+
+            // Delete from database
+            _context.AudioFiles.Remove(audioFile);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Deleted audio file {AudioId}", audioId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting audio file {AudioId}", audioId);
+            return false;
+        }
+    }
+
+    // ============================================
+    // IMAGE OPERATIONS
+    // ============================================
+
+    public async Task<Image> SaveImageFileAsync(
+        int wordId,
+        string base64Image,
+        string? fileName = null,
+        string? mimeType = null,
+        string? altText = null,
+        string? caption = null,
+        string? attribution = null,
+        string? license = null,
+        int? width = null,
+        int? height = null)
+    {
+        try
+        {
+            // Convert Base64 to bytes
+            var imageBytes = Base64ToBytes(base64Image);
+
+            // Get image dimensions if not provided
+            if (!width.HasValue || !height.HasValue)
+            {
+                var dimensions = await GetImageDimensionsAsync(imageBytes);
+                width ??= dimensions.width;
+                height ??= dimensions.height;
+            }
+
+            // Determine file extension
+            var extension = string.IsNullOrEmpty(fileName)
+                ? GetExtensionFromMimeType(mimeType ?? "image/jpeg")
+                : Path.GetExtension(fileName);
+
+            // Generate unique filename
+           // var imageFileName = $"{Guid.NewGuid()}{extension}";
+
+
+            var imageFileName = $"Word_Image_{Guid.NewGuid()}{extension}";
+
+
+            string[] pathSegments = new[] { "words", "images", wordId.ToString() };
+
+            // Upload to storage
+            var storageService = _storageService;  // Use injected service
+            var savedImageInfo = await storageService.UploadFileAsync(
+                pathSegments,
+                imageFileName,
+                imageBytes
+            );
+
+            // Create image record
+            var image = new Image
+            {
+                WordID = (int)wordId,
+                URL = savedImageInfo.ImagePath,
+                AltText = altText,
+                Caption = caption,
+                Attribution = attribution,
+                License = license,
+                Width = width,
+                Height = height,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _context.Images.AddAsync(image);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "Saved image file {FileName} for word {WordId}",
+                imageFileName,
+                wordId);
+
+            return image;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving image file for word {WordId}", wordId);
+            throw;
+        }
+    }
+
+    public async Task<string?> GetImageAsBase64Async(int imageId)
+    {
+        try
+        {
+            var image = await _context.Images.FindAsync(imageId);
+            if (image == null || string.IsNullOrEmpty(image.URL))
+                return null;
+
+            var storageService = _storageService;  // Use injected service
+            var response = await storageService.DownloadFileAsync(image.URL);
+
+            // Extract bytes from response
+            var imageBytes = response.FileData; // or response.Data
+
+            return BytesToBase64(imageBytes);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving image file {ImageId}", imageId);
+            return null;
+        }
+    }
+
+    public async Task<bool> DeleteImageFileAsync(int imageId)
+    {
+        try
+        {
+            var image = await _context.Images.FindAsync(imageId);
+            if (image == null)
+                return false;
+
+            // Delete from storage
+            if (!string.IsNullOrEmpty(image.URL))
+            {
+                try
+                {
+                    var storageService = _storageService;  // Use injected service
+                    await storageService.DeleteFileAsync(image.URL);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to delete image file from storage: {URL}", image.URL);
+                }
+            }
+
+            // Delete from database
+            _context.Images.Remove(image);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Deleted image file {ImageId}", imageId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting image file {ImageId}", imageId);
+            return false;
+        }
+    }
+
+    // ============================================
+    // VIDEO OPERATIONS
+    // ============================================
+
+    public async Task<Video> SaveVideoFileAsync(
+        int wordId,
+        string base64Video,
+        string? fileName = null,
+        string? mimeType = null,
+        string? caption = null,
+        string? thumbnailUrl = null,
+        int? durationSec = null,
+        int? width = null,
+        int? height = null)
+    {
+        try
+        {
+            // Convert Base64 to bytes
+            var videoBytes = Base64ToBytes(base64Video);
+
+            // Determine file extension
+            var extension = string.IsNullOrEmpty(fileName)
+                ? GetExtensionFromMimeType(mimeType ?? "video/mp4")
+                : Path.GetExtension(fileName);
+
+            // Generate unique filename
+          //  var videoFileName = $"{Guid.NewGuid()}{extension}";
+
+            var videoFileName = $"Word_Video_{Guid.NewGuid()}{extension}";
+
+
+            string[] pathSegments = new[] { "words", "videos", wordId.ToString() };
+
+            // Upload to storage
+            var storageService = _storageService;  // Use injected service
+            var savedVideoInfo = await storageService.UploadFileAsync(
+                pathSegments,
+                videoFileName,
+                videoBytes
+            );
+
+            // Create video record
+            var video = new Video
+            {
+                WordID = (int)wordId,
+                URL = savedVideoInfo.ImagePath,
+                Caption = caption,
+                ThumbnailURL = thumbnailUrl,
+                DurationSec = durationSec,
+                Width = width,
+                Height = height,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _context.Videos.AddAsync(video);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "Saved video file {FileName} for word {WordId}",
+                videoFileName,
+                wordId);
+
+            return video;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving video file for word {WordId}", wordId);
+            throw;
+        }
+    }
+
+    public async Task<string?> GetVideoAsBase64Async(int videoId)
+    {
+        try
+        {
+            var video = await _context.Videos.FindAsync(videoId);
+            if (video == null || string.IsNullOrEmpty(video.URL))
+                return null;
+
+            var storageService = _storageService;  // Use injected service
+            var response = await storageService.DownloadFileAsync(video.URL);
+
+            // Extract bytes from response
+            if (response?.FileData == null)
+                return null;
+
+            var videoBytes = response.FileData;
+
+            return BytesToBase64(videoBytes);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving video file {VideoId}", videoId);
+            return null;
+        }
+    }
+
+
+    public async Task<bool> DeleteVideoFileAsync(int videoId)
+    {
+        try
+        {
+            var video = await _context.Videos.FindAsync(videoId);
+            if (video == null)
+                return false;
+
+            // Delete from storage
+            if (!string.IsNullOrEmpty(video.URL))
+            {
+                try
+                {
+                    var storageService = _storageService;  // Use injected service
+                    await storageService.DeleteFileAsync(video.URL);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to delete video file from storage: {URL}", video.URL);
+                }
+            }
+
+            // Delete from database
+            _context.Videos.Remove(video);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Deleted video file {VideoId}", videoId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting video file {VideoId}", videoId);
+            return false;
+        }
+    }
+
+    // ============================================
+    // UTILITY METHODS
+    // ============================================
+
+    public byte[] Base64ToBytes(string base64String)
+    {
+        // Remove data URL prefix if present
+        if (base64String.Contains(","))
+        {
+            base64String = base64String.Split(',')[1];
+        }
+
+        return Convert.FromBase64String(base64String);
+    }
+
+    public string BytesToBase64(byte[] bytes)
+    {
+        return Convert.ToBase64String(bytes);
+    }
+
+    public async Task<(int width, int height)> GetImageDimensionsAsync(byte[] imageBytes)
+    {
+        try
+        {
+            using var image = await SixLabors.ImageSharp.Image.LoadAsync(new MemoryStream(imageBytes));
+            return (image.Width, image.Height);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to get image dimensions, using defaults");
+            return (0, 0);
+        }
+    }
+    // Add these methods to your MediaService.cs
+
+    // ============================================
+    // AUDIO CONVERSION METHODS
+    // ============================================
+
+    /// <summary>
+    /// Convert audio to MP3 format using FFmpeg
+    /// </summary>
+    /// <param name="base64Audio">Base64 encoded audio in any format</param>
+    /// <returns>Base64 encoded MP3 audio</returns>
+    public async Task<string?> ConvertAudioToMp3Async(string base64Audio)
+    {
+        try
+        {
+            _logger.LogInformation("🔄 Converting audio to MP3 format");
+
+            // Convert base64 to bytes
+            var audioBytes = Base64ToBytes(base64Audio);
+
+            // Create temporary input file
+            var inputFile = Path.Combine(Path.GetTempPath(), $"input_{Guid.NewGuid()}.audio");
+            var outputFile = Path.Combine(Path.GetTempPath(), $"output_{Guid.NewGuid()}.mp3");
+
+            try
+            {
+                // Write input audio to temp file
+                await File.WriteAllBytesAsync(inputFile, audioBytes);
+
+                // Run FFmpeg to convert to MP3
+                var processStartInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "ffmpeg",
+                    Arguments = $"-i \"{inputFile}\" -codec:a libmp3lame -qscale:a 2 \"{outputFile}\"",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                using var process = System.Diagnostics.Process.Start(processStartInfo);
+                if (process == null)
+                {
+                    _logger.LogError("❌ Failed to start FFmpeg process");
+                    return null;
+                }
+
+                var output = await process.StandardOutput.ReadToEndAsync();
+                var error = await process.StandardError.ReadToEndAsync();
+
+                await process.WaitForExitAsync();
+
+                if (process.ExitCode != 0)
+                {
+                    _logger.LogError("❌ FFmpeg conversion failed: {Error}", error);
+                    return null;
+                }
+
+                // Check if output file was created
+                if (!File.Exists(outputFile))
+                {
+                    _logger.LogError("❌ FFmpeg did not create output file");
+                    return null;
+                }
+
+                // Read converted MP3 file
+                var mp3Bytes = await File.ReadAllBytesAsync(outputFile);
+
+                _logger.LogInformation("✅ Converted audio to MP3: {InputSize} KB → {OutputSize} KB",
+                    audioBytes.Length / 1024.0,
+                    mp3Bytes.Length / 1024.0);
+
+                return BytesToBase64(mp3Bytes);
+            }
+            finally
+            {
+                // Clean up temporary files
+                try
+                {
+                    if (File.Exists(inputFile))
+                        File.Delete(inputFile);
+                    if (File.Exists(outputFile))
+                        File.Delete(outputFile);
+                }
+                catch (Exception cleanupEx)
+                {
+                    _logger.LogWarning(cleanupEx, "⚠️ Failed to clean up temporary files");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Error converting audio to MP3");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Get audio file as Base64 by URL (overload for direct URL access)
+    /// </summary>
+    /// <param name="url">URL/path of the audio file in storage</param>
+    /// <returns>Base64 encoded audio</returns>
+    public async Task<string?> GetAudioAsBase64Async(string url)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(url))
+            {
+                _logger.LogWarning("⚠️ Audio URL is empty");
+                return null;
+            }
+
+            _logger.LogInformation("📥 Downloading audio from URL: {URL}", url);
+
+            var storageService = _storageService;  // Use injected service
+            var response = await storageService.DownloadFileAsync(url);
+
+            if (response?.FileData == null || response.FileData.Length == 0)
+            {
+                _logger.LogWarning("⚠️ Failed to download audio from URL: {URL}", url);
+                return null;
+            }
+
+            _logger.LogInformation("✅ Downloaded audio: {Size} KB", response.FileData.Length / 1024.0);
+
+            return BytesToBase64(response.FileData);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ Error downloading audio from URL: {URL}", url);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Check if FFmpeg is installed on the system
+    /// </summary>
+    /// <returns>True if FFmpeg is available</returns>
+    public bool IsFFmpegInstalled()
+    {
+        try
+        {
+            var process = new System.Diagnostics.Process
+            {
+                StartInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "ffmpeg",
+                    Arguments = "-version",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
+
+            process.Start();
+            process.WaitForExit();
+
+            return process.ExitCode == 0;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+    public string GetMimeTypeFromExtension(string extension)
+    {
+        var ext = extension.TrimStart('.').ToLowerInvariant();
+
+        return ext switch
+        {
+            // Audio
+            "webm" => "audio/webm",
+            "ogg" => "audio/ogg",
+            "m4a" => "audio/mp4",
+            "mp3" => "audio/mpeg",
+            "wav" => "audio/wav",
+
+            // Images
+            "jpg" or "jpeg" => "image/jpeg",
+            "png" => "image/png",
+            "gif" => "image/gif",
+            "webp" => "image/webp",
+            "svg" => "image/svg+xml",
+
+            // Videos
+            "mp4" => "video/mp4",
+            "ogv" => "video/ogg",
+            //"webm" => "video/webm",
+
+            _ => "application/octet-stream"
+        };
+    }
+
+    public string GetExtensionFromMimeType(string mimeType)
+    {
+        return mimeType.ToLowerInvariant() switch
+        {
+            // Audio
+            "audio/webm" => ".webm",
+            "audio/ogg" => ".ogg",
+            "audio/mp4" => ".m4a",
+            "audio/mpeg" => ".mp3",
+            "audio/wav" => ".wav",
+
+            // Images
+            "image/jpeg" => ".jpg",
+            "image/png" => ".png",
+            "image/gif" => ".gif",
+            "image/webp" => ".webp",
+            "image/svg+xml" => ".svg",
+
+            // Videos
+            "video/mp4" => ".mp4",
+            "video/ogg" => ".ogv",
+            "video/webm" => ".webm",
+
+            _ => ".bin"
+        };
+    }
+
+    // ============================================
+    // STORAGE SERVICE HELPERS
+    // ============================================
+
+
+    private IStorageService GetStorageServiceByType(int storageType)
+    {
+        return storageType switch
+        {
+            1 => StorageServiceFactory.CreateLocalStorageService(_storageConfig, _cache),
+            2 => StorageServiceFactory.CreateLinodeStorageService(_storageConfig, _cache),
+            3 => StorageServiceFactory.CreateAwsStorageService(_storageConfig, _cache),
+            4 => StorageServiceFactory.CreateNextCloudStorageService(
+                _storageConfig, new WebDavClient(), new HttpClient(), _cache),
+            5 => StorageServiceFactory.CreateCloudflareStorageService(_storageConfig, _cache),
+            _ => throw new ArgumentException($"Unsupported storage type: {storageType}")
+        };
+    }
+}

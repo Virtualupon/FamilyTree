@@ -1,0 +1,35 @@
+// -------------------------------
+// STORAGE CONFIG
+// -------------------------------
+services.Configure<StorageConfiguration>(configuration.GetSection("StorageConfiguration"));
+services.AddSingleton(resolver => resolver.GetRequiredService<IOptions<StorageConfiguration>>().Value);
+
+
+// -------------------------------
+// STORAGE SERVICE FACTORY
+// -------------------------------
+services.AddScoped<IStorageService>(provider =>
+{
+    var config = provider.GetRequiredService<IConfiguration>()
+        .GetSection("StorageConfiguration").Get<StorageConfiguration>()
+        ?? throw new InvalidOperationException("Storage configuration missing.");
+
+    int storageTypeInt = StorageTypeHelper.ConvertStorageTypeToInt(config.StorageType);
+    var cache = provider.GetService<IDistributedCache>();
+
+    return storageTypeInt switch
+    {
+        1 => StorageServiceFactory.CreateLocalStorageService(config, cache),
+        2 => ValidateLinodeConfig(config) ? StorageServiceFactory.CreateLinodeStorageService(config, cache) : throw new InvalidOperationException("Invalid Linode config"),
+        3 => ValidateAwsConfig(config) ? StorageServiceFactory.CreateAwsStorageService(config, cache) : throw new InvalidOperationException("Invalid AWS config"),
+        4 => ValidateNextcloudConfig(config) ? StorageServiceFactory.CreateNextCloudStorageService(config, new WebDavClient(), new HttpClient(), cache) : throw new InvalidOperationException("Invalid Nextcloud config"),
+        5 => ValidateCloudflareConfig(config) ? StorageServiceFactory.CreateCloudflareStorageService(config, cache) : throw new InvalidOperationException("Invalid Cloudflare config"),  // ✅ ADD THIS LINE
+        _ => throw new ArgumentException($"Unsupported storage type: {config.StorageType}")
+    };
+});
+
+bool ValidateAwsConfig(StorageConfiguration c) => !string.IsNullOrEmpty(c.AWS?.AccessKey) && !string.IsNullOrEmpty(c.AWS.SecretKey) && !string.IsNullOrEmpty(c.AWS.Region) && !string.IsNullOrEmpty(c.AWS.BucketName);
+bool ValidateLinodeConfig(StorageConfiguration c) => !string.IsNullOrEmpty(c.Linode?.AccessKey) && !string.IsNullOrEmpty(c.Linode.SecretKey) && !string.IsNullOrEmpty(c.Linode.S3Endpoint) && !string.IsNullOrEmpty(c.Linode.BucketName);
+bool ValidateNextcloudConfig(StorageConfiguration c) => !string.IsNullOrEmpty(c.Nextcloud?.Username) && !string.IsNullOrEmpty(c.Nextcloud.Password) && !string.IsNullOrEmpty(c.Nextcloud.BaseUrl);
+bool ValidateCloudflareConfig(StorageConfiguration c) => !string.IsNullOrEmpty(c.Cloudflare?.AccountId) && !string.IsNullOrEmpty(c.Cloudflare.AccessKey) && !string.IsNullOrEmpty(c.Cloudflare.SecretKey) && !string.IsNullOrEmpty(c.Cloudflare.BucketName);  // ✅ ADD THIS LINE
+

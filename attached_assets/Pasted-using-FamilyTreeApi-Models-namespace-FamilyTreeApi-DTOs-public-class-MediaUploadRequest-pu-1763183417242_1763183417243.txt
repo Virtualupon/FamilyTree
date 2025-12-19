@@ -1,0 +1,69 @@
+using FamilyTreeApi.Models;
+
+namespace FamilyTreeApi.DTOs;
+
+public class MediaUploadRequest
+{
+    public Guid? PersonId { get; set; }
+    public MediaType Type { get; set; }
+    public string? Title { get; set; }
+    public string? Description { get; set; }
+    public DateTime? Date { get; set; }
+    public DatePrecision? DatePrecision { get; set; }
+    public Guid? PlaceId { get; set; }
+    public string? FactsJson { get; set; }
+}
+
+public class MediaUpdateRequest
+{
+    public Guid? PersonId { get; set; }
+    public string? Title { get; set; }
+    public string? Description { get; set; }
+    public DateTime? Date { get; set; }
+    public DatePrecision? DatePrecision { get; set; }
+    public Guid? PlaceId { get; set; }
+    public string? FactsJson { get; set; }
+}
+
+public class MediaResponse
+{
+    public Guid Id { get; set; }
+    public Guid OrgId { get; set; }
+    public Guid? PersonId { get; set; }
+    public string? PersonName { get; set; }
+    public MediaType Type { get; set; }
+    public string FileUrl { get; set; } = string.Empty;
+    public string? ThumbnailUrl { get; set; }
+    public string? Title { get; set; }
+    public string? Description { get; set; }
+    public DateTime? Date { get; set; }
+    public DatePrecision? DatePrecision { get; set; }
+    public Guid? PlaceId { get; set; }
+    public string? PlaceName { get; set; }
+    public string MimeType { get; set; } = string.Empty;
+    public long FileSizeBytes { get; set; }
+    public string? FactsJson { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
+public class MediaSearchRequest
+{
+    public Guid? PersonId { get; set; }
+    public MediaType? Type { get; set; }
+    public DateTime? DateFrom { get; set; }
+    public DateTime? DateTo { get; set; }
+    public Guid? PlaceId { get; set; }
+    public string? SearchTerm { get; set; }
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 20;
+}
+
+public class MediaSearchResponse
+{
+    public List<MediaResponse> Media { get; set; } = new();
+    public int TotalCount { get; set; }
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+    public int TotalPages { get; set; }
+}

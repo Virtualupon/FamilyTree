@@ -1,0 +1,381 @@
+import { Component, OnInit, signal, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { RouterModule, ActivatedRoute, Router } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { TownService } from '../../core/services/town.service';
+import { AuthService } from '../../core/services/auth.service';
+import { I18nService } from '../../core/i18n/i18n.service';
+import { Town, UpdateTownRequest } from '../../core/models/town.models';
+import { FamilyTreeListItem } from '../../core/models/family-tree.models';
+import { OrgRole, OrgRoleLabels } from '../../core/models/auth.models';
+
+@Component({
+  selector: 'app-town-detail',
+  standalone: true,
+  imports: [CommonModule, RouterModule, FormsModule],
+  template: `
+    <div class="container mx-auto p-6">
+      <!-- Back button -->
+      <a routerLink="/towns" class="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4">
+        <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+        {{ i18n.t('towns.backToList') }}
+      </a>
+
+      <!-- Loading -->
+      @if (loading()) {
+        <div class="flex justify-center py-12">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      }
+
+      <!-- Error -->
+      @if (error()) {
+        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
+          {{ error() }}
+        </div>
+      }
+
+      @if (town()) {
+        <!-- Town Header -->
+        <div class="bg-white rounded-lg shadow-md overflow-hidden mb-6">
+          <div class="h-32 bg-gradient-to-r from-emerald-400 to-teal-500 flex items-center justify-center">
+            <svg class="w-20 h-20 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+          </div>
+          <div class="p-6">
+            <div class="flex justify-between items-start">
+              <div>
+                <h1 class="text-2xl font-bold mb-2">{{ getTownDisplayName() }}</h1>
+                @if (town()!.country) {
+                  <p class="text-gray-600 mb-2">{{ town()!.country }}</p>
+                }
+                @if (town()!.description) {
+                  <p class="text-gray-500">{{ town()!.description }}</p>
+                }
+                <!-- Multilingual names -->
+                <div class="mt-4 flex flex-wrap gap-2">
+                  @if (town()!.nameEn && town()!.nameEn !== town()!.name) {
+                    <span class="bg-gray-100 px-2 py-1 rounded text-sm">EN: {{ town()!.nameEn }}</span>
+                  }
+                  @if (town()!.nameAr) {
+                    <span class="bg-gray-100 px-2 py-1 rounded text-sm" dir="rtl">AR: {{ town()!.nameAr }}</span>
+                  }
+                  @if (town()!.nameLocal && town()!.nameLocal !== town()!.name) {
+                    <span class="bg-gray-100 px-2 py-1 rounded text-sm">Local: {{ town()!.nameLocal }}</span>
+                  }
+                </div>
+              </div>
+              @if (isAdmin()) {
+                <div class="flex gap-2">
+                  <button
+                    (click)="showEditModal = true"
+                    class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                    {{ i18n.t('common.edit') }}
+                  </button>
+                  @if (isSuperAdmin() && town()!.treeCount === 0) {
+                    <button
+                      (click)="confirmDelete()"
+                      class="px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 flex items-center gap-2">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                      </svg>
+                      {{ i18n.t('common.delete') }}
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Trees Section -->
+        <div class="mb-4 flex justify-between items-center">
+          <h2 class="text-xl font-semibold">{{ i18n.t('towns.treesInTown') }}</h2>
+          <span class="text-gray-500">{{ trees().length }} {{ i18n.t('towns.trees') }}</span>
+        </div>
+
+        <!-- Trees Loading -->
+        @if (treesLoading()) {
+          <div class="flex justify-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        }
+
+        <!-- Trees Grid -->
+        @if (!treesLoading() && trees().length > 0) {
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            @for (tree of trees(); track tree.id) {
+              <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                <div class="h-24 bg-gradient-to-r from-green-400 to-blue-500 relative">
+                  @if (tree.coverImageUrl) {
+                    <img [src]="tree.coverImageUrl" class="w-full h-full object-cover" alt="">
+                  }
+                  @if (tree.isPublic) {
+                    <span class="absolute top-2 right-2 bg-white/90 text-xs px-2 py-1 rounded">{{ i18n.t('common.public') }}</span>
+                  }
+                </div>
+                <div class="p-4">
+                  <h3 class="text-lg font-semibold mb-1">{{ tree.name }}</h3>
+                  @if (tree.description) {
+                    <p class="text-gray-600 text-sm mb-3 line-clamp-2">{{ tree.description }}</p>
+                  }
+                  <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
+                    <span>{{ tree.personCount }} {{ i18n.t('common.people') }}</span>
+                    @if (tree.userRole !== null) {
+                      <span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-xs">
+                        {{ getRoleLabel(tree.userRole) }}
+                      </span>
+                    }
+                  </div>
+                  <a
+                    [routerLink]="['/trees', tree.id]"
+                    class="block text-center bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 text-sm">
+                    {{ i18n.t('towns.openTree') }}
+                  </a>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- No Trees -->
+        @if (!treesLoading() && trees().length === 0) {
+          <div class="text-center py-12 bg-white rounded-lg shadow-md">
+            <svg class="mx-auto h-16 w-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+            </svg>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">{{ i18n.t('towns.noTrees') }}</h3>
+            <p class="text-gray-500">{{ i18n.t('towns.noTreesDesc') }}</p>
+          </div>
+        }
+      }
+
+      <!-- Edit Modal -->
+      @if (showEditModal && town()) {
+        <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" (click)="showEditModal = false">
+          <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4" (click)="$event.stopPropagation()">
+            <div class="p-6">
+              <h2 class="text-xl font-semibold mb-4">{{ i18n.t('towns.editTitle') }}</h2>
+
+              <form (ngSubmit)="updateTown()">
+                <div class="mb-4">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">{{ i18n.t('towns.name') }} *</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="editTown.name"
+                    name="name"
+                    required
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+
+                <div class="mb-4">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">{{ i18n.t('towns.nameEn') }}</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="editTown.nameEn"
+                    name="nameEn"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+
+                <div class="mb-4">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">{{ i18n.t('towns.nameAr') }}</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="editTown.nameAr"
+                    name="nameAr"
+                    dir="rtl"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+
+                <div class="mb-4">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">{{ i18n.t('towns.nameLocal') }}</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="editTown.nameLocal"
+                    name="nameLocal"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+
+                <div class="mb-4">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">{{ i18n.t('towns.country') }}</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="editTown.country"
+                    name="country"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+
+                <div class="mb-6">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">{{ i18n.t('towns.description') }}</label>
+                  <textarea
+                    [(ngModel)]="editTown.description"
+                    name="description"
+                    rows="3"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+                </div>
+
+                @if (editError()) {
+                  <div class="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded mb-4 text-sm">
+                    {{ editError() }}
+                  </div>
+                }
+
+                <div class="flex gap-3">
+                  <button
+                    type="button"
+                    (click)="showEditModal = false"
+                    class="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+                    {{ i18n.t('common.cancel') }}
+                  </button>
+                  <button
+                    type="submit"
+                    [disabled]="saving()"
+                    class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                    {{ saving() ? i18n.t('common.saving') : i18n.t('common.save') }}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  `,
+  styles: [`
+    .line-clamp-2 {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+  `]
+})
+export class TownDetailComponent implements OnInit {
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private townService = inject(TownService);
+  private authService = inject(AuthService);
+  i18n = inject(I18nService);
+
+  town = signal<Town | null>(null);
+  trees = signal<FamilyTreeListItem[]>([]);
+  loading = signal(true);
+  treesLoading = signal(true);
+  error = signal<string | null>(null);
+
+  showEditModal = false;
+  saving = signal(false);
+  editError = signal<string | null>(null);
+  editTown: UpdateTownRequest = {};
+
+  ngOnInit() {
+    const id = this.route.snapshot.paramMap.get('id');
+    if (id) {
+      this.loadTown(id);
+      this.loadTrees(id);
+    }
+  }
+
+  loadTown(id: string) {
+    this.loading.set(true);
+    this.error.set(null);
+
+    this.townService.getTown(id).subscribe({
+      next: (town) => {
+        this.town.set(town);
+        this.editTown = {
+          name: town.name,
+          nameEn: town.nameEn,
+          nameAr: town.nameAr,
+          nameLocal: town.nameLocal,
+          description: town.description,
+          country: town.country
+        };
+        this.loading.set(false);
+      },
+      error: (err) => {
+        this.error.set(err.error?.message || 'Failed to load town');
+        this.loading.set(false);
+      }
+    });
+  }
+
+  loadTrees(townId: string) {
+    this.treesLoading.set(true);
+
+    this.townService.getTownTrees(townId).subscribe({
+      next: (trees) => {
+        this.trees.set(trees);
+        this.treesLoading.set(false);
+      },
+      error: () => {
+        this.treesLoading.set(false);
+      }
+    });
+  }
+
+  updateTown() {
+    const townId = this.town()?.id;
+    if (!townId || !this.editTown.name?.trim()) return;
+
+    this.saving.set(true);
+    this.editError.set(null);
+
+    this.townService.updateTown(townId, this.editTown).subscribe({
+      next: (updated) => {
+        this.town.set(updated);
+        this.showEditModal = false;
+        this.saving.set(false);
+      },
+      error: (err) => {
+        this.editError.set(err.error?.message || 'Failed to update town');
+        this.saving.set(false);
+      }
+    });
+  }
+
+  confirmDelete() {
+    const townId = this.town()?.id;
+    if (!townId) return;
+
+    if (confirm(this.i18n.t('towns.confirmDelete'))) {
+      this.townService.deleteTown(townId).subscribe({
+        next: () => {
+          this.router.navigate(['/towns']);
+        },
+        error: (err) => {
+          this.error.set(err.error?.message || 'Failed to delete town');
+        }
+      });
+    }
+  }
+
+  getTownDisplayName(): string {
+    const t = this.town();
+    if (!t) return '';
+    return this.i18n.getTownName(t);
+  }
+
+  getRoleLabel(role: OrgRole | null): string {
+    if (role === null) return '';
+    return OrgRoleLabels[role] || 'Unknown';
+  }
+
+  isAdmin(): boolean {
+    const user = this.authService.getCurrentUser();
+    return user?.systemRole === 'SuperAdmin' || user?.systemRole === 'Admin';
+  }
+
+  isSuperAdmin(): boolean {
+    const user = this.authService.getCurrentUser();
+    return user?.systemRole === 'SuperAdmin';
+  }
+}

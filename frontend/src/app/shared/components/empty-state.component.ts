@@ -1,0 +1,29 @@
+import { Component, Input } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+
+@Component({
+  selector: 'app-empty-state',
+  standalone: true,
+  imports: [CommonModule, MatIconModule, MatButtonModule],
+  template: `
+    <div class="ft-empty-state">
+      @if (icon) {
+        <mat-icon class="ft-empty-state__icon">{{ icon }}</mat-icon>
+      }
+      @if (title) {
+        <h3 class="ft-empty-state__title">{{ title }}</h3>
+      }
+      @if (description) {
+        <p class="ft-empty-state__description">{{ description }}</p>
+      }
+      <ng-content></ng-content>
+    </div>
+  `
+})
+export class EmptyStateComponent {
+  @Input() icon?: string;
+  @Input() title?: string;
+  @Input() description?: string;
+}

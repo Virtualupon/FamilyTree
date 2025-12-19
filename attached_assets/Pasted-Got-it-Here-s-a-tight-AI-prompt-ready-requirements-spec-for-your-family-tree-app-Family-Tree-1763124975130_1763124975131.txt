@@ -1,0 +1,248 @@
+Got it! Here’s a tight, AI-prompt-ready requirements spec for your family-tree app.
+
+# Family Tree Platform — Requirements (PostgreSQL + .NET Core (EF) + Angular 20)
+
+## 1) Goal & Scope
+
+Build a modern, collaborative family-history platform with:
+
+* Accurate lineage modeling (supports multiple spouses/parallel unions, divorces, adoptions, step/half relations).
+* Beautiful, fast tree browsing (pedigree/descendant/fan views), rich media, and powerful search.
+* Multi-tenant, privacy-aware collaboration with audit history and rollbacks.
+
+## 2) Tech Stack (Hard Requirements)
+
+* **Frontend:** Angular 20 (standalone APIs), TypeScript, RxJS, Angular Router, Angular Forms.
+
+  * Styling: TailwindCSS; component lib: Headless UI or Angular Material; icon set: Heroicons/FontAwesome.
+  * PWA (offline read, background sync for queued edits).
+* **Backend:** .NET 8 Web API, EF Core 8, FluentValidation.
+* **Database:** PostgreSQL 16+ (UUID or int identity keys), pg_trgm + full-text search (tsvector), JSONB for extensible facts.
+* **Auth:** JWT (access/refresh), optional OAuth (Google/Microsoft/Apple). Role-based access control (RBAC).
+* **Storage:** Pluggable media storage (local/S3-compatible/Linode/Nextcloud) via abstraction layer.
+* **DevOps:** Docker + docker-compose, CI/CD (GitHub Actions), OpenAPI/Swagger.
+
+## 3) Core Functional Requirements
+
+### 3.1 Person & Identity
+
+* Person profile: names (given/middle/family), **multiple name variants** (aliases, maiden, tribal/clan names), **multi-script support** (e.g., Arabic/Latin/Nobiin), transliteration fields.
+* Sex, gender (configurable), birth/death **with date precision** (exact/about/between/unknown) and **calendar system** (Gregorian + optional Hijri/Ethiopic).
+* Places (linked to Geo table with hierarchy + coordinates).
+* Occupations, education, religion, nationality/ethnicity (optional & privacy-controlled).
+* Notes, tags, sources/citations, attachments.
+* Status flags: verified, needs-review, conflicting.
+
+### 3.2 Relationships
+
+* **Parent–Child**: supports biological, adoptive, step, foster; per-edge certainty/notes/sources.
+* **Unions/Marriages**:
+
+  * Many-to-many via **Union** entity (handles **polygamy**/concurrent unions).
+  * Fields: start date/place, end date/place (divorce/death/annulment), notes, sources.
+* Siblings (derived), in-laws (derived), guardianship (explicit).
+
+### 3.3 Media & Sources
+
+* Upload images, audio, **video**, documents (PDF).
+* Per-asset metadata: capture date/place, people tags (face-region tagging), copyright, visibility.
+* Automatic thumbnails, server-side transcoding for video (job queue).
+* Source management: citations with page/folio/URL, repository records.
+
+### 3.4 Research & Proof
+
+* Evidence model: attach sources to facts/edges with confidence level.
+* Conflict resolution UI: compare competing facts, choose preferred, keep alternates.
+
+### 3.5 Tree Visualization & Navigation
+
+* Views: **Pedigree**, **Descendant**, **Fan chart**, **Timeline**, **Map**.
+* Smooth pan/zoom, lazy loading; click to expand branches; breadcrumb trail.
+* Color coding (e.g., maternal vs paternal lines), badges (verified/has-media/has-notes).
+
+### 3.6 Search & Discovery
+
+* Global search: name, alias, phonetic (Double Metaphone/Soundex), approximate string match (pg_trgm), date/place filters.
+* Advanced filters: tags, has-media, union count, clan/tribe, occupation.
+* **Kinship calculator** (relationship path: “second cousin once removed”), **Ahnentafel numbering**, pedigree collapse highlighting.
+
+### 3.7 Collaboration & Permissions
+
+* **Multi-tenant** (Organization/Family Space).
+* Roles: Owner, Admin, Editor, Contributor, Viewer; per-entity overrides.
+* Share links with expiry; **privacy rules** (e.g., hide living persons or show initials only).
+* Comments & mentions on people/unions/media.
+* **Change proposals** (PR-style): suggest edits, review/approve, merge.
+
+### 3.8 Versioning & Audit
+
+* Full **event-sourced audit log** per entity (create/update/delete with diffs).
+* **Undo/redo**, restore to snapshot.
+* Data retention & export logs.
+
+### 3.9 Import/Export & Interop
+
+* **GEDCOM 5.5.1/7.0** import/export with mapping UI (preview conflicts/duplicates).
+* CSV import for people/relations/media manifests.
+* Bulk merge/duplicate detection (fuzzy match on name+dates+places).
+
+### 3.10 Localization & Accessibility
+
+* i18n (English/Arabic/Nobiin ready), RTL support.
+* A11y: WCAG 2.1 AA (keyboard navigable tree, alt text, ARIA).
+
+### 3.11 Notifications & Tasks
+
+* In-app + email: mentions, review requests, import results, background job status.
+* Background jobs: media processing, GEDCOM import, dedup, index rebuild (with retry & progress).
+
+### 3.12 Analytics (optional)
+
+* Opt-in: tree size growth, collaboration activity, most-viewed profiles (privacy-safe).
+* Admin dashboards.
+
+## 4) Data Model (High-Level)
+
+**Core Tables**
+
+* `Person (Id, PrimaryName, Sex, Birth*, Death*, PrivacyLevel, …)`
+* `PersonName (Id, PersonId, Script, Given, Family, Full, Type, Transliteration)`
+* `Event (Id, PersonId? UnionId? Type, Date*, PlaceId, ValueJSONB, Certainty)`
+* `Union (Id, Type, StartDate*, EndDate*, PlaceId, Notes)`
+* `UnionMember (Id, UnionId, PersonId, Role)` // spouse/partner
+* `ParentChild (Id, ParentId, ChildId, RelationshipType, Certainty, Notes)`
+* `Media (Id, Url, StorageKey, Kind, OwnerOrgId, Visibility, MetaJSONB)`
+* `MediaLink (Id, MediaId, PersonId? UnionId? EventId?)`
+* `Source (Id, Title, Repo, Citation, Url, MetaJSONB)`
+* `FactSource (Id, TargetType, TargetId, SourceId, Page, Confidence)`
+* `Place (Id, Name, Type, ParentId, Lat, Lng, AltNamesJSONB)`
+* `Tag (Id, Name)` + `PersonTag (Id, PersonId, TagId)`
+
+**Security & Org**
+
+* `Org (Id, Name, SettingsJSONB)`
+* `User (Id, Email, PasswordHash, …)`
+* `OrgUser (OrgId, UserId, Role)`
+* `AclOverride (Id, EntityType, EntityId, UserId/OrgRole, PermissionSet)`
+* `AuditLog (Id, ActorId, EntityType, EntityId, ChangeJSONB, Timestamp)`
+
+**Indexes**
+
+* GIN on `to_tsvector('simple', searchable_text)` for Person.
+* GIST/GIN pg_trgm on names.
+* B-trees on foreign keys and (PersonId, EventType).
+
+## 5) API (Representative Endpoints)
+
+**REST (OpenAPI)**
+
+* `GET /people?query=&filters=…` (search)
+* `POST /people` / `PATCH /people/{id}` / `DELETE /people/{id}`
+* `POST /people/{id}/names`, `POST /people/{id}/media`
+* `GET /people/{id}/kinship/{otherPersonId}`
+* `GET /tree/pedigree/{personId}`, `GET /tree/descendants/{personId}`
+* `POST /unions`, `POST /unions/{id}/members`
+* `POST /parent-child` (create edge)
+* `POST /imports/gedcom` (async job), `GET /jobs/{id}`
+* `POST /proposals`, `POST /proposals/{id}/approve`
+* `GET /audit/{entityType}/{entityId}`
+
+*(Optional GraphQL gateway for complex tree queries.)*
+
+## 6) Frontend (Angular 20) Modules & Key Components
+
+* `app-core/` (auth, http, state, i18n, guards, error handling)
+* `people/`
+
+  * `PersonSearchPage`, `PersonDetailPage`, `EditPersonDialog`
+  * `PersonMediaGallery`, `SourceList`, `NotesTab`
+* `tree/`
+
+  * `TreeViewer` (canvas/WebGL/SVG with pan/zoom), `FanChart`, `Timeline`
+  * `KinshipPathViewer`, mini-map navigator
+* `relations/`
+
+  * `UnionEditor` (supports multiple concurrent unions), `ParentChildEditor`
+* `media/`
+
+  * `Uploader (chunked)`, `Cropper`, `FaceTagger`, `VideoPlayer`
+* `research/`
+
+  * `CitationEditor`, `ConflictResolution`, `Proposals`
+* `imports/`
+
+  * `GedcomWizard`, `CsvMapper`, `JobProgress`
+* `admin/`
+
+  * `OrgSettings`, `MemberManagement`, `PrivacyRules`, `AuditTrail`
+* `shared/`
+
+  * `DatePrecisionInput`, `PlacePicker (map)`, `TagInput`, `SourceChip`
+
+## 7) Non-Functional Requirements
+
+* **Performance:** initial tree view TTI < 2.5s (p95), node expand < 150ms (cached), search < 500ms (p95).
+* **Scalability:** 1M+ persons per tenant; background workers (Hangfire/Quartz) for jobs.
+* **Security:** OWASP ASVS; rate-limiting, CSRF (where relevant), content-security-policy; media URL signing.
+* **Privacy:** per-field visibility, “living person” rules, right-to-erasure/export.
+* **Reliability:** 99.9% monthly uptime target; daily backups; PITR; migrations with EF Core.
+* **Accessibility:** WCAG 2.1 AA.
+
+## 8) Tree Layout & Algorithms
+
+* Compact layered layout (Buchheim/Reingold-Tilford variant) with **union nodes** to support multiple spouses cleanly.
+* Cycle detection & prevention (validation on create).
+* **Kinship path** via BFS on typed edges with relation labels.
+* **Ahnentafel** and **SOSA** numbering generation.
+* Pedigree collapse detection and visual markers.
+
+## 9) Validation Rules (Samples)
+
+* A union must have ≥2 members; dates must be sane (no negative age, child birth after parent birth + min age rule).
+* No duplicate parallel parent edges of same type without justification.
+* Disallow cycles (child as ancestor).
+* Living-person visibility: hide dates/places unless editor or explicit consent.
+
+## 10) Migrations & Seeding
+
+* EF Core migrations, deterministic seeds for demo.
+* Admin bootstrap (first user becomes Owner).
+* Sample dataset loader (CSV/GEDCOM).
+
+## 11) Testing
+
+* **Backend:** xUnit + FluentAssertions; testcontainers-postgres.
+* **Frontend:** Jest/Karma alternatives, Angular Testing Library; **Playwright** for e2e (tree interactions, search, uploads).
+* **Contract tests:** OpenAPI schema validation.
+
+## 12) Observability
+
+* Structured logs (Serilog) with correlation IDs.
+* Metrics (Prometheus/OpenTelemetry), traces for slow queries.
+* Admin health page (liveness/readiness), job dashboard.
+
+## 13) Deployment
+
+* Docker images for api/web/worker; Nginx reverse proxy; HTTPS (Let’s Encrypt).
+* Env-based config for storage provider, feature flags.
+* CDN for media/thumbnails (optional).
+
+## 14) Future Extensions (Nice-to-Have)
+
+* DNA kit record placeholder (no processing).
+* Story builder (narratives with media & timeline).
+* Public profile pages with vanity URLs and shareable embeds.
+* Mobile app shell (Capacitor) reusing Angular.
+
+---
+
+### Acceptance Criteria (Abbreviated)
+
+1. Create a person with multiple names/scripts; attach media; set privacy; see in audit log.
+2. Create **two concurrent unions** for a man; add children to each; tree view renders clearly with spouse lanes.
+3. Search by alias + fuzzy spelling returns correct person; kinship calculator returns human-readable relationship.
+4. Import a GEDCOM file with unions/children; resolve duplicates; export yields equivalent content.
+5. Living persons hidden for Viewer role; Editor can see and edit; per-entity share link works with expiry.
+6. Undo a bad merge via audit restore.
+
+If you want, I can convert this into a JSON “prompt block” for your AI pipeline or generate initial EF Core models + Angular scaffolds next.

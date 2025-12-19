@@ -1,0 +1,529 @@
+// File: Services/ParentChildService.cs
+using Microsoft.EntityFrameworkCore;
+using FamilyTreeApi.Data;
+using FamilyTreeApi.DTOs;
+using FamilyTreeApi.Models;
+using FamilyTreeApi.Models.Enums;
+
+namespace FamilyTreeApi.Services;
+
+/// <summary>
+/// ParentChild service implementation containing all business logic for parent-child relationships.
+/// </summary>
+public class ParentChildService : IParentChildService
+{
+    private readonly ApplicationDbContext _context;
+    private readonly ILogger<ParentChildService> _logger;
+
+    public ParentChildService(
+        ApplicationDbContext context,
+        ILogger<ParentChildService> logger)
+    {
+        _context = context;
+        _logger = logger;
+    }
+
+    public async Task<ServiceResult<List<ParentChildResponse>>> GetParentsAsync(
+        Guid personId,
+        UserContext userContext,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("GetParents called - PersonId: {PersonId}, UserId: {UserId}, SystemRole: {SystemRole}",
+                personId, userContext.UserId, userContext.SystemRole);
+
+            // Find the person and check if user has access to their tree
+            var person = await _context.People
+                .Include(p => p.Org)
+                .FirstOrDefaultAsync(p => p.Id == personId, cancellationToken);
+
+            if (person == null)
+            {
+                _logger.LogWarning("GetParents - Person not found: {PersonId}", personId);
+                return ServiceResult<List<ParentChildResponse>>.NotFound("Person not found");
+            }
+
+            // Check if user has access to this tree
+            var hasAccess = await HasTreeAccessAsync(person.OrgId, userContext, cancellationToken);
+
+            _logger.LogInformation("GetParents - Person: {PersonName}, OrgId: {OrgId}, HasAccess: {HasAccess}",
+                person.PrimaryName, person.OrgId, hasAccess);
+
+            if (!hasAccess)
+            {
+                _logger.LogWarning("GetParents - ACCESS DENIED for UserId {UserId} to PersonId {PersonId} (OrgId: {OrgId})",
+                    userContext.UserId, personId, person.OrgId);
+                return ServiceResult<List<ParentChildResponse>>.Forbidden();
+            }
+
+            var parents = await _context.ParentChildren
+                .Include(pc => pc.Parent)
+                .Where(pc => pc.ChildId == personId)
+                .Select(pc => new ParentChildResponse
+                {
+                    Id = pc.Id,
+                    ParentId = pc.ParentId,
+                    ParentName = pc.Parent.PrimaryName,
+                    ParentSex = pc.Parent.Sex,
+                    ChildId = pc.ChildId,
+                    ChildName = null,
+                    ChildSex = null,
+                    RelationshipType = pc.RelationshipType,
+                    Notes = pc.Notes
+                })
+                .ToListAsync(cancellationToken);
+
+            return ServiceResult<List<ParentChildResponse>>.Success(parents);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting parents for person {PersonId}", personId);
+            return ServiceResult<List<ParentChildResponse>>.InternalError("Error loading parents");
+        }
+    }
+
+    public async Task<ServiceResult<List<ParentChildResponse>>> GetChildrenAsync(
+        Guid personId,
+        UserContext userContext,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("GetChildren called - PersonId: {PersonId}, UserId: {UserId}, SystemRole: {SystemRole}",
+                personId, userContext.UserId, userContext.SystemRole);
+
+            // Find the person and check if user has access to their tree
+            var person = await _context.People
+                .Include(p => p.Org)
+                .FirstOrDefaultAsync(p => p.Id == personId, cancellationToken);
+
+            if (person == null)
+            {
+                _logger.LogWarning("GetChildren - Person not found: {PersonId}", personId);
+                return ServiceResult<List<ParentChildResponse>>.NotFound("Person not found");
+            }
+
+            // Check if user has access to this tree
+            var hasAccess = await HasTreeAccessAsync(person.OrgId, userContext, cancellationToken);
+
+            _logger.LogInformation("GetChildren - Person: {PersonName}, OrgId: {OrgId}, HasAccess: {HasAccess}",
+                person.PrimaryName, person.OrgId, hasAccess);
+
+            if (!hasAccess)
+            {
+                _logger.LogWarning("GetChildren - ACCESS DENIED for UserId {UserId} to PersonId {PersonId} (OrgId: {OrgId})",
+                    userContext.UserId, personId, person.OrgId);
+                return ServiceResult<List<ParentChildResponse>>.Forbidden();
+            }
+
+            var children = await _context.ParentChildren
+                .Include(pc => pc.Child)
+                .Where(pc => pc.ParentId == personId)
+                .Select(pc => new ParentChildResponse
+                {
+                    Id = pc.Id,
+                    ParentId = pc.ParentId,
+                    ParentName = null,
+                    ParentSex = null,
+                    ChildId = pc.ChildId,
+                    ChildName = pc.Child.PrimaryName,
+                    ChildSex = pc.Child.Sex,
+                    RelationshipType = pc.RelationshipType,
+                    Notes = pc.Notes
+                })
+                .ToListAsync(cancellationToken);
+
+            return ServiceResult<List<ParentChildResponse>>.Success(children);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting children for person {PersonId}", personId);
+            return ServiceResult<List<ParentChildResponse>>.InternalError("Error loading children");
+        }
+    }
+
+    public async Task<ServiceResult<ParentChildResponse>> AddParentAsync(
+        Guid childId,
+        Guid parentId,
+        AddParentChildRequest? request,
+        UserContext userContext,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (userContext.OrgId == null)
+            {
+                return ServiceResult<ParentChildResponse>.Failure("You must be a member of an organization to add relationships.");
+            }
+
+            var child = await _context.People.FirstOrDefaultAsync(
+                p => p.Id == childId && p.OrgId == userContext.OrgId, cancellationToken);
+            if (child == null)
+            {
+                return ServiceResult<ParentChildResponse>.NotFound("Child not found");
+            }
+
+            var parent = await _context.People.FirstOrDefaultAsync(p => p.Id == parentId, cancellationToken);
+            if (parent == null)
+            {
+                return ServiceResult<ParentChildResponse>.NotFound("Parent not found");
+            }
+
+            // Check for existing relationship
+            var existing = await _context.ParentChildren
+                .AnyAsync(pc => pc.ParentId == parentId && pc.ChildId == childId, cancellationToken);
+            if (existing)
+            {
+                return ServiceResult<ParentChildResponse>.Failure("This parent-child relationship already exists");
+            }
+
+            // Check for cycle (parent can't be their own ancestor)
+            if (await WouldCreateCycleAsync(parentId, childId, cancellationToken))
+            {
+                return ServiceResult<ParentChildResponse>.Failure("This relationship would create a cycle in the family tree");
+            }
+
+            // Check if child already has 2 biological parents
+            var relationshipType = request?.RelationshipType ?? RelationshipType.Biological;
+            if (relationshipType == RelationshipType.Biological)
+            {
+                var existingBioParents = await _context.ParentChildren
+                    .Include(pc => pc.Parent)
+                    .Where(pc => pc.ChildId == childId && pc.RelationshipType == RelationshipType.Biological)
+                    .ToListAsync(cancellationToken);
+
+                if (existingBioParents.Count >= 2)
+                {
+                    return ServiceResult<ParentChildResponse>.Failure("A person can have at most 2 biological parents");
+                }
+
+                var sameGenderParent = existingBioParents.FirstOrDefault(p => p.Parent.Sex == parent.Sex);
+                if (sameGenderParent != null)
+                {
+                    return ServiceResult<ParentChildResponse>.Failure(
+                        $"This person already has a biological {(parent.Sex != Sex.Unknown ? parent.Sex.ToString().ToLower() : "parent")}");
+                }
+            }
+
+            var parentChild = new ParentChild
+            {
+                Id = Guid.NewGuid(),
+                ParentId = parentId,
+                ChildId = childId,
+                RelationshipType = relationshipType,
+                Notes = request?.Notes,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.ParentChildren.Add(parentChild);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Parent-child relationship created: Parent {ParentId} -> Child {ChildId}", parentId, childId);
+
+            var response = new ParentChildResponse
+            {
+                Id = parentChild.Id,
+                ParentId = parentId,
+                ParentName = parent.PrimaryName,
+                ParentSex = parent.Sex,
+                ChildId = childId,
+                ChildName = child.PrimaryName,
+                ChildSex = child.Sex,
+                RelationshipType = parentChild.RelationshipType,
+                Notes = parentChild.Notes
+            };
+
+            return ServiceResult<ParentChildResponse>.Success(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding parent {ParentId} to child {ChildId}", parentId, childId);
+            return ServiceResult<ParentChildResponse>.InternalError("Error creating relationship");
+        }
+    }
+
+    public async Task<ServiceResult<ParentChildResponse>> UpdateRelationshipAsync(
+        Guid id,
+        UpdateParentChildRequest request,
+        UserContext userContext,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (userContext.OrgId == null)
+            {
+                return ServiceResult<ParentChildResponse>.Failure("You must be a member of an organization to update relationships.");
+            }
+
+            var relationship = await _context.ParentChildren
+                .Include(pc => pc.Parent)
+                .Include(pc => pc.Child)
+                .FirstOrDefaultAsync(pc => pc.Id == id &&
+                    (pc.Parent.OrgId == userContext.OrgId || pc.Child.OrgId == userContext.OrgId), cancellationToken);
+
+            if (relationship == null)
+            {
+                return ServiceResult<ParentChildResponse>.NotFound("Relationship not found");
+            }
+
+            if (request.RelationshipType.HasValue)
+                relationship.RelationshipType = request.RelationshipType.Value;
+            if (request.Notes != null)
+                relationship.Notes = request.Notes;
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Parent-child relationship updated: {RelationshipId}", id);
+
+            var response = new ParentChildResponse
+            {
+                Id = relationship.Id,
+                ParentId = relationship.ParentId,
+                ParentName = relationship.Parent.PrimaryName,
+                ParentSex = relationship.Parent.Sex,
+                ChildId = relationship.ChildId,
+                ChildName = relationship.Child.PrimaryName,
+                ChildSex = relationship.Child.Sex,
+                RelationshipType = relationship.RelationshipType,
+                Notes = relationship.Notes
+            };
+
+            return ServiceResult<ParentChildResponse>.Success(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating relationship {RelationshipId}", id);
+            return ServiceResult<ParentChildResponse>.InternalError("Error updating relationship");
+        }
+    }
+
+    public async Task<ServiceResult> DeleteRelationshipAsync(
+        Guid id,
+        UserContext userContext,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (userContext.OrgId == null)
+            {
+                return ServiceResult.Failure("You must be a member of an organization to delete relationships.");
+            }
+
+            var relationship = await _context.ParentChildren
+                .Include(pc => pc.Parent)
+                .Include(pc => pc.Child)
+                .FirstOrDefaultAsync(pc => pc.Id == id &&
+                    (pc.Parent.OrgId == userContext.OrgId || pc.Child.OrgId == userContext.OrgId), cancellationToken);
+
+            if (relationship == null)
+            {
+                return ServiceResult.NotFound("Relationship not found");
+            }
+
+            _context.ParentChildren.Remove(relationship);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Parent-child relationship deleted: {RelationshipId}", id);
+
+            return ServiceResult.Success();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting relationship {RelationshipId}", id);
+            return ServiceResult.InternalError("Error deleting relationship");
+        }
+    }
+
+    public async Task<ServiceResult> RemoveParentAsync(
+        Guid childId,
+        Guid parentId,
+        UserContext userContext,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (userContext.OrgId == null)
+            {
+                return ServiceResult.Failure("You must be a member of an organization to remove relationships.");
+            }
+
+            var relationship = await _context.ParentChildren
+                .Include(pc => pc.Parent)
+                .Include(pc => pc.Child)
+                .FirstOrDefaultAsync(pc => pc.ParentId == parentId && pc.ChildId == childId &&
+                    (pc.Parent.OrgId == userContext.OrgId || pc.Child.OrgId == userContext.OrgId), cancellationToken);
+
+            if (relationship == null)
+            {
+                return ServiceResult.NotFound("Relationship not found");
+            }
+
+            _context.ParentChildren.Remove(relationship);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Parent removed: Parent {ParentId} from Child {ChildId}", parentId, childId);
+
+            return ServiceResult.Success();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error removing parent {ParentId} from child {ChildId}", parentId, childId);
+            return ServiceResult.InternalError("Error removing relationship");
+        }
+    }
+
+    public async Task<ServiceResult<List<SiblingResponse>>> GetSiblingsAsync(
+        Guid personId,
+        UserContext userContext,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            _logger.LogInformation("GetSiblings called - PersonId: {PersonId}, UserId: {UserId}, SystemRole: {SystemRole}",
+                personId, userContext.UserId, userContext.SystemRole);
+
+            // Find the person and check if user has access to their tree
+            var person = await _context.People
+                .Include(p => p.Org)
+                .FirstOrDefaultAsync(p => p.Id == personId, cancellationToken);
+
+            if (person == null)
+            {
+                return ServiceResult<List<SiblingResponse>>.NotFound("Person not found");
+            }
+
+            // Check if user has access to this tree
+            var hasAccess = await HasTreeAccessAsync(person.OrgId, userContext, cancellationToken);
+
+            if (!hasAccess)
+            {
+                _logger.LogWarning("GetSiblings - ACCESS DENIED for UserId {UserId} to PersonId {PersonId} (OrgId: {OrgId})",
+                    userContext.UserId, personId, person.OrgId);
+                return ServiceResult<List<SiblingResponse>>.Forbidden();
+            }
+
+            // Get all parents of this person
+            var parentIds = await _context.ParentChildren
+                .Where(pc => pc.ChildId == personId)
+                .Select(pc => pc.ParentId)
+                .ToListAsync(cancellationToken);
+
+            if (!parentIds.Any())
+            {
+                return ServiceResult<List<SiblingResponse>>.Success(new List<SiblingResponse>());
+            }
+
+            // Get all children of these parents (excluding the person themselves)
+            var siblings = await _context.ParentChildren
+                .Include(pc => pc.Child)
+                .Where(pc => parentIds.Contains(pc.ParentId) && pc.ChildId != personId)
+                .Select(pc => new { pc.Child, pc.ParentId })
+                .ToListAsync(cancellationToken);
+
+            // Group by child and determine sibling type
+            var siblingGroups = siblings
+                .GroupBy(s => s.Child.Id)
+                .Select(g => new SiblingResponse
+                {
+                    PersonId = g.Key,
+                    PersonName = g.First().Child.PrimaryName,
+                    PersonSex = g.First().Child.Sex,
+                    SharedParentCount = g.Select(x => x.ParentId).Distinct().Count(),
+                    IsFullSibling = g.Select(x => x.ParentId).Distinct().Count() == parentIds.Count && parentIds.Count >= 2,
+                    IsHalfSibling = g.Select(x => x.ParentId).Distinct().Count() < parentIds.Count || parentIds.Count < 2
+                })
+                .ToList();
+
+            return ServiceResult<List<SiblingResponse>>.Success(siblingGroups);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting siblings for person {PersonId}", personId);
+            return ServiceResult<List<SiblingResponse>>.InternalError("Error loading siblings");
+        }
+    }
+
+    // ============================================================================
+    // PRIVATE HELPER METHODS
+    // ============================================================================
+
+    /// <summary>
+    /// Check if user has access to a specific tree.
+    /// SuperAdmin: access to all trees
+    /// Admin: access to assigned trees + member trees
+    /// User: access to member trees only (or public trees)
+    /// </summary>
+    private async Task<bool> HasTreeAccessAsync(
+        Guid treeId,
+        UserContext userContext,
+        CancellationToken cancellationToken)
+    {
+        // SuperAdmin has access to everything
+        if (userContext.IsSuperAdmin) return true;
+
+        // Admin: check for assignment or membership
+        if (userContext.IsAdmin)
+        {
+            var isAssigned = await _context.Set<AdminTreeAssignment>()
+                .AnyAsync(a => a.UserId == userContext.UserId && a.TreeId == treeId, cancellationToken);
+            if (isAssigned) return true;
+        }
+
+        // Check direct membership
+        var isMember = await _context.OrgUsers
+            .AnyAsync(ou => ou.UserId == userContext.UserId && ou.OrgId == treeId, cancellationToken);
+        if (isMember) return true;
+
+        // Check if tree is public
+        var isPublic = await _context.Orgs
+            .AnyAsync(o => o.Id == treeId && o.IsPublic, cancellationToken);
+
+        return isPublic;
+    }
+
+    /// <summary>
+    /// Check if adding a parent-child relationship would create a cycle in the family tree.
+    /// </summary>
+    private async Task<bool> WouldCreateCycleAsync(
+        Guid parentId,
+        Guid childId,
+        CancellationToken cancellationToken)
+    {
+        var visited = new HashSet<Guid>();
+        var queue = new Queue<Guid>();
+        queue.Enqueue(childId);
+
+        while (queue.Count > 0)
+        {
+            var current = queue.Dequeue();
+
+            if (current == parentId)
+            {
+                return true;
+            }
+
+            if (visited.Contains(current))
+            {
+                continue;
+            }
+
+            visited.Add(current);
+
+            var children = await _context.ParentChildren
+                .Where(pc => pc.ParentId == current)
+                .Select(pc => pc.ChildId)
+                .ToListAsync(cancellationToken);
+
+            foreach (var child in children)
+            {
+                if (!visited.Contains(child))
+                {
+                    queue.Enqueue(child);
+                }
+            }
+        }
+
+        return false;
+    }
+}

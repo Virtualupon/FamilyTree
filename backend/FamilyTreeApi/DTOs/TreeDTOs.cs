@@ -100,3 +100,38 @@ public class CommonAncestor
     public int GenerationsFromPerson1 { get; set; }
     public int GenerationsFromPerson2 { get; set; }
 }
+
+public class TreeViewRequest
+{
+    public Guid PersonId { get; set; }
+    public Guid? TreeId { get; set; }
+    public int? Generations { get; set; }
+}
+
+public class FamilyGroupResponse
+{
+    public TreePersonNode Person { get; set; } = null!;
+    public List<TreePersonNode> Parents { get; set; } = new();
+    public List<SpouseInfo> Spouses { get; set; } = new();
+    public List<TreePersonNode> Children { get; set; } = new();
+}
+
+public class SpouseInfo
+{
+    public TreePersonNode Person { get; set; } = null!;
+    public Guid UnionId { get; set; }
+    public UnionType UnionType { get; set; }
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
+}
+
+public class RelationshipResponse
+{
+    public Guid Person1Id { get; set; }
+    public Guid Person2Id { get; set; }
+    public string RelationshipType { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public int? GenerationsFromCommonAncestor1 { get; set; }
+    public int? GenerationsFromCommonAncestor2 { get; set; }
+    public List<Guid> CommonAncestors { get; set; } = new();
+}

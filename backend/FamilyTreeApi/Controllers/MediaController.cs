@@ -1,38 +1,153 @@
-using System.Security.Claims;
+// File: Controllers/MediaController.cs
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using FamilyTreeApi.Data;
 using FamilyTreeApi.DTOs;
-using FamilyTreeApi.Models;
-using FamilyTreeApi.Models.Enums;
-using VirtualUpon.Storage.Factories;
+using FamilyTreeApi.Services;
+using System.Security.Claims;
 
 namespace FamilyTreeApi.Controllers;
 
 /// <summary>
-/// MediaController - Handles organization-level media with FormFile uploads
-/// Uses VirtualUpon.Storage directly for file operations
+/// MediaController - thin controller handling only HTTP concerns.
+/// All business logic is delegated to IMediaManagementService.
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
 public class MediaController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
-    private readonly IStorageService _storageService;
+    private readonly IMediaManagementService _mediaManagementService;
     private readonly ILogger<MediaController> _logger;
-    private static readonly string[] AllowedImageTypes = { "image/jpeg", "image/png", "image/gif", "image/webp", "image/heic" };
-    private static readonly string[] AllowedVideoTypes = { "video/mp4", "video/webm", "video/quicktime" };
-    private static readonly string[] AllowedAudioTypes = { "audio/mpeg", "audio/wav", "audio/ogg" };
-    private static readonly string[] AllowedDocumentTypes = { "application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document" };
     private const long MaxFileSizeBytes = 50 * 1024 * 1024;
 
-    public MediaController(ApplicationDbContext context, IStorageService storageService, ILogger<MediaController> logger)
+    public MediaController(IMediaManagementService mediaManagementService, ILogger<MediaController> logger)
     {
-        _context = context;
-        _storageService = storageService;
+        _mediaManagementService = mediaManagementService;
         _logger = logger;
+    }
+
+    // ========================================================================
+    // MEDIA CRUD
+    // ========================================================================
+
+    /// <summary>
+    /// Search media with filters
+    /// </summary>
+    [HttpGet]
+    public async Task<ActionResult<MediaSearchResponse>> SearchMedia([FromQuery] MediaSearchRequest request)
+    {
+        var userContext = BuildUserContext();
+        var result = await _mediaManagementService.SearchMediaAsync(request, userContext);
+
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Get a specific media item
+    /// </summary>
+    [HttpGet("{id}")]
+    public async Task<ActionResult<MediaResponse>> GetMedia(Guid id)
+    {
+        var userContext = BuildUserContext();
+        var result = await _mediaManagementService.GetMediaAsync(id, userContext);
+
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Upload a new media file
+    /// </summary>
+    [HttpPost("upload")]
+    [Authorize(Roles = "0,1,2,3")]
+    [RequestSizeLimit(MaxFileSizeBytes)]
+    public async Task<ActionResult<MediaResponse>> UploadMedia([FromForm] MediaUploadRequest request, IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest(new { message = "No file uploaded" });
+        }
+
+        if (file.Length > MaxFileSizeBytes)
+        {
+            return BadRequest(new { message = $"File size exceeds maximum allowed size of {MaxFileSizeBytes / (1024 * 1024)}MB" });
+        }
+
+        var userContext = BuildUserContext();
+        var result = await _mediaManagementService.UploadMediaAsync(request, file, userContext);
+
+        if (!result.IsSuccess)
+        {
+            return HandleError(result);
+        }
+
+        return CreatedAtAction(nameof(GetMedia), new { id = result.Data!.Id }, result.Data);
+    }
+
+    /// <summary>
+    /// Update media metadata
+    /// </summary>
+    [HttpPut("{id}")]
+    [Authorize(Roles = "0,1,2")]
+    public async Task<ActionResult<MediaResponse>> UpdateMedia(Guid id, MediaUpdateRequest request)
+    {
+        var userContext = BuildUserContext();
+        var result = await _mediaManagementService.UpdateMediaAsync(id, request, userContext);
+
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Delete a media item
+    /// </summary>
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "0,1,2")]
+    public async Task<IActionResult> DeleteMedia(Guid id)
+    {
+        var userContext = BuildUserContext();
+        var result = await _mediaManagementService.DeleteMediaAsync(id, userContext);
+
+        if (!result.IsSuccess)
+        {
+            return HandleError(result);
+        }
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Download a media file
+    /// </summary>
+    [HttpGet("{id}/download")]
+    public async Task<IActionResult> DownloadMedia(Guid id)
+    {
+        var userContext = BuildUserContext();
+        var result = await _mediaManagementService.DownloadMediaAsync(id, userContext);
+
+        if (!result.IsSuccess)
+        {
+            return HandleError(result);
+        }
+
+        var (data, contentType, fileName) = result.Data!;
+        return File(data, contentType, fileName);
+    }
+
+    // ============================================================================
+    // PRIVATE HELPER METHODS
+    // ============================================================================
+
+    /// <summary>
+    /// Builds UserContext from JWT claims for service-layer authorization.
+    /// </summary>
+    private UserContext BuildUserContext()
+    {
+        return new UserContext
+        {
+            UserId = GetUserId(),
+            OrgId = TryGetOrgIdFromToken(),
+            SystemRole = GetSystemRole(),
+            TreeRole = GetTreeRole()
+        };
     }
 
     private long GetUserId()
@@ -45,7 +160,7 @@ public class MediaController : ControllerBase
         return userId;
     }
 
-    private Guid? TryGetUserOrgId()
+    private Guid? TryGetOrgIdFromToken()
     {
         var orgIdClaim = User.FindFirst("orgId")?.Value;
         if (string.IsNullOrEmpty(orgIdClaim) || !Guid.TryParse(orgIdClaim, out var orgId))
@@ -55,391 +170,53 @@ public class MediaController : ControllerBase
         return orgId;
     }
 
-    [HttpGet]
-    public async Task<ActionResult<MediaSearchResponse>> SearchMedia([FromQuery] MediaSearchRequest request)
+    private string GetSystemRole()
     {
-        var orgId = TryGetUserOrgId();
-        if (orgId == null)
-        {
-            return BadRequest(new { message = "You must be a member of an organization to view media." });
-        }
-        
-        var query = _context.MediaFiles
-            .Where(m => m.OrgId == orgId)
-            .AsQueryable();
-
-        if (request.Kind.HasValue)
-        {
-            query = query.Where(m => m.Kind == request.Kind.Value);
-        }
-
-        if (request.PersonId.HasValue)
-        {
-            query = query.Where(m => m.PersonId == request.PersonId.Value);
-        }
-
-        if (request.CaptureDateFrom.HasValue)
-        {
-            query = query.Where(m => m.CaptureDate >= request.CaptureDateFrom.Value);
-        }
-
-        if (request.CaptureDateTo.HasValue)
-        {
-            query = query.Where(m => m.CaptureDate <= request.CaptureDateTo.Value);
-        }
-
-        if (request.CapturePlaceId.HasValue)
-        {
-            query = query.Where(m => m.CapturePlaceId == request.CapturePlaceId.Value);
-        }
-
-        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
-        {
-            var searchTerm = request.SearchTerm.ToLower();
-            query = query.Where(m => 
-                (m.Title != null && m.Title.ToLower().Contains(searchTerm)) ||
-                (m.Description != null && m.Description.ToLower().Contains(searchTerm)) ||
-                (m.FileName != null && m.FileName.ToLower().Contains(searchTerm)));
-        }
-
-        var totalCount = await query.CountAsync();
-        var totalPages = (int)Math.Ceiling(totalCount / (double)request.PageSize);
-
-        var media = await query
-            .OrderByDescending(m => m.CaptureDate)
-            .ThenByDescending(m => m.CreatedAt)
-            .Skip((request.Page - 1) * request.PageSize)
-            .Take(request.PageSize)
-            .Include(m => m.CapturePlace)
-            .Select(m => new MediaResponse
-            {
-                Id = m.Id,
-                OrgId = m.OrgId,
-                PersonId = m.PersonId,
-                Kind = m.Kind,
-                Url = m.Url,
-                StorageKey = m.StorageKey,
-                FileName = m.FileName,
-                MimeType = m.MimeType,
-                FileSize = m.FileSize,
-                Title = m.Title,
-                Description = m.Description,
-                CaptureDate = m.CaptureDate,
-                CapturePlaceId = m.CapturePlaceId,
-                PlaceName = m.CapturePlace != null ? m.CapturePlace.Name : null,
-                Visibility = m.Visibility,
-                Copyright = m.Copyright,
-                ThumbnailPath = m.ThumbnailPath,
-                MetadataJson = m.MetadataJson,
-                CreatedAt = m.CreatedAt,
-                UpdatedAt = m.UpdatedAt
-            })
-            .ToListAsync();
-
-        return Ok(new MediaSearchResponse
-        {
-            Media = media,
-            TotalCount = totalCount,
-            Page = request.Page,
-            PageSize = request.PageSize,
-            TotalPages = totalPages
-        });
+        var systemRole = User.FindFirst("systemRole")?.Value;
+        return systemRole ?? "User";
     }
 
-    [HttpGet("{id}")]
-    public async Task<ActionResult<MediaResponse>> GetMedia(Guid id)
+    private string GetTreeRole()
     {
-        var orgId = TryGetUserOrgId();
-        if (orgId == null)
+        var role = User.FindFirst(ClaimTypes.Role)?.Value;
+        if (string.IsNullOrEmpty(role))
         {
-            return BadRequest(new { message = "You must be a member of an organization to view media." });
+            return "Viewer";
         }
 
-        var media = await _context.MediaFiles
-            .Where(m => m.Id == id && m.OrgId == orgId)
-            .Include(m => m.CapturePlace)
-            .Select(m => new MediaResponse
-            {
-                Id = m.Id,
-                OrgId = m.OrgId,
-                PersonId = m.PersonId,
-                Kind = m.Kind,
-                Url = m.Url,
-                StorageKey = m.StorageKey,
-                FileName = m.FileName,
-                MimeType = m.MimeType,
-                FileSize = m.FileSize,
-                Title = m.Title,
-                Description = m.Description,
-                CaptureDate = m.CaptureDate,
-                CapturePlaceId = m.CapturePlaceId,
-                PlaceName = m.CapturePlace != null ? m.CapturePlace.Name : null,
-                Visibility = m.Visibility,
-                Copyright = m.Copyright,
-                ThumbnailPath = m.ThumbnailPath,
-                MetadataJson = m.MetadataJson,
-                CreatedAt = m.CreatedAt,
-                UpdatedAt = m.UpdatedAt
-            })
-            .FirstOrDefaultAsync();
-
-        if (media == null)
+        if (role.Contains(':'))
         {
-            return NotFound(new { message = "Media not found" });
+            role = role.Split(':').Last();
         }
 
-        return Ok(media);
+        return role;
     }
 
-    [HttpPost("upload")]
-    [Authorize(Roles = "0,1,2,3")]
-    [RequestSizeLimit(MaxFileSizeBytes)]
-    public async Task<ActionResult<MediaResponse>> UploadMedia([FromForm] MediaUploadRequest request, IFormFile file)
+    /// <summary>
+    /// Maps ServiceResult to appropriate ActionResult with data.
+    /// </summary>
+    private ActionResult<T> HandleResult<T>(ServiceResult<T> result)
     {
-        var orgId = TryGetUserOrgId();
-        if (orgId == null)
+        if (result.IsSuccess)
         {
-            return BadRequest(new { message = "You must be a member of an organization to upload media." });
+            return Ok(result.Data);
         }
 
-        if (file == null || file.Length == 0)
-        {
-            return BadRequest(new { message = "No file uploaded" });
-        }
-
-        if (file.Length > MaxFileSizeBytes)
-        {
-            return BadRequest(new { message = $"File size exceeds maximum allowed size of {MaxFileSizeBytes / (1024 * 1024)}MB" });
-        }
-
-        var contentType = file.ContentType.ToLower();
-        var mediaKind = DetermineMediaKind(contentType);
-
-        if (mediaKind == null || !IsAllowedContentType(contentType, mediaKind.Value))
-        {
-            return BadRequest(new { message = "File type not allowed" });
-        }
-
-        if (request.CapturePlaceId.HasValue)
-        {
-            var placeExists = await _context.Places.AnyAsync(p => p.Id == request.CapturePlaceId.Value && p.OrgId == orgId);
-            if (!placeExists)
-            {
-                return BadRequest(new { message = "Place not found in organization" });
-            }
-        }
-
-        string fileUrl;
-        string storageKey;
-
-        try
-        {
-            // Read file bytes
-            using var memoryStream = new MemoryStream();
-            await file.CopyToAsync(memoryStream);
-            var fileBytes = memoryStream.ToArray();
-
-            // Generate unique filename
-            var extension = Path.GetExtension(file.FileName);
-            var uniqueFileName = $"{mediaKind}_{Guid.NewGuid()}{extension}";
-
-            // Define storage path
-            string[] pathSegments = new[] { "family-tree", "orgs", orgId.ToString(), mediaKind.ToString().ToLower() };
-
-            // Upload to VirtualUpon.Storage
-            var savedMediaInfo = await _storageService.UploadFileAsync(pathSegments, uniqueFileName, fileBytes);
-
-            fileUrl = savedMediaInfo.ImagePath;
-            storageKey = $"{string.Join("/", pathSegments)}/{uniqueFileName}";
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to upload media file");
-            return StatusCode(500, new { message = "Failed to upload file" });
-        }
-
-        var media = new Media
-        {
-            Id = Guid.NewGuid(),
-            OrgId = orgId.Value,
-            Kind = mediaKind.Value,
-            Url = fileUrl,
-            StorageKey = storageKey,
-            FileName = file.FileName,
-            MimeType = contentType,
-            FileSize = file.Length,
-            Title = request.Title,
-            Description = request.Description,
-            CaptureDate = request.CaptureDate,
-            CapturePlaceId = request.CapturePlaceId,
-            Visibility = request.Visibility,
-            Copyright = request.Copyright,
-            MetadataJson = request.MetadataJson,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
-
-        _context.MediaFiles.Add(media);
-        await _context.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetMedia), new { id = media.Id }, await GetMediaDto(media.Id));
+        return HandleError(result);
     }
 
-    [HttpPut("{id}")]
-    [Authorize(Roles = "0,1,2")]
-    public async Task<ActionResult<MediaResponse>> UpdateMedia(Guid id, MediaUpdateRequest request)
+    /// <summary>
+    /// Maps ServiceResult errors to appropriate HTTP status codes.
+    /// </summary>
+    private ActionResult HandleError(ServiceResult result)
     {
-        var orgId = TryGetUserOrgId();
-        if (orgId == null)
+        return result.ErrorType switch
         {
-            return BadRequest(new { message = "You must be a member of an organization to update media." });
-        }
-
-        var media = await _context.MediaFiles.FirstOrDefaultAsync(m => m.Id == id && m.OrgId == orgId);
-        if (media == null)
-        {
-            return NotFound(new { message = "Media not found" });
-        }
-
-        if (request.CapturePlaceId.HasValue)
-        {
-            var placeExists = await _context.Places.AnyAsync(p => p.Id == request.CapturePlaceId.Value && p.OrgId == orgId);
-            if (!placeExists)
-            {
-                return BadRequest(new { message = "Place not found in organization" });
-            }
-            media.CapturePlaceId = request.CapturePlaceId.Value;
-        }
-
-        if (request.Title != null) media.Title = request.Title;
-        if (request.Description != null) media.Description = request.Description;
-        if (request.CaptureDate.HasValue) media.CaptureDate = request.CaptureDate.Value;
-        if (request.Visibility.HasValue) media.Visibility = request.Visibility.Value;
-        if (request.Copyright != null) media.Copyright = request.Copyright;
-        if (request.MetadataJson != null) media.MetadataJson = request.MetadataJson;
-
-        media.UpdatedAt = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync();
-
-        return Ok(await GetMediaDto(media.Id));
-    }
-
-    [HttpDelete("{id}")]
-    [Authorize(Roles = "0,1,2")]
-    public async Task<IActionResult> DeleteMedia(Guid id)
-    {
-        var orgId = TryGetUserOrgId();
-        if (orgId == null)
-        {
-            return BadRequest(new { message = "You must be a member of an organization to delete media." });
-        }
-
-        var media = await _context.MediaFiles.FirstOrDefaultAsync(m => m.Id == id && m.OrgId == orgId);
-        if (media == null)
-        {
-            return NotFound(new { message = "Media not found" });
-        }
-
-        try
-        {
-            await _storageService.DeleteFileAsync(media.Url);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to delete media file from storage for media {MediaId}", id);
-        }
-
-        _context.MediaFiles.Remove(media);
-        await _context.SaveChangesAsync();
-
-        return NoContent();
-    }
-
-    private async Task<MediaResponse?> GetMediaDto(Guid id)
-    {
-        var orgId = TryGetUserOrgId();
-        return await _context.MediaFiles
-            .Where(m => m.Id == id && m.OrgId == orgId)
-            .Include(m => m.CapturePlace)
-            .Select(m => new MediaResponse
-            {
-                Id = m.Id,
-                OrgId = m.OrgId,
-                PersonId = m.PersonId,
-                Kind = m.Kind,
-                Url = m.Url,
-                StorageKey = m.StorageKey,
-                FileName = m.FileName,
-                MimeType = m.MimeType,
-                FileSize = m.FileSize,
-                Title = m.Title,
-                Description = m.Description,
-                CaptureDate = m.CaptureDate,
-                CapturePlaceId = m.CapturePlaceId,
-                PlaceName = m.CapturePlace != null ? m.CapturePlace.Name : null,
-                Visibility = m.Visibility,
-                Copyright = m.Copyright,
-                ThumbnailPath = m.ThumbnailPath,
-                MetadataJson = m.MetadataJson,
-                CreatedAt = m.CreatedAt,
-                UpdatedAt = m.UpdatedAt
-            })
-            .FirstOrDefaultAsync();
-    }
-
-    [HttpGet("{id}/download")]
-    public async Task<IActionResult> DownloadMedia(Guid id)
-    {
-        var orgId = TryGetUserOrgId();
-        if (orgId == null)
-        {
-            return BadRequest(new { message = "You must be a member of an organization to download media." });
-        }
-
-        var media = await _context.MediaFiles.FirstOrDefaultAsync(m => m.Id == id && m.OrgId == orgId);
-        if (media == null)
-        {
-            return NotFound(new { message = "Media not found" });
-        }
-
-        try
-        {
-            var response = await _storageService.DownloadFileAsync(media.Url);
-            
-            var fileName = media.FileName ?? media.Title ?? $"media_{media.Id}";
-            var contentType = media.MimeType ?? "application/octet-stream";
-
-            return File(response.FileData, contentType, fileName);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to download media file {MediaId}", id);
-            return StatusCode(500, new { message = "Failed to download file" });
-        }
-    }
-
-    private static MediaKind? DetermineMediaKind(string contentType)
-    {
-        return contentType.Split('/')[0] switch
-        {
-            "image" => MediaKind.Image,
-            "video" => MediaKind.Video,
-            "audio" => MediaKind.Audio,
-            "application" => MediaKind.Document,
-            _ => null
-        };
-    }
-
-    private static bool IsAllowedContentType(string contentType, MediaKind mediaKind)
-    {
-        return mediaKind switch
-        {
-            MediaKind.Image => AllowedImageTypes.Contains(contentType),
-            MediaKind.Video => AllowedVideoTypes.Contains(contentType),
-            MediaKind.Audio => AllowedAudioTypes.Contains(contentType),
-            MediaKind.Document => AllowedDocumentTypes.Contains(contentType),
-            _ => false
+            ServiceErrorType.NotFound => NotFound(new { message = result.ErrorMessage }),
+            ServiceErrorType.Forbidden => Forbid(),
+            ServiceErrorType.Unauthorized => Unauthorized(),
+            ServiceErrorType.InternalError => StatusCode(500, new { message = result.ErrorMessage }),
+            _ => BadRequest(new { message = result.ErrorMessage })
         };
     }
 }

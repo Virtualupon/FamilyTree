@@ -150,6 +150,7 @@ public enum ServiceErrorType
     BadRequest,
     NotFound,
     Forbidden,
+    Unauthorized,
     InternalError
 }
 

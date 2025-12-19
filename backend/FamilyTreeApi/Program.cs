@@ -692,10 +692,14 @@ services.AddScoped<IAuthService, AuthService>();
 services.AddScoped<IMediaService, MediaService>();
 services.AddScoped<IGedcomService, GedcomService>();
 services.AddScoped<IPersonService, PersonService>();
-
-// Add more Family Tree services here as needed:
-// services.AddScoped<IUnionService, UnionService>();
-// services.AddScoped<ITreeService, TreeService>();
+services.AddScoped<IUnionService, UnionService>();
+services.AddScoped<IParentChildService, ParentChildService>();
+services.AddScoped<ITreeViewService, TreeViewService>();
+services.AddScoped<IFamilyTreeService, FamilyTreeService>();
+services.AddScoped<IPersonLinkService, PersonLinkService>();
+services.AddScoped<ITownService, TownService>();
+services.AddScoped<IAdminService, AdminService>();
+services.AddScoped<IMediaManagementService, MediaManagementService>();
 
 // -------------------------------
 // REPOSITORIES
@@ -704,6 +708,7 @@ services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 services.AddScoped<IPersonRepository, PersonRepository>();
 services.AddScoped<IPersonNameRepository, PersonNameRepository>();
 services.AddScoped<IOrgRepository, OrgRepository>();
+services.AddScoped<IUnionRepository, UnionRepository>();
 
 // -------------------------------
 // AUTOMAPPER

@@ -330,6 +330,13 @@ export class I18nService {
       'towns.openTree': 'Open Tree',
       'towns.noTrees': 'No family trees in this town',
       'towns.noTreesDesc': 'Family trees can be associated with this town when created.',
+
+      // Families
+      'families.title': 'Families',
+      'families.totalFamilies': 'families',
+      'families.noFamilies': 'No families found',
+      'families.noFamiliesDesc': 'Families will appear here when you add marriages and partnerships.',
+      'families.filterType': 'Filter by type',
       'towns.confirmDelete': 'Are you sure you want to delete this town?',
       'towns.importTitle': 'Import Towns from CSV',
       'towns.importDesc': 'Upload a CSV file with town data. Required format:',
@@ -594,6 +601,13 @@ export class I18nService {
       'towns.openTree': 'فتح الشجرة',
       'towns.noTrees': 'لا توجد أشجار عائلة في هذه المدينة',
       'towns.noTreesDesc': 'يمكن ربط أشجار العائلة بهذه المدينة عند إنشائها.',
+
+      // Families
+      'families.title': 'العائلات',
+      'families.totalFamilies': 'عائلة',
+      'families.noFamilies': 'لا توجد عائلات',
+      'families.noFamiliesDesc': 'ستظهر العائلات هنا عند إضافة الزيجات والشراكات.',
+      'families.filterType': 'تصفية حسب النوع',
       'towns.confirmDelete': 'هل أنت متأكد من حذف هذه المدينة؟',
       'towns.importTitle': 'استيراد المدن من ملف CSV',
       'towns.importDesc': 'ارفع ملف CSV ببيانات المدن. التنسيق المطلوب:',

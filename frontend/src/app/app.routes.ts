@@ -57,6 +57,10 @@ export const routes: Routes = [
       {
         path: 'towns/:id',
         loadComponent: () => import('./features/towns/town-detail.component').then(m => m.TownDetailComponent)
+      },
+      {
+        path: 'families',
+        loadComponent: () => import('./features/families/families-list.component').then(m => m.FamiliesListComponent)
       }
     ]
   },

@@ -642,9 +642,9 @@ export class DashboardComponent implements OnInit {
   checkingTrees = signal(true);
   stats = signal<StatCard[]>([
     { icon: 'people', labelKey: 'dashboard.totalPeople', value: '-', color: '#1976d2', route: '/people' },
-    { icon: 'male', labelKey: 'people.male', value: '-', color: '#1976d2', route: '/people' },
-    { icon: 'female', labelKey: 'people.female', value: '-', color: '#c2185b', route: '/people' },
-    { icon: 'family_restroom', labelKey: 'dashboard.totalFamilies', value: '-', color: '#7b1fa2' }
+    { icon: 'male', labelKey: 'people.male', value: '-', color: '#1976d2', route: '/people?sex=male' },
+    { icon: 'female', labelKey: 'people.female', value: '-', color: '#c2185b', route: '/people?sex=female' },
+    { icon: 'family_restroom', labelKey: 'dashboard.totalFamilies', value: '-', color: '#7b1fa2', route: '/families' }
   ]);
 
   quickActions: QuickAction[] = [
@@ -676,9 +676,9 @@ export class DashboardComponent implements OnInit {
     // Reset stats
     this.stats.set([
       { icon: 'people', labelKey: 'dashboard.totalPeople', value: '-', color: '#1976d2', route: '/people' },
-      { icon: 'male', labelKey: 'people.male', value: '-', color: '#1976d2', route: '/people' },
-      { icon: 'female', labelKey: 'people.female', value: '-', color: '#c2185b', route: '/people' },
-      { icon: 'family_restroom', labelKey: 'dashboard.totalFamilies', value: '-', color: '#7b1fa2' }
+      { icon: 'male', labelKey: 'people.male', value: '-', color: '#1976d2', route: '/people?sex=male' },
+      { icon: 'female', labelKey: 'people.female', value: '-', color: '#c2185b', route: '/people?sex=female' },
+      { icon: 'family_restroom', labelKey: 'dashboard.totalFamilies', value: '-', color: '#7b1fa2', route: '/families' }
     ]);
     this.recentPeople.set([]);
 

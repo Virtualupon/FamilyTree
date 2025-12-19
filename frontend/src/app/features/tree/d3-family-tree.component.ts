@@ -834,7 +834,7 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
   }
 
   private drawCrossTreeBadge(
-    g: d3.Selection<SVGGElement, unknown, null, undefined>,
+    g: d3.Selection<SVGGElement, D3Node, null, undefined>,
     node: D3Node
   ): void {
     if (!node.crossTreeLinks || node.crossTreeLinks.length === 0) return;

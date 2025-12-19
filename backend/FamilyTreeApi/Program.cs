@@ -500,9 +500,11 @@ using Serilog;
 using System.Text;
 using WebDav;
 using FamilyTreeApi.Data;
+using FamilyTreeApi.Mappings;
 using FamilyTreeApi.Models;
 using FamilyTreeApi.Models.Configuration;
 using FamilyTreeApi.Models.Enums;
+using FamilyTreeApi.Repositories;
 using FamilyTreeApi.Services;
 using VirtualUpon.Storage.Factories;
 using VirtualUpon.Storage.Utilities;
@@ -689,11 +691,24 @@ services.AddHttpContextAccessor();
 services.AddScoped<IAuthService, AuthService>();
 services.AddScoped<IMediaService, MediaService>();
 services.AddScoped<IGedcomService, GedcomService>();
+services.AddScoped<IPersonService, PersonService>();
 
 // Add more Family Tree services here as needed:
-// services.AddScoped<IPersonService, PersonService>();
 // services.AddScoped<IUnionService, UnionService>();
 // services.AddScoped<ITreeService, TreeService>();
+
+// -------------------------------
+// REPOSITORIES
+// -------------------------------
+services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+services.AddScoped<IPersonRepository, PersonRepository>();
+services.AddScoped<IPersonNameRepository, PersonNameRepository>();
+services.AddScoped<IOrgRepository, OrgRepository>();
+
+// -------------------------------
+// AUTOMAPPER
+// -------------------------------
+services.AddAutoMapper(typeof(MappingProfile));
 
 // -------------------------------
 // STORAGE CONFIGURATION

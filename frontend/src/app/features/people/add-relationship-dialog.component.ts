@@ -1,4 +1,4 @@
-import { Component, Inject, inject, signal, OnInit } from '@angular/core';
+import { Component, Inject, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormControl } from '@angular/forms';
 import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -13,18 +13,21 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { debounceTime, distinctUntilChanged, switchMap, catchError } from 'rxjs/operators';
 import { Observable, of, Subject } from 'rxjs';
 
 import type { PersonListItem, PagedResult } from '../../core/models/person.models';
 import { Sex } from '../../core/models/person.models';
 import { PersonService } from '../../core/services/person.service';
-import { 
-  RelationshipService, 
-  ParentChildRelationshipType, 
+import {
+  RelationshipService,
+  ParentChildRelationshipType,
   UnionType,
-  CreateUnionRequest 
+  CreateUnionRequest
 } from '../../core/services/relationship.service';
+import { FamilyRelationshipTypeService } from '../../core/services/family-relationship-type.service';
+import { FamilyRelationshipType } from '../../core/models/family-relationship-type.models';
 
 export type RelationshipDialogType = 'parent' | 'child' | 'spouse';
 
@@ -52,7 +55,8 @@ export interface RelationshipDialogData {
     MatCheckboxModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatChipsModule
+    MatChipsModule,
+    MatTooltipModule
   ],
   template: `
     <h2 mat-dialog-title>
@@ -118,11 +122,61 @@ export interface RelationshipDialogData {
         }
       </div>
 
+      <!-- Family Relationship Label (Trilingual) -->
+      <div class="relationship-label-section">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Family Relationship ({{ data.type === 'spouse' ? 'e.g., Husband, Wife' : data.type === 'parent' ? 'e.g., Father, Mother' : 'e.g., Son, Daughter' }})</mat-label>
+          <input matInput
+                 [formControl]="familyRelTypeSearchControl"
+                 [matAutocomplete]="relTypeAuto"
+                 placeholder="Type to search in English, Arabic, or Nubian...">
+          <mat-icon matSuffix>translate</mat-icon>
+          <mat-autocomplete #relTypeAuto="matAutocomplete"
+                           [displayWith]="displayRelType.bind(this)"
+                           (optionSelected)="onRelTypeSelected($event.option.value)">
+            @for (type of filteredRelTypes(); track type.id) {
+              <mat-option [value]="type">
+                <div class="rel-type-option">
+                  <span class="english">{{ type.nameEnglish }}</span>
+                  <span class="arabic">{{ type.nameArabic }}</span>
+                  <span class="nubian" [matTooltip]="'Nubian: ' + type.nameNubian">{{ type.nameNubian }}</span>
+                </div>
+              </mat-option>
+            }
+            @if (familyRelTypesLoading()) {
+              <mat-option disabled>
+                <mat-spinner diameter="20"></mat-spinner>
+                Loading...
+              </mat-option>
+            }
+          </mat-autocomplete>
+          @if (selectedRelType()) {
+            <button mat-icon-button matSuffix (click)="clearRelTypeSelection($event)" matTooltip="Clear selection">
+              <mat-icon>close</mat-icon>
+            </button>
+          }
+        </mat-form-field>
+
+        @if (selectedRelType()) {
+          <div class="selected-rel-type">
+            <mat-chip-row>
+              <span class="trilingual-label">
+                <strong>{{ selectedRelType()?.nameEnglish }}</strong>
+                <span class="separator">|</span>
+                <span class="arabic-text">{{ selectedRelType()?.nameArabic }}</span>
+                <span class="separator">|</span>
+                <span class="nubian-text">{{ selectedRelType()?.nameNubian }}</span>
+              </span>
+            </mat-chip-row>
+          </div>
+        }
+      </div>
+
       <!-- Parent/Child specific options -->
       @if (data.type === 'parent' || data.type === 'child') {
         <div class="relationship-options">
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Relationship Type</mat-label>
+            <mat-label>Relationship Nature</mat-label>
             <mat-select [formControl]="relationshipTypeControl">
               <mat-option [value]="ParentChildRelationshipType.Biological">Biological</mat-option>
               <mat-option [value]="ParentChildRelationshipType.Adopted">Adopted</mat-option>
@@ -275,11 +329,63 @@ export interface RelationshipDialogData {
     mat-spinner {
       display: inline-block;
     }
+
+    .relationship-label-section {
+      margin-bottom: 16px;
+    }
+
+    .rel-type-option {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 4px 0;
+    }
+
+    .rel-type-option .english {
+      font-weight: 500;
+      min-width: 140px;
+    }
+
+    .rel-type-option .arabic {
+      color: #1565c0;
+      font-size: 14px;
+      direction: rtl;
+      min-width: 80px;
+    }
+
+    .rel-type-option .nubian {
+      color: #7b1fa2;
+      font-size: 13px;
+    }
+
+    .selected-rel-type {
+      margin-top: 8px;
+    }
+
+    .trilingual-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .trilingual-label .separator {
+      color: rgba(0, 0, 0, 0.38);
+    }
+
+    .trilingual-label .arabic-text {
+      color: #1565c0;
+      direction: rtl;
+    }
+
+    .trilingual-label .nubian-text {
+      color: #7b1fa2;
+    }
   `]
 })
 export class AddRelationshipDialogComponent implements OnInit {
   private personService = inject(PersonService);
   private relationshipService = inject(RelationshipService);
+  private familyRelTypeService = inject(FamilyRelationshipTypeService);
   private fb = inject(FormBuilder);
 
   // Expose enums to template
@@ -294,6 +400,7 @@ export class AddRelationshipDialogComponent implements OnInit {
   startDateControl = new FormControl<Date | null>(null);
   endDateControl = new FormControl<Date | null>(null);
   notesControl = new FormControl('');
+  familyRelTypeSearchControl = new FormControl('');
 
   // State signals
   searchResults = signal<PersonListItem[]>([]);
@@ -301,6 +408,28 @@ export class AddRelationshipDialogComponent implements OnInit {
   isSearching = signal(false);
   isSaving = signal(false);
   error = signal<string | null>(null);
+
+  // Family relationship type signals
+  allRelTypes = signal<FamilyRelationshipType[]>([]);
+  selectedRelType = signal<FamilyRelationshipType | null>(null);
+  familyRelTypesLoading = signal(false);
+  relTypeSearchTerm = signal('');
+
+  // Computed filtered relationship types
+  filteredRelTypes = computed(() => {
+    const term = this.relTypeSearchTerm().toLowerCase().trim();
+    const all = this.allRelTypes();
+
+    if (!term) {
+      return all;
+    }
+
+    return all.filter(type =>
+      type.nameEnglish.toLowerCase().includes(term) ||
+      type.nameArabic.includes(term) ||
+      type.nameNubian.toLowerCase().includes(term)
+    );
+  });
 
   private searchSubject = new Subject<string>();
 
@@ -310,7 +439,10 @@ export class AddRelationshipDialogComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    // Setup search debounce
+    // Load family relationship types
+    this.loadFamilyRelTypes();
+
+    // Setup search debounce for person search
     this.searchSubject.pipe(
       debounceTime(300),
       distinctUntilChanged(),
@@ -336,10 +468,33 @@ export class AddRelationshipDialogComponent implements OnInit {
       }
     });
 
-    // Connect input to search subject
+    // Connect input to search subject for person search
     this.searchControl.valueChanges.subscribe(value => {
       if (typeof value === 'string') {
         this.searchSubject.next(value);
+      }
+    });
+
+    // Setup family relationship type search
+    this.familyRelTypeSearchControl.valueChanges.pipe(
+      debounceTime(150)
+    ).subscribe(value => {
+      if (typeof value === 'string') {
+        this.relTypeSearchTerm.set(value);
+      }
+    });
+  }
+
+  private loadFamilyRelTypes() {
+    this.familyRelTypesLoading.set(true);
+    this.familyRelTypeService.getAll().subscribe({
+      next: (types) => {
+        this.allRelTypes.set(types);
+        this.familyRelTypesLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load family relationship types:', err);
+        this.familyRelTypesLoading.set(false);
       }
     });
   }
@@ -348,14 +503,32 @@ export class AddRelationshipDialogComponent implements OnInit {
     return person?.primaryName || '';
   }
 
+  displayRelType(relType: FamilyRelationshipType | null): string {
+    if (!relType) return '';
+    return `${relType.nameEnglish} (${relType.nameArabic})`;
+  }
+
   onPersonSelected(person: PersonListItem) {
     this.selectedPerson.set(person);
     this.searchControl.setValue('');
     this.searchResults.set([]);
   }
 
+  onRelTypeSelected(relType: FamilyRelationshipType) {
+    this.selectedRelType.set(relType);
+    this.familyRelTypeSearchControl.setValue('');
+    this.relTypeSearchTerm.set('');
+  }
+
   clearSelection() {
     this.selectedPerson.set(null);
+  }
+
+  clearRelTypeSelection(event: Event) {
+    event.stopPropagation();
+    this.selectedRelType.set(null);
+    this.familyRelTypeSearchControl.setValue('');
+    this.relTypeSearchTerm.set('');
   }
 
   formatYear(dateStr?: string | null): string {

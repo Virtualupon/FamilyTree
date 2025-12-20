@@ -635,6 +635,9 @@ else
     services.AddDistributedMemoryCache();
 }
 
+// Add in-memory cache for local caching (used by FamilyRelationshipTypeService)
+services.AddMemoryCache();
+
 // -------------------------------
 // HEALTH CHECKS
 // -------------------------------
@@ -701,6 +704,7 @@ services.AddScoped<ITownService, TownService>();
 services.AddScoped<IAdminService, AdminService>();
 services.AddScoped<IMediaManagementService, MediaManagementService>();
 services.AddScoped<IPersonMediaService, PersonMediaService>();
+services.AddScoped<IFamilyRelationshipTypeService, FamilyRelationshipTypeService>();
 services.AddScoped<IFileStorageService, LocalFileStorageService>();
 
 // -------------------------------

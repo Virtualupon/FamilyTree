@@ -59,4 +59,14 @@ public class Media
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    // User who uploaded this media
+    public long? UploadedByUserId { get; set; }
+
+    // Category for organizing media
+    [MaxLength(50)]
+    public string? Category { get; set; }
+
+    /// <summary>Persons linked to this media (many-to-many via PersonMedia junction)</summary>
+    public ICollection<PersonMedia> PersonLinks { get; set; } = new List<PersonMedia>();
 }

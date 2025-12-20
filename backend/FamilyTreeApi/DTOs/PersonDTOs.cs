@@ -17,7 +17,8 @@ public record PersonListItemDto(
     string? BirthPlace,
     string? DeathPlace,
     bool IsVerified,
-    bool NeedsReview
+    bool NeedsReview,
+    int MediaCount = 0
 );
 
 public record PersonResponseDto(

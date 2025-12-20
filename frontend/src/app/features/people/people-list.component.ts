@@ -190,6 +190,14 @@ interface FilterState {
                   
                   <!-- Badges -->
                   <div class="ft-person-card__badges">
+                    @if (person.mediaCount > 0) {
+                      <span class="ft-badge ft-badge--media ft-badge--clickable"
+                            [matTooltip]="person.mediaCount + ' media files - Click to view'"
+                            (click)="viewPersonMedia(person, $event)">
+                        <mat-icon style="font-size: 12px; width: 12px; height: 12px;">photo_camera</mat-icon>
+                        {{ person.mediaCount }}
+                      </span>
+                    }
                     @if (!person.deathDate) {
                       <span class="ft-badge ft-badge--success">{{ 'people.living' | translate }}</span>
                     }
@@ -540,7 +548,12 @@ export class PeopleListComponent implements OnInit, OnDestroy {
   viewInTree(person: PersonListItem): void {
     this.router.navigate(['/tree'], { queryParams: { personId: person.id } });
   }
-  
+
+  viewPersonMedia(person: PersonListItem, event: Event): void {
+    event.stopPropagation(); // Prevent card click from triggering
+    this.router.navigate(['/people', person.id], { queryParams: { tab: 'media' } });
+  }
+
   deletePerson(person: PersonListItem): void {
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
       width: '400px',

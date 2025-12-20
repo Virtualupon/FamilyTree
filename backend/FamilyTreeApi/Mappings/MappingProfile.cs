@@ -102,5 +102,19 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.Person, opt => opt.Ignore())
             .ForMember(dest => dest.Script, opt => opt.MapFrom(src => src.Script ?? "Latin"))
             .ForMember(dest => dest.CreatedAt, opt => opt.Ignore()); // Set by service
+
+        // ============================================================================
+        // PERSON MEDIA MAPPINGS
+        // Note: PersonMedia is a junction table. DTOs are mapped manually in service
+        // because they combine data from PersonMedia + Media + Person entities.
+        // ============================================================================
+
+        // PersonMedia → LinkedPersonDto (for linked persons list)
+        CreateMap<PersonMedia, LinkedPersonDto>()
+            .ForCtorParam("PersonId", opt => opt.MapFrom(src => src.PersonId))
+            .ForCtorParam("PersonName", opt => opt.MapFrom(src => src.Person != null ? src.Person.PrimaryName : null))
+            .ForCtorParam("IsPrimary", opt => opt.MapFrom(src => src.IsPrimary))
+            .ForCtorParam("Notes", opt => opt.MapFrom(src => src.Notes))
+            .ForCtorParam("LinkedAt", opt => opt.MapFrom(src => src.LinkedAt));
     }
 }

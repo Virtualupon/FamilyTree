@@ -10,6 +10,7 @@ public interface IMediaService
         string fileName,
         string? mimeType = null,
         string? caption = null,
+        string? description = null,
         string? copyright = null);
 
     Task<string?> GetMediaAsBase64Async(Guid mediaId);

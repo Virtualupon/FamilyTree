@@ -104,23 +104,29 @@ public class PersonRepository : Repository<Person>, IPersonRepository
 
         var totalCount = await query.CountAsync(cancellationToken);
 
+        // Use GroupJoin to get media counts - more reliable across different DB providers
         var persons = await query
             .OrderBy(p => p.PrimaryName)
             .Skip((search.Page - 1) * search.PageSize)
             .Take(search.PageSize)
-            .Select(p => new PersonListItemDto(
-                p.Id,
-                p.PrimaryName,
-                p.Sex,
-                p.BirthDate,
-                p.BirthPrecision,
-                p.DeathDate,
-                p.DeathPrecision,
-                p.BirthPlace != null ? p.BirthPlace.Name : null,
-                p.DeathPlace != null ? p.DeathPlace.Name : null,
-                p.IsVerified,
-                p.NeedsReview
-            ))
+            .GroupJoin(
+                _context.PersonMedia,
+                p => p.Id,
+                pm => pm.PersonId,
+                (p, mediaGroup) => new PersonListItemDto(
+                    p.Id,
+                    p.PrimaryName,
+                    p.Sex,
+                    p.BirthDate,
+                    p.BirthPrecision,
+                    p.DeathDate,
+                    p.DeathPrecision,
+                    p.BirthPlace != null ? p.BirthPlace.Name : null,
+                    p.DeathPlace != null ? p.DeathPlace.Name : null,
+                    p.IsVerified,
+                    p.NeedsReview,
+                    mediaGroup.Count()
+                ))
             .ToListAsync(cancellationToken);
 
         return (persons, totalCount);

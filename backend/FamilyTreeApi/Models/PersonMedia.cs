@@ -3,7 +3,8 @@ using System.ComponentModel.DataAnnotations;
 namespace FamilyTreeApi.Models;
 
 /// <summary>
-/// Links media files to people (many-to-many)
+/// Junction table linking Media files to People (many-to-many).
+/// A single media file can be linked to multiple persons.
 /// </summary>
 public class PersonMedia
 {
@@ -27,5 +28,9 @@ public class PersonMedia
     /// <summary>Notes about this person in the media (e.g., position in group photo)</summary>
     public string? Notes { get; set; }
 
+    /// <summary>When this record was created</summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>When this person was linked to this media</summary>
+    public DateTime LinkedAt { get; set; } = DateTime.UtcNow;
 }

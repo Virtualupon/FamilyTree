@@ -39,6 +39,7 @@ public class MediaService : IMediaService
         string fileName,
         string? mimeType = null,
         string? caption = null,
+        string? description = null,
         string? copyright = null)
     {
         try
@@ -90,6 +91,7 @@ public class MediaService : IMediaService
                 Kind = mediaKind,
                 StorageType = _currentStorageType,
                 Title = caption,
+                Description = description,
                 Copyright = copyright,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow

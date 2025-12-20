@@ -144,3 +144,132 @@ public class MediaSearchResponse
     public int PageSize { get; set; }
     public int TotalPages { get; set; }
 }
+
+// ============================================
+// PersonMedia DTOs (Many-to-Many Linking)
+// ============================================
+
+/// <summary>
+/// Request for uploading media with linked persons
+/// </summary>
+public class MediaUploadWithPersonsDto
+{
+    /// <summary>Base64 encoded file data</summary>
+    [Required]
+    public string Base64Data { get; set; } = string.Empty;
+
+    /// <summary>Original file name</summary>
+    [Required]
+    [MaxLength(255)]
+    public string FileName { get; set; } = string.Empty;
+
+    /// <summary>MIME type (e.g., "image/jpeg", "audio/mpeg")</summary>
+    [Required]
+    [MaxLength(100)]
+    public string MimeType { get; set; } = string.Empty;
+
+    /// <summary>Optional title for the media</summary>
+    [MaxLength(200)]
+    public string? Title { get; set; }
+
+    /// <summary>Optional description</summary>
+    public string? Description { get; set; }
+
+    /// <summary>Person IDs to link this media to</summary>
+    [Required]
+    public List<Guid> PersonIds { get; set; } = new();
+}
+
+/// <summary>
+/// Represents a linked person in a media response
+/// </summary>
+public record LinkedPersonDto(
+    Guid PersonId,
+    string? PersonName,
+    bool IsPrimary,
+    string? Notes,
+    DateTime LinkedAt
+);
+
+/// <summary>
+/// Response for a media file with linked persons (list view - no Base64)
+/// </summary>
+public record MediaWithPersonsDto(
+    Guid Id,
+    string FileName,
+    string? MimeType,
+    long FileSize,
+    string MediaKind,
+    string? Title,
+    string? Description,
+    string? ThumbnailPath,
+    DateTime CreatedAt,
+    DateTime UpdatedAt,
+    List<LinkedPersonDto> LinkedPersons
+);
+
+/// <summary>
+/// Response for a media file with Base64 data and linked persons
+/// </summary>
+public record MediaWithDataDto(
+    Guid Id,
+    string FileName,
+    string? MimeType,
+    long FileSize,
+    string MediaKind,
+    string? Title,
+    string? Description,
+    string Base64Data,
+    DateTime CreatedAt,
+    List<LinkedPersonDto> LinkedPersons
+);
+
+/// <summary>
+/// List item for person's media (without Base64 data for efficiency)
+/// </summary>
+public record PersonMediaListItemDto(
+    Guid MediaId,
+    string FileName,
+    string? MimeType,
+    long FileSize,
+    string MediaKind,
+    string? Title,
+    string? Description,
+    string? ThumbnailPath,
+    bool IsPrimary,
+    int SortOrder,
+    DateTime LinkedAt,
+    List<LinkedPersonDto> LinkedPersons
+);
+
+/// <summary>
+/// Grouped media response by type
+/// </summary>
+public class PersonMediaGroupedDto
+{
+    public List<PersonMediaListItemDto> Images { get; set; } = new();
+    public List<PersonMediaListItemDto> Audio { get; set; } = new();
+    public List<PersonMediaListItemDto> Videos { get; set; } = new();
+}
+
+/// <summary>
+/// Request to link a person to existing media
+/// </summary>
+public class LinkPersonToMediaDto
+{
+    /// <summary>Mark as primary photo for this person</summary>
+    public bool IsPrimary { get; set; } = false;
+
+    /// <summary>Notes about this person in the media</summary>
+    public string? Notes { get; set; }
+}
+
+/// <summary>
+/// Request to link multiple persons to existing media
+/// </summary>
+public class LinkPersonsToMediaDto
+{
+    /// <summary>Person IDs to link</summary>
+    [Required]
+    public List<Guid> PersonIds { get; set; } = new();
+}

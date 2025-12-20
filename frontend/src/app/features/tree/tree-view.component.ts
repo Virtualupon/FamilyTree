@@ -683,7 +683,8 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
           birthPlace: person.birthPlace,
           deathPlace: person.deathPlace,
           isVerified: person.isVerified,
-          needsReview: person.needsReview
+          needsReview: person.needsReview,
+          mediaCount: 0
         };
         this.selectedPerson.set(listItem);
         this.loadTree();
@@ -827,7 +828,8 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
       birthPlace: node.birthPlace || null,
       deathPlace: node.deathPlace || null,
       isVerified: false,
-      needsReview: false
+      needsReview: false,
+      mediaCount: 0
     };
     this.selectedPerson.set(listItem);
     this.loadTree();
@@ -937,7 +939,8 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
       birthPlace: node.birthPlace || null,
       deathPlace: node.deathPlace || null,
       isVerified: false,
-      needsReview: false
+      needsReview: false,
+      mediaCount: 0
     };
     this.selectedPerson.set(listItem);
 
@@ -962,7 +965,8 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
       birthPlace: node.birthPlace || null,
       deathPlace: node.deathPlace || null,
       isVerified: false,
-      needsReview: false
+      needsReview: false,
+      mediaCount: 0
     };
     this.selectedPerson.set(listItem);
     this.loadTree();

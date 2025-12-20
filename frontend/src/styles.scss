@@ -508,7 +508,23 @@ $breakpoints: (
     background: #ffebee;
     color: var(--ft-error);
   }
-  
+
+  &--media {
+    background: #e3f2fd;
+    color: #1565c0;
+    gap: 2px;
+  }
+
+  &--clickable {
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+    &:hover {
+      transform: scale(1.05);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    }
+  }
+
   &--male {
     background: var(--ft-male-light);
     color: var(--ft-male);

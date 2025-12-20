@@ -39,6 +39,7 @@ export interface PersonListItem {
   deathPlace: string | null;
   isVerified: boolean;
   needsReview: boolean;
+  mediaCount: number;
 }
 
 export interface PersonName {

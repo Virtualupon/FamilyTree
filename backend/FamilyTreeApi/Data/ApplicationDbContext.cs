@@ -413,6 +413,7 @@ public class ApplicationDbContext : IdentityDbContext<
                 .OnDelete(DeleteBehavior.SetNull);
         });
 
+        // PersonMedia - Junction table for Person-Media many-to-many relationship
         modelBuilder.Entity<PersonMedia>(entity =>
         {
             entity.ToTable("PersonMedia");
@@ -427,7 +428,7 @@ public class ApplicationDbContext : IdentityDbContext<
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(e => e.Media)
-                .WithMany()
+                .WithMany(m => m.PersonLinks)
                 .HasForeignKey(e => e.MediaId)
                 .OnDelete(DeleteBehavior.Cascade);
         });

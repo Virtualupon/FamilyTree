@@ -22,10 +22,11 @@ import {
   UnionResponse,
   SiblingResponse 
 } from '../../core/services/relationship.service';
-import { 
-  AddRelationshipDialogComponent, 
-  RelationshipDialogType 
+import {
+  AddRelationshipDialogComponent,
+  RelationshipDialogType
 } from './add-relationship-dialog.component';
+import { PersonMediaComponent } from './person-media.component';
 
 @Component({
   selector: 'app-person-detail',
@@ -42,7 +43,8 @@ import {
     MatProgressSpinnerModule,
     MatDialogModule,
     MatMenuModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    PersonMediaComponent
   ],
   template: `
     <div class="person-detail-container">
@@ -97,7 +99,8 @@ import {
         </mat-card>
 
         <!-- Tabs for different sections -->
-        <mat-tab-group>
+        <mat-tab-group [selectedIndex]="selectedTabIndex()"
+                       (selectedIndexChange)="onTabChange($event)">
           <!-- Details Tab -->
           <mat-tab label="Details">
             <mat-card class="tab-content">
@@ -304,6 +307,15 @@ import {
               </mat-card-content>
             </mat-card>
           </mat-tab>
+
+          <!-- Media Tab -->
+          <mat-tab label="Media">
+            <mat-card class="tab-content">
+              <mat-card-content>
+                <app-person-media [personId]="personId()!" />
+              </mat-card-content>
+            </mat-card>
+          </mat-tab>
         </mat-tab-group>
       }
     </div>
@@ -506,15 +518,35 @@ export class PersonDetailComponent implements OnInit {
   children = signal<ParentChildResponse[]>([]);
   siblings = signal<SiblingResponse[]>([]);
   unions = signal<UnionResponse[]>([]);
-  
+
   isLoading = signal(true);
   error = signal<string | null>(null);
+  selectedTabIndex = signal(0);
+
+  // Tab name to index mapping: Details=0, Relationships=1, Media=2
+  private readonly tabMap: Record<string, number> = {
+    'details': 0,
+    'relationships': 1,
+    'media': 2
+  };
 
   ngOnInit() {
     this.route.params.subscribe(params => {
       this.personId.set(params['id']);
       this.loadPerson();
     });
+
+    // Handle tab query param
+    this.route.queryParams.subscribe(params => {
+      const tabName = params['tab']?.toLowerCase();
+      if (tabName && this.tabMap[tabName] !== undefined) {
+        this.selectedTabIndex.set(this.tabMap[tabName]);
+      }
+    });
+  }
+
+  onTabChange(index: number): void {
+    this.selectedTabIndex.set(index);
   }
 
   loadPerson() {

@@ -700,6 +700,8 @@ services.AddScoped<IPersonLinkService, PersonLinkService>();
 services.AddScoped<ITownService, TownService>();
 services.AddScoped<IAdminService, AdminService>();
 services.AddScoped<IMediaManagementService, MediaManagementService>();
+services.AddScoped<IPersonMediaService, PersonMediaService>();
+services.AddScoped<IFileStorageService, LocalFileStorageService>();
 
 // -------------------------------
 // REPOSITORIES
@@ -709,6 +711,7 @@ services.AddScoped<IPersonRepository, PersonRepository>();
 services.AddScoped<IPersonNameRepository, PersonNameRepository>();
 services.AddScoped<IOrgRepository, OrgRepository>();
 services.AddScoped<IUnionRepository, UnionRepository>();
+services.AddScoped<IPersonMediaRepository, PersonMediaRepository>();
 
 // -------------------------------
 // AUTOMAPPER

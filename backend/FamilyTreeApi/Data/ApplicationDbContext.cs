@@ -43,6 +43,9 @@ public class ApplicationDbContext : IdentityDbContext<
     public DbSet<TreeInvitation> TreeInvitations { get; set; }
     public DbSet<PersonMedia> PersonMedia { get; set; }
 
+    // Lookup tables
+    public DbSet<FamilyRelationshipType> FamilyRelationshipTypes { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -431,6 +434,16 @@ public class ApplicationDbContext : IdentityDbContext<
                 .WithMany(m => m.PersonLinks)
                 .HasForeignKey(e => e.MediaId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // FamilyRelationshipTypes - Lookup table for trilingual relationship names
+        modelBuilder.Entity<FamilyRelationshipType>(entity =>
+        {
+            entity.ToTable("FamilyRelationshipTypes");
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.NameEnglish);
+            entity.HasIndex(e => e.Category);
+            entity.HasIndex(e => e.IsActive);
         });
     }
 }

@@ -89,6 +89,7 @@ public class FamilyTreeService : IFamilyTreeService
             }
 
             var trees = await query
+                .Include(o => o.Town)
                 .OrderBy(o => o.Name)
                 .Select(o => new FamilyTreeListItem(
                     o.Id,
@@ -98,6 +99,8 @@ public class FamilyTreeService : IFamilyTreeService
                     o.CoverImageUrl,
                     o.People.Count,
                     o.OrgUsers.Where(ou => ou.UserId == userId).Select(ou => (OrgRole?)ou.Role).FirstOrDefault(),
+                    o.TownId,
+                    o.Town != null ? o.Town.Name : "",
                     o.CreatedAt
                 ))
                 .ToListAsync(cancellationToken);
@@ -145,7 +148,7 @@ public class FamilyTreeService : IFamilyTreeService
                 tree.OwnerId,
                 tree.Owner != null ? $"{tree.Owner.FirstName} {tree.Owner.LastName}".Trim() : null,
                 tree.TownId,
-                tree.Town?.Name,
+                tree.Town?.Name ?? "",
                 tree.OrgUsers.Count,
                 tree.People.Count,
                 tree.CreatedAt,
@@ -170,6 +173,15 @@ public class FamilyTreeService : IFamilyTreeService
         {
             var userId = userContext.UserId;
 
+            // HIERARCHY ENFORCEMENT: Validate TownId exists
+            var town = await _context.Towns.FindAsync(new object[] { request.TownId }, cancellationToken);
+            if (town == null)
+            {
+                return ServiceResult<FamilyTreeResponse>.Failure(
+                    "Invalid TownId. Every family tree must belong to a valid town.",
+                    ServiceErrorType.BadRequest);
+            }
+
             var tree = new Org
             {
                 Id = Guid.NewGuid(),
@@ -177,7 +189,7 @@ public class FamilyTreeService : IFamilyTreeService
                 Description = request.Description,
                 IsPublic = request.IsPublic,
                 AllowCrossTreeLinking = request.AllowCrossTreeLinking,
-                TownId = request.TownId,
+                TownId = request.TownId,  // REQUIRED: Every tree must belong to a town
                 OwnerId = userId,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
@@ -198,17 +210,8 @@ public class FamilyTreeService : IFamilyTreeService
             _context.OrgUsers.Add(orgUser);
             await _context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Family tree created: {TreeId} by user {UserId}", tree.Id, userId);
-
-            // Load the town name if TownId is set
-            string? townName = null;
-            if (tree.TownId.HasValue)
-            {
-                townName = await _context.Towns
-                    .Where(t => t.Id == tree.TownId.Value)
-                    .Select(t => t.Name)
-                    .FirstOrDefaultAsync(cancellationToken);
-            }
+            _logger.LogInformation("Family tree created: {TreeId} in Town {TownId} by user {UserId}",
+                tree.Id, tree.TownId, userId);
 
             var response = new FamilyTreeResponse(
                 tree.Id,
@@ -220,7 +223,7 @@ public class FamilyTreeService : IFamilyTreeService
                 tree.OwnerId,
                 null,
                 tree.TownId,
-                townName,
+                town.Name,
                 1,
                 0,
                 tree.CreatedAt,
@@ -266,16 +269,30 @@ public class FamilyTreeService : IFamilyTreeService
             if (request.IsPublic.HasValue) tree.IsPublic = request.IsPublic.Value;
             if (request.AllowCrossTreeLinking.HasValue) tree.AllowCrossTreeLinking = request.AllowCrossTreeLinking.Value;
             if (request.CoverImageUrl != null) tree.CoverImageUrl = request.CoverImageUrl;
-            if (request.TownId.HasValue) tree.TownId = request.TownId.Value == Guid.Empty ? null : request.TownId.Value;
+
+            // HIERARCHY ENFORCEMENT: TownId can be changed but not removed
+            if (request.TownId.HasValue)
+            {
+                if (request.TownId.Value == Guid.Empty)
+                {
+                    return ServiceResult<FamilyTreeResponse>.Failure(
+                        "Cannot remove TownId. Every family tree must belong to a town.",
+                        ServiceErrorType.BadRequest);
+                }
+                var newTown = await _context.Towns.FindAsync(new object[] { request.TownId.Value }, cancellationToken);
+                if (newTown == null)
+                {
+                    return ServiceResult<FamilyTreeResponse>.Failure(
+                        "Invalid TownId. The specified town does not exist.",
+                        ServiceErrorType.BadRequest);
+                }
+                tree.TownId = request.TownId.Value;
+                tree.Town = newTown;
+            }
+
             tree.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync(cancellationToken);
-
-            // Reload town if changed
-            if (request.TownId.HasValue && tree.TownId.HasValue)
-            {
-                tree.Town = await _context.Towns.FirstOrDefaultAsync(t => t.Id == tree.TownId.Value, cancellationToken);
-            }
 
             _logger.LogInformation("Family tree updated: {TreeId}", id);
 
@@ -289,7 +306,7 @@ public class FamilyTreeService : IFamilyTreeService
                 tree.OwnerId,
                 tree.Owner != null ? $"{tree.Owner.FirstName} {tree.Owner.LastName}".Trim() : null,
                 tree.TownId,
-                tree.Town?.Name,
+                tree.Town?.Name ?? "",
                 tree.OrgUsers.Count,
                 tree.People.Count,
                 tree.CreatedAt,
@@ -744,7 +761,7 @@ public class FamilyTreeService : IFamilyTreeService
                 tree.OwnerId,
                 tree.Owner != null ? $"{tree.Owner.FirstName} {tree.Owner.LastName}".Trim() : null,
                 tree.TownId,
-                tree.Town?.Name,
+                tree.Town?.Name ?? "",
                 memberCount,
                 personCount,
                 tree.CreatedAt,

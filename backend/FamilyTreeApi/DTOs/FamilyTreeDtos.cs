@@ -15,8 +15,8 @@ public record FamilyTreeResponse(
     string? CoverImageUrl,
     long? OwnerId,
     string? OwnerName,
-    Guid? TownId,
-    string? TownName,
+    Guid TownId,       // REQUIRED: Every tree belongs to a town
+    string TownName,   // REQUIRED: Town name for display
     int MemberCount,
     int PersonCount,
     DateTime CreatedAt,
@@ -31,15 +31,21 @@ public record FamilyTreeListItem(
     string? CoverImageUrl,
     int PersonCount,
     OrgRole? UserRole,
+    Guid TownId,       // REQUIRED: Every tree belongs to a town
+    string TownName,   // REQUIRED: Town name for filtering/display
     DateTime CreatedAt
 );
 
+/// <summary>
+/// Request to create a new family tree.
+/// TownId is REQUIRED - every tree must belong to a town per hierarchy rules.
+/// </summary>
 public record CreateFamilyTreeRequest(
     string Name,
+    Guid TownId,  // REQUIRED: Every tree must belong to a town
     string? Description = null,
     bool IsPublic = false,
-    bool AllowCrossTreeLinking = true,
-    Guid? TownId = null
+    bool AllowCrossTreeLinking = true
 );
 
 public record UpdateFamilyTreeRequest(

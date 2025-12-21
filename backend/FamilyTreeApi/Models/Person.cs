@@ -14,6 +14,13 @@ public class Person
     public Guid OrgId { get; set; }
     public Org Org { get; set; } = null!;
 
+    /// <summary>
+    /// Optional family group this person belongs to.
+    /// Part of Town->Org->Family->Person hierarchy.
+    /// </summary>
+    public Guid? FamilyId { get; set; }
+    public Family? Family { get; set; }
+
     [MaxLength(200)]
     public string? PrimaryName { get; set; }
 

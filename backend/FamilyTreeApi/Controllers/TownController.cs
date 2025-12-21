@@ -68,78 +68,22 @@ public class TownController : ControllerBase
         return HandleResult(result);
     }
 
-    /// <summary>
-    /// Create a new town (Admin/SuperAdmin only)
-    /// </summary>
-    [HttpPost]
-    public async Task<ActionResult<TownDetailDto>> CreateTown(CreateTownDto request)
-    {
-        var userContext = BuildUserContext();
-        var result = await _townService.CreateTownAsync(request, userContext);
-
-        if (!result.IsSuccess)
-        {
-            return HandleError(result);
-        }
-
-        return CreatedAtAction(nameof(GetTown), new { id = result.Data!.Id }, result.Data);
-    }
-
-    /// <summary>
-    /// Update an existing town (Admin/SuperAdmin only)
-    /// </summary>
-    [HttpPut("{id}")]
-    public async Task<ActionResult<TownDetailDto>> UpdateTown(Guid id, UpdateTownDto request)
-    {
-        var userContext = BuildUserContext();
-        var result = await _townService.UpdateTownAsync(id, request, userContext);
-
-        return HandleResult(result);
-    }
-
-    /// <summary>
-    /// Delete a town (SuperAdmin only)
-    /// </summary>
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteTown(Guid id)
-    {
-        var userContext = BuildUserContext();
-        var result = await _townService.DeleteTownAsync(id, userContext);
-
-        if (!result.IsSuccess)
-        {
-            return HandleError(result);
-        }
-
-        return NoContent();
-    }
-
     // ========================================================================
-    // CSV IMPORT
+    // TOWN MUTATIONS DISABLED - Towns are READ-ONLY
+    // Per hierarchy rules: Towns come from database seed data only.
+    // Users CANNOT create/edit/delete towns.
     // ========================================================================
 
-    /// <summary>
-    /// Import towns from CSV file (Admin/SuperAdmin only)
-    /// Expected format: name,name_en,name_ar,name_local,country
-    /// </summary>
-    [HttpPost("import")]
-    public async Task<ActionResult<TownImportResultDto>> ImportTowns(IFormFile file)
-    {
-        if (file == null || file.Length == 0)
-        {
-            return BadRequest(new { message = "No file provided" });
-        }
+    // [HttpPost] - REMOVED: Towns are read-only
+    // [HttpPut("{id}")] - REMOVED: Towns are read-only
+    // [HttpDelete("{id}")] - REMOVED: Towns are read-only
 
-        if (!file.FileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
-        {
-            return BadRequest(new { message = "File must be a CSV file" });
-        }
+    // ========================================================================
+    // CSV IMPORT DISABLED - Towns are READ-ONLY
+    // Towns can only be added via direct database administration.
+    // ========================================================================
 
-        var userContext = BuildUserContext();
-        var result = await _townService.ImportTownsAsync(file, userContext);
-
-        return HandleResult(result);
-    }
+    // [HttpPost("import")] - REMOVED: Towns are read-only
 
     /// <summary>
     /// Get list of unique countries from all towns

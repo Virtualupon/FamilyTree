@@ -13,8 +13,8 @@ export interface FamilyTree {
   coverImageUrl: string | null;
   ownerId: number | null;
   ownerName: string | null;
-  townId: string | null;
-  townName: string | null;
+  townId: string;       // REQUIRED: Every tree belongs to a town
+  townName: string;     // REQUIRED: Town name for display
   memberCount: number;
   personCount: number;
   createdAt: string;
@@ -29,15 +29,21 @@ export interface FamilyTreeListItem {
   coverImageUrl: string | null;
   personCount: number;
   userRole: OrgRole | null;
+  townId: string;       // REQUIRED: Every tree belongs to a town
+  townName: string;     // REQUIRED: Town name for filtering/display
   createdAt: string;
 }
 
+/**
+ * Request to create a new family tree.
+ * townId is REQUIRED - every tree must belong to a town per hierarchy rules.
+ */
 export interface CreateFamilyTreeRequest {
   name: string;
+  townId: string;       // REQUIRED: Every tree must belong to a town
   description?: string;
   isPublic?: boolean;
   allowCrossTreeLinking?: boolean;
-  townId?: string;
 }
 
 export interface UpdateFamilyTreeRequest {

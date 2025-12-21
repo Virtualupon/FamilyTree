@@ -154,6 +154,8 @@ export class TreeContextService {
                 coverImageUrl: null,
                 personCount: 0,
                 userRole: null, // Admin assignment, not membership
+                townId: '',     // Not available from assignment - loaded later via API
+                townName: '',   // Not available from assignment - loaded later via API
                 createdAt: assignment.assignedAt
               });
             }

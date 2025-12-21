@@ -207,6 +207,8 @@ public class TownService : ITownService
                     o.CoverImageUrl,
                     o.People.Count,
                     o.OrgUsers.Where(ou => ou.UserId == userContext.UserId).Select(ou => (OrgRole?)ou.Role).FirstOrDefault(),
+                    o.TownId,      // REQUIRED: Every tree belongs to a town
+                    town.Name,     // Using the town we already fetched
                     o.CreatedAt
                 ))
                 .ToListAsync(cancellationToken);

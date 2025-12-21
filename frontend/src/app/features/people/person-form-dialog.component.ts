@@ -14,15 +14,19 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { PersonService } from '../../core/services/person.service';
+import { TransliterationService } from '../../core/services/transliteration.service';
+import { FamilyService } from '../../core/services/family.service';
+import { TreeContextService } from '../../core/services/tree-context.service';
 import { I18nService, TranslatePipe } from '../../core/i18n';
-import { 
-  Person, 
-  PersonListItem, 
-  Sex, 
-  NameType, 
-  DatePrecision, 
+import { FamilyListItem } from '../../core/models/family.models';
+import {
+  Person,
+  PersonListItem,
+  Sex,
+  NameType,
+  DatePrecision,
   PrivacyLevel,
-  CreatePersonRequest 
+  CreatePersonRequest
 } from '../../core/models/person.models';
 
 export interface PersonFormDialogData {
@@ -100,7 +104,29 @@ export interface PersonFormDialogData {
                   {{ 'personForm.isLiving' | translate }}
                 </mat-slide-toggle>
               </div>
-              
+
+              <!-- Family Group -->
+              @if (families().length > 0) {
+                <mat-form-field appearance="outline" class="full-width">
+                  <mat-label>{{ 'personForm.family' | translate }}</mat-label>
+                  <mat-select formControlName="familyId">
+                    <mat-option [value]="null">
+                      <mat-icon>remove_circle_outline</mat-icon>
+                      {{ 'personForm.noFamily' | translate }}
+                    </mat-option>
+                    @for (family of families(); track family.id) {
+                      <mat-option [value]="family.id">
+                        @if (family.color) {
+                          <span class="family-color" [style.background-color]="family.color"></span>
+                        }
+                        {{ family.name }}
+                      </mat-option>
+                    }
+                  </mat-select>
+                  <mat-icon matSuffix>groups</mat-icon>
+                </mat-form-field>
+              }
+
               <!-- Privacy Level -->
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>{{ 'personForm.privacy' | translate }}</mat-label>
@@ -296,6 +322,19 @@ export interface PersonFormDialogData {
                       </mat-form-field>
                       
                       <div class="name-actions">
+                        <button
+                          mat-stroked-button
+                          color="primary"
+                          type="button"
+                          (click)="transliterateName(i)"
+                          [disabled]="transliterating() === i">
+                          @if (transliterating() === i) {
+                            <mat-spinner diameter="18"></mat-spinner>
+                          } @else {
+                            <mat-icon>translate</mat-icon>
+                          }
+                          {{ 'personForm.transliterate' | translate }}
+                        </button>
                         <button mat-button color="warn" type="button" (click)="removeName(i)">
                           <mat-icon>delete</mat-icon>
                           {{ 'common.delete' | translate }}
@@ -463,6 +502,14 @@ export interface PersonFormDialogData {
       gap: 8px;
     }
 
+    .family-color {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+
     ::ng-deep .mat-mdc-tab-body-wrapper {
       flex: 1;
     }
@@ -475,18 +522,23 @@ export interface PersonFormDialogData {
 export class PersonFormDialogComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly personService = inject(PersonService);
+  private readonly transliterationService = inject(TransliterationService);
+  private readonly familyService = inject(FamilyService);
+  private readonly treeContext = inject(TreeContextService);
   private readonly i18n = inject(I18nService);
   private readonly dialogRef = inject(MatDialogRef<PersonFormDialogComponent>);
   readonly data = inject<PersonFormDialogData>(MAT_DIALOG_DATA);
-  
+
   // Expose enums to template
   readonly Sex = Sex;
   readonly NameType = NameType;
   readonly DatePrecision = DatePrecision;
   readonly PrivacyLevel = PrivacyLevel;
-  
+
   form!: FormGroup;
   saving = signal(false);
+  transliterating = signal<number | null>(null);
+  families = signal<FamilyListItem[]>([]);
   
   get namesArray(): FormArray {
     return this.form.get('names') as FormArray;
@@ -494,9 +546,20 @@ export class PersonFormDialogComponent implements OnInit {
   
   ngOnInit(): void {
     this.initForm();
-    
+    this.loadFamilies();
+
     if (this.data.person) {
       this.loadPersonDetails();
+    }
+  }
+
+  private loadFamilies(): void {
+    const currentTree = this.treeContext.selectedTree();
+    if (currentTree) {
+      this.familyService.getFamiliesByTree(currentTree.id).subscribe({
+        next: (families) => this.families.set(families),
+        error: (err) => console.error('Failed to load families:', err)
+      });
     }
   }
   
@@ -505,6 +568,7 @@ export class PersonFormDialogComponent implements OnInit {
       primaryName: ['', Validators.required],
       sex: [Sex.Unknown],
       isLiving: [true],
+      familyId: [null],
       privacyLevel: [PrivacyLevel.Family],
       birthDate: [null],
       birthPrecision: [DatePrecision.Exact],
@@ -540,6 +604,7 @@ export class PersonFormDialogComponent implements OnInit {
       primaryName: person.primaryName || '',
       sex: person.sex,
       isLiving: !person.deathDate,
+      familyId: person.familyId || null,
       privacyLevel: person.privacyLevel,
       birthDate: person.birthDate ? new Date(person.birthDate) : null,
       birthPrecision: person.birthPrecision,
@@ -607,11 +672,12 @@ export class PersonFormDialogComponent implements OnInit {
     const request: CreatePersonRequest = {
       primaryName: formValue.primaryName,
       sex: formValue.sex,
+      familyId: formValue.familyId || undefined,
       privacyLevel: formValue.privacyLevel,
       birthDate: formValue.birthDate ? this.formatDateForApi(formValue.birthDate) : undefined,
       birthPrecision: formValue.birthPrecision,
-      deathDate: !formValue.isLiving && formValue.deathDate 
-        ? this.formatDateForApi(formValue.deathDate) 
+      deathDate: !formValue.isLiving && formValue.deathDate
+        ? this.formatDateForApi(formValue.deathDate)
         : undefined,
       deathPrecision: formValue.deathPrecision,
       occupation: formValue.occupation || undefined,
@@ -640,5 +706,87 @@ export class PersonFormDialogComponent implements OnInit {
   
   private formatDateForApi(date: Date): string {
     return date.toISOString().split('T')[0];
+  }
+
+  transliterateName(index: number): void {
+    const nameGroup = this.namesArray.at(index);
+    if (!nameGroup) return;
+
+    const fullName = nameGroup.get('full')?.value;
+    const given = nameGroup.get('given')?.value;
+    const family = nameGroup.get('family')?.value;
+    const script = nameGroup.get('script')?.value || 'Latin';
+    const nameType = nameGroup.get('type')?.value || NameType.Primary;
+
+    // Build the name to transliterate (prefer full name, otherwise combine parts)
+    const nameToTransliterate = fullName || [given, family].filter(Boolean).join(' ');
+
+    if (!nameToTransliterate.trim()) {
+      return; // No name to transliterate
+    }
+
+    // Map script to source language
+    const sourceLanguageMap: Record<string, 'en' | 'ar' | 'nob'> = {
+      'Latin': 'en',
+      'Arabic': 'ar',
+      'Coptic': 'nob'
+    };
+    const sourceLanguage = sourceLanguageMap[script] || 'en';
+
+    this.transliterating.set(index);
+
+    this.transliterationService.transliterate({
+      inputName: nameToTransliterate,
+      sourceLanguage: sourceLanguage,
+      displayLanguage: this.i18n.currentLang() as 'en' | 'ar' | 'nob'
+    }).subscribe({
+      next: (result) => {
+        this.transliterating.set(null);
+
+        // Add transliterated names for other scripts
+        const scriptTargets: Array<{ script: string; value: string }> = [];
+
+        if (script !== 'Arabic' && result.arabic) {
+          scriptTargets.push({ script: 'Arabic', value: result.arabic });
+        }
+        if (script !== 'Latin' && result.english?.best) {
+          scriptTargets.push({ script: 'Latin', value: result.english.best });
+        }
+        if (script !== 'Coptic' && result.nobiin?.value) {
+          scriptTargets.push({ script: 'Coptic', value: result.nobiin.value });
+        }
+
+        // Add new name entries for each transliterated version
+        scriptTargets.forEach(target => {
+          // Check if we already have a name with this script
+          const existingIndex = this.namesArray.controls.findIndex(
+            ctrl => ctrl.get('script')?.value === target.script
+          );
+
+          if (existingIndex === -1) {
+            // Add new name entry
+            this.namesArray.push(this.fb.group({
+              type: [nameType],
+              given: [''],
+              middle: [''],
+              family: [''],
+              full: [target.value],
+              script: [target.script],
+              transliteration: [nameToTransliterate]
+            }));
+          } else {
+            // Update existing entry
+            this.namesArray.at(existingIndex).patchValue({
+              full: target.value,
+              transliteration: nameToTransliterate
+            });
+          }
+        });
+      },
+      error: (error) => {
+        console.error('Transliteration failed:', error);
+        this.transliterating.set(null);
+      }
+    });
   }
 }

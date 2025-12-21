@@ -1,6 +1,8 @@
 export interface Person {
   id: string;
   orgId: string;
+  familyId: string | null;
+  familyName: string | null;
   primaryName: string | null;
   sex: Sex;
   gender: string | null;
@@ -29,6 +31,8 @@ export interface Person {
 
 export interface PersonListItem {
   id: string;
+  familyId: string | null;
+  familyName: string | null;
   primaryName: string | null;
   sex: Sex;
   birthDate: string | null;
@@ -87,6 +91,7 @@ export interface CreatePersonRequest {
   primaryName: string;
   sex: Sex;
   gender?: string;
+  familyId?: string;
   birthDate?: string;
   birthPrecision?: DatePrecision;
   birthPlaceId?: string;
@@ -107,6 +112,7 @@ export interface UpdatePersonRequest {
   primaryName?: string;
   sex?: Sex;
   gender?: string;
+  familyId?: string;
   birthDate?: string;
   birthPrecision?: DatePrecision;
   birthPlaceId?: string;

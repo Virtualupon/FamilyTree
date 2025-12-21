@@ -255,7 +255,8 @@ public class AuthService : IAuthService
             orgUser?.OrgId,
             orgUser?.Org?.Name,
             orgUser != null ? (int)orgUser.Role : 0,
-            systemRole
+            systemRole,
+            user.PreferredLanguage
         );
     }
 }

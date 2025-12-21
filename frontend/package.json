@@ -31,6 +31,8 @@
     "@angular/material": "20.0.0",
     "@angular/platform-browser": "20.0.0",
     "@angular/router": "20.0.0",
+    "@ngx-translate/core": "^17.0.0",
+    "@ngx-translate/http-loader": "^17.0.0",
     "@types/d3": "^7.4.3",
     "d3": "^7.9.0",
     "rxjs": "7.8.1",

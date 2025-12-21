@@ -20,7 +20,8 @@
     "details": "ⲧⲁⲫⲥⲓⲗ",
     "view": "ⲅⲓⲣⲣ",
     "create": "ⲇⲓⲣⲣ",
-    "update": "ⲥⲁⲃⲃⲓⲗ"
+    "update": "ⲥⲁⲃⲃⲓⲗ",
+    "clear": "ⲙⲁⲥⲥ"
   },
   "auth": {
     "login": "ⲅⲓⲣⲣ",
@@ -149,5 +150,22 @@
     "arabic": "العربية",
     "nobiin": "ⲛⲟⲃⲓ̄ⲛ",
     "selectLanguage": "ⲕⲁⲗⲁⲙ ⲥⲟⲗⲗ"
+  },
+  "transliteration": {
+    "title": "ⲓⲣⲓⲛ ⲥⲁⲃⲃⲓⲗ",
+    "enterName": "ⲓⲣⲓⲛ ⲇⲓⲣⲣ",
+    "namePlaceholder": "ⲓⲣⲓⲛ ⲕⲁⲙ",
+    "transliterate": "ⲥⲁⲃⲃⲓⲗ",
+    "english": "English",
+    "arabic": "العربية",
+    "nobiin": "ⲛⲟⲃⲓ̄ⲛ",
+    "alternatives": "ⲧⲁⲛⲓ",
+    "needsReview": "ⲥⲁⲃⲃⲓⲗ ⲗⲁⲍⲓⲙ",
+    "useSelected": "ⲥⲟⲗⲗ ⲕⲁⲙ",
+    "confidence": "ⲁⲕⲕⲓⲇ",
+    "source": "ⲁⲥⲗ",
+    "verified": "ⲧⲁⲙⲙ",
+    "cached": "ⲫⲁⲕⲕⲓⲣ",
+    "aiGenerated": "AI ⲕⲁⲙ"
   }
 }

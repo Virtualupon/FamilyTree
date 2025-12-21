@@ -46,6 +46,9 @@ public class ApplicationDbContext : IdentityDbContext<
     // Lookup tables
     public DbSet<FamilyRelationshipType> FamilyRelationshipTypes { get; set; }
 
+    // Name transliteration mappings
+    public DbSet<NameMapping> NameMappings { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -444,6 +447,33 @@ public class ApplicationDbContext : IdentityDbContext<
             entity.HasIndex(e => e.NameEnglish);
             entity.HasIndex(e => e.Category);
             entity.HasIndex(e => e.IsActive);
+        });
+
+        // NameMappings - Transliteration cache for Arabic/English/Nobiin names
+        modelBuilder.Entity<NameMapping>(entity =>
+        {
+            entity.ToTable("NameMappings");
+            entity.HasKey(e => e.Id);
+
+            // Indexes for efficient lookup
+            entity.HasIndex(e => e.ArabicNormalized);
+            entity.HasIndex(e => e.EnglishNormalized);
+            entity.HasIndex(e => e.NobiinNormalized);
+            entity.HasIndex(e => e.NeedsReview);
+            entity.HasIndex(e => e.IsVerified);
+            entity.HasIndex(e => e.OrgId);
+
+            // Relationship to confirming user
+            entity.HasOne(e => e.ConfirmedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.ConfirmedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Relationship to organization
+            entity.HasOne(e => e.Org)
+                .WithMany()
+                .HasForeignKey(e => e.OrgId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

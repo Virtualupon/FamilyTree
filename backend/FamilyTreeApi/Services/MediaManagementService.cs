@@ -262,10 +262,10 @@ public class MediaManagementService : IMediaManagementService
 
                 // Generate unique filename
                 var extension = Path.GetExtension(file.FileName);
-                var uniqueFileName = $"{mediaKind}_{Guid.NewGuid()}{extension}";
+                var uniqueFileName = $"{mediaKind.Value}_{Guid.NewGuid()}{extension}";
 
                 // Define storage path
-                string[] pathSegments = new[] { "family-tree", "orgs", orgId.ToString(), mediaKind.ToString().ToLower() };
+                string[] pathSegments = new[] { "family-tree", "orgs", orgId.ToString(), mediaKind.Value.ToString().ToLower() };
 
                 // Upload to VirtualUpon.Storage
                 var savedMediaInfo = await _storageService.UploadFileAsync(pathSegments, uniqueFileName, fileBytes);
@@ -460,6 +460,11 @@ public class MediaManagementService : IMediaManagementService
             try
             {
                 var response = await _storageService.DownloadFileAsync(media.Url);
+
+                if (response.FileData == null)
+                {
+                    return ServiceResult<(byte[] Data, string ContentType, string FileName)>.NotFound("Media file data not found");
+                }
 
                 var fileName = media.FileName ?? media.Title ?? $"media_{media.Id}";
                 var contentType = media.MimeType ?? "application/octet-stream";

@@ -23,7 +23,7 @@ public interface IAdminService
         UserContext userContext,
         CancellationToken cancellationToken = default);
 
-    // Admin Tree Assignments
+    // Admin Tree Assignments (legacy)
     Task<ServiceResult<List<AdminAssignmentResponse>>> GetAllAssignmentsAsync(
         CancellationToken cancellationToken = default);
 
@@ -38,6 +38,39 @@ public interface IAdminService
 
     Task<ServiceResult> DeleteAssignmentAsync(
         Guid assignmentId,
+        CancellationToken cancellationToken = default);
+
+    // Admin Town Assignments (town-scoped access)
+    Task<ServiceResult<List<AdminTownAssignmentResponse>>> GetAllTownAssignmentsAsync(
+        CancellationToken cancellationToken = default);
+
+    Task<ServiceResult<List<AdminTownAssignmentResponse>>> GetUserTownAssignmentsAsync(
+        long userId,
+        CancellationToken cancellationToken = default);
+
+    Task<ServiceResult<AdminTownAssignmentResponse>> CreateTownAssignmentAsync(
+        CreateAdminTownAssignmentRequest request,
+        UserContext userContext,
+        CancellationToken cancellationToken = default);
+
+    Task<ServiceResult<List<AdminTownAssignmentResponse>>> CreateTownAssignmentsBulkAsync(
+        CreateAdminTownAssignmentBulkRequest request,
+        UserContext userContext,
+        CancellationToken cancellationToken = default);
+
+    Task<ServiceResult> DeleteTownAssignmentAsync(
+        Guid assignmentId,
+        CancellationToken cancellationToken = default);
+
+    Task<ServiceResult> DeactivateTownAssignmentAsync(
+        Guid assignmentId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get towns assigned to an admin user (for login flow)
+    /// </summary>
+    Task<ServiceResult<AdminLoginResponse>> GetAdminTownsAsync(
+        long userId,
         CancellationToken cancellationToken = default);
 
     // Statistics

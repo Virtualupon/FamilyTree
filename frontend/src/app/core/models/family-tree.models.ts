@@ -221,6 +221,57 @@ export interface CreateAdminAssignmentRequest {
   treeId: string;
 }
 
+// Town-level assignments (town-scoped admin access)
+export interface AdminTownAssignment {
+  id: string;
+  userId: number;
+  userEmail: string | null;
+  userName: string | null;
+  townId: string;
+  townName: string | null;
+  townNameEn: string | null;
+  townNameAr: string | null;
+  townNameLocal: string | null;
+  treeCount: number;
+  assignedByName: string | null;
+  assignedAt: string;
+  isActive: boolean;
+}
+
+export interface CreateAdminTownAssignmentRequest {
+  userId: number;
+  townId: string;
+}
+
+export interface CreateAdminTownAssignmentBulkRequest {
+  userId: number;
+  townIds: string[];
+}
+
+export interface TownSummary {
+  id: string;
+  name: string;
+  nameEn: string | null;
+  nameAr: string | null;
+  nameLocal: string | null;
+  treeCount: number;
+}
+
+export interface AdminLoginResponse {
+  assignedTowns: TownSummary[];
+  requiresTownSelection: boolean;
+}
+
+export interface SelectTownRequest {
+  townId: string;
+}
+
+export interface SelectTownResponse {
+  accessToken: string;
+  selectedTownId: string;
+  townName: string;
+}
+
 export interface UpdateSystemRoleRequest {
   systemRole: string;
 }

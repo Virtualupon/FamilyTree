@@ -15,13 +15,16 @@ import { MatChipsModule } from '@angular/material/chips';
 
 import { AdminService } from '../../core/services/admin.service';
 import { FamilyTreeService } from '../../core/services/family-tree.service';
+import { TownService } from '../../core/services/town.service';
 import {
   AdminUser,
   AdminTreeAssignment,
+  AdminTownAssignment,
   PlatformStats,
   FamilyTreeListItem,
   CreateUserRequest
 } from '../../core/models/family-tree.models';
+import { TownListItem } from '../../core/models/town.models';
 
 @Component({
   selector: 'app-admin-panel',
@@ -201,16 +204,101 @@ import {
             </div>
           </mat-tab>
 
-          <!-- Admin Assignments Tab -->
+          <!-- Town Assignments Tab (Primary - Town-scoped access) -->
+          <mat-tab>
+            <ng-template mat-tab-label>
+              <mat-icon>location_city</mat-icon>
+              <span>Town Assignments</span>
+            </ng-template>
+
+            <div class="tab-content">
+              <div class="tab-header">
+                <h3>Admin Town Assignments</h3>
+                <p class="tab-description">Assign admins to towns. Admins can manage all trees within their assigned towns.</p>
+                <button mat-flat-button color="primary" (click)="showNewTownAssignmentModal = true">
+                  <mat-icon>add</mat-icon>
+                  Assign Town
+                </button>
+              </div>
+
+              <table mat-table [dataSource]="townAssignments()" class="assignments-table">
+                <ng-container matColumnDef="admin">
+                  <th mat-header-cell *matHeaderCellDef>Admin</th>
+                  <td mat-cell *matCellDef="let a">
+                    <div class="user-cell">
+                      <div class="user-avatar user-avatar--small">
+                        {{ getInitials(a.userName?.split(' ')[0], a.userName?.split(' ')[1]) }}
+                      </div>
+                      <div class="user-info">
+                        <span class="user-name">{{ a.userName }}</span>
+                        <span class="user-email">{{ a.userEmail }}</span>
+                      </div>
+                    </div>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="town">
+                  <th mat-header-cell *matHeaderCellDef>Town</th>
+                  <td mat-cell *matCellDef="let a">
+                    <mat-chip-set>
+                      <mat-chip class="town-chip">
+                        <mat-icon>location_city</mat-icon>
+                        {{ a.townName }}
+                      </mat-chip>
+                    </mat-chip-set>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="trees">
+                  <th mat-header-cell *matHeaderCellDef>Trees</th>
+                  <td mat-cell *matCellDef="let a">
+                    <span class="tree-count">{{ a.treeCount }} trees</span>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="assignedBy">
+                  <th mat-header-cell *matHeaderCellDef>Assigned By</th>
+                  <td mat-cell *matCellDef="let a">{{ a.assignedByName || 'System' }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="date">
+                  <th mat-header-cell *matHeaderCellDef>Date</th>
+                  <td mat-cell *matCellDef="let a">{{ a.assignedAt | date:'mediumDate' }}</td>
+                </ng-container>
+
+                <ng-container matColumnDef="actions">
+                  <th mat-header-cell *matHeaderCellDef>Actions</th>
+                  <td mat-cell *matCellDef="let a">
+                    <button mat-icon-button color="warn" (click)="removeTownAssignment(a)">
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </td>
+                </ng-container>
+
+                <tr mat-header-row *matHeaderRowDef="townAssignmentColumns"></tr>
+                <tr mat-row *matRowDef="let row; columns: townAssignmentColumns;"></tr>
+              </table>
+
+              @if (townAssignments().length === 0) {
+                <div class="empty-state">
+                  <mat-icon>location_city</mat-icon>
+                  <p>No town assignments yet</p>
+                  <span class="empty-hint">Assign admins to towns to give them access to all trees within those towns</span>
+                </div>
+              }
+            </div>
+          </mat-tab>
+
+          <!-- Admin Tree Assignments Tab (Legacy) -->
           <mat-tab>
             <ng-template mat-tab-label>
               <mat-icon>assignment_ind</mat-icon>
-              <span>Admin Assignments</span>
+              <span>Tree Assignments</span>
             </ng-template>
-            
+
             <div class="tab-content">
               <div class="tab-header">
-                <h3>Admin Tree Assignments</h3>
+                <h3>Direct Tree Assignments (Legacy)</h3>
                 <button mat-flat-button color="primary" (click)="showNewAssignmentModal = true">
                   <mat-icon>add</mat-icon>
                   Add Assignment
@@ -271,7 +359,7 @@ import {
               @if (assignments().length === 0) {
                 <div class="empty-state">
                   <mat-icon>assignment</mat-icon>
-                  <p>No admin assignments yet</p>
+                  <p>No tree assignments yet</p>
                 </div>
               }
             </div>
@@ -440,6 +528,55 @@ import {
                 } @else {
                   Create User
                 }
+              </button>
+            </mat-card-actions>
+          </mat-card>
+        </div>
+      }
+
+      <!-- Town Assignment Modal -->
+      @if (showNewTownAssignmentModal) {
+        <div class="modal-backdrop" (click)="showNewTownAssignmentModal = false">
+          <mat-card class="modal-card" (click)="$event.stopPropagation()">
+            <mat-card-header>
+              <mat-card-title>Assign Admin to Town</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <p class="modal-hint">
+                Assigning an admin to a town gives them access to all trees within that town.
+              </p>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Select Admin</mat-label>
+                <mat-select [(ngModel)]="newTownAssignment.userId">
+                  @for (user of adminUsers(); track user.userId) {
+                    <mat-option [value]="user.userId">
+                      {{ user.firstName }} {{ user.lastName }} ({{ user.email }})
+                    </mat-option>
+                  }
+                </mat-select>
+                <mat-icon matPrefix>person</mat-icon>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Select Town</mat-label>
+                <mat-select [(ngModel)]="newTownAssignment.townId">
+                  @for (town of allTowns(); track town.id) {
+                    <mat-option [value]="town.id">
+                      {{ town.name }}
+                      @if (town.nameAr) {
+                        <span class="option-secondary"> - {{ town.nameAr }}</span>
+                      }
+                    </mat-option>
+                  }
+                </mat-select>
+                <mat-icon matPrefix>location_city</mat-icon>
+              </mat-form-field>
+            </mat-card-content>
+            <mat-card-actions align="end">
+              <button mat-button (click)="showNewTownAssignmentModal = false">Cancel</button>
+              <button mat-flat-button color="primary" (click)="createTownAssignment()">
+                Assign Town
               </button>
             </mat-card-actions>
           </mat-card>
@@ -695,6 +832,44 @@ import {
       p {
         margin: 0;
       }
+
+      .empty-hint {
+        font-size: 13px;
+        margin-top: 8px;
+        opacity: 0.7;
+      }
+    }
+
+    .tab-description {
+      font-size: 13px;
+      color: var(--ft-on-surface-variant);
+      margin: 0 0 16px;
+      flex: 1;
+    }
+
+    .tab-header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .town-chip {
+      background-color: #e3f2fd !important;
+      color: #1565c0 !important;
+    }
+
+    .modal-hint {
+      font-size: 13px;
+      color: var(--ft-on-surface-variant);
+      margin: 0 0 16px;
+      padding: 12px;
+      background: var(--ft-surface-variant);
+      border-radius: 8px;
+    }
+
+    .option-secondary {
+      opacity: 0.7;
     }
 
     .modal-backdrop {
@@ -766,11 +941,16 @@ export class AdminPanelComponent implements OnInit {
   loading = signal(true);
   users = signal<AdminUser[]>([]);
   assignments = signal<AdminTreeAssignment[]>([]);
+  townAssignments = signal<AdminTownAssignment[]>([]);
   allTrees = signal<FamilyTreeListItem[]>([]);
+  allTowns = signal<TownListItem[]>([]);
   stats = signal<PlatformStats | null>(null);
 
   showNewAssignmentModal = false;
   newAssignment = { userId: 0, treeId: '' };
+
+  showNewTownAssignmentModal = false;
+  newTownAssignment = { userId: 0, townId: '' };
 
   showCreateUserModal = false;
   creatingUser = signal(false);
@@ -786,11 +966,13 @@ export class AdminPanelComponent implements OnInit {
 
   userColumns = ['user', 'role', 'trees', 'created', 'actions'];
   assignmentColumns = ['admin', 'tree', 'assignedBy', 'date', 'actions'];
+  townAssignmentColumns = ['admin', 'town', 'trees', 'assignedBy', 'date', 'actions'];
   treeColumns = ['name', 'people', 'public', 'created'];
 
   constructor(
     private adminService: AdminService,
-    private treeService: FamilyTreeService
+    private treeService: FamilyTreeService,
+    private townService: TownService
   ) {}
 
   ngOnInit() {
@@ -818,8 +1000,18 @@ export class AdminPanelComponent implements OnInit {
       error: () => {}
     });
 
+    this.adminService.getAllTownAssignments().subscribe({
+      next: (assignments) => this.townAssignments.set(assignments),
+      error: () => {}
+    });
+
     this.treeService.getMyTrees().subscribe({
       next: (trees) => this.allTrees.set(trees),
+      error: () => {}
+    });
+
+    this.townService.getAllTowns().subscribe({
+      next: (towns) => this.allTowns.set(towns),
       error: () => {}
     });
   }
@@ -867,6 +1059,32 @@ export class AdminPanelComponent implements OnInit {
     this.adminService.deleteAssignment(assignment.id).subscribe({
       next: () => this.loadData(),
       error: (err) => alert(err.error?.message || 'Failed to remove assignment')
+    });
+  }
+
+  // Town Assignment Methods
+  createTownAssignment() {
+    if (!this.newTownAssignment.userId || !this.newTownAssignment.townId) return;
+
+    this.adminService.createTownAssignment({
+      userId: this.newTownAssignment.userId,
+      townId: this.newTownAssignment.townId
+    }).subscribe({
+      next: () => {
+        this.showNewTownAssignmentModal = false;
+        this.newTownAssignment = { userId: 0, townId: '' };
+        this.loadData();
+      },
+      error: (err) => alert(err.error?.message || 'Failed to create town assignment')
+    });
+  }
+
+  removeTownAssignment(assignment: AdminTownAssignment) {
+    if (!confirm(`Remove ${assignment.userName} from ${assignment.townName}?`)) return;
+
+    this.adminService.deleteTownAssignment(assignment.id).subscribe({
+      next: () => this.loadData(),
+      error: (err) => alert(err.error?.message || 'Failed to remove town assignment')
     });
   }
 

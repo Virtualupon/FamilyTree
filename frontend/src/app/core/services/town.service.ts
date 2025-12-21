@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import {
   Town,
@@ -41,6 +42,17 @@ export class TownService {
     }
 
     return this.http.get<PagedResult<TownListItem>>(this.apiUrl, { params: httpParams });
+  }
+
+  /**
+   * Get all towns (for dropdowns, without pagination)
+   */
+  getAllTowns(): Observable<TownListItem[]> {
+    return this.http.get<PagedResult<TownListItem>>(this.apiUrl, {
+      params: new HttpParams().set('page', '1').set('pageSize', '1000')
+    }).pipe(
+      map(result => result.items)
+    );
   }
 
   /**

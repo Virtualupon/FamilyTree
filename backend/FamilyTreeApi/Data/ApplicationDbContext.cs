@@ -46,6 +46,9 @@ public class ApplicationDbContext : IdentityDbContext<
     // Family groups (Town -> Org -> Family -> Person hierarchy)
     public DbSet<Family> Families { get; set; }
 
+    // Town-scoped admin assignments
+    public DbSet<AdminTownAssignment> AdminTownAssignments { get; set; }
+
     // Lookup tables
     public DbSet<FamilyRelationshipType> FamilyRelationshipTypes { get; set; }
 
@@ -398,6 +401,32 @@ public class ApplicationDbContext : IdentityDbContext<
                 .OnDelete(DeleteBehavior.SetNull);
         });
 
+        // AdminTownAssignment - Town-scoped admin access
+        modelBuilder.Entity<AdminTownAssignment>(entity =>
+        {
+            entity.ToTable("AdminTownAssignments");
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.TownId);
+            entity.HasIndex(e => e.IsActive);
+            entity.HasIndex(e => new { e.UserId, e.TownId }).IsUnique();
+
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.AdminTownAssignments)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Town)
+                .WithMany(t => t.AdminAssignments)
+                .HasForeignKey(e => e.TownId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.AssignedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.AssignedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
         modelBuilder.Entity<TreeInvitation>(entity =>
         {
             entity.ToTable("TreeInvitations");
@@ -450,6 +479,46 @@ public class ApplicationDbContext : IdentityDbContext<
             entity.HasIndex(e => e.NameEnglish);
             entity.HasIndex(e => e.Category);
             entity.HasIndex(e => e.IsActive);
+        });
+
+        // Family groups - Town -> Org -> Family -> Person hierarchy
+        modelBuilder.Entity<Family>(entity =>
+        {
+            entity.ToTable("Families");
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.OrgId);
+            entity.HasIndex(e => e.TownId);
+            entity.HasIndex(e => e.Name);
+
+            // Family belongs to an Org (Family Tree)
+            entity.HasOne(e => e.Org)
+                .WithMany(o => o.Families)
+                .HasForeignKey(e => e.OrgId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Family is associated with a Town
+            entity.HasOne(e => e.Town)
+                .WithMany()
+                .HasForeignKey(e => e.TownId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Optional Patriarch reference
+            entity.HasOne(e => e.Patriarch)
+                .WithMany()
+                .HasForeignKey(e => e.PatriarchId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Optional Matriarch reference
+            entity.HasOne(e => e.Matriarch)
+                .WithMany()
+                .HasForeignKey(e => e.MatriarchId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Family has many members (Person.FamilyId -> Family)
+            entity.HasMany(e => e.Members)
+                .WithOne(p => p.Family)
+                .HasForeignKey(p => p.FamilyId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // NameMappings - Transliteration cache for Arabic/English/Nobiin names

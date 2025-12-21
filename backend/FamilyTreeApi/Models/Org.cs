@@ -48,6 +48,7 @@ public class Org
     // Navigation properties
     public ICollection<OrgUser> OrgUsers { get; set; } = new List<OrgUser>();
     public ICollection<Person> People { get; set; } = new List<Person>();
+    public ICollection<Family> Families { get; set; } = new List<Family>();
     public ICollection<Media> MediaFiles { get; set; } = new List<Media>();
     public ICollection<Place> Places { get; set; } = new List<Place>();
     public ICollection<AdminTreeAssignment> AdminAssignments { get; set; } = new List<AdminTreeAssignment>();

@@ -21,7 +21,7 @@ import { I18nService, TranslatePipe, Language, LanguageConfig } from '../../core
 
 interface NavItem {
   icon: string;
-  label: string;  // Direct label instead of translation key
+  labelKey: string;  // Translation key for i18n
   route: string;
   roles?: string[]; // If specified, only show for these system roles
 }
@@ -116,12 +116,12 @@ interface NavItem {
           <!-- Desktop Navigation -->
           <nav class="layout__nav d-mobile-none">
             @for (item of visibleNavItems(); track item.route) {
-              <a 
+              <a
                 class="layout__nav-item"
                 [routerLink]="item.route"
                 routerLinkActive="layout__nav-item--active">
                 <mat-icon>{{ item.icon }}</mat-icon>
-                <span>{{ item.label }}</span>
+                <span>{{ item.labelKey | translate }}</span>
               </a>
             }
           </nav>
@@ -237,7 +237,7 @@ interface NavItem {
                 matRipple
                 (click)="closeMobileMenu()">
                 <mat-icon>{{ item.icon }}</mat-icon>
-                <span>{{ item.label }}</span>
+                <span>{{ item.labelKey | translate }}</span>
               </a>
             }
           </nav>
@@ -280,13 +280,13 @@ interface NavItem {
       <!-- Mobile Bottom Navigation -->
       <nav class="layout__bottom-nav d-desktop-none">
         @for (item of bottomNavItems(); track item.route) {
-          <a 
+          <a
             class="layout__bottom-nav-item"
             [routerLink]="item.route"
             routerLinkActive="layout__bottom-nav-item--active"
             matRipple>
             <mat-icon>{{ item.icon }}</mat-icon>
-            <span>{{ item.label }}</span>
+            <span>{{ item.labelKey | translate }}</span>
           </a>
         }
       </nav>
@@ -849,14 +849,14 @@ export class LayoutComponent implements OnInit {
   
   // All navigation items with optional role restrictions
   allNavItems: NavItem[] = [
-    { icon: 'dashboard', label: 'Dashboard', route: '/dashboard' },
-    { icon: 'location_city', label: 'Towns', route: '/towns' },
-    { icon: 'forest', label: 'My Trees', route: '/trees' },
-    { icon: 'people', label: 'People', route: '/people' },
-    { icon: 'account_tree', label: 'Family Tree', route: '/tree' },
-    { icon: 'photo_library', label: 'Media', route: '/media' },
-    { icon: 'link', label: 'Pending Links', route: '/pending-links', roles: ['SuperAdmin', 'Admin'] },
-    { icon: 'admin_panel_settings', label: 'Admin', route: '/admin', roles: ['SuperAdmin'] }
+    { icon: 'dashboard', labelKey: 'nav.dashboard', route: '/dashboard' },
+    { icon: 'location_city', labelKey: 'nav.towns', route: '/towns' },
+    { icon: 'forest', labelKey: 'nav.myTrees', route: '/trees' },
+    { icon: 'people', labelKey: 'nav.people', route: '/people' },
+    { icon: 'account_tree', labelKey: 'nav.familyTree', route: '/tree' },
+    { icon: 'photo_library', labelKey: 'nav.media', route: '/media' },
+    { icon: 'link', labelKey: 'nav.pendingLinks', route: '/pending-links', roles: ['SuperAdmin', 'Admin'] },
+    { icon: 'admin_panel_settings', labelKey: 'nav.admin', route: '/admin', roles: ['SuperAdmin'] }
   ];
   
   // Computed visible nav items based on user role

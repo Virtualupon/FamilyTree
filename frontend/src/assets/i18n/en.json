@@ -44,7 +44,14 @@
     "dashboard": "Dashboard",
     "admin": "Admin",
     "users": "Users",
-    "trees": "Trees"
+    "trees": "Trees",
+    "towns": "Towns",
+    "myTrees": "My Trees",
+    "people": "People",
+    "familyTree": "Family Tree",
+    "media": "Media",
+    "pendingLinks": "Pending Links",
+    "logout": "Logout"
   },
   "person": {
     "title": "Persons",

@@ -43,6 +43,9 @@ public class ApplicationDbContext : IdentityDbContext<
     public DbSet<TreeInvitation> TreeInvitations { get; set; }
     public DbSet<PersonMedia> PersonMedia { get; set; }
 
+    // Family groups (Town -> Org -> Family -> Person hierarchy)
+    public DbSet<Family> Families { get; set; }
+
     // Lookup tables
     public DbSet<FamilyRelationshipType> FamilyRelationshipTypes { get; set; }
 

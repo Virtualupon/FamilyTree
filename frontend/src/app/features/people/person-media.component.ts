@@ -1127,6 +1127,8 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
       next: (person) => {
         const listItem: PersonListItem = {
           id: person.id,
+          familyId: person.familyId,
+          familyName: person.familyName,
           primaryName: person.primaryName,
           sex: person.sex,
           birthDate: person.birthDate,
@@ -1145,6 +1147,8 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
         // Fallback: create minimal person object with just the ID
         this.selectedPersons.set([{
           id: this.personId,
+          familyId: null,
+          familyName: null,
           primaryName: 'Current Person',
           sex: 0,
           birthDate: null,

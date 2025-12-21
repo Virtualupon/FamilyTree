@@ -218,14 +218,14 @@ import { GedcomImportDialogComponent } from './gedcom-import-dialog.component';
               </div>
 
               <div class="form-group">
-                <label class="form-label">{{ 'trees.town' | translate }}</label>
-                <select [(ngModel)]="newTree.townId" name="townId" class="form-input">
-                  <option [ngValue]="undefined">{{ 'trees.noTown' | translate }}</option>
+                <label class="form-label required">{{ 'trees.town' | translate }}</label>
+                <select [(ngModel)]="newTree.townId" name="townId" class="form-input" required>
+                  <option [ngValue]="''" disabled>{{ 'trees.selectTown' | translate }}</option>
                   @for (town of towns(); track town.id) {
                     <option [ngValue]="town.id">{{ getLocalizedTownName(town) }}{{ town.country ? ' (' + town.country + ')' : '' }}</option>
                   }
                 </select>
-                <p class="form-hint">{{ 'trees.townHint' | translate }}</p>
+                <p class="form-hint">{{ 'trees.townHintRequired' | translate }}</p>
               </div>
 
               <div class="form-group">
@@ -863,12 +863,13 @@ export class TreeListComponent implements OnInit {
   creating = signal(false);
   createError = signal<string | null>(null);
 
+  // HIERARCHY: Every tree MUST belong to a town
   newTree: CreateFamilyTreeRequest = {
     name: '',
+    townId: '',  // REQUIRED - user must select a town
     description: '',
     isPublic: false,
-    allowCrossTreeLinking: true,
-    townId: undefined
+    allowCrossTreeLinking: true
   };
 
   filteredTrees = computed(() => {
@@ -882,7 +883,10 @@ export class TreeListComponent implements OnInit {
       );
     }
 
-    // Town filter would go here when FamilyTreeListItem has townId
+    // HIERARCHY: Filter by town - trees are always under towns
+    if (this.selectedTownId) {
+      result = result.filter(tree => tree.townId === this.selectedTownId);
+    }
 
     return result;
   });
@@ -927,7 +931,12 @@ export class TreeListComponent implements OnInit {
   }
 
   createTree() {
+    // HIERARCHY ENFORCEMENT: Both name and townId are required
     if (!this.newTree.name.trim()) return;
+    if (!this.newTree.townId) {
+      this.createError.set(this.i18n.t('trees.townRequired'));
+      return;
+    }
 
     this.creating.set(true);
     this.createError.set(null);
@@ -935,7 +944,7 @@ export class TreeListComponent implements OnInit {
     this.treeService.createTree(this.newTree).subscribe({
       next: () => {
         this.showCreateModal = false;
-        this.newTree = { name: '', description: '', isPublic: false, allowCrossTreeLinking: true, townId: undefined };
+        this.newTree = { name: '', townId: '', description: '', isPublic: false, allowCrossTreeLinking: true };
 
         this.authService.refreshToken().subscribe({
           next: () => {

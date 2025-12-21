@@ -674,6 +674,8 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
       next: (person) => {
         const listItem: PersonListItem = {
           id: person.id,
+          familyId: person.familyId,
+          familyName: person.familyName,
           primaryName: person.primaryName,
           sex: person.sex,
           birthDate: person.birthDate,
@@ -819,6 +821,8 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
   onNodeClick(node: TreePersonNode): void {
     const listItem: PersonListItem = {
       id: node.id,
+      familyId: null,
+      familyName: null,
       primaryName: node.primaryName,
       sex: node.sex,
       birthDate: node.birthDate || null,
@@ -930,6 +934,8 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
   onD3NodeClick(node: TreePersonNode): void {
     const listItem: PersonListItem = {
       id: node.id,
+      familyId: null,
+      familyName: null,
       primaryName: node.primaryName,
       sex: node.sex,
       birthDate: node.birthDate || null,
@@ -956,6 +962,8 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
     // Re-center tree on double-clicked person
     const listItem: PersonListItem = {
       id: node.id,
+      familyId: null,
+      familyName: null,
       primaryName: node.primaryName,
       sex: node.sex,
       birthDate: node.birthDate || null,

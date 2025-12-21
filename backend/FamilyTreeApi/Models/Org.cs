@@ -34,9 +34,13 @@ public class Org
     public long? OwnerId { get; set; }
     public ApplicationUser? Owner { get; set; }
 
-    /// <summary>Town/City this tree belongs to (optional)</summary>
-    public Guid? TownId { get; set; }
-    public Town? Town { get; set; }
+    /// <summary>
+    /// Town/City this tree belongs to (REQUIRED).
+    /// Per hierarchy rules: Every family tree must belong to a town.
+    /// </summary>
+    [Required]
+    public Guid TownId { get; set; }
+    public Town Town { get; set; } = null!;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

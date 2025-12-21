@@ -1,5 +1,6 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
+import { TranslateService } from '@ngx-translate/core';
 
 export type Language = 'en' | 'ar' | 'nob';
 
@@ -16,18 +17,19 @@ export interface LanguageConfig {
 })
 export class I18nService {
   private readonly STORAGE_KEY = 'family_tree_language';
-  
+  private readonly translateService = inject(TranslateService);
+
   readonly supportedLanguages: LanguageConfig[] = [
     { code: 'en', name: 'English', nativeName: 'English', direction: 'ltr', flag: '🇬🇧' },
     { code: 'ar', name: 'Arabic', nativeName: 'العربية', direction: 'rtl', flag: '🇸🇦' },
-    { code: 'nob', name: 'Norwegian', nativeName: 'Norsk Bokmål', direction: 'ltr', flag: '🇳🇴' }
+    { code: 'nob', name: 'Nobiin', nativeName: 'ⲛⲟⲃⲓ̄ⲛ', direction: 'ltr', flag: '🇸🇩' }
   ];
 
   private currentLangSubject = new BehaviorSubject<Language>(this.loadLanguage());
   currentLang$ = this.currentLangSubject.asObservable();
-  
+
   currentLang = signal<Language>(this.loadLanguage());
-  
+
   direction = computed(() => {
     const lang = this.currentLang();
     return this.supportedLanguages.find(l => l.code === lang)?.direction || 'ltr';
@@ -42,7 +44,15 @@ export class I18nService {
   };
 
   constructor() {
+    // Initialize ngx-translate
+    this.translateService.addLangs(['en', 'ar', 'nob']);
+    this.translateService.setDefaultLang('en');
+
     this.loadTranslations();
+
+    // Set initial language for ngx-translate
+    const lang = this.loadLanguage();
+    this.translateService.use(lang);
     this.applyDirection();
   }
 
@@ -61,6 +71,7 @@ export class I18nService {
     localStorage.setItem(this.STORAGE_KEY, lang);
     this.currentLang.set(lang);
     this.currentLangSubject.next(lang);
+    this.translateService.use(lang);
     this.applyDirection();
   }
 

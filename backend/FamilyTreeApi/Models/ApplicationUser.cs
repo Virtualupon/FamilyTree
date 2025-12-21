@@ -11,6 +11,9 @@ public class ApplicationUser : IdentityUser<long>
     [MaxLength(100)]
     public string? LastName { get; set; }
 
+    [MaxLength(10)]
+    public string PreferredLanguage { get; set; } = "en";
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime LastLoginAt { get; set; } = DateTime.UtcNow;
 

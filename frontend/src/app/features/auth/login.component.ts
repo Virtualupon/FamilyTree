@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
@@ -8,7 +8,11 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatSelectModule } from '@angular/material/select';
+import { MatIconModule } from '@angular/material/icon';
+import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../../core/services/auth.service';
+import { I18nService, Language } from '../../core/i18n';
 
 @Component({
   selector: 'app-login',
@@ -22,45 +26,61 @@ import { AuthService } from '../../core/services/auth.service';
     MatInputModule,
     MatButtonModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    MatSelectModule,
+    MatIconModule,
+    TranslateModule
   ],
   template: `
     <div class="login-container">
+      <!-- Language Selector -->
+      <div class="language-selector-top">
+        <mat-form-field appearance="outline" class="language-select">
+          <mat-label>{{ 'auth.selectLanguage' | translate }}</mat-label>
+          <mat-select [value]="i18n.currentLang()" (selectionChange)="onLanguageChange($event.value)">
+            @for (lang of i18n.supportedLanguages; track lang.code) {
+              <mat-option [value]="lang.code">{{ lang.nativeName }}</mat-option>
+            }
+          </mat-select>
+          <mat-icon matPrefix>language</mat-icon>
+        </mat-form-field>
+      </div>
+
       <mat-card class="login-card">
         <mat-card-header>
           <mat-card-title>Family Tree Platform</mat-card-title>
-          <mat-card-subtitle>Login to your account</mat-card-subtitle>
+          <mat-card-subtitle>{{ 'auth.loginSubtitle' | translate }}</mat-card-subtitle>
         </mat-card-header>
 
         <mat-card-content>
           <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
             <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Email</mat-label>
+              <mat-label>{{ 'auth.username' | translate }}</mat-label>
               <input matInput type="email" formControlName="email" autocomplete="email">
               <mat-error *ngIf="loginForm.get('email')?.hasError('required')">
-                Email is required
+                {{ 'validation.required' | translate }}
               </mat-error>
               <mat-error *ngIf="loginForm.get('email')?.hasError('email')">
-                Invalid email format
+                {{ 'validation.email' | translate }}
               </mat-error>
             </mat-form-field>
 
             <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Password</mat-label>
+              <mat-label>{{ 'auth.password' | translate }}</mat-label>
               <input matInput type="password" formControlName="password" autocomplete="current-password">
               <mat-error *ngIf="loginForm.get('password')?.hasError('required')">
-                Password is required
+                {{ 'validation.required' | translate }}
               </mat-error>
             </mat-form-field>
 
-            <button 
-              mat-raised-button 
-              color="primary" 
-              type="submit" 
+            <button
+              mat-raised-button
+              color="primary"
+              type="submit"
               class="full-width"
               [disabled]="loginForm.invalid || loading">
               <mat-spinner diameter="20" *ngIf="loading"></mat-spinner>
-              <span *ngIf="!loading">Login</span>
+              <span *ngIf="!loading">{{ 'auth.loginButton' | translate }}</span>
             </button>
           </form>
 
@@ -74,10 +94,36 @@ import { AuthService } from '../../core/services/auth.service';
   styles: [`
     .login-container {
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding-top: 20px;
+    }
+
+    .language-selector-top {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+    }
+
+    :host-context([dir="rtl"]) .language-selector-top {
+      right: auto;
+      left: 20px;
+    }
+
+    .language-select {
+      min-width: 150px;
+    }
+
+    .language-select ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+      display: none;
+    }
+
+    .language-select ::ng-deep .mat-mdc-text-field-wrapper {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 8px;
     }
 
     .login-card {
@@ -123,6 +169,7 @@ import { AuthService } from '../../core/services/auth.service';
   `]
 })
 export class LoginComponent {
+  readonly i18n = inject(I18nService);
   loginForm: FormGroup;
   loading = false;
 
@@ -136,6 +183,10 @@ export class LoginComponent {
       email: ['', [Validators.required, Validators.email]],
       password: ['', Validators.required]
     });
+  }
+
+  onLanguageChange(langCode: string): void {
+    this.i18n.setLanguage(langCode as Language);
   }
 
   onSubmit() {

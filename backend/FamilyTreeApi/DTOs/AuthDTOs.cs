@@ -18,7 +18,8 @@ public record UserDto(
     Guid? OrgId,
     string? OrgName,
     int Role,
-    string SystemRole = "User"
+    string SystemRole = "User",
+    string PreferredLanguage = "en"
 );
 
 public record TokenResponse(

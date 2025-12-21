@@ -55,7 +55,7 @@ import { GedcomImportDialogComponent } from './gedcom-import-dialog.component';
           <select [(ngModel)]="selectedTownId" class="town-filter">
             <option [ngValue]="null">{{ 'trees.allTowns' | translate }}</option>
             @for (town of towns(); track town.id) {
-              <option [ngValue]="town.id">{{ town.name }}</option>
+              <option [ngValue]="town.id">{{ getLocalizedTownName(town) }}</option>
             }
           </select>
         </div>
@@ -222,7 +222,7 @@ import { GedcomImportDialogComponent } from './gedcom-import-dialog.component';
                 <select [(ngModel)]="newTree.townId" name="townId" class="form-input">
                   <option [ngValue]="undefined">{{ 'trees.noTown' | translate }}</option>
                   @for (town of towns(); track town.id) {
-                    <option [ngValue]="town.id">{{ town.name }}{{ town.country ? ' (' + town.country + ')' : '' }}</option>
+                    <option [ngValue]="town.id">{{ getLocalizedTownName(town) }}{{ town.country ? ' (' + town.country + ')' : '' }}</option>
                   }
                 </select>
                 <p class="form-hint">{{ 'trees.townHint' | translate }}</p>
@@ -963,6 +963,19 @@ export class TreeListComponent implements OnInit {
   getRoleLabel(role: OrgRole | null): string {
     if (role === null) return '';
     return OrgRoleLabels[role] || 'Unknown';
+  }
+
+  getLocalizedTownName(town: TownListItem): string {
+    const lang = this.i18n.currentLang();
+    switch (lang) {
+      case 'ar':
+        return town.nameAr || town.name;
+      case 'nob':
+        return town.nameLocal || town.name;
+      case 'en':
+      default:
+        return town.nameEn || town.name;
+    }
   }
 
   canManage(role: OrgRole | null): boolean {

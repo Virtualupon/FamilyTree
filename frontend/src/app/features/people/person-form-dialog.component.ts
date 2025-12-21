@@ -244,18 +244,35 @@ export interface PersonFormDialogData {
                     </mat-expansion-panel-header>
                     
                     <div class="name-form-content">
-                      <mat-form-field appearance="outline" class="full-width">
-                        <mat-label>{{ 'personForm.nameType' | translate }}</mat-label>
-                        <mat-select formControlName="type">
-                          <mat-option [value]="NameType.Primary">{{ 'personForm.nameTypePrimary' | translate }}</mat-option>
-                          <mat-option [value]="NameType.Birth">{{ 'personForm.nameTypeBirth' | translate }}</mat-option>
-                          <mat-option [value]="NameType.Married">{{ 'personForm.nameTypeMarried' | translate }}</mat-option>
-                          <mat-option [value]="NameType.Maiden">{{ 'personForm.nameTypeMaiden' | translate }}</mat-option>
-                          <mat-option [value]="NameType.Nickname">{{ 'personForm.nameTypeNickname' | translate }}</mat-option>
-                          <mat-option [value]="NameType.Alias">{{ 'personForm.nameTypeAlias' | translate }}</mat-option>
-                        </mat-select>
-                      </mat-form-field>
-                      
+                      <div class="form-row">
+                        <mat-form-field appearance="outline" class="flex-1">
+                          <mat-label>{{ 'personForm.nameType' | translate }}</mat-label>
+                          <mat-select formControlName="type">
+                            <mat-option [value]="NameType.Primary">{{ 'personForm.nameTypePrimary' | translate }}</mat-option>
+                            <mat-option [value]="NameType.Birth">{{ 'personForm.nameTypeBirth' | translate }}</mat-option>
+                            <mat-option [value]="NameType.Married">{{ 'personForm.nameTypeMarried' | translate }}</mat-option>
+                            <mat-option [value]="NameType.Maiden">{{ 'personForm.nameTypeMaiden' | translate }}</mat-option>
+                            <mat-option [value]="NameType.Nickname">{{ 'personForm.nameTypeNickname' | translate }}</mat-option>
+                            <mat-option [value]="NameType.Alias">{{ 'personForm.nameTypeAlias' | translate }}</mat-option>
+                          </mat-select>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="outline" class="flex-1">
+                          <mat-label>{{ 'personForm.script' | translate }}</mat-label>
+                          <mat-select formControlName="script">
+                            <mat-option value="Latin">
+                              <span class="script-option">🇬🇧 {{ 'personForm.scriptLatin' | translate }}</span>
+                            </mat-option>
+                            <mat-option value="Arabic">
+                              <span class="script-option">🇸🇦 {{ 'personForm.scriptArabic' | translate }}</span>
+                            </mat-option>
+                            <mat-option value="Coptic">
+                              <span class="script-option">🇸🇩 {{ 'personForm.scriptNobiin' | translate }}</span>
+                            </mat-option>
+                          </mat-select>
+                        </mat-form-field>
+                      </div>
+
                       <div class="form-row">
                         <mat-form-field appearance="outline" class="flex-1">
                           <mat-label>{{ 'personForm.firstName' | translate }}</mat-label>
@@ -439,7 +456,13 @@ export interface PersonFormDialogData {
       width: 100%;
       margin-top: var(--ft-spacing-md);
     }
-    
+
+    .script-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
     ::ng-deep .mat-mdc-tab-body-wrapper {
       flex: 1;
     }
@@ -546,7 +569,7 @@ export class PersonFormDialogComponent implements OnInit {
       middle: [name?.middle ?? ''],
       family: [name?.family ?? ''],
       full: [name?.full ?? ''],
-      script: [name?.script ?? ''],
+      script: [name?.script ?? 'Latin'],
       transliteration: [name?.transliteration ?? '']
     });
   }

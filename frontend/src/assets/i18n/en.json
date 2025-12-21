@@ -20,7 +20,8 @@
     "details": "Details",
     "view": "View",
     "create": "Create",
-    "update": "Update"
+    "update": "Update",
+    "clear": "Clear"
   },
   "auth": {
     "login": "Login",
@@ -149,5 +150,22 @@
     "arabic": "العربية",
     "nobiin": "ⲛⲟⲃⲓ̄ⲛ",
     "selectLanguage": "Select Language"
+  },
+  "transliteration": {
+    "title": "Name Transliteration",
+    "enterName": "Enter name",
+    "namePlaceholder": "Type a name to transliterate",
+    "transliterate": "Transliterate",
+    "english": "English",
+    "arabic": "Arabic",
+    "nobiin": "Nobiin",
+    "alternatives": "Alternatives",
+    "needsReview": "This transliteration needs review",
+    "useSelected": "Use Selected",
+    "confidence": "Confidence",
+    "source": "Source",
+    "verified": "Verified",
+    "cached": "From cache",
+    "aiGenerated": "AI generated"
   }
 }

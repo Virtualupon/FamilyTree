@@ -20,7 +20,8 @@
     "details": "تفاصيل",
     "view": "عرض",
     "create": "إنشاء",
-    "update": "تحديث"
+    "update": "تحديث",
+    "clear": "مسح"
   },
   "auth": {
     "login": "تسجيل الدخول",
@@ -149,5 +150,22 @@
     "arabic": "العربية",
     "nobiin": "ⲛⲟⲃⲓ̄ⲛ",
     "selectLanguage": "اختر اللغة"
+  },
+  "transliteration": {
+    "title": "تحويل الأسماء",
+    "enterName": "أدخل الاسم",
+    "namePlaceholder": "اكتب اسماً للتحويل",
+    "transliterate": "تحويل",
+    "english": "الإنجليزية",
+    "arabic": "العربية",
+    "nobiin": "النوبية",
+    "alternatives": "بدائل",
+    "needsReview": "هذا التحويل يحتاج مراجعة",
+    "useSelected": "استخدام المحدد",
+    "confidence": "الثقة",
+    "source": "المصدر",
+    "verified": "مؤكد",
+    "cached": "من الذاكرة",
+    "aiGenerated": "توليد الذكاء الاصطناعي"
   }
 }

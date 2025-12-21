@@ -30,4 +30,7 @@ public class ApplicationUser : IdentityUser<long>
     public ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
 
     public ICollection<AdminTreeAssignment> AdminAssignments { get; set; } = new List<AdminTreeAssignment>();
+
+    /// <summary>Town assignments for Admin-level users (town-scoped access)</summary>
+    public ICollection<AdminTownAssignment> AdminTownAssignments { get; set; } = new List<AdminTownAssignment>();
 }

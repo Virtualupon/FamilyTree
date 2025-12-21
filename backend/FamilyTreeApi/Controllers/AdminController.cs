@@ -140,6 +140,111 @@ public class AdminController : ControllerBase
         return HandleResult(result);
     }
 
+    // ========================================================================
+    // ADMIN TOWN ASSIGNMENTS (Town-scoped access)
+    // ========================================================================
+
+    /// <summary>
+    /// Get all admin town assignments
+    /// </summary>
+    [HttpGet("town-assignments")]
+    public async Task<ActionResult<List<AdminTownAssignmentResponse>>> GetAllTownAssignments()
+    {
+        var result = await _adminService.GetAllTownAssignmentsAsync();
+
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Get town assignments for a specific admin user
+    /// </summary>
+    [HttpGet("users/{userId}/town-assignments")]
+    public async Task<ActionResult<List<AdminTownAssignmentResponse>>> GetUserTownAssignments(long userId)
+    {
+        var result = await _adminService.GetUserTownAssignmentsAsync(userId);
+
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Assign an admin to a town (grants access to all trees in the town)
+    /// </summary>
+    [HttpPost("town-assignments")]
+    public async Task<ActionResult<AdminTownAssignmentResponse>> CreateTownAssignment(
+        CreateAdminTownAssignmentRequest request)
+    {
+        var userContext = BuildUserContext();
+        var result = await _adminService.CreateTownAssignmentAsync(request, userContext);
+
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Assign an admin to multiple towns at once
+    /// </summary>
+    [HttpPost("town-assignments/bulk")]
+    public async Task<ActionResult<List<AdminTownAssignmentResponse>>> CreateTownAssignmentsBulk(
+        CreateAdminTownAssignmentBulkRequest request)
+    {
+        var userContext = BuildUserContext();
+        var result = await _adminService.CreateTownAssignmentsBulkAsync(request, userContext);
+
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Remove an admin town assignment (hard delete)
+    /// </summary>
+    [HttpDelete("town-assignments/{assignmentId}")]
+    public async Task<IActionResult> DeleteTownAssignment(Guid assignmentId)
+    {
+        var result = await _adminService.DeleteTownAssignmentAsync(assignmentId);
+
+        if (!result.IsSuccess)
+        {
+            return HandleError(result);
+        }
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Deactivate an admin town assignment (soft delete)
+    /// </summary>
+    [HttpPatch("town-assignments/{assignmentId}/deactivate")]
+    public async Task<IActionResult> DeactivateTownAssignment(Guid assignmentId)
+    {
+        var result = await _adminService.DeactivateTownAssignmentAsync(assignmentId);
+
+        if (!result.IsSuccess)
+        {
+            return HandleError(result);
+        }
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Get assigned towns for an admin (used after login for town selection)
+    /// </summary>
+    [HttpGet("users/{userId}/admin-towns")]
+    [Authorize(Roles = "SuperAdmin,Admin")]  // Allow Admin users to check their own towns
+    public async Task<ActionResult<AdminLoginResponse>> GetAdminTowns(long userId)
+    {
+        // Admins can only get their own towns, SuperAdmins can get anyone's
+        var currentUserId = GetUserId();
+        var systemRole = GetSystemRole();
+
+        if (systemRole != "SuperAdmin" && currentUserId != userId)
+        {
+            return Forbid();
+        }
+
+        var result = await _adminService.GetAdminTownsAsync(userId);
+
+        return HandleResult(result);
+    }
+
     // ============================================================================
     // PRIVATE HELPER METHODS
     // ============================================================================

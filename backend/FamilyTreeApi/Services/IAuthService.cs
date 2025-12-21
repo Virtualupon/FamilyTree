@@ -11,4 +11,9 @@ public interface IAuthService
     Task<bool> RevokeTokenAsync(string refreshToken);
     string GenerateAccessToken(ApplicationUser user);
     string GenerateRefreshToken();
+
+    /// <summary>
+    /// Generate access token with selected town claim for Admin users
+    /// </summary>
+    Task<string> GenerateAccessTokenWithTownAsync(long userId, Guid townId);
 }

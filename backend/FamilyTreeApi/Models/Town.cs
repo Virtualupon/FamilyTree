@@ -40,4 +40,7 @@ public class Town
 
     // Navigation properties
     public ICollection<Org> FamilyTrees { get; set; } = new List<Org>();
+
+    /// <summary>Admin users assigned to manage this town</summary>
+    public ICollection<AdminTownAssignment> AdminAssignments { get; set; } = new List<AdminTownAssignment>();
 }

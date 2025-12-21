@@ -5,10 +5,14 @@ import { environment } from '../../../environments/environment';
 import {
   AdminUser,
   AdminTreeAssignment,
+  AdminTownAssignment,
   CreateAdminAssignmentRequest,
+  CreateAdminTownAssignmentRequest,
+  CreateAdminTownAssignmentBulkRequest,
   UpdateSystemRoleRequest,
   CreateUserRequest,
-  PlatformStats
+  PlatformStats,
+  AdminLoginResponse
 } from '../models/family-tree.models';
 
 @Injectable({
@@ -53,6 +57,38 @@ export class AdminService {
 
   deleteAssignment(assignmentId: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/assignments/${assignmentId}`);
+  }
+
+  // ========================================================================
+  // TOWN ASSIGNMENTS (Town-scoped admin access)
+  // ========================================================================
+
+  getAllTownAssignments(): Observable<AdminTownAssignment[]> {
+    return this.http.get<AdminTownAssignment[]>(`${this.apiUrl}/town-assignments`);
+  }
+
+  getUserTownAssignments(userId: number): Observable<AdminTownAssignment[]> {
+    return this.http.get<AdminTownAssignment[]>(`${this.apiUrl}/users/${userId}/town-assignments`);
+  }
+
+  createTownAssignment(request: CreateAdminTownAssignmentRequest): Observable<AdminTownAssignment> {
+    return this.http.post<AdminTownAssignment>(`${this.apiUrl}/town-assignments`, request);
+  }
+
+  createTownAssignmentsBulk(request: CreateAdminTownAssignmentBulkRequest): Observable<AdminTownAssignment[]> {
+    return this.http.post<AdminTownAssignment[]>(`${this.apiUrl}/town-assignments/bulk`, request);
+  }
+
+  deleteTownAssignment(assignmentId: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/town-assignments/${assignmentId}`);
+  }
+
+  deactivateTownAssignment(assignmentId: string): Observable<void> {
+    return this.http.patch<void>(`${this.apiUrl}/town-assignments/${assignmentId}/deactivate`, {});
+  }
+
+  getAdminTowns(userId: number): Observable<AdminLoginResponse> {
+    return this.http.get<AdminLoginResponse>(`${this.apiUrl}/users/${userId}/admin-towns`);
   }
 
   // ========================================================================

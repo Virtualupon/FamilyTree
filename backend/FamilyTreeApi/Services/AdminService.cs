@@ -17,7 +17,9 @@ namespace FamilyTreeApi.Services;
 public class AdminService : IAdminService
 {
     private readonly IRepository<AdminTreeAssignment> _adminAssignmentRepository;
+    private readonly IRepository<AdminTownAssignment> _adminTownAssignmentRepository;
     private readonly IRepository<Org> _orgRepository;
+    private readonly IRepository<Town> _townRepository;
     private readonly IRepository<Person> _personRepository;
     private readonly IRepository<Media> _mediaRepository;
     private readonly IRepository<ParentChild> _parentChildRepository;
@@ -30,7 +32,9 @@ public class AdminService : IAdminService
 
     public AdminService(
         IRepository<AdminTreeAssignment> adminAssignmentRepository,
+        IRepository<AdminTownAssignment> adminTownAssignmentRepository,
         IRepository<Org> orgRepository,
+        IRepository<Town> townRepository,
         IRepository<Person> personRepository,
         IRepository<Media> mediaRepository,
         IRepository<ParentChild> parentChildRepository,
@@ -42,7 +46,9 @@ public class AdminService : IAdminService
         ILogger<AdminService> logger)
     {
         _adminAssignmentRepository = adminAssignmentRepository;
+        _adminTownAssignmentRepository = adminTownAssignmentRepository;
         _orgRepository = orgRepository;
+        _townRepository = townRepository;
         _personRepository = personRepository;
         _mediaRepository = mediaRepository;
         _parentChildRepository = parentChildRepository;
@@ -486,5 +492,329 @@ public class AdminService : IAdminService
             _logger.LogError(ex, "Error getting stats: {Message}", ex.Message);
             return ServiceResult<AdminStatsDto>.InternalError("Error loading statistics");
         }
+    }
+
+    // ============================================================================
+    // ADMIN TOWN ASSIGNMENTS (Town-scoped access)
+    // ============================================================================
+
+    public async Task<ServiceResult<List<AdminTownAssignmentResponse>>> GetAllTownAssignmentsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var assignments = await _adminTownAssignmentRepository
+                .Query()
+                .Include(a => a.User)
+                .Include(a => a.Town)
+                    .ThenInclude(t => t.FamilyTrees)
+                .Include(a => a.AssignedByUser)
+                .Where(a => a.IsActive)
+                .OrderBy(a => a.User.Email)
+                .ToListAsync(cancellationToken);
+
+            var result = assignments.Select(a => MapToTownAssignmentResponse(a)).ToList();
+
+            return ServiceResult<List<AdminTownAssignmentResponse>>.Success(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting all town assignments: {Message}", ex.Message);
+            return ServiceResult<List<AdminTownAssignmentResponse>>.InternalError("Error loading town assignments");
+        }
+    }
+
+    public async Task<ServiceResult<List<AdminTownAssignmentResponse>>> GetUserTownAssignmentsAsync(
+        long userId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var assignments = await _adminTownAssignmentRepository
+                .Query()
+                .Include(a => a.User)
+                .Include(a => a.Town)
+                    .ThenInclude(t => t.FamilyTrees)
+                .Include(a => a.AssignedByUser)
+                .Where(a => a.UserId == userId && a.IsActive)
+                .ToListAsync(cancellationToken);
+
+            var result = assignments.Select(a => MapToTownAssignmentResponse(a)).ToList();
+
+            return ServiceResult<List<AdminTownAssignmentResponse>>.Success(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting user town assignments for {UserId}: {Message}", userId, ex.Message);
+            return ServiceResult<List<AdminTownAssignmentResponse>>.InternalError("Error loading user town assignments");
+        }
+    }
+
+    public async Task<ServiceResult<AdminTownAssignmentResponse>> CreateTownAssignmentAsync(
+        CreateAdminTownAssignmentRequest request,
+        UserContext userContext,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var user = await _userManager.FindByIdAsync(request.UserId.ToString());
+            if (user == null)
+            {
+                return ServiceResult<AdminTownAssignmentResponse>.NotFound("User not found");
+            }
+
+            // User must be in Admin role
+            if (!await _userManager.IsInRoleAsync(user, "Admin"))
+            {
+                return ServiceResult<AdminTownAssignmentResponse>.Failure(
+                    "User must have Admin system role to be assigned to towns");
+            }
+
+            var town = await _townRepository
+                .Query()
+                .Include(t => t.FamilyTrees)
+                .FirstOrDefaultAsync(t => t.Id == request.TownId, cancellationToken);
+
+            if (town == null)
+            {
+                return ServiceResult<AdminTownAssignmentResponse>.NotFound("Town not found");
+            }
+
+            // Check for existing active assignment
+            var existingAssignment = await _adminTownAssignmentRepository.ExistsAsync(
+                a => a.UserId == request.UserId && a.TownId == request.TownId && a.IsActive, cancellationToken);
+
+            if (existingAssignment)
+            {
+                return ServiceResult<AdminTownAssignmentResponse>.Failure(
+                    "Admin is already assigned to this town");
+            }
+
+            var assignment = new AdminTownAssignment
+            {
+                Id = Guid.NewGuid(),
+                UserId = request.UserId,
+                TownId = request.TownId,
+                AssignedByUserId = userContext.UserId,
+                AssignedAt = DateTime.UtcNow,
+                IsActive = true
+            };
+
+            _adminTownAssignmentRepository.Add(assignment);
+            await _adminTownAssignmentRepository.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Admin assigned to town: User {UserId} -> Town {TownId} by {AdminId}",
+                request.UserId, request.TownId, userContext.UserId);
+
+            // Reload with navigation properties
+            assignment = await _adminTownAssignmentRepository
+                .Query()
+                .Include(a => a.User)
+                .Include(a => a.Town)
+                    .ThenInclude(t => t.FamilyTrees)
+                .Include(a => a.AssignedByUser)
+                .FirstOrDefaultAsync(a => a.Id == assignment.Id, cancellationToken);
+
+            return ServiceResult<AdminTownAssignmentResponse>.Success(MapToTownAssignmentResponse(assignment!));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating town assignment for User {UserId} to Town {TownId}: {Message}",
+                request.UserId, request.TownId, ex.Message);
+            return ServiceResult<AdminTownAssignmentResponse>.InternalError("Error creating town assignment");
+        }
+    }
+
+    public async Task<ServiceResult<List<AdminTownAssignmentResponse>>> CreateTownAssignmentsBulkAsync(
+        CreateAdminTownAssignmentBulkRequest request,
+        UserContext userContext,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var user = await _userManager.FindByIdAsync(request.UserId.ToString());
+            if (user == null)
+            {
+                return ServiceResult<List<AdminTownAssignmentResponse>>.NotFound("User not found");
+            }
+
+            // User must be in Admin role
+            if (!await _userManager.IsInRoleAsync(user, "Admin"))
+            {
+                return ServiceResult<List<AdminTownAssignmentResponse>>.Failure(
+                    "User must have Admin system role to be assigned to towns");
+            }
+
+            var results = new List<AdminTownAssignment>();
+
+            foreach (var townId in request.TownIds)
+            {
+                var town = await _townRepository.GetByIdAsync(townId, cancellationToken);
+                if (town == null) continue;
+
+                // Skip if already assigned
+                var existing = await _adminTownAssignmentRepository.ExistsAsync(
+                    a => a.UserId == request.UserId && a.TownId == townId && a.IsActive, cancellationToken);
+                if (existing) continue;
+
+                var assignment = new AdminTownAssignment
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = request.UserId,
+                    TownId = townId,
+                    AssignedByUserId = userContext.UserId,
+                    AssignedAt = DateTime.UtcNow,
+                    IsActive = true
+                };
+
+                _adminTownAssignmentRepository.Add(assignment);
+                results.Add(assignment);
+            }
+
+            await _adminTownAssignmentRepository.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Admin bulk assigned to {Count} towns: User {UserId} by {AdminId}",
+                results.Count, request.UserId, userContext.UserId);
+
+            // Reload with navigation properties
+            var assignmentIds = results.Select(a => a.Id).ToList();
+            var loaded = await _adminTownAssignmentRepository
+                .Query()
+                .Include(a => a.User)
+                .Include(a => a.Town)
+                    .ThenInclude(t => t.FamilyTrees)
+                .Include(a => a.AssignedByUser)
+                .Where(a => assignmentIds.Contains(a.Id))
+                .ToListAsync(cancellationToken);
+
+            return ServiceResult<List<AdminTownAssignmentResponse>>.Success(
+                loaded.Select(a => MapToTownAssignmentResponse(a)).ToList());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error bulk creating town assignments for User {UserId}: {Message}",
+                request.UserId, ex.Message);
+            return ServiceResult<List<AdminTownAssignmentResponse>>.InternalError("Error creating town assignments");
+        }
+    }
+
+    public async Task<ServiceResult> DeleteTownAssignmentAsync(
+        Guid assignmentId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var assignment = await _adminTownAssignmentRepository.GetByIdAsync(assignmentId, cancellationToken);
+            if (assignment == null)
+            {
+                return ServiceResult.NotFound("Town assignment not found");
+            }
+
+            _adminTownAssignmentRepository.Remove(assignment);
+            await _adminTownAssignmentRepository.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Admin town assignment deleted: {AssignmentId}", assignmentId);
+
+            return ServiceResult.Success();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting town assignment {AssignmentId}: {Message}", assignmentId, ex.Message);
+            return ServiceResult.InternalError("Error deleting town assignment");
+        }
+    }
+
+    public async Task<ServiceResult> DeactivateTownAssignmentAsync(
+        Guid assignmentId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var assignment = await _adminTownAssignmentRepository.GetByIdAsync(assignmentId, cancellationToken);
+            if (assignment == null)
+            {
+                return ServiceResult.NotFound("Town assignment not found");
+            }
+
+            assignment.IsActive = false;
+            await _adminTownAssignmentRepository.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Admin town assignment deactivated: {AssignmentId}", assignmentId);
+
+            return ServiceResult.Success();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deactivating town assignment {AssignmentId}: {Message}", assignmentId, ex.Message);
+            return ServiceResult.InternalError("Error deactivating town assignment");
+        }
+    }
+
+    public async Task<ServiceResult<AdminLoginResponse>> GetAdminTownsAsync(
+        long userId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            if (user == null)
+            {
+                return ServiceResult<AdminLoginResponse>.NotFound("User not found");
+            }
+
+            // Get assigned towns
+            var assignments = await _adminTownAssignmentRepository
+                .Query()
+                .Include(a => a.Town)
+                    .ThenInclude(t => t.FamilyTrees)
+                .Where(a => a.UserId == userId && a.IsActive)
+                .ToListAsync(cancellationToken);
+
+            var towns = assignments.Select(a => new TownSummaryDto(
+                a.Town.Id,
+                a.Town.Name,
+                a.Town.NameEn,
+                a.Town.NameAr,
+                a.Town.NameLocal,
+                a.Town.FamilyTrees.Count
+            )).ToList();
+
+            var response = new AdminLoginResponse(
+                AssignedTowns: towns,
+                RequiresTownSelection: towns.Count > 1
+            );
+
+            return ServiceResult<AdminLoginResponse>.Success(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting admin towns for {UserId}: {Message}", userId, ex.Message);
+            return ServiceResult<AdminLoginResponse>.InternalError("Error loading admin towns");
+        }
+    }
+
+    // ============================================================================
+    // PRIVATE HELPERS
+    // ============================================================================
+
+    private static AdminTownAssignmentResponse MapToTownAssignmentResponse(AdminTownAssignment a)
+    {
+        return new AdminTownAssignmentResponse(
+            a.Id,
+            a.UserId,
+            a.User.Email,
+            $"{a.User.FirstName} {a.User.LastName}".Trim(),
+            a.TownId,
+            a.Town.Name,
+            a.Town.NameEn,
+            a.Town.NameAr,
+            a.Town.NameLocal,
+            a.Town.FamilyTrees.Count,
+            a.AssignedByUser != null
+                ? $"{a.AssignedByUser.FirstName} {a.AssignedByUser.LastName}".Trim()
+                : null,
+            a.AssignedAt,
+            a.IsActive
+        );
     }
 }

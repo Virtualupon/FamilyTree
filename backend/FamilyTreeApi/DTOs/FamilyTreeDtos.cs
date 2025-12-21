@@ -158,6 +158,7 @@ public record PersonLinkSummaryDto(
 // ADMIN MANAGEMENT DTOs
 // ============================================================================
 
+// Tree-level assignments (legacy - still supported)
 public record AdminAssignmentResponse(
     Guid Id,
     long UserId,
@@ -172,6 +173,76 @@ public record AdminAssignmentResponse(
 public record CreateAdminAssignmentRequest(
     long UserId,
     Guid TreeId
+);
+
+// Town-level assignments (new - town-scoped admin access)
+public record AdminTownAssignmentResponse(
+    Guid Id,
+    long UserId,
+    string? UserEmail,
+    string? UserName,
+    Guid TownId,
+    string? TownName,
+    string? TownNameEn,
+    string? TownNameAr,
+    string? TownNameLocal,
+    int TreeCount,        // Number of trees in this town
+    string? AssignedByName,
+    DateTime AssignedAt,
+    bool IsActive
+);
+
+public record CreateAdminTownAssignmentRequest(
+    long UserId,
+    Guid TownId
+);
+
+public record CreateAdminTownAssignmentBulkRequest(
+    long UserId,
+    List<Guid> TownIds  // Multi-select support
+);
+
+public record AdminUserWithTownsResponse(
+    long UserId,
+    string Email,
+    string? FirstName,
+    string? LastName,
+    string SystemRole,
+    List<AdminTownAssignmentResponse> TownAssignments,
+    DateTime CreatedAt
+);
+
+/// <summary>
+/// Response after login for Admin users - includes assigned towns
+/// </summary>
+public record AdminLoginResponse(
+    List<TownSummaryDto> AssignedTowns,
+    bool RequiresTownSelection // True if admin has multiple towns
+);
+
+public record TownSummaryDto(
+    Guid Id,
+    string Name,
+    string? NameEn,
+    string? NameAr,
+    string? NameLocal,
+    int TreeCount
+);
+
+/// <summary>
+/// Request to select a town after login (for multi-town admins)
+/// </summary>
+public record SelectTownRequest(
+    Guid TownId
+);
+
+/// <summary>
+/// Response after selecting a town - includes updated token
+/// </summary>
+public record SelectTownResponse(
+    string AccessToken,
+    Guid SelectedTownId,
+    string TownName
 );
 
 public record UserSystemRoleResponse(

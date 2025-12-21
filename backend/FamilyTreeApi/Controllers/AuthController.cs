@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using FamilyTreeApi.DTOs;
 using FamilyTreeApi.Services;
+using System.Security.Claims;
 
 namespace FamilyTreeApi.Controllers;
 
@@ -9,11 +11,16 @@ namespace FamilyTreeApi.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly IAdminService _adminService;
     private readonly ILogger<AuthController> _logger;
 
-    public AuthController(IAuthService authService, ILogger<AuthController> logger)
+    public AuthController(
+        IAuthService authService,
+        IAdminService adminService,
+        ILogger<AuthController> logger)
     {
         _authService = authService;
+        _adminService = adminService;
         _logger = logger;
     }
 
@@ -90,6 +97,82 @@ public class AuthController : ControllerBase
         {
             _logger.LogError(ex, "Token revocation failed");
             return StatusCode(500, new { message = "An error occurred during token revocation" });
+        }
+    }
+
+    /// <summary>
+    /// Get assigned towns for the current admin user (for town selection after login)
+    /// </summary>
+    [HttpGet("my-towns")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    public async Task<ActionResult<AdminLoginResponse>> GetMyTowns()
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized(new { message = "User ID not found in token" });
+            }
+
+            var result = await _adminService.GetAdminTownsAsync(userId);
+            if (!result.IsSuccess)
+            {
+                return BadRequest(new { message = result.ErrorMessage });
+            }
+
+            return Ok(result.Data);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get admin towns");
+            return StatusCode(500, new { message = "An error occurred" });
+        }
+    }
+
+    /// <summary>
+    /// Select a town for the current session (returns new token with town claim)
+    /// </summary>
+    [HttpPost("select-town")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    public async Task<ActionResult<SelectTownResponse>> SelectTown([FromBody] SelectTownRequest request)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized(new { message = "User ID not found in token" });
+            }
+
+            // Verify user has access to this town
+            var townsResult = await _adminService.GetAdminTownsAsync(userId);
+            if (!townsResult.IsSuccess)
+            {
+                return BadRequest(new { message = townsResult.ErrorMessage });
+            }
+
+            var assignedTown = townsResult.Data!.AssignedTowns
+                .FirstOrDefault(t => t.Id == request.TownId);
+
+            if (assignedTown == null)
+            {
+                return Forbid();
+            }
+
+            // Generate new token with selected town
+            var token = await _authService.GenerateAccessTokenWithTownAsync(userId, request.TownId);
+
+            return Ok(new SelectTownResponse(
+                token,
+                request.TownId,
+                assignedTown.Name
+            ));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to select town");
+            return StatusCode(500, new { message = "An error occurred" });
         }
     }
 }

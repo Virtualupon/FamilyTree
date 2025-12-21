@@ -242,8 +242,8 @@ public class AuthService : IAuthService
 
         // Get system role from Identity
         var userRoles = await _userManager.GetRolesAsync(user);
-        var systemRole = userRoles.Contains("SuperAdmin") ? "SuperAdmin" 
-                       : userRoles.Contains("Admin") ? "Admin" 
+        var systemRole = userRoles.Contains("SuperAdmin") ? "SuperAdmin"
+                       : userRoles.Contains("Admin") ? "Admin"
                        : "User";
 
         return new UserDto(
@@ -258,5 +258,67 @@ public class AuthService : IAuthService
             systemRole,
             user.PreferredLanguage
         );
+    }
+
+    /// <summary>
+    /// Generate access token with selected town claim for Admin users.
+    /// This token includes a "selectedTownId" claim that scopes their access.
+    /// </summary>
+    public async Task<string> GenerateAccessTokenWithTownAsync(long userId, Guid townId)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString())
+            ?? throw new UnauthorizedAccessException("User not found");
+
+        var secret = _configuration["JwtSettings:tokenOptions:bearerTokenKeyStr"]
+            ?? throw new InvalidOperationException("JWT bearer token key not configured");
+
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
+        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        // Get Identity roles for user
+        var userRoles = await _userManager.GetRolesAsync(user);
+        var systemRole = userRoles.Contains("SuperAdmin") ? "SuperAdmin"
+                       : userRoles.Contains("Admin") ? "Admin"
+                       : "User";
+
+        var claims = new List<Claim>
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new Claim(JwtRegisteredClaimNames.Email, user.Email!),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim("firstName", user.FirstName ?? ""),
+            new Claim("lastName", user.LastName ?? ""),
+            new Claim("systemRole", systemRole),
+            new Claim("selectedTownId", townId.ToString())  // Town-scoped access
+        };
+
+        // Add Identity roles to claims
+        foreach (var role in userRoles)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, role));
+        }
+
+        // For town-scoped tokens, include all trees in the selected town
+        var treesInTown = await _context.Orgs
+            .Where(o => o.TownId == townId)
+            .Select(o => o.Id)
+            .ToListAsync();
+
+        foreach (var treeId in treesInTown)
+        {
+            claims.Add(new Claim("orgId", treeId.ToString()));
+        }
+
+        var accessTokenExpMinutes = _configuration.GetValue<int>("Jwt:AccessTokenExpirationMinutes", 15);
+
+        var token = new JwtSecurityToken(
+            issuer: _configuration["JwtSettings:validationParameters:ValidIssuer"] ?? "FamilyTreeApi",
+            audience: _configuration["JwtSettings:validationParameters:ValidAudience"] ?? "FamilyTreeApp",
+            claims: claims,
+            expires: DateTime.UtcNow.AddMinutes(accessTokenExpMinutes),
+            signingCredentials: credentials
+        );
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }

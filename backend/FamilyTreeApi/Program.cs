@@ -706,6 +706,7 @@ services.AddScoped<IMediaManagementService, MediaManagementService>();
 services.AddScoped<IPersonMediaService, PersonMediaService>();
 services.AddScoped<IFamilyRelationshipTypeService, FamilyRelationshipTypeService>();
 services.AddScoped<IFileStorageService, LocalFileStorageService>();
+services.AddScoped<INameTransliterationService, NameTransliterationService>();
 
 // -------------------------------
 // REPOSITORIES
@@ -901,8 +902,9 @@ static string ConvertPostgresUrlToConnectionString(string databaseUrl)
         Username = username,
         Password = password,
         Pooling = true,
-        MinPoolSize = 5,
-        MaxPoolSize = 50
+        MinPoolSize = 2,
+        MaxPoolSize = 20,
+        ConnectionIdleLifetime = 300 // Close idle connections after 5 minutes
     };
 
     if (!string.IsNullOrEmpty(uri.Query))
@@ -941,7 +943,7 @@ static async Task SeedDataAsync(IServiceProvider services)
     }
 
     // Get or create default organization
-    var org = await context.Orgs.FirstOrDefaultAsync();
+    var org = await context.Orgs.OrderBy(o => o.CreatedAt).FirstOrDefaultAsync();
     if (org == null)
     {
         org = new Org

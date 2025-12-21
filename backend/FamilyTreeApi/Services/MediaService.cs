@@ -129,6 +129,9 @@ public class MediaService : IMediaService
             var storageService = GetStorageServiceByType(media.StorageType);
             var response = await storageService.DownloadFileAsync(media.Url);
 
+            if (response.FileData == null)
+                return null;
+
             return BytesToBase64(response.FileData);
         }
         catch (Exception ex)
@@ -151,6 +154,9 @@ public class MediaService : IMediaService
 
             var storageService = GetStorageServiceByType(media.StorageType);
             var response = await storageService.DownloadFileAsync(media.Url);
+
+            if (response.FileData == null)
+                return null;
 
             return (response.FileData, media.MimeType ?? "application/octet-stream");
         }

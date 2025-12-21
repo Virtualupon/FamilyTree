@@ -44,7 +44,14 @@
     "dashboard": "ⲗⲟ̄ⲭⲁ",
     "admin": "ⲙⲁⲥⲧⲉⲣ",
     "users": "ⲓⲇⲇⲓ",
-    "trees": "ⲧⲟ̄ⲃⲓ"
+    "trees": "ⲧⲟ̄ⲃⲓ",
+    "towns": "ⲕⲟ̄ⲣⲣⲁ",
+    "myTrees": "ⲁⲛ ⲧⲟ̄ⲃⲓ",
+    "people": "ⲓⲇⲇⲓ",
+    "familyTree": "ⲛⲟ̄ⲅ ⲧⲟ̄ⲃⲓ",
+    "media": "ⲥⲟ̄ⲣⲁ",
+    "pendingLinks": "ⲕⲁⲱⲓ ⲗⲓⲛⲕ",
+    "logout": "ⲃⲁⲣⲣ"
   },
   "person": {
     "title": "ⲓⲇⲇⲓ",

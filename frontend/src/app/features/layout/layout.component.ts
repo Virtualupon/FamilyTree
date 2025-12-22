@@ -64,8 +64,54 @@ interface NavItem {
             <span class="layout__logo-text d-mobile-none">Family Tree</span>
           </a>
 
-          <!-- Tree Selector (for Admin/SuperAdmin) -->
-          @if (treeContext.showTreeSelector()) {
+          <!-- Town Selector (for Admin/SuperAdmin with assigned towns) -->
+          @if (treeContext.showTownSelector()) {
+            <div class="layout__tree-selector d-mobile-none">
+              <button
+                mat-button
+                [matMenuTriggerFor]="townMenu"
+                class="layout__tree-btn">
+                <mat-icon>location_city</mat-icon>
+                <span class="layout__tree-name">
+                  {{ getSelectedTownName() || ('nav.selectTown' | translate) }}
+                </span>
+                <mat-icon>arrow_drop_down</mat-icon>
+              </button>
+              <mat-menu #townMenu="matMenu" class="layout__tree-menu">
+                @if (treeContext.loadingTowns()) {
+                  <div class="layout__tree-loading">
+                    <span>{{ 'common.loading' | translate }}</span>
+                  </div>
+                } @else if (treeContext.assignedTowns().length === 0) {
+                  <div class="layout__tree-empty">
+                    <mat-icon>info</mat-icon>
+                    <span>{{ 'nav.noTownsAssigned' | translate }}</span>
+                  </div>
+                } @else {
+                  @for (town of treeContext.assignedTowns(); track town.id) {
+                    <button
+                      mat-menu-item
+                      (click)="selectTown(town.id)"
+                      [class.layout__tree-item--active]="treeContext.selectedTownId() === town.id">
+                      <mat-icon>location_city</mat-icon>
+                      <div class="layout__tree-item-content">
+                        <span class="layout__tree-item-name">{{ getLocalizedTownName(town) }}</span>
+                        <span class="layout__tree-item-meta">
+                          {{ town.treeCount }} {{ 'nav.trees' | translate }}
+                        </span>
+                      </div>
+                      @if (treeContext.selectedTownId() === town.id) {
+                        <mat-icon class="layout__tree-item-check">check</mat-icon>
+                      }
+                    </button>
+                  }
+                }
+              </mat-menu>
+            </div>
+          }
+
+          <!-- Tree Selector (shown after town is selected) -->
+          @if (treeContext.showTreeSelector() && treeContext.selectedTownId()) {
             <div class="layout__tree-selector d-mobile-none">
               <button
                 mat-button
@@ -73,19 +119,19 @@ interface NavItem {
                 class="layout__tree-btn">
                 <mat-icon>account_tree</mat-icon>
                 <span class="layout__tree-name">
-                  {{ treeContext.selectedTree()?.name || 'Select Tree' }}
+                  {{ treeContext.selectedTree()?.name || ('nav.selectTree' | translate) }}
                 </span>
                 <mat-icon>arrow_drop_down</mat-icon>
               </button>
               <mat-menu #treeMenu="matMenu" class="layout__tree-menu">
                 @if (treeContext.loading()) {
                   <div class="layout__tree-loading">
-                    <span>Loading trees...</span>
+                    <span>{{ 'common.loading' | translate }}</span>
                   </div>
                 } @else if (treeContext.availableTrees().length === 0) {
                   <div class="layout__tree-empty">
                     <mat-icon>info</mat-icon>
-                    <span>No trees available</span>
+                    <span>{{ 'nav.noTrees' | translate }}</span>
                   </div>
                 } @else {
                   @for (tree of treeContext.availableTrees(); track tree.id) {
@@ -97,9 +143,9 @@ interface NavItem {
                       <div class="layout__tree-item-content">
                         <span class="layout__tree-item-name">{{ tree.name }}</span>
                         <span class="layout__tree-item-meta">
-                          {{ tree.personCount }} people
+                          {{ tree.personCount }} {{ 'nav.people' | translate }}
                           @if (tree.userRole === null) {
-                            <span class="layout__tree-item-badge">Assigned</span>
+                            <span class="layout__tree-item-badge">{{ 'nav.assigned' | translate }}</span>
                           }
                         </span>
                       </div>
@@ -931,5 +977,32 @@ export class LayoutComponent implements OnInit {
 
   selectTree(treeId: string): void {
     this.treeContext.selectTree(treeId);
+  }
+
+  selectTown(townId: string): void {
+    this.treeContext.selectTown(townId);
+    // Load trees for the selected town
+    this.treeContext.loadTreesForTown(townId);
+  }
+
+  getSelectedTownName(): string | null {
+    const town = this.treeContext.assignedTowns().find(
+      t => t.id === this.treeContext.selectedTownId()
+    );
+    if (!town) return null;
+    return this.getLocalizedTownName(town);
+  }
+
+  getLocalizedTownName(town: { name: string; nameEn: string | null; nameAr: string | null; nameLocal: string | null }): string {
+    const lang = this.i18n.currentLang();
+    switch (lang) {
+      case 'ar':
+        return town.nameAr || town.name;
+      case 'nob':
+        return town.nameLocal || town.name;
+      case 'en':
+      default:
+        return town.nameEn || town.name;
+    }
   }
 }

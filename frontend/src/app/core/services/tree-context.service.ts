@@ -249,23 +249,98 @@ export class TreeContextService {
   // TOWN CONTEXT
   // ========================================================================
 
+  // Signal for admin's assigned towns
+  assignedTowns = signal<{ id: string; name: string; nameEn: string | null; nameAr: string | null; nameLocal: string | null; treeCount: number }[]>([]);
+
+  // Computed: whether to show town selector (for admins with assigned towns)
+  showTownSelector = computed(() => {
+    const user = this.authService.getCurrentUser();
+    if (!user) return false;
+    if (user.systemRole === 'SuperAdmin') return true;
+    if (user.systemRole === 'Admin') return this.assignedTowns().length > 0;
+    return false;
+  });
+
   /**
-   * Load available towns
+   * Load available towns based on user role
+   * - Admin: load only assigned towns
+   * - SuperAdmin: load all towns
    */
   loadAvailableTowns(): void {
+    const user = this.authService.getCurrentUser();
+    if (!user) return;
+
     this.loadingTowns.set(true);
 
-    this.townService.getTowns({ page: 1, pageSize: 1000 }).subscribe({
-      next: (result) => {
-        this.availableTowns.set(result.items);
-        this.autoSelectTown(result.items);
-        this.loadingTowns.set(false);
-      },
-      error: () => {
-        this.availableTowns.set([]);
-        this.loadingTowns.set(false);
-      }
-    });
+    if (user.systemRole === 'SuperAdmin') {
+      // SuperAdmin: load all towns
+      this.townService.getTowns({ page: 1, pageSize: 1000 }).subscribe({
+        next: (result) => {
+          this.availableTowns.set(result.items);
+          // Also set as assigned towns for UI consistency
+          this.assignedTowns.set(result.items.map(t => ({
+            id: t.id,
+            name: t.name,
+            nameEn: t.nameEn || null,
+            nameAr: t.nameAr || null,
+            nameLocal: t.nameLocal || null,
+            treeCount: t.treeCount || 0
+          })));
+          this.autoSelectTown(result.items);
+          this.loadingTowns.set(false);
+        },
+        error: () => {
+          this.availableTowns.set([]);
+          this.assignedTowns.set([]);
+          this.loadingTowns.set(false);
+        }
+      });
+    } else if (user.systemRole === 'Admin') {
+      // Admin: load only assigned towns
+      this.adminService.getUserTownAssignments(user.id).subscribe({
+        next: (assignments) => {
+          const towns = assignments
+            .filter(a => a.isActive)
+            .map(a => ({
+              id: a.townId,
+              name: a.townName || 'Unknown Town',
+              nameEn: a.townNameEn || null,
+              nameAr: a.townNameAr || null,
+              nameLocal: a.townNameLocal || null,
+              treeCount: a.treeCount
+            }));
+          this.assignedTowns.set(towns);
+          // Also populate availableTowns for compatibility
+          this.availableTowns.set(towns.map(t => ({
+            id: t.id,
+            name: t.name,
+            nameEn: t.nameEn || undefined,
+            nameAr: t.nameAr || undefined,
+            nameLocal: t.nameLocal || undefined,
+            country: '',
+            region: '',
+            treeCount: t.treeCount,
+            personCount: 0,
+            createdAt: new Date().toISOString()
+          })));
+          // Auto-select first town if only one
+          if (towns.length === 1 && !this.selectedTownId()) {
+            this.selectTown(towns[0].id);
+          }
+          this.loadingTowns.set(false);
+        },
+        error: () => {
+          this.assignedTowns.set([]);
+          this.availableTowns.set([]);
+          this.loadingTowns.set(false);
+        }
+      });
+    } else {
+      // Regular users: don't load towns
+      this.availableTowns.set([]);
+      this.assignedTowns.set([]);
+      this.loadingTowns.set(false);
+    }
   }
 
   /**

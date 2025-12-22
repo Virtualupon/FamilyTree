@@ -52,7 +52,12 @@
     "familyTree": "Family Tree",
     "media": "Media",
     "pendingLinks": "Pending Links",
-    "logout": "Logout"
+    "logout": "Logout",
+    "selectTown": "Select Town",
+    "selectTree": "Select Tree",
+    "noTownsAssigned": "No towns assigned",
+    "noTrees": "No trees available",
+    "assigned": "Assigned"
   },
   "person": {
     "title": "Persons",

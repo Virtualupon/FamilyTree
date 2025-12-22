@@ -39,6 +39,9 @@ export class GedcomService {
     if (options.existingTreeId) {
       params = params.set('existingTreeId', options.existingTreeId);
     }
+    if (options.townId) {
+      params = params.set('townId', options.townId);
+    }
     if (options.createNewTree !== undefined) {
       params = params.set('createNewTree', options.createNewTree.toString());
     }

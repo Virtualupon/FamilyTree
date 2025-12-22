@@ -34,6 +34,7 @@ public class GedcomController : ControllerBase
     /// <param name="file">The GEDCOM file (.ged)</param>
     /// <param name="treeName">Optional name for new tree (required if createNewTree is true)</param>
     /// <param name="existingTreeId">Optional existing tree ID to import into</param>
+    /// <param name="townId">Required town ID for new trees</param>
     /// <param name="createNewTree">Whether to create a new tree (default: true)</param>
     /// <param name="importNotes">Whether to import notes (default: true)</param>
     /// <param name="importOccupations">Whether to import occupations (default: true)</param>
@@ -43,6 +44,7 @@ public class GedcomController : ControllerBase
         IFormFile file,
         [FromQuery] string? treeName = null,
         [FromQuery] Guid? existingTreeId = null,
+        [FromQuery] Guid? townId = null,
         [FromQuery] bool createNewTree = true,
         [FromQuery] bool importNotes = true,
         [FromQuery] bool importOccupations = true)
@@ -78,12 +80,29 @@ public class GedcomController : ControllerBase
             }
         }
 
+        // Validate townId is provided when creating a new tree
+        if ((createNewTree || !existingTreeId.HasValue) && !townId.HasValue)
+        {
+            return BadRequest(new { error = "Town ID is required when creating a new tree" });
+        }
+
+        // Validate town exists
+        if (townId.HasValue)
+        {
+            var townExists = await _context.Towns.AnyAsync(t => t.Id == townId.Value);
+            if (!townExists)
+            {
+                return BadRequest(new { error = "Town not found" });
+            }
+        }
+
         try
         {
             var options = new GedcomImportOptions(
                 CreateNewTree: createNewTree || !existingTreeId.HasValue,
                 TreeName: treeName ?? Path.GetFileNameWithoutExtension(file.FileName),
                 ExistingTreeId: existingTreeId,
+                TownId: townId,
                 MergeExisting: false,
                 ImportNotes: importNotes,
                 ImportPlaces: true,

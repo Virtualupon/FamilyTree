@@ -21,6 +21,7 @@ public record GedcomImportOptions(
     bool CreateNewTree = true,
     string? TreeName = null,
     Guid? ExistingTreeId = null,
+    Guid? TownId = null,
     bool MergeExisting = false,
     bool ImportNotes = true,
     bool ImportPlaces = true,

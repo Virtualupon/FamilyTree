@@ -126,11 +126,19 @@ public class GedcomService : IGedcomService
             Org tree;
             if (options.CreateNewTree || options.ExistingTreeId == null)
             {
+                if (!options.TownId.HasValue)
+                {
+                    return new GedcomImportResult(
+                        false, "Town ID is required when creating a new tree",
+                        0, 0, 0, warnings, errors, stopwatch.Elapsed);
+                }
+
                 var treeName = options.TreeName ?? $"GEDCOM Import {DateTime.UtcNow:yyyy-MM-dd HH:mm}";
                 tree = new Org
                 {
                     Id = Guid.NewGuid(),
                     Name = treeName,
+                    TownId = options.TownId.Value,
                     OwnerId = userId,
                     IsPublic = false,
                     AllowCrossTreeLinking = true,

@@ -13,6 +13,7 @@ export interface GedcomImportOptions {
   createNewTree?: boolean;
   treeName?: string;
   existingTreeId?: string;
+  townId?: string;
   importNotes?: boolean;
   importOccupations?: boolean;
 }

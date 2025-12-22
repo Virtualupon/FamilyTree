@@ -1,12 +1,15 @@
-import { Component, inject, signal, output, computed } from '@angular/core';
+import { Component, inject, signal, output, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { GedcomService } from '../../core/services/gedcom.service';
 import { I18nService } from '../../core/i18n/i18n.service';
+import { TreeContextService } from '../../core/services/tree-context.service';
+import { TownService } from '../../core/services/town.service';
 import {
   GedcomImportResult,
   GedcomPreviewResult
 } from '../../core/models/gedcom.models';
+import { TownListItem } from '../../core/models/town.models';
 
 type ImportStep = 'upload' | 'preview' | 'options' | 'importing' | 'result';
 
@@ -151,6 +154,24 @@ type ImportStep = 'upload' | 'preview' | 'options' | 'importing' | 'result';
           @if (step() === 'options') {
             <div class="options-form">
               <div class="form-group">
+                <label for="townId">{{ t('gedcom.options.town') }} <span class="required">*</span></label>
+                <select
+                  id="townId"
+                  [(ngModel)]="selectedTownId"
+                  [class.invalid]="!selectedTownId && townTouched()"
+                  (blur)="townTouched.set(true)"
+                >
+                  <option value="">{{ t('gedcom.options.selectTown') }}</option>
+                  @for (town of availableTowns(); track town.id) {
+                    <option [value]="town.id">{{ getLocalizedTownName(town) }}</option>
+                  }
+                </select>
+                @if (!selectedTownId && townTouched()) {
+                  <span class="field-error">{{ t('gedcom.options.townRequired') }}</span>
+                }
+              </div>
+
+              <div class="form-group">
                 <label for="treeName">{{ t('gedcom.options.treeName') }}</label>
                 <input
                   type="text"
@@ -268,7 +289,7 @@ type ImportStep = 'upload' | 'preview' | 'options' | 'importing' | 'result';
             <button class="btn secondary" (click)="close.emit()">{{ t('common.cancel') }}</button>
           } @else if (step() === 'preview' || step() === 'options') {
             <button class="btn secondary" (click)="previousStep()">{{ t('common.back') }}</button>
-            <button class="btn primary" (click)="nextStep()" [disabled]="loading()">
+            <button class="btn primary" (click)="nextStep()" [disabled]="loading() || (step() === 'options' && !selectedTownId)">
               {{ step() === 'options' ? t('gedcom.import') : t('common.next') }}
             </button>
           } @else if (step() === 'result') {
@@ -629,6 +650,36 @@ type ImportStep = 'upload' | 'preview' | 'options' | 'importing' | 'result';
       box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
     }
 
+    .form-group select {
+      padding: 0.75rem 1rem;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 1rem;
+      background: white;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .form-group select:focus {
+      outline: none;
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    .form-group select.invalid {
+      border-color: #ef4444;
+    }
+
+    .required {
+      color: #ef4444;
+    }
+
+    .field-error {
+      color: #ef4444;
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+    }
+
     .checkbox-group label {
       display: flex;
       align-items: center;
@@ -836,9 +887,11 @@ type ImportStep = 'upload' | 'preview' | 'options' | 'importing' | 'result';
     }
   `]
 })
-export class GedcomImportDialogComponent {
+export class GedcomImportDialogComponent implements OnInit {
   readonly i18n = inject(I18nService);
   private readonly gedcomService = inject(GedcomService);
+  private readonly treeContext = inject(TreeContextService);
+  private readonly townService = inject(TownService);
 
   readonly close = output<void>();
   readonly imported = output<void>();
@@ -849,11 +902,55 @@ export class GedcomImportDialogComponent {
   readonly uploadError = signal<string | null>(null);
   readonly preview = signal<GedcomPreviewResult | null>(null);
   readonly result = signal<GedcomImportResult | null>(null);
+  readonly availableTowns = signal<TownListItem[]>([]);
+  readonly townTouched = signal(false);
 
   selectedFile: File | null = null;
   treeName = '';
+  selectedTownId = '';
   importNotes = true;
   importOccupations = true;
+
+  ngOnInit(): void {
+    this.loadTowns();
+  }
+
+  private loadTowns(): void {
+    // Use assigned towns for Admin users, or load all towns for SuperAdmin
+    const assignedTowns = this.treeContext.assignedTowns();
+    if (assignedTowns.length > 0) {
+      this.availableTowns.set(assignedTowns.map(t => ({
+        id: t.id,
+        name: t.name,
+        nameEn: t.nameEn || undefined,
+        nameAr: t.nameAr || undefined,
+        nameLocal: t.nameLocal || undefined,
+        country: '',
+        region: '',
+        treeCount: t.treeCount,
+        personCount: 0,
+        createdAt: new Date().toISOString()
+      })));
+      // Auto-select if only one town
+      if (assignedTowns.length === 1) {
+        this.selectedTownId = assignedTowns[0].id;
+      }
+    } else {
+      // Load all towns for SuperAdmin
+      this.townService.getTowns({ page: 1, pageSize: 1000 }).subscribe({
+        next: (result) => {
+          this.availableTowns.set(result.items);
+        }
+      });
+    }
+  }
+
+  getLocalizedTownName(town: TownListItem): string {
+    const lang = this.i18n.currentLang();
+    if (lang === 'ar' && town.nameAr) return town.nameAr;
+    if (lang === 'nob' && town.nameLocal) return town.nameLocal;
+    return town.nameEn || town.name;
+  }
 
   readonly stepIndex = computed(() => {
     const steps: ImportStep[] = ['upload', 'preview', 'options', 'importing', 'result'];
@@ -959,13 +1056,14 @@ export class GedcomImportDialogComponent {
   }
 
   private startImport(): void {
-    if (!this.selectedFile) return;
+    if (!this.selectedFile || !this.selectedTownId) return;
 
     this.step.set('importing');
 
     this.gedcomService.import(this.selectedFile, {
       createNewTree: true,
       treeName: this.treeName || undefined,
+      townId: this.selectedTownId,
       importNotes: this.importNotes,
       importOccupations: this.importOccupations
     }).subscribe({

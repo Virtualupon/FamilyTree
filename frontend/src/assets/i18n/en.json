@@ -240,6 +240,65 @@
     "deleteWarning": "Are you sure you want to delete",
     "deleteHint": "People in this group will be unassigned but not deleted."
   },
+  "gedcom": {
+    "title": "Import GEDCOM",
+    "import": "Import",
+    "steps": {
+      "upload": "Upload",
+      "preview": "Preview",
+      "options": "Options",
+      "result": "Result"
+    },
+    "upload": {
+      "dragDrop": "Drag and drop your GEDCOM file here",
+      "or": "or",
+      "browse": "Browse Files",
+      "hint": "Supported format: .ged (max 100MB)"
+    },
+    "preview": {
+      "analyzing": "Analyzing file...",
+      "individuals": "Individuals",
+      "families": "Families",
+      "fileSize": "File Size",
+      "encoding": "Encoding",
+      "sampleData": "Sample Data",
+      "name": "Name",
+      "sex": "Sex",
+      "birth": "Birth",
+      "death": "Death",
+      "warnings": "Warnings"
+    },
+    "options": {
+      "town": "Town",
+      "selectTown": "-- Select a Town --",
+      "townRequired": "Please select a town for the new tree",
+      "treeName": "Tree Name",
+      "treeNamePlaceholder": "Enter a name for the new tree",
+      "importNotes": "Import notes and biographies",
+      "importOccupations": "Import occupations",
+      "info": "A new family tree will be created with the imported data. You can edit and organize the data after import."
+    },
+    "importing": {
+      "message": "Importing your family tree...",
+      "patience": "This may take a few moments for large files"
+    },
+    "result": {
+      "success": "Import Successful!",
+      "failed": "Import Failed",
+      "individuals": "Individuals",
+      "families": "Families",
+      "relationships": "Relationships",
+      "warnings": "Warnings",
+      "errors": "Errors",
+      "moreWarnings": "+{count} more warnings"
+    },
+    "error": {
+      "invalidFile": "Please select a valid GEDCOM file (.ged)",
+      "fileTooLarge": "File is too large (max 100MB)",
+      "previewFailed": "Failed to analyze file",
+      "importFailed": "Import failed. Please try again."
+    }
+  },
   "trees": {
     "title": "Family Trees",
     "subtitle": "Manage your family trees and collaborations",

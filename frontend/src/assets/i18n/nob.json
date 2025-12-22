@@ -240,6 +240,65 @@
     "deleteWarning": "ⲙⲁⲥⲥ ⲁⲕⲕⲓⲇ",
     "deleteHint": "ⲓⲇⲇⲓ ⲕⲟⲗⲗⲟ ⲙⲁⲥⲥ ⲙⲓⲛⲛⲁ."
   },
+  "gedcom": {
+    "title": "GEDCOM ⲇⲓⲣⲣ",
+    "import": "ⲇⲓⲣⲣ",
+    "steps": {
+      "upload": "ⲇⲓⲣⲣ",
+      "preview": "ⲅⲓⲣⲣ",
+      "options": "ⲥⲁⲃⲃⲓⲗ",
+      "result": "ⲛⲁⲧⲓⲅⲁ"
+    },
+    "upload": {
+      "dragDrop": "GEDCOM ⲫⲁⲓⲗ ⲇⲓⲣⲣ",
+      "or": "ⲁⲱ",
+      "browse": "ⲫⲁⲓⲗ ⲕⲁⲱⲓ",
+      "hint": "ⲫⲁⲓⲗ: .ged (100MB ⲙⲁⲕⲥ)"
+    },
+    "preview": {
+      "analyzing": "ⲫⲁⲓⲗ ⲕⲁⲱⲓ...",
+      "individuals": "ⲓⲇⲇⲓ",
+      "families": "ⲛⲟ̄ⲅ",
+      "fileSize": "ⲫⲁⲓⲗ ⲟⲥⲥⲓ",
+      "encoding": "ⲕⲁⲧⲧ",
+      "sampleData": "ⲇⲁⲧⲁ ⲙⲓⲥⲁⲗ",
+      "name": "ⲓⲣⲓⲛ",
+      "sex": "ⲛⲟ̄ⲅ",
+      "birth": "ⲓⲣⲣⲓ",
+      "death": "ⲕⲟ̄ⲥⲥⲓ",
+      "warnings": "ⲧⲁⲛⲃⲓⲭ"
+    },
+    "options": {
+      "town": "ⲕⲟ̄ⲣⲁ",
+      "selectTown": "-- ⲕⲟ̄ⲣⲁ ⲥⲟⲗⲗ --",
+      "townRequired": "ⲧⲟ̄ⲃⲓ ⲁⲅⲅⲓ ⲕⲟ̄ⲣⲁ ⲗⲁⲍⲓⲙ",
+      "treeName": "ⲧⲟ̄ⲃⲓ ⲓⲣⲓⲛ",
+      "treeNamePlaceholder": "ⲧⲟ̄ⲃⲓ ⲁⲅⲅⲓ ⲓⲣⲓⲛ ⲇⲓⲣⲣ",
+      "importNotes": "ⲕⲁⲗⲁⲙ ⲇⲓⲣⲣ",
+      "importOccupations": "ⲕⲁⲙⲙⲁ ⲇⲓⲣⲣ",
+      "info": "ⲧⲟ̄ⲃⲓ ⲁⲅⲅⲓ ⲇⲁⲧⲁ ⲇⲓⲣⲣ. ⲃⲁⲁⲇ ⲥⲁⲃⲃⲓⲗ."
+    },
+    "importing": {
+      "message": "ⲛⲟ̄ⲅ ⲧⲟ̄ⲃⲓ ⲇⲓⲣⲣⲓ...",
+      "patience": "ⲱⲁⲕⲧⲓ ⲫⲁⲓⲗ ⲟⲥⲥⲓ"
+    },
+    "result": {
+      "success": "ⲇⲓⲣⲣ ⲧⲁⲙⲙ!",
+      "failed": "ⲇⲓⲣⲣ ⲅⲁⲗⲁⲧ",
+      "individuals": "ⲓⲇⲇⲓ",
+      "families": "ⲛⲟ̄ⲅ",
+      "relationships": "ⲛⲁⲥⲁⲃ",
+      "warnings": "ⲧⲁⲛⲃⲓⲭ",
+      "errors": "ⲅⲁⲗⲁⲧ",
+      "moreWarnings": "+{count} ⲧⲁⲛⲃⲓⲭ ⲧⲁⲛⲓ"
+    },
+    "error": {
+      "invalidFile": "GEDCOM ⲫⲁⲓⲗ ⲥⲟⲗⲗ (.ged)",
+      "fileTooLarge": "ⲫⲁⲓⲗ ⲟⲥⲥⲓ ⲁⲕⲃⲁⲣ (100MB ⲙⲁⲕⲥ)",
+      "previewFailed": "ⲫⲁⲓⲗ ⲕⲁⲱⲓ ⲅⲁⲗⲁⲧ",
+      "importFailed": "ⲇⲓⲣⲣ ⲅⲁⲗⲁⲧ. ⲁⲅⲅⲓ."
+    }
+  },
   "trees": {
     "title": "ⲛⲟ̄ⲅ ⲧⲟ̄ⲃⲓ",
     "subtitle": "ⲛⲟ̄ⲅ ⲧⲟ̄ⲃⲓ ⲥⲁⲃⲃⲓⲗ",

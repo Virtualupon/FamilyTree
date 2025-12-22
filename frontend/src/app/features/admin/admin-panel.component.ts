@@ -24,6 +24,7 @@ import {
   CreateUserRequest
 } from '../../core/models/family-tree.models';
 import { TownListItem } from '../../core/models/town.models';
+import { I18nService } from '../../core/i18n/i18n.service';
 
 @Component({
   selector: 'app-admin-panel',
@@ -242,7 +243,7 @@ import { TownListItem } from '../../core/models/town.models';
                     <mat-chip-set>
                       <mat-chip class="town-chip">
                         <mat-icon>location_city</mat-icon>
-                        {{ a.townName }}
+                        {{ getLocalizedAssignmentTownName(a) }}
                       </mat-chip>
                     </mat-chip-set>
                   </td>
@@ -452,7 +453,7 @@ import { TownListItem } from '../../core/models/town.models';
                   @for (town of allTowns(); track town.id) {
                     <mat-option [value]="town.id">
                       <span class="town-option">
-                        <span class="town-option-name">{{ town.name }}</span>
+                        <span class="town-option-name">{{ getLocalizedTownName(town) }}</span>
                         @if (town.country) {
                           <span class="town-option-country">({{ town.country }})</span>
                         }
@@ -887,7 +888,8 @@ export class AdminPanelComponent implements OnInit {
   constructor(
     private adminService: AdminService,
     private treeService: FamilyTreeService,
-    private townService: TownService
+    private townService: TownService,
+    private i18n: I18nService
   ) {}
 
   ngOnInit() {
@@ -1006,5 +1008,31 @@ export class AdminPanelComponent implements OnInit {
       lastName: '',
       systemRole: 'User'
     };
+  }
+
+  getLocalizedTownName(town: TownListItem): string {
+    const lang = this.i18n.currentLang();
+    switch (lang) {
+      case 'ar':
+        return town.nameAr || town.name;
+      case 'nob':
+        return town.nameLocal || town.name;
+      case 'en':
+      default:
+        return town.nameEn || town.name;
+    }
+  }
+
+  getLocalizedAssignmentTownName(assignment: AdminTownAssignment): string {
+    const lang = this.i18n.currentLang();
+    switch (lang) {
+      case 'ar':
+        return assignment.townNameAr || assignment.townName || '';
+      case 'nob':
+        return assignment.townNameLocal || assignment.townName || '';
+      case 'en':
+      default:
+        return assignment.townNameEn || assignment.townName || '';
+    }
   }
 }

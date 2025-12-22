@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 import {
   GedcomImportResult,
   GedcomImportOptions,
@@ -12,7 +13,7 @@ import {
 })
 export class GedcomService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = '/api/gedcom';
+  private readonly baseUrl = `${environment.apiUrl}/gedcom`;
 
   /**
    * Preview a GEDCOM file without importing

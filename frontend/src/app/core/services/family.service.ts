@@ -19,7 +19,7 @@ import {
   providedIn: 'root'
 })
 export class FamilyService {
-  private baseUrl = `${environment.apiUrl}/api/family`;
+  private baseUrl = `${environment.apiUrl}/family`;
 
   constructor(private http: HttpClient) {}
 

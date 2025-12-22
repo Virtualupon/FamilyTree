@@ -563,14 +563,21 @@ import { TownListItem } from '../../core/models/town.models';
                 <mat-select [(ngModel)]="newTownAssignment.townId">
                   @for (town of allTowns(); track town.id) {
                     <mat-option [value]="town.id">
-                      {{ town.name }}
-                      @if (town.nameAr) {
-                        <span class="option-secondary"> - {{ town.nameAr }}</span>
-                      }
+                      <span class="town-option">
+                        <span class="town-option-name">{{ town.name }}</span>
+                        @if (town.country) {
+                          <span class="town-option-country">({{ town.country }})</span>
+                        }
+                        <span class="town-option-trees">{{ town.treeCount || 0 }} trees</span>
+                      </span>
                     </mat-option>
+                  }
+                  @if (allTowns().length === 0) {
+                    <mat-option disabled>No towns available</mat-option>
                   }
                 </mat-select>
                 <mat-icon matPrefix>location_city</mat-icon>
+                <mat-hint>Towns are geographic locations (cities/villages)</mat-hint>
               </mat-form-field>
             </mat-card-content>
             <mat-card-actions align="end">
@@ -870,6 +877,31 @@ import { TownListItem } from '../../core/models/town.models';
 
     .option-secondary {
       opacity: 0.7;
+    }
+
+    .town-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .town-option-name {
+      font-weight: 500;
+    }
+
+    .town-option-country {
+      color: var(--ft-on-surface-variant);
+      font-size: 12px;
+    }
+
+    .town-option-trees {
+      margin-left: auto;
+      font-size: 11px;
+      color: var(--ft-on-surface-variant);
+      background: var(--ft-surface-variant);
+      padding: 2px 8px;
+      border-radius: 10px;
     }
 
     .modal-backdrop {

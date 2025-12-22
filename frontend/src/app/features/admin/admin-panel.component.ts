@@ -18,7 +18,6 @@ import { FamilyTreeService } from '../../core/services/family-tree.service';
 import { TownService } from '../../core/services/town.service';
 import {
   AdminUser,
-  AdminTreeAssignment,
   AdminTownAssignment,
   PlatformStats,
   FamilyTreeListItem,
@@ -182,9 +181,9 @@ import { TownListItem } from '../../core/models/town.models';
                     <th mat-header-cell *matHeaderCellDef>Actions</th>
                     <td mat-cell *matCellDef="let user">
                       @if (user.systemRole === 'Admin') {
-                        <button mat-stroked-button color="primary" (click)="showAssignModal(user)">
-                          <mat-icon>assignment</mat-icon>
-                          Manage Trees
+                        <button mat-stroked-button color="primary" (click)="showTownAssignModal(user)">
+                          <mat-icon>location_city</mat-icon>
+                          Assign Towns
                         </button>
                       }
                     </td>
@@ -289,81 +288,6 @@ import { TownListItem } from '../../core/models/town.models';
             </div>
           </mat-tab>
 
-          <!-- Admin Tree Assignments Tab (Legacy) -->
-          <mat-tab>
-            <ng-template mat-tab-label>
-              <mat-icon>assignment_ind</mat-icon>
-              <span>Tree Assignments</span>
-            </ng-template>
-
-            <div class="tab-content">
-              <div class="tab-header">
-                <h3>Direct Tree Assignments (Legacy)</h3>
-                <button mat-flat-button color="primary" (click)="showNewAssignmentModal = true">
-                  <mat-icon>add</mat-icon>
-                  Add Assignment
-                </button>
-              </div>
-
-              <table mat-table [dataSource]="assignments()" class="assignments-table">
-                <ng-container matColumnDef="admin">
-                  <th mat-header-cell *matHeaderCellDef>Admin</th>
-                  <td mat-cell *matCellDef="let a">
-                    <div class="user-cell">
-                      <div class="user-avatar user-avatar--small">
-                        {{ getInitials(a.userName?.split(' ')[0], a.userName?.split(' ')[1]) }}
-                      </div>
-                      <div class="user-info">
-                        <span class="user-name">{{ a.userName }}</span>
-                        <span class="user-email">{{ a.userEmail }}</span>
-                      </div>
-                    </div>
-                  </td>
-                </ng-container>
-
-                <ng-container matColumnDef="tree">
-                  <th mat-header-cell *matHeaderCellDef>Tree</th>
-                  <td mat-cell *matCellDef="let a">
-                    <mat-chip-set>
-                      <mat-chip>
-                        <mat-icon>account_tree</mat-icon>
-                        {{ a.treeName }}
-                      </mat-chip>
-                    </mat-chip-set>
-                  </td>
-                </ng-container>
-
-                <ng-container matColumnDef="assignedBy">
-                  <th mat-header-cell *matHeaderCellDef>Assigned By</th>
-                  <td mat-cell *matCellDef="let a">{{ a.assignedByName || 'System' }}</td>
-                </ng-container>
-
-                <ng-container matColumnDef="date">
-                  <th mat-header-cell *matHeaderCellDef>Date</th>
-                  <td mat-cell *matCellDef="let a">{{ a.assignedAt | date:'mediumDate' }}</td>
-                </ng-container>
-
-                <ng-container matColumnDef="actions">
-                  <th mat-header-cell *matHeaderCellDef>Actions</th>
-                  <td mat-cell *matCellDef="let a">
-                    <button mat-icon-button color="warn" (click)="removeAssignment(a)">
-                      <mat-icon>delete</mat-icon>
-                    </button>
-                  </td>
-                </ng-container>
-
-                <tr mat-header-row *matHeaderRowDef="assignmentColumns"></tr>
-                <tr mat-row *matRowDef="let row; columns: assignmentColumns;"></tr>
-              </table>
-
-              @if (assignments().length === 0) {
-                <div class="empty-state">
-                  <mat-icon>assignment</mat-icon>
-                  <p>No tree assignments yet</p>
-                </div>
-              }
-            </div>
-          </mat-tab>
 
           <!-- All Trees Tab -->
           <mat-tab>
@@ -430,42 +354,6 @@ import { TownListItem } from '../../core/models/town.models';
           </mat-tab>
         </mat-tab-group>
       </mat-card>
-
-      <!-- New Assignment Modal -->
-      @if (showNewAssignmentModal) {
-        <div class="modal-backdrop" (click)="showNewAssignmentModal = false">
-          <mat-card class="modal-card" (click)="$event.stopPropagation()">
-            <mat-card-header>
-              <mat-card-title>Assign Admin to Tree</mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Select Admin</mat-label>
-                <mat-select [(ngModel)]="newAssignment.userId">
-                  @for (user of adminUsers(); track user.userId) {
-                    <mat-option [value]="user.userId">
-                      {{ user.firstName }} {{ user.lastName }} ({{ user.email }})
-                    </mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
-
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Select Tree</mat-label>
-                <mat-select [(ngModel)]="newAssignment.treeId">
-                  @for (tree of allTrees(); track tree.id) {
-                    <mat-option [value]="tree.id">{{ tree.name }}</mat-option>
-                  }
-                </mat-select>
-              </mat-form-field>
-            </mat-card-content>
-            <mat-card-actions align="end">
-              <button mat-button (click)="showNewAssignmentModal = false">Cancel</button>
-              <button mat-flat-button color="primary" (click)="createAssignment()">Assign</button>
-            </mat-card-actions>
-          </mat-card>
-        </div>
-      }
 
       <!-- Create User Modal -->
       @if (showCreateUserModal) {
@@ -972,14 +860,10 @@ import { TownListItem } from '../../core/models/town.models';
 export class AdminPanelComponent implements OnInit {
   loading = signal(true);
   users = signal<AdminUser[]>([]);
-  assignments = signal<AdminTreeAssignment[]>([]);
   townAssignments = signal<AdminTownAssignment[]>([]);
   allTrees = signal<FamilyTreeListItem[]>([]);
   allTowns = signal<TownListItem[]>([]);
   stats = signal<PlatformStats | null>(null);
-
-  showNewAssignmentModal = false;
-  newAssignment = { userId: 0, treeId: '' };
 
   showNewTownAssignmentModal = false;
   newTownAssignment = { userId: 0, townId: '' };
@@ -997,7 +881,6 @@ export class AdminPanelComponent implements OnInit {
   };
 
   userColumns = ['user', 'role', 'trees', 'created', 'actions'];
-  assignmentColumns = ['admin', 'tree', 'assignedBy', 'date', 'actions'];
   townAssignmentColumns = ['admin', 'town', 'trees', 'assignedBy', 'date', 'actions'];
   treeColumns = ['name', 'people', 'public', 'created'];
 
@@ -1025,11 +908,6 @@ export class AdminPanelComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => this.loading.set(false)
-    });
-
-    this.adminService.getAllAssignments().subscribe({
-      next: (assignments) => this.assignments.set(assignments),
-      error: () => {}
     });
 
     this.adminService.getAllTownAssignments().subscribe({
@@ -1065,36 +943,12 @@ export class AdminPanelComponent implements OnInit {
     });
   }
 
-  showAssignModal(user: AdminUser) {
-    this.newAssignment = { userId: user.userId, treeId: '' };
-    this.showNewAssignmentModal = true;
-  }
-
-  createAssignment() {
-    if (!this.newAssignment.userId || !this.newAssignment.treeId) return;
-
-    this.adminService.createAssignment({
-      userId: this.newAssignment.userId,
-      treeId: this.newAssignment.treeId
-    }).subscribe({
-      next: () => {
-        this.showNewAssignmentModal = false;
-        this.loadData();
-      },
-      error: (err) => alert(err.error?.message || 'Failed to create assignment')
-    });
-  }
-
-  removeAssignment(assignment: AdminTreeAssignment) {
-    if (!confirm(`Remove ${assignment.userName} from ${assignment.treeName}?`)) return;
-
-    this.adminService.deleteAssignment(assignment.id).subscribe({
-      next: () => this.loadData(),
-      error: (err) => alert(err.error?.message || 'Failed to remove assignment')
-    });
-  }
-
   // Town Assignment Methods
+  showTownAssignModal(user: AdminUser) {
+    this.newTownAssignment = { userId: user.userId, townId: '' };
+    this.showNewTownAssignmentModal = true;
+  }
+
   createTownAssignment() {
     if (!this.newTownAssignment.userId || !this.newTownAssignment.townId) return;
 

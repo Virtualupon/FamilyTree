@@ -52,7 +52,12 @@
     "familyTree": "ⲛⲟ̄ⲅ ⲧⲟ̄ⲃⲓ",
     "media": "ⲥⲟ̄ⲣⲁ",
     "pendingLinks": "ⲕⲁⲱⲓ ⲗⲓⲛⲕ",
-    "logout": "ⲃⲁⲣⲣ"
+    "logout": "ⲃⲁⲣⲣ",
+    "selectTown": "ⲕⲟ̄ⲣⲁ ⲥⲟⲗⲗ",
+    "selectTree": "ⲧⲟ̄ⲃⲓ ⲥⲟⲗⲗ",
+    "noTownsAssigned": "ⲕⲟ̄ⲣⲁ ⲙⲓⲛⲛⲁ",
+    "noTrees": "ⲧⲟ̄ⲃⲓ ⲙⲓⲛⲛⲁ",
+    "assigned": "ⲧⲁⲱⲓⲛ"
   },
   "person": {
     "title": "ⲓⲇⲇⲓ",

@@ -52,7 +52,12 @@
     "familyTree": "شجرة العائلة",
     "media": "الوسائط",
     "pendingLinks": "الروابط المعلقة",
-    "logout": "تسجيل الخروج"
+    "logout": "تسجيل الخروج",
+    "selectTown": "اختر المدينة",
+    "selectTree": "اختر الشجرة",
+    "noTownsAssigned": "لا توجد مدن مخصصة",
+    "noTrees": "لا توجد أشجار متاحة",
+    "assigned": "مخصص"
   },
   "person": {
     "title": "الأشخاص",

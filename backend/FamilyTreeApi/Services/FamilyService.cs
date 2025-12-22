@@ -225,6 +225,17 @@ public class FamilyService : IFamilyService
                 return ServiceResult<FamilyResponse>.Failure("Family tree not found", ServiceErrorType.NotFound);
             }
 
+            // Check for duplicate family name in the same town
+            var duplicateExists = await _context.Set<Family>()
+                .AnyAsync(f => f.TownId == org.TownId && f.Name == request.Name, cancellationToken);
+
+            if (duplicateExists)
+            {
+                return ServiceResult<FamilyResponse>.Failure(
+                    $"A family with the name '{request.Name}' already exists in this town",
+                    ServiceErrorType.BadRequest);
+            }
+
             var family = new Family
             {
                 Id = Guid.NewGuid(),
@@ -292,6 +303,20 @@ public class FamilyService : IFamilyService
             if (!await HasTreeAccessAsync(family.OrgId, userContext, OrgRole.Editor, cancellationToken))
             {
                 return ServiceResult<FamilyResponse>.Forbidden("You do not have permission to update this family");
+            }
+
+            // Check for duplicate family name in the same town (if name is being changed)
+            if (request.Name != null && request.Name != family.Name)
+            {
+                var duplicateExists = await _context.Set<Family>()
+                    .AnyAsync(f => f.TownId == family.TownId && f.Name == request.Name && f.Id != id, cancellationToken);
+
+                if (duplicateExists)
+                {
+                    return ServiceResult<FamilyResponse>.Failure(
+                        $"A family with the name '{request.Name}' already exists in this town",
+                        ServiceErrorType.BadRequest);
+                }
             }
 
             // Update fields

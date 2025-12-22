@@ -490,6 +490,11 @@ public class ApplicationDbContext : IdentityDbContext<
             entity.HasIndex(e => e.TownId);
             entity.HasIndex(e => e.Name);
 
+            // Unique constraint: no duplicate family names within the same town
+            entity.HasIndex(e => new { e.TownId, e.Name })
+                .IsUnique()
+                .HasDatabaseName("IX_Families_TownId_Name_Unique");
+
             // Family belongs to an Org (Family Tree)
             entity.HasOne(e => e.Org)
                 .WithMany(o => o.Families)

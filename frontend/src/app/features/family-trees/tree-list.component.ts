@@ -1,13 +1,16 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { FamilyTreeService } from '../../core/services/family-tree.service';
 import { TownService } from '../../core/services/town.service';
+import { FamilyService } from '../../core/services/family.service';
 import { AuthService } from '../../core/services/auth.service';
+import { TreeContextService } from '../../core/services/tree-context.service';
 import { I18nService, TranslatePipe } from '../../core/i18n';
 import { FamilyTreeListItem, CreateFamilyTreeRequest } from '../../core/models/family-tree.models';
 import { TownListItem } from '../../core/models/town.models';
+import { FamilyListItem, FamilyWithMembers } from '../../core/models/family.models';
 import { OrgRole, OrgRoleLabels } from '../../core/models/auth.models';
 import { GedcomImportDialogComponent } from './gedcom-import-dialog.component';
 
@@ -17,14 +20,74 @@ import { GedcomImportDialogComponent } from './gedcom-import-dialog.component';
   imports: [CommonModule, RouterModule, FormsModule, TranslatePipe, GedcomImportDialogComponent],
   template: `
     <div class="tree-list-page">
-      <!-- Header -->
-      <div class="page-header">
-        <div class="header-content">
-          <div class="header-title">
-            <h1>{{ 'trees.title' | translate }}</h1>
-            <p class="subtitle">{{ 'trees.subtitle' | translate }}</p>
+      <!-- Greeting Header with Town Selector -->
+      <div class="greeting-header">
+        <div class="greeting-content">
+          <div class="greeting-text">
+            <h1>{{ getGreeting() }}, {{ getUserFirstName() }}!</h1>
+            <p class="greeting-subtitle">{{ 'trees.greetingSubtitle' | translate }}</p>
           </div>
-          <div class="header-actions">
+
+          <!-- Town Selector Dropdown -->
+          <div class="town-selector-container">
+            <label class="town-selector-label">{{ 'trees.selectYourTown' | translate }}</label>
+            <div class="town-selector-dropdown" (click)="toggleTownDropdown()">
+              <div class="town-selector-value">
+                <svg class="town-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                </svg>
+                <span>{{ getSelectedTownDisplayName() || ('trees.chooseTown' | translate) }}</span>
+                <svg class="dropdown-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+              </div>
+
+              @if (showTownDropdown()) {
+                <div class="town-dropdown-menu">
+                  @for (town of availableTowns(); track town.id) {
+                    <div
+                      class="town-dropdown-item"
+                      [class.active]="selectedTownId === town.id"
+                      (click)="selectTown(town); $event.stopPropagation()">
+                      <span class="town-name">{{ getLocalizedTownName(town) }}</span>
+                      <span class="town-meta">{{ town.treeCount || 0 }} {{ 'nav.trees' | translate }}</span>
+                      @if (selectedTownId === town.id) {
+                        <svg class="check-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                      }
+                    </div>
+                  }
+                  @if (availableTowns().length === 0) {
+                    <div class="town-dropdown-empty">
+                      {{ 'nav.noTownsAssigned' | translate }}
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Content Area -->
+      @if (!selectedTownId) {
+        <!-- No Town Selected - Show prompt -->
+        <div class="empty-state select-town-prompt">
+          <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+          </svg>
+          <h3>{{ 'trees.selectTownFirst' | translate }}</h3>
+          <p>{{ 'trees.selectTownHint' | translate }}</p>
+        </div>
+      } @else if (!selectedFamilyId()) {
+        <!-- Town Selected - Show Families -->
+        <div class="section-header">
+          <div class="section-title">
+            <h2>{{ getSelectedTownDisplayName() }} - {{ 'trees.title' | translate }}</h2>
+            <p class="section-subtitle">{{ 'trees.manageFamilies' | translate }}</p>
+          </div>
+          <div class="section-actions">
             <button class="btn-secondary" (click)="showImportModal = true">
               <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
@@ -35,12 +98,12 @@ import { GedcomImportDialogComponent } from './gedcom-import-dialog.component';
               <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
               </svg>
-              {{ 'trees.create' | translate }}
+              {{ 'familyGroups.create' | translate }}
             </button>
           </div>
         </div>
 
-        <!-- Filters -->
+        <!-- Search Families -->
         <div class="filters">
           <div class="search-box">
             <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -48,17 +111,158 @@ import { GedcomImportDialogComponent } from './gedcom-import-dialog.component';
             </svg>
             <input
               type="text"
-              [(ngModel)]="searchQuery"
-              [placeholder]="'trees.searchPlaceholder' | translate"
+              [(ngModel)]="familySearchQuery"
+              [placeholder]="'familyGroups.searchPlaceholder' | translate"
               class="search-input">
           </div>
-          <select [(ngModel)]="selectedTownId" class="town-filter">
-            <option [ngValue]="null">{{ 'trees.allTowns' | translate }}</option>
-            @for (town of towns(); track town.id) {
-              <option [ngValue]="town.id">{{ getLocalizedTownName(town) }}</option>
-            }
-          </select>
         </div>
+
+        <!-- Loading Families -->
+        @if (loadingFamilies()) {
+          <div class="loading-state">
+            <div class="spinner"></div>
+            <p>{{ 'common.loading' | translate }}</p>
+          </div>
+        }
+
+        <!-- Families Grid -->
+        @if (!loadingFamilies() && filteredFamilies().length > 0) {
+          <div class="stats-bar">
+            <span>{{ filteredFamilies().length }} {{ 'familyGroups.found' | translate }}</span>
+          </div>
+          <div class="family-grid">
+            @for (family of filteredFamilies(); track family.id) {
+              <div class="family-card" (click)="selectFamily(family.id)" [style.border-left-color]="family.color || '#6366f1'">
+                <div class="family-card-header">
+                  <div class="family-color-badge" [style.background-color]="family.color || '#6366f1'"></div>
+                  <h3 class="family-name">{{ getLocalizedFamilyName(family) }}</h3>
+                </div>
+                <div class="family-card-body">
+                  <div class="family-meta">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    <span>{{ family.memberCount }} {{ 'trees.people' | translate }}</span>
+                  </div>
+                </div>
+                <div class="family-card-action">
+                  <span>{{ 'trees.viewMembers' | translate }}</span>
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                  </svg>
+                </div>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- No Families -->
+        @if (!loadingFamilies() && filteredFamilies().length === 0) {
+          <div class="empty-state">
+            @if (familySearchQuery) {
+              <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+              <h3>{{ 'familyGroups.noResults' | translate }}</h3>
+              <p>{{ 'familyGroups.tryDifferentSearch' | translate }}</p>
+              <button class="btn-secondary" (click)="familySearchQuery = ''">{{ 'trees.clearFilters' | translate }}</button>
+            } @else {
+              <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+              </svg>
+              <h3>{{ 'familyGroups.noFamilies' | translate }}</h3>
+              <p>{{ 'familyGroups.createFirst' | translate }}</p>
+              <button class="btn-primary" (click)="showCreateModal = true">
+                <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                {{ 'familyGroups.createFirstButton' | translate }}
+              </button>
+            }
+          </div>
+        }
+      } @else {
+        <!-- Family Selected - Show People -->
+        <div class="section-header with-back">
+          <button class="back-button" (click)="clearFamilySelection()">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            {{ 'common.back' | translate }}
+          </button>
+          <div class="section-title">
+            <h2>{{ getSelectedFamilyDisplayName() }}</h2>
+            <p class="section-subtitle">{{ selectedFamilyDetails()?.memberCount || 0 }} {{ 'trees.people' | translate }}</p>
+          </div>
+        </div>
+
+        <!-- Loading Members -->
+        @if (loadingMembers()) {
+          <div class="loading-state">
+            <div class="spinner"></div>
+            <p>{{ 'common.loading' | translate }}</p>
+          </div>
+        }
+
+        <!-- Members List -->
+        @if (!loadingMembers() && selectedFamilyDetails()) {
+          <div class="members-grid">
+            @for (member of selectedFamilyDetails()!.members; track member.id) {
+              <div class="member-card" [routerLink]="['/people', member.id]">
+                <div class="member-avatar" [class.female]="member.sex === 1" [class.unknown]="member.sex !== 0 && member.sex !== 1">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                  </svg>
+                </div>
+                <div class="member-info">
+                  <h4 class="member-name">{{ member.primaryName || ('person.unknown' | translate) }}</h4>
+                  <div class="member-meta">
+                    @if (member.birthDate) {
+                      <span>{{ formatYear(member.birthDate) }}</span>
+                    }
+                    @if (member.birthDate && member.deathDate) {
+                      <span>-</span>
+                    }
+                    @if (member.deathDate) {
+                      <span>{{ formatYear(member.deathDate) }}</span>
+                    }
+                    @if (!member.birthDate && !member.deathDate && member.isLiving) {
+                      <span class="living-badge">{{ 'personForm.isLiving' | translate }}</span>
+                    }
+                  </div>
+                </div>
+                <svg class="member-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+              </div>
+            }
+            @if (selectedFamilyDetails()!.members.length === 0) {
+              <div class="empty-state small">
+                <p>{{ 'familyGroups.noMembers' | translate }}</p>
+              </div>
+            }
+          </div>
+        }
+      }
+
+      <!-- Old Filters - Hidden -->
+      <div class="filters" style="display: none;">
+        <div class="search-box">
+          <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <input
+            type="text"
+            [(ngModel)]="searchQuery"
+            [placeholder]="'trees.searchPlaceholder' | translate"
+            class="search-input">
+        </div>
+        <select [(ngModel)]="selectedTownId" class="town-filter">
+          <option [ngValue]="null">{{ 'trees.allTowns' | translate }}</option>
+          @for (town of towns(); track town.id) {
+            <option [ngValue]="town.id">{{ getLocalizedTownName(town) }}</option>
+          }
+        </select>
       </div>
 
       <!-- Loading -->
@@ -285,6 +489,361 @@ import { GedcomImportDialogComponent } from './gedcom-import-dialog.component';
       padding: 24px;
       max-width: 1400px;
       margin: 0 auto;
+    }
+
+    /* Greeting Header */
+    .greeting-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 16px;
+      padding: 32px;
+      margin-bottom: 32px;
+      color: white;
+    }
+
+    .greeting-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 24px;
+    }
+
+    .greeting-text h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin: 0 0 8px 0;
+    }
+
+    .greeting-subtitle {
+      margin: 0;
+      opacity: 0.9;
+      font-size: 16px;
+    }
+
+    .town-selector-container {
+      min-width: 280px;
+    }
+
+    .town-selector-label {
+      display: block;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      opacity: 0.8;
+      margin-bottom: 8px;
+    }
+
+    .town-selector-dropdown {
+      position: relative;
+      cursor: pointer;
+    }
+
+    .town-selector-value {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      transition: all 0.2s;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.25);
+      }
+
+      span {
+        flex: 1;
+        font-weight: 500;
+      }
+    }
+
+    .town-icon {
+      width: 24px;
+      height: 24px;
+    }
+
+    .dropdown-arrow {
+      width: 20px;
+      height: 20px;
+      transition: transform 0.2s;
+    }
+
+    .town-dropdown-menu {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      margin-top: 8px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      z-index: 100;
+      overflow: hidden;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .town-dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      color: #1a1a2e;
+      cursor: pointer;
+      transition: background 0.2s;
+
+      &:hover {
+        background: #f3f4f6;
+      }
+
+      &.active {
+        background: #ede9fe;
+      }
+
+      .town-name {
+        flex: 1;
+        font-weight: 500;
+      }
+
+      .town-meta {
+        font-size: 12px;
+        color: #6b7280;
+      }
+
+      .check-icon {
+        width: 20px;
+        height: 20px;
+        color: #6366f1;
+      }
+    }
+
+    .town-dropdown-empty {
+      padding: 20px;
+      text-align: center;
+      color: #6b7280;
+    }
+
+    /* Section Header */
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+
+      &.with-back {
+        justify-content: flex-start;
+        gap: 20px;
+      }
+    }
+
+    .section-title h2 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin: 0 0 4px 0;
+    }
+
+    .section-subtitle {
+      color: #6b7280;
+      font-size: 14px;
+      margin: 0;
+    }
+
+    .section-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .back-button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      background: #f3f4f6;
+      border: none;
+      border-radius: 8px;
+      color: #374151;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      &:hover {
+        background: #e5e7eb;
+      }
+    }
+
+    /* Family Grid */
+    .family-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .family-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      border-left: 4px solid #6366f1;
+      cursor: pointer;
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      }
+    }
+
+    .family-card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .family-color-badge {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .family-name {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1a1a2e;
+      margin: 0;
+    }
+
+    .family-card-body {
+      margin-bottom: 16px;
+    }
+
+    .family-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #6b7280;
+      font-size: 14px;
+
+      svg {
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    .family-card-action {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 12px;
+      border-top: 1px solid #e5e7eb;
+      color: #6366f1;
+      font-size: 14px;
+      font-weight: 500;
+
+      svg {
+        width: 18px;
+        height: 18px;
+      }
+    }
+
+    /* Members Grid */
+    .members-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .member-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 20px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      color: inherit;
+
+      &:hover {
+        background: #f9fafb;
+        transform: translateX(4px);
+      }
+    }
+
+    .member-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #dbeafe;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      svg {
+        width: 24px;
+        height: 24px;
+        color: #3b82f6;
+      }
+
+      &.female {
+        background: #fce7f3;
+        svg { color: #ec4899; }
+      }
+
+      &.unknown {
+        background: #e5e7eb;
+        svg { color: #6b7280; }
+      }
+    }
+
+    .member-info {
+      flex: 1;
+    }
+
+    .member-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1a1a2e;
+      margin: 0 0 4px 0;
+    }
+
+    .member-meta {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: #6b7280;
+      font-size: 13px;
+    }
+
+    .living-badge {
+      background: #d1fae5;
+      color: #047857;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .member-arrow {
+      width: 20px;
+      height: 20px;
+      color: #9ca3af;
+    }
+
+    .select-town-prompt {
+      margin-top: 40px;
     }
 
     .page-header {
@@ -850,10 +1409,25 @@ import { GedcomImportDialogComponent } from './gedcom-import-dialog.component';
   `]
 })
 export class TreeListComponent implements OnInit {
+  private readonly treeContext = inject(TreeContextService);
+  private readonly familyService = inject(FamilyService);
+
   trees = signal<FamilyTreeListItem[]>([]);
   towns = signal<TownListItem[]>([]);
   loading = signal(true);
   error = signal<string | null>(null);
+
+  // Family groups state
+  families = signal<FamilyListItem[]>([]);
+  loadingFamilies = signal(false);
+  selectedFamilyId = signal<string | null>(null);
+  selectedFamilyDetails = signal<FamilyWithMembers | null>(null);
+  loadingMembers = signal(false);
+  familySearchQuery = '';
+
+  // Town dropdown state
+  showTownDropdown = signal(false);
+  availableTowns = signal<TownListItem[]>([]);
 
   searchQuery = '';
   selectedTownId: string | null = null;
@@ -891,6 +1465,22 @@ export class TreeListComponent implements OnInit {
     return result;
   });
 
+  filteredFamilies = computed(() => {
+    let result = this.families();
+
+    if (this.familySearchQuery.trim()) {
+      const query = this.familySearchQuery.toLowerCase();
+      result = result.filter(family =>
+        family.name.toLowerCase().includes(query) ||
+        (family.nameEn?.toLowerCase().includes(query)) ||
+        (family.nameAr?.toLowerCase().includes(query)) ||
+        (family.nameLocal?.toLowerCase().includes(query))
+      );
+    }
+
+    return result;
+  });
+
   constructor(
     private treeService: FamilyTreeService,
     private townService: TownService,
@@ -901,6 +1491,7 @@ export class TreeListComponent implements OnInit {
   ngOnInit() {
     this.loadTrees();
     this.loadTowns();
+    this.loadAvailableTowns();
   }
 
   loadTowns() {
@@ -912,6 +1503,136 @@ export class TreeListComponent implements OnInit {
         this.towns.set([]);
       }
     });
+  }
+
+  loadAvailableTowns() {
+    // Load towns from tree context (Admin's assigned towns or all for SuperAdmin)
+    const assignedTowns = this.treeContext.assignedTowns();
+    if (assignedTowns.length > 0) {
+      this.availableTowns.set(assignedTowns.map(t => ({
+        id: t.id,
+        name: t.name,
+        nameEn: t.nameEn || undefined,
+        nameAr: t.nameAr || undefined,
+        nameLocal: t.nameLocal || undefined,
+        country: '',
+        region: '',
+        treeCount: t.treeCount,
+        personCount: 0,
+        createdAt: new Date().toISOString()
+      })));
+    } else {
+      // Fallback to loading all towns
+      this.townService.getTowns({ page: 1, pageSize: 500 }).subscribe({
+        next: (result) => {
+          this.availableTowns.set(result.items);
+        }
+      });
+    }
+  }
+
+  // Greeting based on time of day
+  getGreeting(): string {
+    const hour = new Date().getHours();
+    if (hour < 12) return this.i18n.t('trees.goodMorning');
+    if (hour < 18) return this.i18n.t('trees.goodAfternoon');
+    return this.i18n.t('trees.goodEvening');
+  }
+
+  getUserFirstName(): string {
+    const user = this.authService.getCurrentUser();
+    return user?.firstName || user?.email?.split('@')[0] || '';
+  }
+
+  // Town dropdown
+  toggleTownDropdown() {
+    this.showTownDropdown.update(v => !v);
+  }
+
+  selectTown(town: TownListItem) {
+    this.selectedTownId = town.id;
+    this.showTownDropdown.set(false);
+    this.selectedFamilyId.set(null);
+    this.selectedFamilyDetails.set(null);
+    this.loadFamiliesForTown(town.id);
+  }
+
+  getSelectedTownDisplayName(): string | null {
+    if (!this.selectedTownId) return null;
+    const town = this.availableTowns().find(t => t.id === this.selectedTownId);
+    if (!town) return null;
+    return this.getLocalizedTownName(town);
+  }
+
+  // Load families for selected town
+  loadFamiliesForTown(townId: string) {
+    this.loadingFamilies.set(true);
+    this.familyService.getFamiliesByTown(townId).subscribe({
+      next: (families) => {
+        this.families.set(families);
+        this.loadingFamilies.set(false);
+      },
+      error: () => {
+        this.families.set([]);
+        this.loadingFamilies.set(false);
+      }
+    });
+  }
+
+  // Family selection
+  selectFamily(familyId: string) {
+    this.selectedFamilyId.set(familyId);
+    this.loadFamilyMembers(familyId);
+  }
+
+  clearFamilySelection() {
+    this.selectedFamilyId.set(null);
+    this.selectedFamilyDetails.set(null);
+  }
+
+  getSelectedFamilyDisplayName(): string {
+    const familyId = this.selectedFamilyId();
+    if (!familyId) return '';
+    const family = this.families().find(f => f.id === familyId);
+    if (!family) return '';
+    return this.getLocalizedFamilyName(family);
+  }
+
+  loadFamilyMembers(familyId: string) {
+    this.loadingMembers.set(true);
+    this.familyService.getFamilyWithMembers(familyId).subscribe({
+      next: (family) => {
+        this.selectedFamilyDetails.set(family);
+        this.loadingMembers.set(false);
+      },
+      error: () => {
+        this.selectedFamilyDetails.set(null);
+        this.loadingMembers.set(false);
+      }
+    });
+  }
+
+  getLocalizedFamilyName(family: FamilyListItem): string {
+    const lang = this.i18n.currentLang();
+    switch (lang) {
+      case 'ar':
+        return family.nameAr || family.name;
+      case 'nob':
+        return family.nameLocal || family.name;
+      case 'en':
+      default:
+        return family.nameEn || family.name;
+    }
+  }
+
+  formatYear(dateStr: string): string {
+    if (!dateStr) return '';
+    try {
+      const date = new Date(dateStr);
+      return date.getFullYear().toString();
+    } catch {
+      return dateStr.split('-')[0] || '';
+    }
   }
 
   loadTrees() {

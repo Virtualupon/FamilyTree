@@ -238,7 +238,8 @@
     "descriptionPlaceholder": "Optional description of this family group...",
     "color": "Color",
     "deleteWarning": "Are you sure you want to delete",
-    "deleteHint": "People in this group will be unassigned but not deleted."
+    "deleteHint": "People in this group will be unassigned but not deleted.",
+    "noMembers": "No members in this family group yet"
   },
   "gedcom": {
     "title": "Import GEDCOM",
@@ -328,6 +329,16 @@
     "townRequired": "Please select a town. Every family tree must belong to a town.",
     "makePublic": "Make this tree publicly visible",
     "allowLinking": "Allow cross-tree linking",
-    "linkingHint": "Enable linking people from this tree to people in other trees"
+    "linkingHint": "Enable linking people from this tree to people in other trees",
+    "goodMorning": "Good Morning",
+    "goodAfternoon": "Good Afternoon",
+    "goodEvening": "Good Evening",
+    "greetingSubtitle": "Manage and explore your family trees",
+    "selectYourTown": "Select Your Town",
+    "chooseTown": "Choose a town...",
+    "selectTownFirst": "Select a Town to Get Started",
+    "selectTownHint": "Choose a town from the dropdown above to view and manage its families",
+    "manageFamilies": "Manage and explore family groups",
+    "viewMembers": "View Members"
   }
 }

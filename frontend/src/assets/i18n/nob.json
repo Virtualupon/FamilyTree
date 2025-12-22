@@ -238,7 +238,8 @@
     "descriptionPlaceholder": "ⲕⲟⲗⲗⲟ ⲱⲁⲥⲫ...",
     "color": "ⲗⲟ̄ⲛ",
     "deleteWarning": "ⲙⲁⲥⲥ ⲁⲕⲕⲓⲇ",
-    "deleteHint": "ⲓⲇⲇⲓ ⲕⲟⲗⲗⲟ ⲙⲁⲥⲥ ⲙⲓⲛⲛⲁ."
+    "deleteHint": "ⲓⲇⲇⲓ ⲕⲟⲗⲗⲟ ⲙⲁⲥⲥ ⲙⲓⲛⲛⲁ.",
+    "noMembers": "ⲓⲇⲇⲓ ⲕⲟⲗⲗⲟ ⲙⲓⲛⲛⲁ"
   },
   "gedcom": {
     "title": "GEDCOM ⲇⲓⲣⲣ",
@@ -328,6 +329,16 @@
     "townRequired": "ⲕⲟ̄ⲣⲁ ⲥⲟⲗⲗ. ⲧⲟ̄ⲃⲓ ⲕⲟⲗⲗ ⲕⲟ̄ⲣⲁ ⲗⲁⲍⲓⲙ.",
     "makePublic": "ⲧⲟ̄ⲃⲓ ⲕⲟⲗⲗ ⲅⲓⲣⲣ",
     "allowLinking": "ⲗⲓⲛⲕ ⲓⲇⲛ",
-    "linkingHint": "ⲓⲇⲇⲓ ⲧⲟ̄ⲃⲓ ⲧⲁⲛⲓ ⲗⲓⲛⲕ"
+    "linkingHint": "ⲓⲇⲇⲓ ⲧⲟ̄ⲃⲓ ⲧⲁⲛⲓ ⲗⲓⲛⲕ",
+    "goodMorning": "ⲥⲁⲗⲁⲙ ⲥⲟⲃⲁⲭ",
+    "goodAfternoon": "ⲥⲁⲗⲁⲙ ⲙⲁⲥⲥⲁ",
+    "goodEvening": "ⲥⲁⲗⲁⲙ ⲙⲁⲥⲥⲁ",
+    "greetingSubtitle": "ⲛⲟ̄ⲅ ⲧⲟ̄ⲃⲓ ⲥⲁⲃⲃⲓⲗ ⲕⲁⲱⲓ",
+    "selectYourTown": "ⲕⲟ̄ⲣⲁ ⲥⲟⲗⲗ",
+    "chooseTown": "ⲕⲟ̄ⲣⲁ ⲥⲟⲗⲗ...",
+    "selectTownFirst": "ⲕⲟ̄ⲣⲁ ⲥⲟⲗⲗ ⲁⲱⲱⲁⲗ",
+    "selectTownHint": "ⲕⲟ̄ⲣⲁ ⲥⲟⲗⲗ ⲛⲟ̄ⲅ ⲅⲓⲣⲣ ⲥⲁⲃⲃⲓⲗ",
+    "manageFamilies": "ⲛⲟ̄ⲅ ⲕⲟⲗⲗⲟ ⲥⲁⲃⲃⲓⲗ ⲕⲁⲱⲓ",
+    "viewMembers": "ⲓⲇⲇⲓ ⲅⲓⲣⲣ"
   }
 }

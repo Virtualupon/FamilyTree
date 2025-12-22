@@ -69,7 +69,7 @@ import { OrgRole, OrgRoleLabels } from '../../core/models/auth.models';
                   }
                 </div>
               </div>
-              @if (isAdmin()) {
+              @if (isSuperAdmin()) {
                 <div class="flex gap-2">
                   <button
                     (click)="showEditModal = true"
@@ -79,7 +79,7 @@ import { OrgRole, OrgRoleLabels } from '../../core/models/auth.models';
                     </svg>
                     {{ i18n.t('common.edit') }}
                   </button>
-                  @if (isSuperAdmin() && town()!.treeCount === 0) {
+                  @if (town()!.treeCount === 0) {
                     <button
                       (click)="confirmDelete()"
                       class="px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 flex items-center gap-2">

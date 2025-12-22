@@ -69,21 +69,57 @@ public class TownController : ControllerBase
     }
 
     // ========================================================================
-    // TOWN MUTATIONS DISABLED - Towns are READ-ONLY
-    // Per hierarchy rules: Towns come from database seed data only.
-    // Users CANNOT create/edit/delete towns.
+    // TOWN MUTATIONS - SuperAdmin Only
     // ========================================================================
 
-    // [HttpPost] - REMOVED: Towns are read-only
-    // [HttpPut("{id}")] - REMOVED: Towns are read-only
-    // [HttpDelete("{id}")] - REMOVED: Towns are read-only
+    /// <summary>
+    /// Create a new town (SuperAdmin only)
+    /// </summary>
+    [HttpPost]
+    [Authorize(Roles = "SuperAdmin")]
+    public async Task<ActionResult<TownDetailDto>> CreateTown(CreateTownDto request)
+    {
+        var userContext = BuildUserContext();
+        var result = await _townService.CreateTownAsync(request, userContext);
 
-    // ========================================================================
-    // CSV IMPORT DISABLED - Towns are READ-ONLY
-    // Towns can only be added via direct database administration.
-    // ========================================================================
+        if (!result.IsSuccess)
+        {
+            return HandleError(result);
+        }
 
-    // [HttpPost("import")] - REMOVED: Towns are read-only
+        return CreatedAtAction(nameof(GetTown), new { id = result.Data!.Id }, result.Data);
+    }
+
+    /// <summary>
+    /// Update a town (SuperAdmin only)
+    /// </summary>
+    [HttpPut("{id}")]
+    [Authorize(Roles = "SuperAdmin")]
+    public async Task<ActionResult<TownDetailDto>> UpdateTown(Guid id, UpdateTownDto request)
+    {
+        var userContext = BuildUserContext();
+        var result = await _townService.UpdateTownAsync(id, request, userContext);
+
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Delete a town (SuperAdmin only)
+    /// </summary>
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "SuperAdmin")]
+    public async Task<IActionResult> DeleteTown(Guid id)
+    {
+        var userContext = BuildUserContext();
+        var result = await _townService.DeleteTownAsync(id, userContext);
+
+        if (!result.IsSuccess)
+        {
+            return HandleError(result);
+        }
+
+        return NoContent();
+    }
 
     /// <summary>
     /// Get list of unique countries from all towns

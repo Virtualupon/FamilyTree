@@ -896,7 +896,7 @@ export class LayoutComponent implements OnInit {
   // All navigation items with optional role restrictions
   allNavItems: NavItem[] = [
     { icon: 'dashboard', labelKey: 'nav.dashboard', route: '/dashboard' },
-    { icon: 'location_city', labelKey: 'nav.towns', route: '/towns' },
+    { icon: 'location_city', labelKey: 'nav.towns', route: '/towns', roles: ['SuperAdmin', 'Admin'] },
     { icon: 'forest', labelKey: 'nav.myTrees', route: '/trees' },
     { icon: 'people', labelKey: 'nav.people', route: '/people' },
     { icon: 'account_tree', labelKey: 'nav.familyTree', route: '/tree' },

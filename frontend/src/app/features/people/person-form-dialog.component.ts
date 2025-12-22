@@ -119,7 +119,7 @@ export interface PersonFormDialogData {
                         @if (family.color) {
                           <span class="family-color" [style.background-color]="family.color"></span>
                         }
-                        {{ family.name }}
+                        {{ getLocalizedFamilyName(family) }}
                       </mat-option>
                     }
                   </mat-select>
@@ -788,5 +788,18 @@ export class PersonFormDialogComponent implements OnInit {
         this.transliterating.set(null);
       }
     });
+  }
+
+  getLocalizedFamilyName(family: FamilyListItem): string {
+    const lang = this.i18n.currentLang();
+    switch (lang) {
+      case 'ar':
+        return family.nameAr || family.name;
+      case 'nob':
+        return family.nameLocal || family.name;
+      case 'en':
+      default:
+        return family.nameEn || family.name;
+    }
   }
 }

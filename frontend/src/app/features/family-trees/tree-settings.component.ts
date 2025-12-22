@@ -13,6 +13,7 @@ import {
 } from '../../core/models/family-tree.models';
 import { TownListItem } from '../../core/models/town.models';
 import { OrgRole, OrgRoleLabels } from '../../core/models/auth.models';
+import { I18nService } from '../../core/i18n/i18n.service';
 
 @Component({
   selector: 'app-tree-settings',
@@ -96,7 +97,7 @@ import { OrgRole, OrgRoleLabels } from '../../core/models/auth.models';
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                   <option [ngValue]="undefined">-- No town selected --</option>
                   @for (town of towns(); track town.id) {
-                    <option [ngValue]="town.id">{{ town.name }}{{ town.country ? ' (' + town.country + ')' : '' }}</option>
+                    <option [ngValue]="town.id">{{ getLocalizedTownName(town) }}{{ town.country ? ' (' + town.country + ')' : '' }}</option>
                   }
                 </select>
                 <p class="text-xs text-gray-500 mt-1">Associate this tree with a town or city</p>
@@ -337,7 +338,8 @@ export class TreeSettingsComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private treeService: FamilyTreeService,
-    private townService: TownService
+    private townService: TownService,
+    private i18n: I18nService
   ) {}
 
   ngOnInit() {
@@ -464,5 +466,18 @@ export class TreeSettingsComponent implements OnInit {
 
   getRoleLabel(role: OrgRole): string {
     return OrgRoleLabels[role] || 'Unknown';
+  }
+
+  getLocalizedTownName(town: TownListItem): string {
+    const lang = this.i18n.currentLang();
+    switch (lang) {
+      case 'ar':
+        return town.nameAr || town.name;
+      case 'nob':
+        return town.nameLocal || town.name;
+      case 'en':
+      default:
+        return town.nameEn || town.name;
+    }
   }
 }

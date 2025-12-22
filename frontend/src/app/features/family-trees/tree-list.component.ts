@@ -7,6 +7,7 @@ import { TownService } from '../../core/services/town.service';
 import { FamilyService } from '../../core/services/family.service';
 import { AuthService } from '../../core/services/auth.service';
 import { TreeContextService } from '../../core/services/tree-context.service';
+import { AdminService } from '../../core/services/admin.service';
 import { I18nService, TranslatePipe } from '../../core/i18n';
 import { FamilyTreeListItem, CreateFamilyTreeRequest } from '../../core/models/family-tree.models';
 import { TownListItem } from '../../core/models/town.models';
@@ -1485,6 +1486,7 @@ export class TreeListComponent implements OnInit {
     private treeService: FamilyTreeService,
     private townService: TownService,
     private authService: AuthService,
+    private adminService: AdminService,
     private i18n: I18nService
   ) {}
 
@@ -1506,28 +1508,43 @@ export class TreeListComponent implements OnInit {
   }
 
   loadAvailableTowns() {
-    // Load towns from tree context (Admin's assigned towns or all for SuperAdmin)
-    const assignedTowns = this.treeContext.assignedTowns();
-    if (assignedTowns.length > 0) {
-      this.availableTowns.set(assignedTowns.map(t => ({
-        id: t.id,
-        name: t.name,
-        nameEn: t.nameEn || undefined,
-        nameAr: t.nameAr || undefined,
-        nameLocal: t.nameLocal || undefined,
-        country: '',
-        region: '',
-        treeCount: t.treeCount,
-        personCount: 0,
-        createdAt: new Date().toISOString()
-      })));
-    } else {
-      // Fallback to loading all towns
+    const user = this.authService.getCurrentUser();
+    if (!user) return;
+
+    if (user.systemRole === 'SuperAdmin') {
+      // SuperAdmin: load all towns
       this.townService.getTowns({ page: 1, pageSize: 500 }).subscribe({
         next: (result) => {
           this.availableTowns.set(result.items);
         }
       });
+    } else if (user.systemRole === 'Admin') {
+      // Admin: load only assigned towns
+      this.adminService.getUserTownAssignments(user.id).subscribe({
+        next: (assignments) => {
+          const towns = assignments
+            .filter(a => a.isActive)
+            .map(a => ({
+              id: a.townId,
+              name: a.townName || 'Unknown Town',
+              nameEn: a.townNameEn || undefined,
+              nameAr: a.townNameAr || undefined,
+              nameLocal: a.townNameLocal || undefined,
+              country: '',
+              region: '',
+              treeCount: a.treeCount || 0,
+              personCount: 0,
+              createdAt: new Date().toISOString()
+            }));
+          this.availableTowns.set(towns);
+        },
+        error: () => {
+          this.availableTowns.set([]);
+        }
+      });
+    } else {
+      // Regular users: no town selector
+      this.availableTowns.set([]);
     }
   }
 

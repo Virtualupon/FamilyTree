@@ -10,6 +10,10 @@ import {
   RelationshipCalculationRequest,
   RelationshipCalculationResponse
 } from '../models/tree.models';
+import {
+  RelationshipPathRequest,
+  RelationshipPathResponse
+} from '../models/relationship-path.models';
 
 @Injectable({
   providedIn: 'root'
@@ -36,5 +40,13 @@ export class TreeService {
     params.set('person1Id', request.person1Id);
     params.set('person2Id', request.person2Id);
     return this.http.get<RelationshipCalculationResponse>(`${this.apiUrl}/relationship?${params.toString()}`);
+  }
+
+  /**
+   * Find the relationship path between two people.
+   * Returns the shortest path with person details and relationship labels.
+   */
+  findRelationshipPath(request: RelationshipPathRequest): Observable<RelationshipPathResponse> {
+    return this.http.post<RelationshipPathResponse>(`${this.apiUrl}/relationship-path`, request);
   }
 }

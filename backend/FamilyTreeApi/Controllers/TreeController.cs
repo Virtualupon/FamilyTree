@@ -88,6 +88,20 @@ public class TreeController : ControllerBase
         return HandleResult(result);
     }
 
+    /// <summary>
+    /// Find relationship path between two people with full details.
+    /// Returns the shortest path using BFS with person details and relationship labels.
+    /// </summary>
+    [HttpPost("relationship-path")]
+    public async Task<ActionResult<RelationshipPathResponse>> FindRelationshipPath(
+        [FromBody] RelationshipPathRequest request)
+    {
+        var userContext = BuildUserContext();
+        var result = await _treeViewService.FindRelationshipPathAsync(request, userContext);
+
+        return HandleResult(result);
+    }
+
     // ============================================================================
     // PRIVATE HELPER METHODS
     // ============================================================================

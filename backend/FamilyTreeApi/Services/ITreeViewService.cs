@@ -35,4 +35,13 @@ public interface ITreeViewService
         Guid? treeId,
         UserContext userContext,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Find the relationship path between two people using BFS.
+    /// Returns the shortest path with full person details and relationship labels.
+    /// </summary>
+    Task<ServiceResult<RelationshipPathResponse>> FindRelationshipPathAsync(
+        RelationshipPathRequest request,
+        UserContext userContext,
+        CancellationToken cancellationToken = default);
 }

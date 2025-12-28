@@ -22,9 +22,12 @@ import { I18nService, TranslatePipe } from '../../core/i18n';
 import { TreePersonNode, PedigreeRequest } from '../../core/models/tree.models';
 import { Sex, PersonListItem } from '../../core/models/person.models';
 import { TreeLinksSummary, PersonLinkSummary } from '../../core/models/family-tree.models';
+import { RelationshipPathResponse } from '../../core/models/relationship-path.models';
 import { LoadingComponent, EmptyStateComponent } from '../../shared/components';
 import { PersonSelectorComponent } from './person-selector.component';
 import { D3FamilyTreeComponent } from './d3-family-tree.component';
+import { RelationshipFinderDialogComponent, RelationshipFinderDialogResult } from './relationship-finder-dialog.component';
+import { RelationshipPathViewComponent } from './relationship-path-view.component';
 
 @Component({
   selector: 'app-tree-view',
@@ -42,7 +45,8 @@ import { D3FamilyTreeComponent } from './d3-family-tree.component';
     TranslatePipe,
     LoadingComponent,
     EmptyStateComponent,
-    D3FamilyTreeComponent
+    D3FamilyTreeComponent,
+    RelationshipPathViewComponent
   ],
   template: `
     <div class="tree-page">
@@ -173,7 +177,8 @@ import { D3FamilyTreeComponent } from './d3-family-tree.component';
             [crossTreeLinks]="crossTreeLinks()"
             (personSelected)="onD3NodeClick($event)"
             (personDoubleClicked)="onD3NodeDoubleClick($event)"
-            (crossTreeLinkClicked)="onCrossTreeLinkClick($event)">
+            (crossTreeLinkClicked)="onCrossTreeLinkClick($event)"
+            (findRelationshipClicked)="onFindRelationship($event)">
           </app-d3-family-tree>
 
           <!-- Zoom Controls -->
@@ -199,7 +204,16 @@ import { D3FamilyTreeComponent } from './d3-family-tree.component';
         }
       </div>
     </div>
-    
+
+    <!-- Relationship Path Overlay -->
+    @if (showRelationshipPath() && currentRelationshipPath()) {
+      <app-relationship-path-view
+        [pathData]="currentRelationshipPath()!"
+        (closed)="closeRelationshipPath()"
+        (tryAnother)="onTryAnotherRelationship()">
+      </app-relationship-path-view>
+    }
+
     <!-- Node Template -->
     <ng-template #nodeTemplate let-node="node" let-depth="depth" let-isRoot="isRoot">
       <div class="tree-node" [class.tree-node--root]="isRoot">
@@ -627,6 +641,11 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
   crossTreeLinks = signal<TreeLinksSummary | null>(null);
   loading = signal(false);
   viewMode = signal<'pedigree' | 'descendants' | 'hourglass'>('pedigree');
+
+  // Relationship path state
+  showRelationshipPath = signal(false);
+  currentRelationshipPath = signal<RelationshipPathResponse | null>(null);
+  private lastFromPerson: TreePersonNode | PersonListItem | null = null;
   
   // Settings
   generations = 3;
@@ -1023,5 +1042,39 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
       .replace('{person}', link.linkedPersonName)
       .replace('{tree}', link.linkedTreeName);
     this.snackBar.open(message, this.i18n.t('common.close'), { duration: 3000 });
+  }
+
+  // Relationship finder methods
+  onFindRelationship(person: TreePersonNode): void {
+    this.lastFromPerson = person;
+
+    const dialogRef = this.dialog.open(RelationshipFinderDialogComponent, {
+      data: { fromPerson: person },
+      width: '500px',
+      maxWidth: '95vw'
+    });
+
+    dialogRef.afterClosed().subscribe((result: RelationshipFinderDialogResult | undefined) => {
+      if (result?.pathData) {
+        this.currentRelationshipPath.set(result.pathData);
+        this.showRelationshipPath.set(true);
+      }
+    });
+  }
+
+  closeRelationshipPath(): void {
+    this.showRelationshipPath.set(false);
+    this.currentRelationshipPath.set(null);
+  }
+
+  onTryAnotherRelationship(): void {
+    this.closeRelationshipPath();
+
+    // Re-open the finder dialog with the same from person
+    if (this.lastFromPerson) {
+      setTimeout(() => {
+        this.onFindRelationship(this.lastFromPerson as TreePersonNode);
+      }, 300);
+    }
   }
 }

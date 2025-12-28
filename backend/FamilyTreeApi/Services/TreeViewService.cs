@@ -3,6 +3,7 @@ using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using FamilyTreeApi.DTOs;
+using FamilyTreeApi.Helpers;
 using FamilyTreeApi.Models;
 using FamilyTreeApi.Models.Enums;
 using FamilyTreeApi.Repositories;
@@ -732,5 +733,297 @@ public class TreeViewService : ITreeViewService
         }
 
         return (userContext.OrgId, null);
+    }
+
+    // ============================================================================
+    // RELATIONSHIP PATH FINDING (BFS)
+    // ============================================================================
+
+    /// <summary>
+    /// Find the relationship path between two people using BFS.
+    /// </summary>
+    public async Task<ServiceResult<RelationshipPathResponse>> FindRelationshipPathAsync(
+        RelationshipPathRequest request,
+        UserContext userContext,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var (orgId, error) = await ResolveOrgIdAsync(request.TreeId, userContext, cancellationToken);
+            if (orgId == null)
+            {
+                return ServiceResult<RelationshipPathResponse>.Failure(error!);
+            }
+
+            // Handle same person edge case
+            if (request.Person1Id == request.Person2Id)
+            {
+                var samePerson = await GetPathPersonNodeAsync(request.Person1Id, cancellationToken);
+                if (samePerson == null)
+                {
+                    return ServiceResult<RelationshipPathResponse>.NotFound("Person not found");
+                }
+
+                return ServiceResult<RelationshipPathResponse>.Success(new RelationshipPathResponse
+                {
+                    PathFound = true,
+                    RelationshipNameKey = "relationship.samePerson",
+                    RelationshipDescription = "Same person",
+                    Path = new List<PathPersonNode> { samePerson },
+                    PathLength = 1
+                });
+            }
+
+            // BFS to find shortest path
+            var visited = new HashSet<Guid>();
+            var queue = new Queue<(Guid PersonId, List<(Guid Id, RelationshipEdgeType Edge)> Path)>();
+
+            queue.Enqueue((request.Person1Id, new List<(Guid, RelationshipEdgeType)> { (request.Person1Id, RelationshipEdgeType.None) }));
+            visited.Add(request.Person1Id);
+
+            while (queue.Count > 0)
+            {
+                var (currentId, currentPath) = queue.Dequeue();
+
+                // Check max depth to prevent infinite loops
+                if (currentPath.Count > request.MaxSearchDepth)
+                {
+                    continue;
+                }
+
+                // Get all neighbors (parents, children, spouses)
+                var neighbors = await GetNeighborsAsync(currentId, orgId.Value, cancellationToken);
+
+                foreach (var (neighborId, edgeType) in neighbors)
+                {
+                    if (visited.Contains(neighborId))
+                    {
+                        continue;
+                    }
+
+                    var newPath = new List<(Guid Id, RelationshipEdgeType Edge)>(currentPath)
+                    {
+                        (neighborId, edgeType)
+                    };
+
+                    // Found target!
+                    if (neighborId == request.Person2Id)
+                    {
+                        return await BuildPathResponseAsync(newPath, cancellationToken);
+                    }
+
+                    visited.Add(neighborId);
+                    queue.Enqueue((neighborId, newPath));
+                }
+            }
+
+            // No path found
+            return ServiceResult<RelationshipPathResponse>.Success(new RelationshipPathResponse
+            {
+                PathFound = false,
+                RelationshipNameKey = "relationship.noRelationFound",
+                ErrorMessage = "No relationship path found between these individuals. They may be in different family branches."
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error finding relationship path between {Person1Id} and {Person2Id}",
+                request.Person1Id, request.Person2Id);
+            return ServiceResult<RelationshipPathResponse>.InternalError("Error finding relationship path");
+        }
+    }
+
+    /// <summary>
+    /// Get all neighbors of a person (parents, children, spouses)
+    /// </summary>
+    private async Task<List<(Guid PersonId, RelationshipEdgeType EdgeType)>> GetNeighborsAsync(
+        Guid personId,
+        Guid orgId,
+        CancellationToken cancellationToken)
+    {
+        var neighbors = new List<(Guid, RelationshipEdgeType)>();
+
+        // Parents (person is child → navigate to parent)
+        var parents = await _personRepository.QueryNoTracking()
+            .Where(p => p.AsParent.Any(pc => pc.ChildId == personId))
+            .Select(p => p.Id)
+            .ToListAsync(cancellationToken);
+        neighbors.AddRange(parents.Select(p => (p, RelationshipEdgeType.Parent)));
+
+        // Children (person is parent → navigate to child)
+        var children = await _personRepository.QueryNoTracking()
+            .Where(p => p.AsChild.Any(pc => pc.ParentId == personId))
+            .Select(p => p.Id)
+            .ToListAsync(cancellationToken);
+        neighbors.AddRange(children.Select(c => (c, RelationshipEdgeType.Child)));
+
+        // Spouses (via unions)
+        var spouses = await _unionRepository.QueryNoTracking()
+            .Where(u => u.OrgId == orgId && u.Members.Any(m => m.PersonId == personId))
+            .SelectMany(u => u.Members.Where(m => m.PersonId != personId).Select(m => m.PersonId))
+            .Distinct()
+            .ToListAsync(cancellationToken);
+        neighbors.AddRange(spouses.Select(s => (s, RelationshipEdgeType.Spouse)));
+
+        return neighbors;
+    }
+
+    /// <summary>
+    /// Build the relationship path response from a BFS path
+    /// </summary>
+    private async Task<ServiceResult<RelationshipPathResponse>> BuildPathResponseAsync(
+        List<(Guid Id, RelationshipEdgeType Edge)> path,
+        CancellationToken cancellationToken)
+    {
+        var pathNodes = new List<PathPersonNode>();
+
+        for (int i = 0; i < path.Count; i++)
+        {
+            var (personId, edgeType) = path[i];
+            var node = await GetPathPersonNodeAsync(personId, cancellationToken);
+
+            if (node == null)
+            {
+                continue;
+            }
+
+            // Set edge info (edge to NEXT person in path)
+            if (i < path.Count - 1)
+            {
+                var nextEdge = path[i + 1].Edge;
+                node.EdgeToNext = nextEdge;
+                node.RelationshipToNextKey = GetEdgeRelationshipKey(nextEdge, node.Sex);
+            }
+
+            pathNodes.Add(node);
+        }
+
+        // Calculate relationship name
+        var (relationshipKey, description) = RelationshipNamer.CalculateRelationship(path, pathNodes);
+
+        // Find common ancestors for blood relations
+        var commonAncestors = await FindCommonAncestorsFromPathAsync(path, cancellationToken);
+
+        return ServiceResult<RelationshipPathResponse>.Success(new RelationshipPathResponse
+        {
+            PathFound = true,
+            RelationshipNameKey = relationshipKey,
+            RelationshipDescription = description,
+            Path = pathNodes,
+            CommonAncestors = commonAncestors,
+            PathLength = pathNodes.Count
+        });
+    }
+
+    /// <summary>
+    /// Get a person node with full details for the path
+    /// </summary>
+    private async Task<PathPersonNode?> GetPathPersonNodeAsync(Guid personId, CancellationToken cancellationToken)
+    {
+        var person = await _personRepository.QueryNoTracking()
+            .Include(p => p.BirthPlace)
+            .Include(p => p.DeathPlace)
+            .FirstOrDefaultAsync(p => p.Id == personId, cancellationToken);
+
+        if (person == null)
+        {
+            return null;
+        }
+
+        return new PathPersonNode
+        {
+            Id = person.Id,
+            PrimaryName = person.PrimaryName ?? "Unknown",
+            Sex = person.Sex,
+            BirthDate = person.BirthDate,
+            BirthPlace = person.BirthPlace?.Name,
+            DeathDate = person.DeathDate,
+            DeathPlace = person.DeathPlace?.Name,
+            Occupation = person.Occupation,
+            IsLiving = person.DeathDate == null,
+            ThumbnailUrl = null // TODO: Add media service to get thumbnail
+        };
+    }
+
+    /// <summary>
+    /// Get the i18n key for an edge relationship
+    /// </summary>
+    private static string GetEdgeRelationshipKey(RelationshipEdgeType edgeType, Sex personSex)
+    {
+        return edgeType switch
+        {
+            RelationshipEdgeType.Parent => personSex switch
+            {
+                Sex.Male => "relationship.fatherOf",
+                Sex.Female => "relationship.motherOf",
+                _ => "relationship.parentOf"
+            },
+            RelationshipEdgeType.Child => personSex switch
+            {
+                Sex.Male => "relationship.sonOf",
+                Sex.Female => "relationship.daughterOf",
+                _ => "relationship.childOf"
+            },
+            RelationshipEdgeType.Spouse => "relationship.spouseOf",
+            _ => string.Empty
+        };
+    }
+
+    /// <summary>
+    /// Find common ancestors from the path (for blood relations)
+    /// </summary>
+    private async Task<List<CommonAncestorInfo>> FindCommonAncestorsFromPathAsync(
+        List<(Guid Id, RelationshipEdgeType Edge)> path,
+        CancellationToken cancellationToken)
+    {
+        // Find the pivot point where we go from ascending to descending
+        // This is the common ancestor(s)
+        var commonAncestors = new List<CommonAncestorInfo>();
+
+        int ascending = 0;
+        int pivotIndex = -1;
+
+        // Track generation changes
+        for (int i = 1; i < path.Count; i++)
+        {
+            var edge = path[i].Edge;
+
+            if (edge == RelationshipEdgeType.Parent)
+            {
+                ascending++;
+            }
+            else if (edge == RelationshipEdgeType.Child && ascending > 0)
+            {
+                // Found pivot (first time going down after going up)
+                if (pivotIndex == -1)
+                {
+                    pivotIndex = i - 1; // The person before the first descent is the common ancestor
+                }
+            }
+        }
+
+        if (pivotIndex > 0)
+        {
+            var ancestorId = path[pivotIndex].Id;
+            var person = await _personRepository.QueryNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == ancestorId, cancellationToken);
+
+            if (person != null)
+            {
+                // Count generations from each end
+                int gen1 = pivotIndex;
+                int gen2 = path.Count - 1 - pivotIndex;
+
+                commonAncestors.Add(new CommonAncestorInfo
+                {
+                    PersonId = person.Id,
+                    PrimaryName = person.PrimaryName ?? "Unknown",
+                    GenerationsFromPerson1 = gen1,
+                    GenerationsFromPerson2 = gen2
+                });
+            }
+        }
+
+        return commonAncestors;
     }
 }

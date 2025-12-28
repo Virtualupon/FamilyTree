@@ -320,6 +320,7 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
   @Output() personSelected = new EventEmitter<TreePersonNode>();
   @Output() personDoubleClicked = new EventEmitter<TreePersonNode>();
   @Output() crossTreeLinkClicked = new EventEmitter<PersonLinkSummary>();
+  @Output() findRelationshipClicked = new EventEmitter<TreePersonNode>();
 
   private svg: d3.Selection<SVGSVGElement, unknown, null, undefined> | null = null;
   private container: d3.Selection<SVGGElement, unknown, null, undefined> | null = null;
@@ -830,6 +831,57 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
       if (node.crossTreeLinks && node.crossTreeLinks.length > 0) {
         this.drawCrossTreeBadge(g, node);
       }
+
+      // Find relationship button (top-left corner, appears on hover)
+      this.drawFindRelationshipButton(g, node);
+    });
+  }
+
+  private drawFindRelationshipButton(
+    g: d3.Selection<SVGGElement, D3Node, null, undefined>,
+    node: D3Node
+  ): void {
+    const buttonX = 5;
+    const buttonY = 5;
+
+    const button = g.append('g')
+      .attr('class', 'find-relationship-btn')
+      .attr('transform', `translate(${buttonX}, ${buttonY})`)
+      .style('opacity', 0)
+      .style('cursor', 'pointer')
+      .on('click', (event: MouseEvent) => {
+        event.stopPropagation();
+        this.findRelationshipClicked.emit(node.data);
+      });
+
+    // Button background
+    button.append('circle')
+      .attr('r', 12)
+      .attr('fill', '#1976d2')
+      .attr('stroke', 'white')
+      .attr('stroke-width', 2);
+
+    // Link icon (simple lines forming a chain link)
+    button.append('text')
+      .attr('text-anchor', 'middle')
+      .attr('dy', '0.35em')
+      .attr('fill', 'white')
+      .attr('font-size', '12px')
+      .text('\u{1F517}'); // Link emoji - fallback to simple icon
+
+    // Show button on node hover
+    g.on('mouseenter', function() {
+      d3.select(this).select('.find-relationship-btn')
+        .transition()
+        .duration(200)
+        .style('opacity', 1);
+    });
+
+    g.on('mouseleave', function() {
+      d3.select(this).select('.find-relationship-btn')
+        .transition()
+        .duration(200)
+        .style('opacity', 0);
     });
   }
 

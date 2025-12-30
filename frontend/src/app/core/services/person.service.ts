@@ -41,9 +41,14 @@ export class PersonService {
       .set('page', params.page.toString())
       .set('pageSize', params.pageSize.toString());
 
-    // Add treeId for admin users
-    const treeId = this.getTreeIdParam();
-    if (treeId) httpParams = httpParams.set('treeId', treeId);
+    // If townId is provided, use town-based search (skips treeId)
+    if (params.townId) {
+      httpParams = httpParams.set('townId', params.townId);
+    } else {
+      // Add treeId for admin users
+      const treeId = this.getTreeIdParam();
+      if (treeId) httpParams = httpParams.set('treeId', treeId);
+    }
 
     if (params.nameQuery) httpParams = httpParams.set('nameQuery', params.nameQuery);
     if (params.sex !== undefined) httpParams = httpParams.set('sex', params.sex.toString());

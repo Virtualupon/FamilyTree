@@ -46,19 +46,32 @@ public class PersonService : IPersonService
     {
         try
         {
-            _logger.LogInformation("GetPersons called: TreeId={TreeId}, Page={Page}, PageSize={PageSize}",
-                search.TreeId, search.Page, search.PageSize);
+            _logger.LogInformation("GetPersons called: TreeId={TreeId}, TownId={TownId}, Page={Page}, PageSize={PageSize}",
+                search.TreeId, search.TownId, search.Page, search.PageSize);
 
-            var (orgId, error) = await ResolveOrgIdAsync(search.TreeId, userContext, cancellationToken);
-            if (orgId == null)
+            List<PersonListItemDto> items;
+            int totalCount;
+
+            // If TownId is provided, search across all trees in that town
+            if (search.TownId.HasValue)
             {
-                _logger.LogWarning("ResolveOrgIdAsync returned null: {Error}", error);
-                return ServiceResult<PagedResult<PersonListItemDto>>.Failure(error!);
+                _logger.LogInformation("Searching by TownId: {TownId}", search.TownId);
+                (items, totalCount) = await _personRepository.GetPagedByTownAsync(search.TownId.Value, search, cancellationToken);
             }
+            else
+            {
+                // Normal tree-based search
+                var (orgId, error) = await ResolveOrgIdAsync(search.TreeId, userContext, cancellationToken);
+                if (orgId == null)
+                {
+                    _logger.LogWarning("ResolveOrgIdAsync returned null: {Error}", error);
+                    return ServiceResult<PagedResult<PersonListItemDto>>.Failure(error!);
+                }
 
-            _logger.LogInformation("Resolved OrgId: {OrgId}", orgId);
+                _logger.LogInformation("Resolved OrgId: {OrgId}", orgId);
 
-            var (items, totalCount) = await _personRepository.GetPagedAsync(orgId.Value, search, cancellationToken);
+                (items, totalCount) = await _personRepository.GetPagedAsync(orgId.Value, search, cancellationToken);
+            }
 
             var totalPages = (int)Math.Ceiling(totalCount / (double)search.PageSize);
 

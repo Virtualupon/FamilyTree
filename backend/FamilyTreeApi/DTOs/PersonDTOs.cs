@@ -105,6 +105,7 @@ public record PersonNameDto(
 
 public record PersonSearchDto(
     Guid? TreeId = null,  // Optional: for SuperAdmin/Admin to specify which tree
+    Guid? TownId = null,  // Optional: filter by town (searches across all trees in the town)
     string? NameQuery = null,
     Sex? Sex = null,
     DateTime? BirthDateFrom = null,

@@ -173,6 +173,122 @@ public class PersonRepository : Repository<Person>, IPersonRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<(List<PersonListItemDto> Items, int TotalCount)> GetPagedByTownAsync(
+        Guid townId,
+        PersonSearchDto search,
+        CancellationToken cancellationToken = default)
+    {
+        // Get all Orgs (trees) that belong to this town
+        var treeIds = await _context.Orgs
+            .Where(o => o.TownId == townId)
+            .Select(o => o.Id)
+            .ToListAsync(cancellationToken);
+
+        if (treeIds.Count == 0)
+        {
+            return (new List<PersonListItemDto>(), 0);
+        }
+
+        var query = _dbSet
+            .Where(p => treeIds.Contains(p.OrgId))
+            .Include(p => p.BirthPlace)
+            .Include(p => p.DeathPlace)
+            .AsQueryable();
+
+        // Apply filters
+        if (!string.IsNullOrWhiteSpace(search.NameQuery))
+        {
+            var searchTerm = search.NameQuery.Trim().ToLower();
+            query = query.Where(p =>
+                (p.PrimaryName != null && p.PrimaryName.ToLower().Contains(searchTerm)) ||
+                p.Names.Any(n =>
+                    (n.Full != null && n.Full.ToLower().Contains(searchTerm)) ||
+                    (n.Given != null && n.Given.ToLower().Contains(searchTerm)) ||
+                    (n.Middle != null && n.Middle.ToLower().Contains(searchTerm)) ||
+                    (n.Transliteration != null && n.Transliteration.ToLower().Contains(searchTerm))
+                )
+            );
+        }
+
+        if (search.Sex.HasValue)
+        {
+            query = query.Where(p => p.Sex == search.Sex.Value);
+        }
+
+        if (search.BirthDateFrom.HasValue)
+        {
+            query = query.Where(p => p.BirthDate >= search.BirthDateFrom.Value);
+        }
+
+        if (search.BirthDateTo.HasValue)
+        {
+            query = query.Where(p => p.BirthDate <= search.BirthDateTo.Value);
+        }
+
+        if (search.DeathDateFrom.HasValue)
+        {
+            query = query.Where(p => p.DeathDate >= search.DeathDateFrom.Value);
+        }
+
+        if (search.DeathDateTo.HasValue)
+        {
+            query = query.Where(p => p.DeathDate <= search.DeathDateTo.Value);
+        }
+
+        if (search.BirthPlaceId.HasValue)
+        {
+            query = query.Where(p => p.BirthPlaceId == search.BirthPlaceId.Value);
+        }
+
+        if (search.DeathPlaceId.HasValue)
+        {
+            query = query.Where(p => p.DeathPlaceId == search.DeathPlaceId.Value);
+        }
+
+        if (search.PrivacyLevel.HasValue)
+        {
+            query = query.Where(p => p.PrivacyLevel == search.PrivacyLevel.Value);
+        }
+
+        if (search.IsVerified.HasValue)
+        {
+            query = query.Where(p => p.IsVerified == search.IsVerified.Value);
+        }
+
+        if (search.NeedsReview.HasValue)
+        {
+            query = query.Where(p => p.NeedsReview == search.NeedsReview.Value);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var persons = await query
+            .OrderBy(p => p.PrimaryName)
+            .Skip((search.Page - 1) * search.PageSize)
+            .Take(search.PageSize)
+            .GroupJoin(
+                _context.PersonMedia,
+                p => p.Id,
+                pm => pm.PersonId,
+                (p, mediaGroup) => new PersonListItemDto(
+                    p.Id,
+                    p.PrimaryName,
+                    p.Sex,
+                    p.BirthDate,
+                    p.BirthPrecision,
+                    p.DeathDate,
+                    p.DeathPrecision,
+                    p.BirthPlace != null ? p.BirthPlace.Name : null,
+                    p.DeathPlace != null ? p.DeathPlace.Name : null,
+                    p.IsVerified,
+                    p.NeedsReview,
+                    mediaGroup.Count()
+                ))
+            .ToListAsync(cancellationToken);
+
+        return (persons, totalCount);
+    }
+
     public Task RemoveRelatedEntitiesAsync(
         List<ParentChild> parentChildRecords,
         List<UnionMember> unionMemberships,

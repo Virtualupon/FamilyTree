@@ -27,6 +27,9 @@ import {
 } from '../../core/services/relationship.service';
 import { FamilyRelationshipTypeService } from '../../core/services/family-relationship-type.service';
 import { FamilyRelationshipType } from '../../core/models/family-relationship-type.models';
+import { TownService } from '../../core/services/town.service';
+import { TownListItem } from '../../core/models/town.models';
+import { I18nService } from '../../core/i18n/i18n.service';
 
 export type RelationshipDialogType = 'parent' | 'child' | 'spouse';
 
@@ -66,6 +69,27 @@ export interface RelationshipDialogData {
     </h2>
 
     <mat-dialog-content>
+      <!-- Town Selection -->
+      <div class="town-section">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Select Town First</mat-label>
+          <mat-select (selectionChange)="onTownSelected($event.value)">
+            @for (town of availableTowns(); track town.id) {
+              <mat-option [value]="town.id">
+                {{ getLocalizedTownName(town) }}
+              </mat-option>
+            }
+            @if (townsLoading()) {
+              <mat-option disabled>Loading towns...</mat-option>
+            }
+          </mat-select>
+          <i class="fa-solid fa-city" matPrefix aria-hidden="true" style="margin-right: 8px;"></i>
+        </mat-form-field>
+        @if (!selectedTownId()) {
+          <p class="town-hint">Please select a town to search for people within that area.</p>
+        }
+      </div>
+
       <!-- Person Search -->
       <div class="search-section">
         <mat-form-field appearance="outline" class="full-width">
@@ -73,6 +97,7 @@ export interface RelationshipDialogData {
           <input matInput
                  [formControl]="searchControl"
                  [matAutocomplete]="auto"
+                 [disabled]="!selectedTownId()"
                  placeholder="Type name to search...">
           <i class="fa-solid fa-magnifying-glass" matSuffix aria-hidden="true"></i>
           <mat-autocomplete #auto="matAutocomplete" 
@@ -256,6 +281,17 @@ export interface RelationshipDialogData {
       width: 100%;
     }
 
+    .town-section {
+      margin-bottom: 16px;
+    }
+
+    .town-hint {
+      font-size: 12px;
+      color: rgba(0, 0, 0, 0.54);
+      margin-top: -12px;
+      margin-bottom: 16px;
+    }
+
     .search-section {
       margin-bottom: 16px;
     }
@@ -382,6 +418,8 @@ export class AddRelationshipDialogComponent implements OnInit {
   private personService = inject(PersonService);
   private relationshipService = inject(RelationshipService);
   private familyRelTypeService = inject(FamilyRelationshipTypeService);
+  private townService = inject(TownService);
+  private i18n = inject(I18nService);
   private fb = inject(FormBuilder);
 
   // Expose enums to template
@@ -397,6 +435,11 @@ export class AddRelationshipDialogComponent implements OnInit {
   endDateControl = new FormControl<Date | null>(null);
   notesControl = new FormControl('');
   familyRelTypeSearchControl = new FormControl('');
+
+  // Town state
+  availableTowns = signal<TownListItem[]>([]);
+  selectedTownId = signal<string | null>(null);
+  townsLoading = signal(false);
 
   // State signals
   searchResults = signal<PersonListItem[]>([]);
@@ -435,7 +478,8 @@ export class AddRelationshipDialogComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    // Load family relationship types
+    // Load towns and family relationship types
+    this.loadTowns();
     this.loadFamilyRelTypes();
 
     // Setup search debounce for person search
@@ -443,12 +487,13 @@ export class AddRelationshipDialogComponent implements OnInit {
       debounceTime(300),
       distinctUntilChanged(),
       switchMap(term => {
-        if (!term || term.length < 2) {
+        const townId = this.selectedTownId();
+        if (!term || term.length < 2 || !townId) {
           this.searchResults.set([]);
           return of(null);
         }
         this.isSearching.set(true);
-        return this.personService.searchPeople({ nameQuery: term, page: 1, pageSize: 10 }).pipe(
+        return this.personService.searchPeople({ nameQuery: term, townId, page: 1, pageSize: 10 }).pipe(
           catchError((err: any) => {
             console.error('Search error:', err);
             return of({ items: [], totalCount: 0, page: 1, pageSize: 10, totalPages: 0 });
@@ -493,6 +538,35 @@ export class AddRelationshipDialogComponent implements OnInit {
         this.familyRelTypesLoading.set(false);
       }
     });
+  }
+
+  private loadTowns() {
+    this.townsLoading.set(true);
+    this.townService.getAllTowns().subscribe({
+      next: (towns) => {
+        this.availableTowns.set(towns);
+        this.townsLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load towns:', err);
+        this.townsLoading.set(false);
+      }
+    });
+  }
+
+  onTownSelected(townId: string) {
+    this.selectedTownId.set(townId);
+    // Clear previous search results when town changes
+    this.searchResults.set([]);
+    this.selectedPerson.set(null);
+    this.searchControl.setValue('');
+  }
+
+  getLocalizedTownName(town: TownListItem): string {
+    const lang = this.i18n.currentLang();
+    if (lang === 'ar') return town.nameAr || town.nameEn || 'Unknown';
+    if (lang === 'nob') return town.nameLocal || town.nameEn || 'Unknown';
+    return town.nameEn || 'Unknown';
   }
 
   displayPerson(person: PersonListItem): string {

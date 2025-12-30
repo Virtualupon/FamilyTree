@@ -49,6 +49,14 @@ public interface IPersonRepository : IRepository<Person>
     Task<List<PersonTag>> GetPersonTagsAsync(Guid personId, Guid orgId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Get paginated and filtered list of persons by town (searches across all trees in the town).
+    /// </summary>
+    Task<(List<PersonListItemDto> Items, int TotalCount)> GetPagedByTownAsync(
+        Guid townId,
+        PersonSearchDto search,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Remove all related entities for cascade delete (parent-child, union memberships, tags).
     /// </summary>
     Task RemoveRelatedEntitiesAsync(

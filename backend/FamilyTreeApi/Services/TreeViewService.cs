@@ -877,6 +877,7 @@ public class TreeViewService : ITreeViewService
     {
         var pathNodes = new List<PathPersonNode>();
 
+        // First pass: Load all nodes
         for (int i = 0; i < path.Count; i++)
         {
             var (personId, edgeType) = path[i];
@@ -887,15 +888,20 @@ public class TreeViewService : ITreeViewService
                 continue;
             }
 
-            // Set edge info (edge to NEXT person in path)
-            if (i < path.Count - 1)
-            {
-                var nextEdge = path[i + 1].Edge;
-                node.EdgeToNext = nextEdge;
-                node.RelationshipToNextKey = GetEdgeRelationshipKey(nextEdge, node.Sex);
-            }
-
             pathNodes.Add(node);
+        }
+
+        // Second pass: Set edge info using NEXT person's sex (not current person's sex)
+        // This fixes the bug where labels like Father/Mother were based on wrong person
+        for (int i = 0; i < pathNodes.Count - 1; i++)
+        {
+            var currentNode = pathNodes[i];
+            var nextNode = pathNodes[i + 1];
+            var nextEdge = path[i + 1].Edge;
+
+            currentNode.EdgeToNext = nextEdge;
+            // Use NEXT person's sex to determine the relationship label
+            currentNode.RelationshipToNextKey = GetEdgeRelationshipKey(nextEdge, nextNode.Sex);
         }
 
         // Calculate relationship name

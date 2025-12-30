@@ -141,6 +141,7 @@ export interface CreatePersonNameRequest {
 }
 
 export interface PersonSearchRequest {
+  townId?: string;  // Optional: filter by town (searches across all trees in the town)
   nameQuery?: string;
   sex?: Sex;
   birthDateFrom?: string;

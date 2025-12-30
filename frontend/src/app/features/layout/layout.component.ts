@@ -337,24 +337,29 @@ interface NavItem {
     </div>
   `,
   styles: [`
+    // Nubian Theme Colors (from _nubian-variables.scss)
+    // $nubian-teal: #187573, $nubian-gold: #C17E3E, $nubian-beige: #F4E4D7
+    // $warm-white: #FAF7F1, $nubian-cream: #FFF9F5, $nubian-charcoal: #2D2D2D
+
     .layout {
       display: flex;
       flex-direction: column;
       min-height: 100vh;
       min-height: 100dvh;
-      background: var(--ft-background);
-      
+      background: #FAF7F1; // $warm-white
+
       &--rtl {
         direction: rtl;
       }
-      
+
       &__header {
         position: sticky;
         top: 0;
         z-index: var(--ft-z-sticky);
-        background: var(--ft-surface);
-        border-bottom: 1px solid var(--ft-border);
-        box-shadow: var(--ft-shadow-sm);
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 249, 245, 0.95) 100%);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid #F4E4D7; // $nubian-beige
+        box-shadow: 0 2px 8px rgba(45, 45, 45, 0.06);
       }
       
       &__header-content {
@@ -377,13 +382,15 @@ interface NavItem {
         align-items: center;
         gap: var(--ft-spacing-sm);
         text-decoration: none;
-        color: var(--ft-primary);
+        color: #187573; // $nubian-teal
         font-weight: 700;
         font-size: 1.125rem;
+        font-family: 'Cinzel', serif;
       }
-      
+
       &__logo-icon {
         font-size: 1.75rem;
+        color: #C17E3E; // $nubian-gold
       }
 
       // Tree Selector
@@ -432,7 +439,7 @@ interface NavItem {
       }
 
       &__tree-item--active {
-        background: rgba(25, 118, 210, 0.1);
+        background: rgba(24, 117, 115, 0.1); // $nubian-teal
       }
 
       &__tree-item-content {
@@ -528,17 +535,17 @@ interface NavItem {
         }
 
         &--active {
-          border-color: var(--ft-primary);
-          background: rgba(25, 118, 210, 0.1);
+          border-color: #187573; // $nubian-teal
+          background: rgba(24, 117, 115, 0.1); // $nubian-teal
 
           i.fa-solid {
-            color: var(--ft-primary);
+            color: #187573; // $nubian-teal
           }
         }
       }
 
       &__mobile-tree-check {
-        color: var(--ft-primary);
+        color: #187573; // $nubian-teal
       }
 
       &__nav {
@@ -572,11 +579,11 @@ interface NavItem {
         }
 
         &--active {
-          background: rgba(25, 118, 210, 0.1);
-          color: var(--ft-primary);
+          background: rgba(24, 117, 115, 0.1); // $nubian-teal
+          color: #187573; // $nubian-teal
         }
       }
-      
+
       &__spacer {
         flex: 1;
       }
@@ -593,19 +600,19 @@ interface NavItem {
       }
       
       &__lang-item--active {
-        background: rgba(25, 118, 210, 0.1);
+        background: rgba(24, 117, 115, 0.1); // $nubian-teal
 
         i.fa-solid {
-          color: var(--ft-primary);
+          color: #187573; // $nubian-teal
           margin-inline-start: auto;
         }
       }
-      
+
       &__user-avatar {
         width: 32px;
         height: 32px;
         border-radius: 50%;
-        background: var(--ft-primary);
+        background: linear-gradient(135deg, #187573 0%, #2B9A97 100%); // $nubian-teal gradient
         color: white;
         display: flex;
         align-items: center;
@@ -644,7 +651,7 @@ interface NavItem {
       
       &__user-role {
         font-size: 0.688rem;
-        color: var(--ft-primary);
+        color: #C17E3E; // $nubian-gold
         font-weight: 500;
         text-transform: uppercase;
         margin-top: 2px;
@@ -693,7 +700,7 @@ interface NavItem {
         align-items: center;
         gap: var(--ft-spacing-md);
         padding: var(--ft-spacing-lg);
-        background: linear-gradient(135deg, var(--ft-primary) 0%, var(--ft-primary-dark) 100%);
+        background: linear-gradient(135deg, #187573 0%, #0D5654 100%); // $nubian-teal gradient
         color: white;
         
         .layout__user-avatar--large {
@@ -748,11 +755,11 @@ interface NavItem {
         }
 
         &--active {
-          background: rgba(25, 118, 210, 0.1);
-          color: var(--ft-primary);
+          background: rgba(24, 117, 115, 0.1); // $nubian-teal
+          color: #187573; // $nubian-teal
 
           i.fa-solid {
-            color: var(--ft-primary);
+            color: #187573; // $nubian-teal
           }
         }
 
@@ -811,12 +818,12 @@ interface NavItem {
         }
         
         &--active {
-          border-color: var(--ft-primary);
-          background: rgba(25, 118, 210, 0.1);
-          color: var(--ft-primary);
+          border-color: #187573; // $nubian-teal
+          background: rgba(24, 117, 115, 0.1); // $nubian-teal
+          color: #187573; // $nubian-teal
         }
       }
-      
+
       // Bottom Navigation
       &__bottom-nav {
         position: fixed;
@@ -851,11 +858,11 @@ interface NavItem {
         }
 
         &--active {
-          color: var(--ft-primary);
+          color: #187573; // $nubian-teal
         }
       }
     }
-    
+
     @keyframes fadeIn {
       from { opacity: 0; }
       to { opacity: 1; }

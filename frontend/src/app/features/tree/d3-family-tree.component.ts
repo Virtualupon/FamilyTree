@@ -45,15 +45,15 @@ interface D3Link {
     <div class="d3-tree-container" #container>
       <svg #svg class="d3-tree-svg">
         <defs>
-          <!-- Male gradient -->
+          <!-- Male gradient (Nubian Teal) -->
           <linearGradient id="maleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#e3f2fd;stop-opacity:1" />
-            <stop offset="100%" style="stop-color:#bbdefb;stop-opacity:1" />
+            <stop offset="0%" style="stop-color:#E6F5F5;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#B3E0DF;stop-opacity:1" />
           </linearGradient>
-          <!-- Female gradient -->
+          <!-- Female gradient (Nubian Gold) -->
           <linearGradient id="femaleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#fce4ec;stop-opacity:1" />
-            <stop offset="100%" style="stop-color:#f8bbd9;stop-opacity:1" />
+            <stop offset="0%" style="stop-color:#FFF8F0;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#FFEDD5;stop-opacity:1" />
           </linearGradient>
           <!-- Unknown gradient -->
           <linearGradient id="unknownGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -82,7 +82,7 @@ interface D3Link {
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: linear-gradient(135deg, #fafafa 0%, #f0f0f0 100%);
+      background: linear-gradient(135deg, #FAF7F1 0%, #FFF9F5 100%); // Nubian warm white gradient
       position: relative;
     }
 
@@ -107,17 +107,17 @@ interface D3Link {
 
         &.selected .node-rect {
           stroke-width: 4px;
-          stroke: #1976d2;
+          stroke: #187573; // Nubian teal
         }
 
         &.dragging {
           cursor: grabbing;
           filter: url(#hoverShadow);
           opacity: 0.9;
-          
+
           .node-rect {
             stroke-width: 3px;
-            stroke: #ff9800;
+            stroke: #E85D35; // Nubian orange
           }
         }
       }
@@ -129,35 +129,35 @@ interface D3Link {
 
       .node-rect-male {
         fill: url(#maleGradient);
-        stroke: #1976d2;
+        stroke: #187573; // Nubian teal
         stroke-width: 2px;
       }
 
       .node-rect-female {
         fill: url(#femaleGradient);
-        stroke: #c2185b;
+        stroke: #C17E3E; // Nubian gold
         stroke-width: 2px;
       }
 
       .node-rect-unknown {
         fill: url(#unknownGradient);
-        stroke: #757575;
+        stroke: #6B6B6B; // Nubian gray
         stroke-width: 2px;
       }
 
       .node-name {
-        font-family: 'Roboto', sans-serif;
+        font-family: 'Inter', 'Roboto', sans-serif;
         font-size: 13px;
         font-weight: 600;
-        fill: #212121;
+        fill: #2D2D2D; // Nubian charcoal
         text-anchor: middle;
         pointer-events: none;
       }
 
       .node-dates {
-        font-family: 'Roboto', sans-serif;
+        font-family: 'Inter', 'Roboto', sans-serif;
         font-size: 11px;
-        fill: #616161;
+        fill: #6B6B6B; // Nubian gray
         text-anchor: middle;
         pointer-events: none;
       }
@@ -173,25 +173,25 @@ interface D3Link {
 
       .link-parent-child {
         fill: none;
-        stroke: #9e9e9e;
+        stroke: #CEC5B0; // Nubian sand
         stroke-width: 2px;
       }
 
       .link-spouse {
         fill: none;
-        stroke: #e91e63;
+        stroke: #E85D35; // Nubian orange
         stroke-width: 2px;
         stroke-dasharray: 5, 5;
       }
 
       .living-indicator {
-        fill: #4caf50;
+        fill: #2D7A3E; // Nubian green
       }
 
       .generation-label {
-        font-family: 'Roboto', sans-serif;
+        font-family: 'Inter', 'Roboto', sans-serif;
         font-size: 12px;
-        fill: #9e9e9e;
+        fill: #9CA3AF; // Nubian gray-light
         text-anchor: start;
       }
 
@@ -210,15 +210,15 @@ interface D3Link {
       }
 
       .badge-circle-same {
-        fill: #4caf50;
+        fill: #2D7A3E; // Nubian green
       }
 
       .badge-circle-ancestor {
-        fill: #2196f3;
+        fill: #187573; // Nubian teal
       }
 
       .badge-circle-related {
-        fill: #ff9800;
+        fill: #C17E3E; // Nubian gold
       }
 
       .badge-count {

@@ -209,14 +209,29 @@ interface StatCard {
     .dashboard {
       min-height: 100%;
       padding-bottom: var(--ft-spacing-xxl);
-      
+
       &__hero {
-        background: linear-gradient(135deg, var(--ft-primary) 0%, var(--ft-primary-dark) 100%);
+        background: linear-gradient(135deg, #187573 0%, #0D5654 100%); // Nubian teal gradient
         color: white;
         padding: var(--ft-spacing-xl) var(--ft-spacing-md);
         margin: calc(var(--ft-spacing-md) * -1);
         margin-bottom: var(--ft-spacing-lg);
-        
+        position: relative;
+        overflow: hidden;
+
+        // Nubian pattern overlay
+        &::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          opacity: 0.06;
+          background-image:
+            repeating-linear-gradient(45deg, transparent, transparent 35px, #C17E3E 35px, #C17E3E 37px),
+            repeating-linear-gradient(-45deg, transparent, transparent 35px, #C17E3E 35px, #C17E3E 37px);
+          background-size: 80px 80px;
+        }
+
         @media (min-width: 768px) {
           padding: var(--ft-spacing-xxl) var(--ft-spacing-xl);
           margin: calc(var(--ft-spacing-lg) * -1);
@@ -241,7 +256,10 @@ interface StatCard {
         margin: 0 0 var(--ft-spacing-xs);
         font-size: 1.5rem;
         font-weight: 700;
-        
+        font-family: 'Cinzel', serif;
+        position: relative;
+        z-index: 1;
+
         @media (min-width: 768px) {
           font-size: 2rem;
         }
@@ -251,19 +269,24 @@ interface StatCard {
         margin: 0;
         opacity: 0.9;
         font-size: 1rem;
+        position: relative;
+        z-index: 1;
       }
-      
+
       &__hero-illustration {
         display: none;
 
         @media (min-width: 768px) {
           display: flex;
+          position: relative;
+          z-index: 1;
 
           i.fa-solid {
             font-size: 80px;
             width: 80px;
             height: 80px;
             opacity: 0.3;
+            color: #C17E3E; // Nubian gold
           }
         }
       }
@@ -288,10 +311,11 @@ interface StatCard {
         margin: 0 0 var(--ft-spacing-md);
         font-size: 1.125rem;
         font-weight: 600;
-        color: var(--ft-on-surface);
+        color: #2D2D2D; // $nubian-charcoal
+        font-family: 'Cormorant Garamond', Georgia, serif;
       }
     }
-    
+
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -307,50 +331,52 @@ interface StatCard {
       align-items: center;
       gap: var(--ft-spacing-md);
       padding: var(--ft-spacing-md);
-      background: var(--ft-surface);
+      background: white;
       border-radius: var(--ft-radius-lg);
-      border: 1px solid var(--ft-border);
+      border: 1px solid #F4E4D7; // $nubian-beige
       transition: all var(--ft-transition-fast);
-      
+
       &--clickable {
         cursor: pointer;
-        
+
         &:hover {
-          border-color: var(--stat-color, var(--ft-primary));
-          box-shadow: var(--ft-shadow-md);
+          border-color: var(--stat-color, #187573); // $nubian-teal
+          box-shadow: 0 4px 16px rgba(45, 45, 45, 0.1);
+          transform: translateY(-2px);
         }
       }
-      
+
       &__icon {
         width: 48px;
         height: 48px;
-        border-radius: var(--ft-radius-md);
+        border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: color-mix(in srgb, var(--stat-color, var(--ft-primary)) 15%, transparent);
+        background: color-mix(in srgb, var(--stat-color, #187573) 15%, transparent);
 
         i.fa-solid {
-          color: var(--stat-color, var(--ft-primary));
+          color: var(--stat-color, #187573);
           font-size: 24px;
         }
       }
-      
+
       &__content {
         display: flex;
         flex-direction: column;
       }
-      
+
       &__value {
         font-size: 1.5rem;
         font-weight: 700;
-        color: var(--ft-on-surface);
+        color: #2D2D2D; // $nubian-charcoal
         line-height: 1.2;
+        font-family: 'Cinzel', serif;
       }
-      
+
       &__label {
         font-size: 0.75rem;
-        color: var(--ft-on-surface-variant);
+        color: #6B6B6B; // $nubian-gray
         text-transform: uppercase;
         letter-spacing: 0.5px;
       }
@@ -372,22 +398,22 @@ interface StatCard {
       align-items: center;
       gap: var(--ft-spacing-sm);
       padding: var(--ft-spacing-lg);
-      background: var(--ft-surface);
-      border: 1px solid var(--ft-border);
+      background: white;
+      border: 1px solid #F4E4D7; // $nubian-beige
       border-radius: var(--ft-radius-lg);
       cursor: pointer;
       transition: all var(--ft-transition-fast);
-      
+
       &:hover {
-        border-color: var(--action-color, var(--ft-primary));
-        box-shadow: var(--ft-shadow-md);
+        border-color: var(--action-color, #187573); // $nubian-teal
+        box-shadow: 0 4px 16px rgba(45, 45, 45, 0.1);
         transform: translateY(-2px);
       }
-      
+
       &:active {
         transform: translateY(0);
       }
-      
+
       &__icon {
         width: 56px;
         height: 56px;
@@ -395,20 +421,20 @@ interface StatCard {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: color-mix(in srgb, var(--action-color, var(--ft-primary)) 15%, transparent);
+        background: color-mix(in srgb, var(--action-color, #187573) 15%, transparent);
 
         i.fa-solid {
-          color: var(--action-color, var(--ft-primary));
+          color: var(--action-color, #187573);
           font-size: 28px;
           width: 28px;
           height: 28px;
         }
       }
-      
+
       &__label {
         font-size: 0.875rem;
         font-weight: 500;
-        color: var(--ft-on-surface);
+        color: #2D2D2D; // $nubian-charcoal
         text-align: center;
       }
     }
@@ -416,37 +442,37 @@ interface StatCard {
     .recent-list {
       display: flex;
       flex-direction: column;
-      background: var(--ft-surface);
+      background: white;
       border-radius: var(--ft-radius-lg);
-      border: 1px solid var(--ft-border);
+      border: 1px solid #F4E4D7; // $nubian-beige
       overflow: hidden;
     }
-    
+
     .recent-item {
       display: flex;
       align-items: center;
       gap: var(--ft-spacing-md);
       padding: var(--ft-spacing-md);
-      border-bottom: 1px solid var(--ft-divider);
+      border-bottom: 1px solid #F4E4D7; // $nubian-beige
       cursor: pointer;
       transition: background var(--ft-transition-fast);
-      
+
       &:last-child {
         border-bottom: none;
       }
-      
+
       &:hover {
-        background: var(--ft-surface-variant);
+        background: #FFF9F5; // $nubian-cream
       }
-      
+
       &--skeleton {
         cursor: default;
-        
+
         &:hover {
           background: transparent;
         }
       }
-      
+
       &__avatar {
         width: 44px;
         height: 44px;
@@ -456,18 +482,18 @@ interface StatCard {
         justify-content: center;
         font-size: 0.875rem;
         font-weight: 600;
-        background: var(--ft-unknown-light);
-        color: var(--ft-unknown);
+        background: #f5f5f5;
+        color: #6B6B6B;
         flex-shrink: 0;
-        
+
         &--male {
-          background: var(--ft-male-light);
-          color: var(--ft-male);
+          background: #E6F5F5; // $nubian-teal-50
+          color: #187573; // $nubian-teal
         }
-        
+
         &--female {
-          background: var(--ft-female-light);
-          color: var(--ft-female);
+          background: #FFF8F0; // $nubian-gold-50
+          color: #C17E3E; // $nubian-gold
         }
       }
       
@@ -477,22 +503,22 @@ interface StatCard {
         display: flex;
         flex-direction: column;
       }
-      
+
       &__name {
         font-weight: 600;
-        color: var(--ft-on-surface);
+        color: #2D2D2D; // $nubian-charcoal
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
       }
-      
+
       &__meta {
         font-size: 0.813rem;
-        color: var(--ft-on-surface-variant);
+        color: #6B6B6B; // $nubian-gray
       }
-      
+
       &__arrow {
-        color: var(--ft-on-surface-variant);
+        color: #C17E3E; // $nubian-gold
         flex-shrink: 0;
       }
     }
@@ -502,33 +528,34 @@ interface StatCard {
       flex-direction: column;
       align-items: center;
       padding: var(--ft-spacing-xxl);
-      background: var(--ft-surface);
+      background: white;
       border-radius: var(--ft-radius-lg);
-      border: 1px solid var(--ft-border);
+      border: 1px solid #F4E4D7; // $nubian-beige
       text-align: center;
 
       i.fa-solid {
         font-size: 48px;
         width: 48px;
         height: 48px;
-        color: var(--ft-on-surface-variant);
+        color: #187573; // $nubian-teal
         opacity: 0.5;
         margin-bottom: var(--ft-spacing-md);
       }
 
       p {
         margin: 0 0 var(--ft-spacing-md);
-        color: var(--ft-on-surface-variant);
+        color: #6B6B6B; // $nubian-gray
       }
     }
-    
+
     .features-banner {
       display: flex;
       flex-direction: column;
       gap: var(--ft-spacing-md);
       padding: var(--ft-spacing-lg);
-      background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+      background: linear-gradient(135deg, #FFF9F5 0%, #FFEDD5 100%); // Nubian gold gradient
       border-radius: var(--ft-radius-lg);
+      border: 1px solid #F4E4D7; // $nubian-beige
 
       @media (min-width: 768px) {
         flex-direction: row;
@@ -542,7 +569,7 @@ interface StatCard {
         gap: var(--ft-spacing-md);
 
         i.fa-solid {
-          color: var(--ft-primary);
+          color: #C17E3E; // $nubian-gold
           font-size: 32px;
           width: 32px;
           height: 32px;
@@ -553,13 +580,14 @@ interface StatCard {
           margin: 0 0 var(--ft-spacing-xs);
           font-size: 1rem;
           font-weight: 600;
-          color: var(--ft-primary-dark);
+          color: #8B5A2B; // $nubian-gold-700
+          font-family: 'Cormorant Garamond', Georgia, serif;
         }
 
         p {
           margin: 0;
           font-size: 0.875rem;
-          color: var(--ft-on-surface-variant);
+          color: #6B6B6B; // $nubian-gray
         }
       }
     }
@@ -570,9 +598,9 @@ interface StatCard {
       align-items: center;
       text-align: center;
       padding: var(--ft-spacing-xxl) var(--ft-spacing-lg);
-      background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+      background: linear-gradient(135deg, #FFF8F0 0%, #FFEDD5 100%); // Nubian gold gradient
       border-radius: var(--ft-radius-lg);
-      border: 2px dashed #ff9800;
+      border: 2px dashed #C17E3E; // $nubian-gold
 
       &__icon {
         width: 80px;
@@ -581,14 +609,14 @@ interface StatCard {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(255, 152, 0, 0.2);
+        background: rgba(193, 126, 62, 0.2);
         margin-bottom: var(--ft-spacing-lg);
 
         i.fa-solid {
           font-size: 40px;
           width: 40px;
           height: 40px;
-          color: #e65100;
+          color: #8B5A2B; // $nubian-gold-700
         }
       }
 
@@ -599,13 +627,14 @@ interface StatCard {
           margin: 0 0 var(--ft-spacing-sm);
           font-size: 1.5rem;
           font-weight: 700;
-          color: #e65100;
+          color: #8B5A2B; // $nubian-gold-700
+          font-family: 'Cinzel', serif;
         }
 
         p {
           margin: 0;
           font-size: 1rem;
-          color: var(--ft-on-surface-variant);
+          color: #6B6B6B; // $nubian-gray
           max-width: 400px;
         }
       }
@@ -640,17 +669,17 @@ export class DashboardComponent implements OnInit {
   hasNoTrees = signal(false);
   checkingTrees = signal(true);
   stats = signal<StatCard[]>([
-    { icon: 'users', labelKey: 'dashboard.totalPeople', value: '-', color: '#1976d2', route: '/people' },
-    { icon: 'mars', labelKey: 'people.male', value: '-', color: '#1976d2', route: '/people?sex=male' },
-    { icon: 'venus', labelKey: 'people.female', value: '-', color: '#c2185b', route: '/people?sex=female' },
-    { icon: 'people-roof', labelKey: 'dashboard.totalFamilies', value: '-', color: '#7b1fa2', route: '/families' }
+    { icon: 'users', labelKey: 'dashboard.totalPeople', value: '-', color: '#187573', route: '/people' }, // $nubian-teal
+    { icon: 'mars', labelKey: 'people.male', value: '-', color: '#187573', route: '/people?sex=male' }, // $nubian-teal
+    { icon: 'venus', labelKey: 'people.female', value: '-', color: '#C17E3E', route: '/people?sex=female' }, // $nubian-gold
+    { icon: 'people-roof', labelKey: 'dashboard.totalFamilies', value: '-', color: '#2D7A3E', route: '/families' } // $nubian-green
   ]);
 
   quickActions: QuickAction[] = [
-    { icon: 'user-plus', labelKey: 'people.addPerson', action: () => this.openAddPerson(), color: '#1976d2' },
-    { icon: 'sitemap', labelKey: 'nav.familyTree', route: '/tree', color: '#2e7d32' },
-    { icon: 'users', labelKey: 'nav.people', route: '/people', color: '#7b1fa2' },
-    { icon: 'images', labelKey: 'nav.media', route: '/media', color: '#f57c00' }
+    { icon: 'user-plus', labelKey: 'people.addPerson', action: () => this.openAddPerson(), color: '#187573' }, // $nubian-teal
+    { icon: 'sitemap', labelKey: 'nav.familyTree', route: '/tree', color: '#2D7A3E' }, // $nubian-green
+    { icon: 'users', labelKey: 'nav.people', route: '/people', color: '#C17E3E' }, // $nubian-gold
+    { icon: 'images', labelKey: 'nav.media', route: '/media', color: '#E85D35' } // $nubian-orange
   ];
 
   // Track previous tree ID to detect changes
@@ -683,10 +712,10 @@ export class DashboardComponent implements OnInit {
   private reloadDashboardData(): void {
     // Reset stats
     this.stats.set([
-      { icon: 'users', labelKey: 'dashboard.totalPeople', value: '-', color: '#1976d2', route: '/people' },
-      { icon: 'mars', labelKey: 'people.male', value: '-', color: '#1976d2', route: '/people?sex=male' },
-      { icon: 'venus', labelKey: 'people.female', value: '-', color: '#c2185b', route: '/people?sex=female' },
-      { icon: 'people-roof', labelKey: 'dashboard.totalFamilies', value: '-', color: '#7b1fa2', route: '/families' }
+      { icon: 'users', labelKey: 'dashboard.totalPeople', value: '-', color: '#187573', route: '/people' }, // $nubian-teal
+      { icon: 'mars', labelKey: 'people.male', value: '-', color: '#187573', route: '/people?sex=male' }, // $nubian-teal
+      { icon: 'venus', labelKey: 'people.female', value: '-', color: '#C17E3E', route: '/people?sex=female' }, // $nubian-gold
+      { icon: 'people-roof', labelKey: 'dashboard.totalFamilies', value: '-', color: '#2D7A3E', route: '/families' } // $nubian-green
     ]);
     this.recentPeople.set([]);
 

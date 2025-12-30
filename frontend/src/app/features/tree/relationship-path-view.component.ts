@@ -12,7 +12,6 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 import * as d3 from 'd3';
@@ -31,7 +30,6 @@ import { Sex } from '../../core/models/person.models';
   imports: [
     CommonModule,
     MatButtonModule,
-    MatIconModule,
     MatTooltipModule,
     TranslatePipe
   ],
@@ -46,7 +44,7 @@ import { Sex } from '../../core/models/person.models';
         <header class="relationship-path-overlay__header">
           <div class="relationship-path-overlay__header-content">
             <button mat-icon-button class="relationship-path-overlay__close" (click)="onClose()">
-              <mat-icon>close</mat-icon>
+              <i class="fa-solid fa-xmark" aria-hidden="true"></i>
             </button>
             <div class="relationship-path-overlay__title-group">
               <h2 class="relationship-path-overlay__title">
@@ -62,11 +60,11 @@ import { Sex } from '../../core/models/person.models';
         @if (!pathData.pathFound) {
           <!-- No Path Found -->
           <div class="relationship-path-overlay__no-path">
-            <mat-icon>link_off</mat-icon>
+            <i class="fa-solid fa-link-slash" aria-hidden="true"></i>
             <h3>{{ 'relationship.noPathFound' | translate }}</h3>
             <p>{{ pathData.errorMessage || ('relationship.noPathFoundMessage' | translate) }}</p>
             <button mat-flat-button color="primary" (click)="tryAnother.emit()">
-              <mat-icon>person_search</mat-icon>
+              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
               {{ 'relationship.tryAnother' | translate }}
             </button>
           </div>
@@ -79,13 +77,13 @@ import { Sex } from '../../core/models/person.models';
           <!-- Controls -->
           <div class="relationship-path-overlay__controls">
             <button mat-icon-button (click)="zoomIn()" [matTooltip]="'common.zoomIn' | translate">
-              <mat-icon>add</mat-icon>
+              <i class="fa-solid fa-plus" aria-hidden="true"></i>
             </button>
             <button mat-icon-button (click)="zoomOut()" [matTooltip]="'common.zoomOut' | translate">
-              <mat-icon>remove</mat-icon>
+              <i class="fa-solid fa-minus" aria-hidden="true"></i>
             </button>
             <button mat-icon-button (click)="fitToScreen()" [matTooltip]="'common.fitToScreen' | translate">
-              <mat-icon>fit_screen</mat-icon>
+              <i class="fa-solid fa-expand" aria-hidden="true"></i>
             </button>
           </div>
         }
@@ -197,7 +195,7 @@ import { Sex } from '../../core/models/person.models';
         padding: var(--ft-spacing-xxl);
         color: var(--ft-on-surface-variant);
 
-        mat-icon {
+        > i.fa-solid {
           font-size: 64px;
           width: 64px;
           height: 64px;
@@ -217,7 +215,7 @@ import { Sex } from '../../core/models/person.models';
         }
 
         button {
-          mat-icon {
+          i.fa-solid {
             font-size: 20px;
             width: 20px;
             height: 20px;

@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatListModule } from '@angular/material/list';
 import { MatChipsModule } from '@angular/material/chips';
@@ -36,7 +35,6 @@ import { PersonMediaComponent } from './person-media.component';
     RouterModule,
     MatCardModule,
     MatButtonModule,
-    MatIconModule,
     MatTabsModule,
     MatListModule,
     MatChipsModule,
@@ -56,7 +54,7 @@ import { PersonMediaComponent } from './person-media.component';
       } @else if (error()) {
         <mat-card class="error-card">
           <mat-card-content>
-            <mat-icon>error</mat-icon>
+            <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
             <h3>Error loading person</h3>
             <p>{{ error() }}</p>
             <button mat-raised-button color="primary" (click)="loadPerson()">Retry</button>
@@ -67,7 +65,7 @@ import { PersonMediaComponent } from './person-media.component';
         <mat-card class="header-card">
           <div class="person-header">
             <div class="avatar" [class]="getSexClass(person()!.sex)">
-              <mat-icon>{{ getSexIcon(person()!.sex) }}</mat-icon>
+              <i class="fa-solid" [ngClass]="getSexIconClass(person()!.sex)" aria-hidden="true"></i>
             </div>
             <div class="info">
               <h1>{{ person()!.primaryName || 'Unknown' }}</h1>
@@ -78,19 +76,19 @@ import { PersonMediaComponent } from './person-media.component';
             </div>
             <div class="actions">
               <button mat-icon-button [matMenuTriggerFor]="actionsMenu">
-                <mat-icon>more_vert</mat-icon>
+                <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
               </button>
               <mat-menu #actionsMenu="matMenu">
                 <button mat-menu-item (click)="editPerson()">
-                  <mat-icon>edit</mat-icon>
+                  <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
                   <span>Edit</span>
                 </button>
                 <button mat-menu-item (click)="viewInTree()">
-                  <mat-icon>account_tree</mat-icon>
+                  <i class="fa-solid fa-sitemap" aria-hidden="true"></i>
                   <span>View in Tree</span>
                 </button>
                 <button mat-menu-item (click)="deletePerson()" class="delete-action">
-                  <mat-icon>delete</mat-icon>
+                  <i class="fa-solid fa-trash" aria-hidden="true"></i>
                   <span>Delete</span>
                 </button>
               </mat-menu>
@@ -189,23 +187,21 @@ import { PersonMediaComponent } from './person-media.component';
                   <div class="section-header">
                     <h3>Parents</h3>
                     <button mat-stroked-button (click)="addRelationship('parent')">
-                      <mat-icon>add</mat-icon> Add Parent
+                      <i class="fa-solid fa-plus" aria-hidden="true"></i> Add Parent
                     </button>
                   </div>
                   @if (parents().length > 0) {
                     <mat-list>
                       @for (parent of parents(); track parent.id) {
                         <mat-list-item class="clickable" (click)="navigateToPerson(parent.parentId)">
-                          <mat-icon matListItemIcon [class]="getSexClass(parent.parentSex)">
-                            {{ getSexIcon(parent.parentSex) }}
-                          </mat-icon>
+                          <i matListItemIcon class="fa-solid" [ngClass]="[getSexIconClass(parent.parentSex), getSexClass(parent.parentSex)]" aria-hidden="true"></i>
                           <span matListItemTitle>{{ parent.parentName || 'Unknown' }}</span>
                           <span matListItemLine>
                             {{ getRelationshipTypeLabel(parent.relationshipType) }}
                             @if (parent.isAdopted) { (Adopted) }
                           </span>
                           <button mat-icon-button matListItemMeta (click)="removeParent(parent, $event)">
-                            <mat-icon>close</mat-icon>
+                            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
                           </button>
                         </mat-list-item>
                       }
@@ -224,9 +220,7 @@ import { PersonMediaComponent } from './person-media.component';
                     <mat-list>
                       @for (sibling of siblings(); track sibling.personId) {
                         <mat-list-item class="clickable" (click)="navigateToPerson(sibling.personId)">
-                          <mat-icon matListItemIcon [class]="getSexClass(sibling.personSex)">
-                            {{ getSexIcon(sibling.personSex) }}
-                          </mat-icon>
+                          <i matListItemIcon class="fa-solid" [ngClass]="[getSexIconClass(sibling.personSex), getSexClass(sibling.personSex)]" aria-hidden="true"></i>
                           <span matListItemTitle>{{ sibling.personName || 'Unknown' }}</span>
                           <span matListItemLine>
                             {{ sibling.isFullSibling ? 'Full sibling' : 'Half sibling' }}
@@ -244,7 +238,7 @@ import { PersonMediaComponent } from './person-media.component';
                   <div class="section-header">
                     <h3>Spouses/Partners</h3>
                     <button mat-stroked-button (click)="addRelationship('spouse')">
-                      <mat-icon>add</mat-icon> Add Spouse
+                      <i class="fa-solid fa-plus" aria-hidden="true"></i> Add Spouse
                     </button>
                   </div>
                   @if (unions().length > 0) {
@@ -252,9 +246,7 @@ import { PersonMediaComponent } from './person-media.component';
                       @for (union of unions(); track union.id) {
                         @for (member of getOtherMembers(union); track member.id) {
                           <mat-list-item class="clickable" (click)="navigateToPerson(member.personId)">
-                            <mat-icon matListItemIcon [class]="getSexClass(member.personSex)">
-                              {{ getSexIcon(member.personSex) }}
-                            </mat-icon>
+                            <i matListItemIcon class="fa-solid" [ngClass]="[getSexIconClass(member.personSex), getSexClass(member.personSex)]" aria-hidden="true"></i>
                             <span matListItemTitle>{{ member.personName || 'Unknown' }}</span>
                             <span matListItemLine>
                               {{ getUnionTypeLabel(union.type) }}
@@ -263,7 +255,7 @@ import { PersonMediaComponent } from './person-media.component';
                               }
                             </span>
                             <button mat-icon-button matListItemMeta (click)="removeUnion(union, $event)">
-                              <mat-icon>close</mat-icon>
+                              <i class="fa-solid fa-xmark" aria-hidden="true"></i>
                             </button>
                           </mat-list-item>
                         }
@@ -279,23 +271,21 @@ import { PersonMediaComponent } from './person-media.component';
                   <div class="section-header">
                     <h3>Children</h3>
                     <button mat-stroked-button (click)="addRelationship('child')">
-                      <mat-icon>add</mat-icon> Add Child
+                      <i class="fa-solid fa-plus" aria-hidden="true"></i> Add Child
                     </button>
                   </div>
                   @if (children().length > 0) {
                     <mat-list>
                       @for (child of children(); track child.id) {
                         <mat-list-item class="clickable" (click)="navigateToPerson(child.childId)">
-                          <mat-icon matListItemIcon [class]="getSexClass(child.childSex)">
-                            {{ getSexIcon(child.childSex) }}
-                          </mat-icon>
+                          <i matListItemIcon class="fa-solid" [ngClass]="[getSexIconClass(child.childSex), getSexClass(child.childSex)]" aria-hidden="true"></i>
                           <span matListItemTitle>{{ child.childName || 'Unknown' }}</span>
                           <span matListItemLine>
                             {{ getRelationshipTypeLabel(child.relationshipType) }}
                             @if (child.isAdopted) { (Adopted) }
                           </span>
                           <button mat-icon-button matListItemMeta (click)="removeChild(child, $event)">
-                            <mat-icon>close</mat-icon>
+                            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
                           </button>
                         </mat-list-item>
                       }
@@ -339,7 +329,7 @@ import { PersonMediaComponent } from './person-media.component';
       padding: 24px;
     }
 
-    .error-card mat-icon {
+    .error-card i.fa-solid {
       font-size: 48px;
       width: 48px;
       height: 48px;
@@ -367,7 +357,7 @@ import { PersonMediaComponent } from './person-media.component';
       background: #e0e0e0;
     }
 
-    .avatar mat-icon {
+    .avatar i.fa-solid {
       font-size: 48px;
       width: 48px;
       height: 48px;
@@ -495,11 +485,11 @@ import { PersonMediaComponent } from './person-media.component';
       color: #f44336;
     }
 
-    mat-icon.male {
+    i.fa-solid.male {
       color: #1565c0;
     }
 
-    mat-icon.female {
+    i.fa-solid.female {
       color: #c2185b;
     }
   `]
@@ -603,6 +593,13 @@ export class PersonDetailComponent implements OnInit {
     if (sex === Sex.Male) return 'male';
     if (sex === Sex.Female) return 'female';
     return 'person';
+  }
+
+  getSexIconClass(sex?: Sex | null): string {
+    if (sex === null || sex === undefined) return 'fa-user';
+    if (sex === Sex.Male) return 'fa-mars';
+    if (sex === Sex.Female) return 'fa-venus';
+    return 'fa-user';
   }
 
   getNameTypeLabel(type: NameType): string {

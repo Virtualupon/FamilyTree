@@ -5,7 +5,6 @@ import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatRippleModule } from '@angular/material/core';
 
@@ -35,7 +34,6 @@ export interface RelationshipFinderDialogResult {
     FormsModule,
     MatDialogModule,
     MatButtonModule,
-    MatIconModule,
     MatProgressSpinnerModule,
     MatRippleModule,
     TranslatePipe
@@ -46,7 +44,7 @@ export interface RelationshipFinderDialogResult {
       <div class="relationship-finder__header">
         <h2 class="relationship-finder__title">{{ 'relationship.findRelationship' | translate }}</h2>
         <button mat-icon-button (click)="onCancel()">
-          <mat-icon>close</mat-icon>
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
       </div>
 
@@ -67,7 +65,7 @@ export interface RelationshipFinderDialogResult {
 
         <!-- Connection Arrow -->
         <div class="relationship-finder__arrow">
-          <mat-icon>sync_alt</mat-icon>
+          <i class="fa-solid fa-rotate" aria-hidden="true"></i>
         </div>
 
         <!-- To Person (Searchable) -->
@@ -84,13 +82,13 @@ export interface RelationshipFinderDialogResult {
                 {{ getInitials(selectedToPerson()!.primaryName) }}
               </div>
               <span class="relationship-finder__person-name">{{ selectedToPerson()!.primaryName }}</span>
-              <mat-icon class="relationship-finder__remove">close</mat-icon>
+              <i class="fa-solid fa-xmark relationship-finder__remove" aria-hidden="true"></i>
             </div>
           } @else {
             <!-- Search input -->
             <div class="relationship-finder__search">
               <div class="ft-search">
-                <mat-icon class="ft-search__icon">search</mat-icon>
+                <i class="fa-solid fa-magnifying-glass ft-search__icon" aria-hidden="true"></i>
                 <input
                   type="text"
                   class="ft-search__input"
@@ -101,7 +99,7 @@ export interface RelationshipFinderDialogResult {
                   autofocus>
                 @if (searchQuery) {
                   <button class="ft-search__clear" (click)="clearSearch()">
-                    <mat-icon>close</mat-icon>
+                    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
                   </button>
                 }
               </div>
@@ -147,12 +145,12 @@ export interface RelationshipFinderDialogResult {
                 </div>
               } @else if (searchQuery && !searching()) {
                 <div class="relationship-finder__empty">
-                  <mat-icon>person_search</mat-icon>
+                  <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
                   <span>{{ 'common.noResults' | translate }}</span>
                 </div>
               } @else {
                 <div class="relationship-finder__hint">
-                  <mat-icon>search</mat-icon>
+                  <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
                   <span>{{ 'relationship.searchHint' | translate }}</span>
                 </div>
               }
@@ -174,7 +172,7 @@ export interface RelationshipFinderDialogResult {
           @if (findingPath()) {
             <mat-spinner diameter="20"></mat-spinner>
           } @else {
-            <mat-icon>link</mat-icon>
+            <i class="fa-solid fa-link" aria-hidden="true"></i>
             {{ 'relationship.showLink' | translate }}
           }
         </button>
@@ -291,7 +289,7 @@ export interface RelationshipFinderDialogResult {
         justify-content: center;
         color: var(--ft-on-surface-variant);
 
-        mat-icon {
+        i.fa-solid {
           font-size: 24px;
           width: 24px;
           height: 24px;
@@ -375,7 +373,7 @@ export interface RelationshipFinderDialogResult {
         text-align: center;
         gap: var(--ft-spacing-sm);
 
-        mat-icon {
+        i.fa-solid {
           font-size: 32px;
           width: 32px;
           height: 32px;

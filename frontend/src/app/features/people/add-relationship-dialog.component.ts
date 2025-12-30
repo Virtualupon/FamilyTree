@@ -10,7 +10,6 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -53,7 +52,6 @@ export interface RelationshipDialogData {
     MatDatepickerModule,
     MatNativeDateModule,
     MatCheckboxModule,
-    MatIconModule,
     MatProgressSpinnerModule,
     MatChipsModule,
     MatTooltipModule
@@ -72,11 +70,11 @@ export interface RelationshipDialogData {
       <div class="search-section">
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Search for a person</mat-label>
-          <input matInput 
+          <input matInput
                  [formControl]="searchControl"
                  [matAutocomplete]="auto"
                  placeholder="Type name to search...">
-          <mat-icon matSuffix>search</mat-icon>
+          <i class="fa-solid fa-magnifying-glass" matSuffix aria-hidden="true"></i>
           <mat-autocomplete #auto="matAutocomplete" 
                            [displayWith]="displayPerson"
                            (optionSelected)="onPersonSelected($event.option.value)">
@@ -90,9 +88,7 @@ export interface RelationshipDialogData {
                     </span>
                   }
                   @if (person.sex !== null && person.sex !== undefined) {
-                    <mat-icon class="sex-icon" [class]="getSexClass(person.sex)">
-                      {{ getSexIcon(person.sex) }}
-                    </mat-icon>
+                    <i class="fa-solid sex-icon" [class]="getSexClass(person.sex)" [ngClass]="getSexIcon(person.sex)" aria-hidden="true"></i>
                   }
                 </div>
               </mat-option>
@@ -112,10 +108,10 @@ export interface RelationshipDialogData {
         @if (selectedPerson()) {
           <div class="selected-person">
             <mat-chip-row (removed)="clearSelection()">
-              <mat-icon matChipAvatar>person</mat-icon>
+              <i class="fa-solid fa-user" matChipAvatar aria-hidden="true"></i>
               {{ selectedPerson()?.primaryName || 'Unknown' }}
               <button matChipRemove>
-                <mat-icon>cancel</mat-icon>
+                <i class="fa-solid fa-ban" aria-hidden="true"></i>
               </button>
             </mat-chip-row>
           </div>
@@ -130,7 +126,7 @@ export interface RelationshipDialogData {
                  [formControl]="familyRelTypeSearchControl"
                  [matAutocomplete]="relTypeAuto"
                  placeholder="Type to search in English, Arabic, or Nubian...">
-          <mat-icon matSuffix>translate</mat-icon>
+          <i class="fa-solid fa-language" matSuffix aria-hidden="true"></i>
           <mat-autocomplete #relTypeAuto="matAutocomplete"
                            [displayWith]="displayRelType.bind(this)"
                            (optionSelected)="onRelTypeSelected($event.option.value)">
@@ -152,7 +148,7 @@ export interface RelationshipDialogData {
           </mat-autocomplete>
           @if (selectedRelType()) {
             <button mat-icon-button matSuffix (click)="clearRelTypeSelection($event)" matTooltip="Clear selection">
-              <mat-icon>close</mat-icon>
+              <i class="fa-solid fa-xmark" aria-hidden="true"></i>
             </button>
           }
         </mat-form-field>
@@ -230,7 +226,7 @@ export interface RelationshipDialogData {
 
       @if (error()) {
         <div class="error-message">
-          <mat-icon>error</mat-icon>
+          <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
           {{ error() }}
         </div>
       }
@@ -279,17 +275,17 @@ export interface RelationshipDialogData {
       font-size: 12px;
     }
 
-    .sex-icon {
-      font-size: 18px;
+    i.sex-icon {
+      font-size: 16px;
       width: 18px;
       height: 18px;
     }
 
-    .sex-icon.male {
+    i.sex-icon.male {
       color: #1976d2;
     }
 
-    .sex-icon.female {
+    i.sex-icon.female {
       color: #e91e63;
     }
 
@@ -544,9 +540,9 @@ export class AddRelationshipDialogComponent implements OnInit {
   }
 
   getSexIcon(sex: Sex | null): string {
-    if (sex === Sex.Male) return 'male';
-    if (sex === Sex.Female) return 'female';
-    return 'person';
+    if (sex === Sex.Male) return 'fa-mars';
+    if (sex === Sex.Female) return 'fa-venus';
+    return 'fa-user';
   }
 
   getRelationshipLabel(): string {

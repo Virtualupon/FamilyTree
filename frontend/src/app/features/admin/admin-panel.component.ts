@@ -558,10 +558,11 @@ import { I18nService } from '../../core/i18n/i18n.service';
         margin-top: 4px;
       }
 
-      &--users .stat-card__icon { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-      &--trees .stat-card__icon { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
-      &--people .stat-card__icon { background: linear-gradient(135deg, #fc4a1a 0%, #f7b733 100%); }
-      &--relations .stat-card__icon { background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%); }
+      // Nubian theme colors
+      &--users .stat-card__icon { background: linear-gradient(135deg, #187573 0%, #2B9A97 100%); } // Nubian teal
+      &--trees .stat-card__icon { background: linear-gradient(135deg, #2D7A3E 0%, #3FA055 100%); } // Nubian green
+      &--people .stat-card__icon { background: linear-gradient(135deg, #C17E3E 0%, #D4A574 100%); } // Nubian gold
+      &--relations .stat-card__icon { background: linear-gradient(135deg, #E85D35 0%, #FF7A52 100%); } // Nubian orange
     }
 
     .tab-content {
@@ -609,7 +610,7 @@ import { I18nService } from '../../core/i18n/i18n.service';
       width: 40px;
       height: 40px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #187573 0%, #2B9A97 100%); // Nubian teal
       color: white;
       display: flex;
       align-items: center;
@@ -692,13 +693,13 @@ import { I18nService } from '../../core/i18n/i18n.service';
       }
 
       &--public {
-        background-color: #e8f5e9 !important;
-        color: #2e7d32 !important;
+        background-color: #EDF7EF !important; // Nubian green-50
+        color: #2D7A3E !important; // Nubian green
       }
 
       &--private {
-        background-color: #fff3e0 !important;
-        color: #e65100 !important;
+        background-color: #FFF8F0 !important; // Nubian gold-50
+        color: #8B5A2B !important; // Nubian gold-700
       }
     }
 
@@ -741,8 +742,8 @@ import { I18nService } from '../../core/i18n/i18n.service';
     }
 
     .town-chip {
-      background-color: #e3f2fd !important;
-      color: #1565c0 !important;
+      background-color: #E6F5F5 !important; // Nubian teal-50
+      color: #187573 !important; // Nubian teal
     }
 
     .modal-hint {

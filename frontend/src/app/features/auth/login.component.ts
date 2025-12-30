@@ -9,7 +9,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSelectModule } from '@angular/material/select';
-import { MatIconModule } from '@angular/material/icon';
+
 import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService, Language } from '../../core/i18n';
@@ -28,7 +28,7 @@ import { I18nService, Language } from '../../core/i18n';
     MatProgressSpinnerModule,
     MatSnackBarModule,
     MatSelectModule,
-    MatIconModule,
+    
     TranslateModule
   ],
   template: `
@@ -42,7 +42,7 @@ import { I18nService, Language } from '../../core/i18n';
               <mat-option [value]="lang.code">{{ lang.nativeName }}</mat-option>
             }
           </mat-select>
-          <mat-icon matPrefix>language</mat-icon>
+          <i class="fa-solid fa-globe" matPrefix aria-hidden="true" style="margin-right: 8px;"></i>
         </mat-form-field>
       </div>
 

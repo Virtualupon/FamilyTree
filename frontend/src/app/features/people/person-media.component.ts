@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -38,7 +37,6 @@ import {
     RouterLink,
     MatCardModule,
     MatButtonModule,
-    MatIconModule,
     MatTabsModule,
     MatProgressSpinnerModule,
     MatProgressBarModule,
@@ -57,7 +55,7 @@ import {
       <div class="media-header">
         <h3>Media Files</h3>
         <button mat-raised-button color="primary" (click)="triggerUpload()">
-          <mat-icon>add_photo_alternate</mat-icon>
+          <i class="fa-solid fa-image" aria-hidden="true"></i>
           Upload Media
         </button>
         <!-- Hidden file input - accepts all media types -->
@@ -85,7 +83,7 @@ import {
       } @else if (error()) {
         <mat-card class="error-card">
           <mat-card-content>
-            <mat-icon>error</mat-icon>
+            <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
             <p>{{ error() }}</p>
             <button mat-button color="primary" (click)="loadMedia()">Retry</button>
           </mat-card-content>
@@ -93,7 +91,7 @@ import {
       } @else if (hasNoMedia()) {
         <mat-card class="empty-state">
           <mat-card-content>
-            <mat-icon>photo_library</mat-icon>
+            <i class="fa-solid fa-images" aria-hidden="true"></i>
             <h4>No media files</h4>
             <p>Upload images, audio, or video files for this person.</p>
           </mat-card-content>
@@ -105,7 +103,7 @@ import {
           @if (mediaGrouped()?.images?.length) {
             <mat-tab>
               <ng-template mat-tab-label>
-                <mat-icon>image</mat-icon>
+                <i class="fa-solid fa-image" aria-hidden="true"></i>
                 <span class="tab-label">Images ({{ mediaGrouped()!.images.length }})</span>
               </ng-template>
               <div class="media-grid images-grid">
@@ -119,7 +117,7 @@ import {
                       />
                     } @else {
                       <div class="image-placeholder" (click)="loadFullMedia(media)">
-                        <mat-icon>image</mat-icon>
+                        <i class="fa-solid fa-image" aria-hidden="true"></i>
                         <span>Click to load</span>
                       </div>
                     }
@@ -137,7 +135,7 @@ import {
                       <!-- Linked persons -->
                       @if (media.linkedPersons && media.linkedPersons.length > 1) {
                         <div class="linked-persons">
-                          <mat-icon class="linked-icon">group</mat-icon>
+                          <i class="fa-solid fa-users linked-icon" aria-hidden="true"></i>
                           <span class="linked-count">{{ media.linkedPersons.length }} people</span>
                           <div class="linked-list">
                             @for (person of media.linkedPersons; track person.personId) {
@@ -145,7 +143,7 @@ import {
                                  [class.primary]="person.isPrimary">
                                 {{ person.personName || 'Unknown' }}
                                 @if (person.isPrimary) {
-                                  <mat-icon class="primary-badge" matTooltip="Primary">star</mat-icon>
+                                  <i class="fa-solid fa-star primary-badge" matTooltip="Primary" aria-hidden="true"></i>
                                 }
                               </a>
                             }
@@ -155,10 +153,10 @@ import {
                     </mat-card-content>
                     <mat-card-actions>
                       <button mat-icon-button (click)="downloadMedia(media)" matTooltip="Download">
-                        <mat-icon>download</mat-icon>
+                        <i class="fa-solid fa-download" aria-hidden="true"></i>
                       </button>
                       <button mat-icon-button color="warn" (click)="deleteMedia(media)" matTooltip="Delete">
-                        <mat-icon>delete</mat-icon>
+                        <i class="fa-solid fa-trash" aria-hidden="true"></i>
                       </button>
                     </mat-card-actions>
                   </mat-card>
@@ -171,7 +169,7 @@ import {
           @if (mediaGrouped()?.audio?.length) {
             <mat-tab>
               <ng-template mat-tab-label>
-                <mat-icon>audiotrack</mat-icon>
+                <i class="fa-solid fa-music" aria-hidden="true"></i>
                 <span class="tab-label">Audio ({{ mediaGrouped()!.audio.length }})</span>
               </ng-template>
               <div class="media-list audio-list">
@@ -179,7 +177,7 @@ import {
                   <mat-card class="media-item audio-item">
                     <mat-card-content>
                       <div class="audio-header">
-                        <mat-icon class="audio-icon">audiotrack</mat-icon>
+                        <i class="fa-solid fa-music audio-icon" aria-hidden="true"></i>
                         <div class="audio-info">
                           <p class="file-name" [matTooltip]="media.title || media.fileName">
                             {{ media.title || media.fileName }}
@@ -194,17 +192,17 @@ import {
                           <!-- Linked persons -->
                           @if (media.linkedPersons && media.linkedPersons.length > 1) {
                             <div class="linked-persons inline">
-                              <mat-icon class="linked-icon small">group</mat-icon>
+                              <i class="fa-solid fa-users linked-icon small" aria-hidden="true"></i>
                               <span class="linked-count">Shared with {{ media.linkedPersons.length }} people</span>
                             </div>
                           }
                         </div>
                         <div class="audio-actions">
                           <button mat-icon-button (click)="downloadMedia(media)" matTooltip="Download">
-                            <mat-icon>download</mat-icon>
+                            <i class="fa-solid fa-download" aria-hidden="true"></i>
                           </button>
                           <button mat-icon-button color="warn" (click)="deleteMedia(media)" matTooltip="Delete">
-                            <mat-icon>delete</mat-icon>
+                            <i class="fa-solid fa-trash" aria-hidden="true"></i>
                           </button>
                         </div>
                       </div>
@@ -215,7 +213,7 @@ import {
                         </audio>
                       } @else {
                         <button mat-stroked-button (click)="loadFullMedia(media)">
-                          <mat-icon>play_arrow</mat-icon>
+                          <i class="fa-solid fa-play" aria-hidden="true"></i>
                           Load Audio
                         </button>
                       }
@@ -230,7 +228,7 @@ import {
           @if (mediaGrouped()?.videos?.length) {
             <mat-tab>
               <ng-template mat-tab-label>
-                <mat-icon>videocam</mat-icon>
+                <i class="fa-solid fa-video" aria-hidden="true"></i>
                 <span class="tab-label">Videos ({{ mediaGrouped()!.videos.length }})</span>
               </ng-template>
               <div class="media-list video-list">
@@ -238,7 +236,7 @@ import {
                   <mat-card class="media-item video-item">
                     <mat-card-content>
                       <div class="video-header">
-                        <mat-icon class="video-icon">videocam</mat-icon>
+                        <i class="fa-solid fa-video video-icon" aria-hidden="true"></i>
                         <div class="video-info">
                           <p class="file-name" [matTooltip]="media.title || media.fileName">
                             {{ media.title || media.fileName }}
@@ -253,17 +251,17 @@ import {
                           <!-- Linked persons -->
                           @if (media.linkedPersons && media.linkedPersons.length > 1) {
                             <div class="linked-persons inline">
-                              <mat-icon class="linked-icon small">group</mat-icon>
+                              <i class="fa-solid fa-users linked-icon small" aria-hidden="true"></i>
                               <span class="linked-count">Shared with {{ media.linkedPersons.length }} people</span>
                             </div>
                           }
                         </div>
                         <div class="video-actions">
                           <button mat-icon-button (click)="downloadMedia(media)" matTooltip="Download">
-                            <mat-icon>download</mat-icon>
+                            <i class="fa-solid fa-download" aria-hidden="true"></i>
                           </button>
                           <button mat-icon-button color="warn" (click)="deleteMedia(media)" matTooltip="Delete">
-                            <mat-icon>delete</mat-icon>
+                            <i class="fa-solid fa-trash" aria-hidden="true"></i>
                           </button>
                         </div>
                       </div>
@@ -274,7 +272,7 @@ import {
                         </video>
                       } @else {
                         <button mat-stroked-button (click)="loadFullMedia(media)">
-                          <mat-icon>play_arrow</mat-icon>
+                          <i class="fa-solid fa-play" aria-hidden="true"></i>
                           Load Video
                         </button>
                       }
@@ -291,7 +289,7 @@ import {
       @if (lightboxImage()) {
         <div class="lightbox" (click)="closeLightbox()">
           <button mat-icon-button class="lightbox-close">
-            <mat-icon>close</mat-icon>
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
           </button>
           <img [src]="lightboxImage()" alt="Full size image" />
         </div>
@@ -304,7 +302,7 @@ import {
             <div class="upload-dialog-header">
               <h3>Upload Media</h3>
               <button mat-icon-button (click)="closeUploadDialog()">
-                <mat-icon>close</mat-icon>
+                <i class="fa-solid fa-xmark" aria-hidden="true"></i>
               </button>
             </div>
 
@@ -312,18 +310,18 @@ import {
               <!-- Selected file info -->
               @if (selectedFile()) {
                 <div class="selected-file-info">
-                  <mat-icon>{{ getFileIcon(selectedFile()!.type) }}</mat-icon>
+                  <i class="fa-solid" [ngClass]="getFileIconClass(selectedFile()!.type)" aria-hidden="true"></i>
                   <div class="file-details">
                     <span class="file-name">{{ selectedFile()!.name }}</span>
                     <span class="file-size">{{ formatFileSize(selectedFile()!.size) }}</span>
                   </div>
                   <button mat-icon-button (click)="clearSelectedFile()">
-                    <mat-icon>clear</mat-icon>
+                    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
                   </button>
                 </div>
               } @else {
                 <div class="drop-zone" (click)="triggerFileInput()">
-                  <mat-icon>cloud_upload</mat-icon>
+                  <i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i>
                   <p>Click to select a file</p>
                   <span class="drop-hint">Images, audio, or video</span>
                 </div>
@@ -354,7 +352,7 @@ import {
                          [(ngModel)]="personSearchQuery"
                          (ngModelChange)="onSearchQueryChange($event)"
                          placeholder="Type a name to search...">
-                  <mat-icon matSuffix>search</mat-icon>
+                  <i class="fa-solid fa-magnifying-glass" matSuffix aria-hidden="true"></i>
                 </mat-form-field>
 
                 <!-- Selected persons chips -->
@@ -368,7 +366,7 @@ import {
                         }
                         @if (person.id !== personId) {
                           <button mat-icon-button class="remove-btn" (click)="togglePersonSelection(person)">
-                            <mat-icon>close</mat-icon>
+                            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
                           </button>
                         }
                       </div>
@@ -407,7 +405,7 @@ import {
                   </div>
                 } @else if (personSearchQuery && personSearchQuery.length >= 2) {
                   <div class="no-results">
-                    <mat-icon>person_search</mat-icon>
+                    <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
                     <span>No people found matching "{{ personSearchQuery }}"</span>
                   </div>
                 }
@@ -422,7 +420,7 @@ import {
                 @if (isUploading()) {
                   <mat-spinner diameter="20"></mat-spinner>
                 } @else {
-                  <mat-icon>upload</mat-icon>
+                  <i class="fa-solid fa-upload" aria-hidden="true"></i>
                 }
                 Upload
               </button>
@@ -469,14 +467,16 @@ import {
       padding: 24px;
     }
 
-    .error-card mat-icon, .empty-state mat-icon {
+    .error-card i.fa-solid, .empty-state i.fa-solid {
       font-size: 48px;
       width: 48px;
       height: 48px;
       color: rgba(0, 0, 0, 0.3);
+      display: block;
+      margin: 0 auto;
     }
 
-    .error-card mat-icon {
+    .error-card i.fa-solid {
       color: #f44336;
     }
 
@@ -533,10 +533,8 @@ import {
       background: #eeeeee;
     }
 
-    .image-placeholder mat-icon {
+    .image-placeholder i.fa-solid {
       font-size: 48px;
-      width: 48px;
-      height: 48px;
     }
 
     .image-placeholder span {
@@ -560,10 +558,8 @@ import {
       margin-bottom: 12px;
     }
 
-    .audio-icon, .video-icon {
+    i.fa-solid.audio-icon, i.fa-solid.video-icon {
       font-size: 36px;
-      width: 36px;
-      height: 36px;
       color: #1976d2;
     }
 
@@ -626,18 +622,14 @@ import {
       margin-top: 4px;
     }
 
-    .linked-icon {
+    i.fa-solid.linked-icon {
       font-size: 16px;
-      width: 16px;
-      height: 16px;
       color: rgba(0, 0, 0, 0.5);
       vertical-align: middle;
     }
 
-    .linked-icon.small {
+    i.fa-solid.linked-icon.small {
       font-size: 14px;
-      width: 14px;
-      height: 14px;
     }
 
     .linked-count {
@@ -679,10 +671,8 @@ import {
       background: #ffe0b2;
     }
 
-    .primary-badge {
+    i.fa-solid.primary-badge {
       font-size: 12px;
-      width: 12px;
-      height: 12px;
       color: #f57c00;
     }
 
@@ -772,10 +762,8 @@ import {
       background: #f5f5f5;
     }
 
-    .drop-zone mat-icon {
+    .drop-zone i.fa-solid {
       font-size: 48px;
-      width: 48px;
-      height: 48px;
       color: #9e9e9e;
     }
 
@@ -799,10 +787,8 @@ import {
       border-radius: 8px;
     }
 
-    .selected-file-info mat-icon {
+    .selected-file-info i.fa-solid {
       font-size: 32px;
-      width: 32px;
-      height: 32px;
       color: #1976d2;
     }
 
@@ -879,10 +865,8 @@ import {
       line-height: 20px;
     }
 
-    .person-chip .remove-btn mat-icon {
+    .person-chip .remove-btn i.fa-solid {
       font-size: 14px;
-      width: 14px;
-      height: 14px;
     }
 
     .search-loading {
@@ -952,7 +936,7 @@ import {
       color: rgba(0, 0, 0, 0.6);
     }
 
-    .no-results mat-icon {
+    .no-results i.fa-solid {
       color: rgba(0, 0, 0, 0.3);
     }
 
@@ -1279,6 +1263,13 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
     if (mimeType.startsWith('audio/')) return 'audiotrack';
     if (mimeType.startsWith('video/')) return 'videocam';
     return 'insert_drive_file';
+  }
+
+  getFileIconClass(mimeType: string): string {
+    if (mimeType.startsWith('image/')) return 'fa-image';
+    if (mimeType.startsWith('audio/')) return 'fa-music';
+    if (mimeType.startsWith('video/')) return 'fa-video';
+    return 'fa-file';
   }
 
   getLifespan(person: PersonListItem): string {

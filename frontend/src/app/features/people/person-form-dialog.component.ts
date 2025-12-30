@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
@@ -41,7 +40,6 @@ export interface PersonFormDialogData {
     ReactiveFormsModule,
     MatDialogModule,
     MatButtonModule,
-    MatIconModule,
     MatInputModule,
     MatSelectModule,
     MatDatepickerModule,
@@ -60,7 +58,7 @@ export interface PersonFormDialogData {
           {{ (data.person ? 'people.editPerson' : 'people.addPerson') | translate }}
         </h2>
         <button mat-icon-button (click)="onCancel()">
-          <mat-icon>close</mat-icon>
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
       </div>
       
@@ -84,15 +82,15 @@ export interface PersonFormDialogData {
                 <mat-label>{{ 'personForm.sex' | translate }}</mat-label>
                 <mat-select formControlName="sex">
                   <mat-option [value]="Sex.Male">
-                    <mat-icon>male</mat-icon>
+                    <i class="fa-solid fa-mars" aria-hidden="true"></i>
                     {{ 'people.male' | translate }}
                   </mat-option>
                   <mat-option [value]="Sex.Female">
-                    <mat-icon>female</mat-icon>
+                    <i class="fa-solid fa-venus" aria-hidden="true"></i>
                     {{ 'people.female' | translate }}
                   </mat-option>
                   <mat-option [value]="Sex.Unknown">
-                    <mat-icon>help_outline</mat-icon>
+                    <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
                     {{ 'people.unknown' | translate }}
                   </mat-option>
                 </mat-select>
@@ -111,7 +109,7 @@ export interface PersonFormDialogData {
                   <mat-label>{{ 'personForm.family' | translate }}</mat-label>
                   <mat-select formControlName="familyId">
                     <mat-option [value]="null">
-                      <mat-icon>remove_circle_outline</mat-icon>
+                      <i class="fa-solid fa-circle-minus" aria-hidden="true"></i>
                       {{ 'personForm.noFamily' | translate }}
                     </mat-option>
                     @for (family of families(); track family.id) {
@@ -123,7 +121,7 @@ export interface PersonFormDialogData {
                       </mat-option>
                     }
                   </mat-select>
-                  <mat-icon matSuffix>groups</mat-icon>
+                  <i class="fa-solid fa-people-group" matSuffix aria-hidden="true"></i>
                 </mat-form-field>
               }
 
@@ -132,15 +130,15 @@ export interface PersonFormDialogData {
                 <mat-label>{{ 'personForm.privacy' | translate }}</mat-label>
                 <mat-select formControlName="privacyLevel">
                   <mat-option [value]="PrivacyLevel.Public">
-                    <mat-icon>public</mat-icon>
+                    <i class="fa-solid fa-globe" aria-hidden="true"></i>
                     {{ 'personForm.privacyPublic' | translate }}
                   </mat-option>
                   <mat-option [value]="PrivacyLevel.Family">
-                    <mat-icon>family_restroom</mat-icon>
+                    <i class="fa-solid fa-people-roof" aria-hidden="true"></i>
                     {{ 'personForm.privacyFamily' | translate }}
                   </mat-option>
                   <mat-option [value]="PrivacyLevel.Private">
-                    <mat-icon>lock</mat-icon>
+                    <i class="fa-solid fa-lock" aria-hidden="true"></i>
                     {{ 'personForm.privacyPrivate' | translate }}
                   </mat-option>
                 </mat-select>
@@ -154,7 +152,7 @@ export interface PersonFormDialogData {
               <!-- Birth Section -->
               <div class="form-section">
                 <h4 class="form-section__title">
-                  <mat-icon>cake</mat-icon>
+                  <i class="fa-solid fa-cake-candles" aria-hidden="true"></i>
                   {{ 'people.born' | translate }}
                 </h4>
                 
@@ -180,7 +178,7 @@ export interface PersonFormDialogData {
                 <mat-form-field appearance="outline" class="full-width">
                   <mat-label>{{ 'personForm.birthPlace' | translate }}</mat-label>
                   <input matInput formControlName="birthPlace" autocomplete="off">
-                  <mat-icon matSuffix>place</mat-icon>
+                  <i class="fa-solid fa-location-dot" matSuffix aria-hidden="true"></i>
                 </mat-form-field>
               </div>
               
@@ -188,7 +186,7 @@ export interface PersonFormDialogData {
               @if (!form.get('isLiving')?.value) {
                 <div class="form-section">
                   <h4 class="form-section__title">
-                    <mat-icon>schedule</mat-icon>
+                    <i class="fa-solid fa-clock" aria-hidden="true"></i>
                     {{ 'people.died' | translate }}
                   </h4>
                   
@@ -214,7 +212,7 @@ export interface PersonFormDialogData {
                   <mat-form-field appearance="outline" class="full-width">
                     <mat-label>{{ 'personForm.deathPlace' | translate }}</mat-label>
                     <input matInput formControlName="deathPlace" autocomplete="off">
-                    <mat-icon matSuffix>place</mat-icon>
+                    <i class="fa-solid fa-location-dot" matSuffix aria-hidden="true"></i>
                   </mat-form-field>
                 </div>
               }
@@ -227,13 +225,13 @@ export interface PersonFormDialogData {
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>{{ 'personForm.occupation' | translate }}</mat-label>
                 <input matInput formControlName="occupation">
-                <mat-icon matSuffix>work</mat-icon>
+                <i class="fa-solid fa-briefcase" matSuffix aria-hidden="true"></i>
               </mat-form-field>
-              
+
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>{{ 'personForm.education' | translate }}</mat-label>
                 <input matInput formControlName="education">
-                <mat-icon matSuffix>school</mat-icon>
+                <i class="fa-solid fa-graduation-cap" matSuffix aria-hidden="true"></i>
               </mat-form-field>
               
               <mat-form-field appearance="outline" class="full-width">
@@ -244,7 +242,7 @@ export interface PersonFormDialogData {
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>{{ 'personForm.nationality' | translate }}</mat-label>
                 <input matInput formControlName="nationality">
-                <mat-icon matSuffix>flag</mat-icon>
+                <i class="fa-solid fa-flag" matSuffix aria-hidden="true"></i>
               </mat-form-field>
               
               <mat-form-field appearance="outline" class="full-width">
@@ -331,12 +329,12 @@ export interface PersonFormDialogData {
                           @if (transliterating() === i) {
                             <mat-spinner diameter="18"></mat-spinner>
                           } @else {
-                            <mat-icon>translate</mat-icon>
+                            <i class="fa-solid fa-language" aria-hidden="true"></i>
                           }
                           {{ 'personForm.transliterate' | translate }}
                         </button>
                         <button mat-button color="warn" type="button" (click)="removeName(i)">
-                          <mat-icon>delete</mat-icon>
+                          <i class="fa-solid fa-trash" aria-hidden="true"></i>
                           {{ 'common.delete' | translate }}
                         </button>
                       </div>
@@ -346,7 +344,7 @@ export interface PersonFormDialogData {
               </div>
               
               <button mat-stroked-button type="button" (click)="addName()" class="add-name-btn">
-                <mat-icon>add</mat-icon>
+                <i class="fa-solid fa-plus" aria-hidden="true"></i>
                 {{ 'personForm.addName' | translate }}
               </button>
             </div>
@@ -368,7 +366,7 @@ export interface PersonFormDialogData {
             <mat-spinner diameter="20"></mat-spinner>
           } @else {
             <ng-container>
-              <mat-icon>save</mat-icon>
+              <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
               {{ 'common.save' | translate }}
             </ng-container>
           }
@@ -469,7 +467,7 @@ export interface PersonFormDialogData {
         font-weight: 600;
         color: var(--ft-on-surface-variant);
         
-        mat-icon {
+        i.fa-solid {
           font-size: 20px;
           width: 20px;
           height: 20px;

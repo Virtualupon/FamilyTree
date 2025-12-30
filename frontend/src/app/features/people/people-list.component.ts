@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 
-import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDialog } from '@angular/material/dialog';
@@ -31,7 +30,6 @@ interface FilterState {
   imports: [
     CommonModule,
     FormsModule,
-    MatIconModule,
     MatButtonModule,
     MatMenuModule,
     MatRippleModule,
@@ -58,7 +56,7 @@ interface FilterState {
           color="primary" 
           class="people-page__add-btn d-mobile-none"
           (click)="openPersonForm()">
-          <mat-icon>add</mat-icon>
+          <i class="fa-solid fa-plus" aria-hidden="true"></i>
           {{ 'people.addPerson' | translate }}
         </button>
       </header>
@@ -66,7 +64,7 @@ interface FilterState {
       <!-- Search & Filters -->
       <div class="people-page__toolbar">
         <div class="ft-search">
-          <mat-icon class="ft-search__icon">search</mat-icon>
+          <i class="fa-solid fa-magnifying-glass ft-search__icon" aria-hidden="true"></i>
           <input
             type="text"
             class="ft-search__input"
@@ -75,7 +73,7 @@ interface FilterState {
             (ngModelChange)="onSearchChange($event)">
           @if (searchQuery) {
             <button class="ft-search__clear" (click)="clearSearch()">
-              <mat-icon>close</mat-icon>
+              <i class="fa-solid fa-xmark" aria-hidden="true"></i>
             </button>
           }
         </div>
@@ -88,18 +86,18 @@ interface FilterState {
             (click)="setFilter('sex', null)">
             {{ 'common.all' | translate }}
           </button>
-          <button 
+          <button
             class="ft-chip"
             [class.ft-chip--active]="filters().sex === Sex.Male"
             (click)="setFilter('sex', Sex.Male)">
-            <mat-icon class="ft-chip__icon">male</mat-icon>
+            <i class="fa-solid fa-mars ft-chip__icon" aria-hidden="true"></i>
             {{ 'people.male' | translate }}
           </button>
-          <button 
+          <button
             class="ft-chip"
             [class.ft-chip--active]="filters().sex === Sex.Female"
             (click)="setFilter('sex', Sex.Female)">
-            <mat-icon class="ft-chip__icon">female</mat-icon>
+            <i class="fa-solid fa-venus ft-chip__icon" aria-hidden="true"></i>
             {{ 'people.female' | translate }}
           </button>
           
@@ -131,12 +129,12 @@ interface FilterState {
         } @else if (people().length === 0) {
           <!-- Empty State -->
           <app-empty-state
-            icon="people_outline"
+            icon="fa-users"
             [title]="hasActiveFilters() ? ('common.noResults' | translate) : ('people.noPeople' | translate)"
             [description]="hasActiveFilters() ? '' : ('people.addFirst' | translate)">
             @if (!hasActiveFilters()) {
               <button mat-flat-button color="primary" (click)="openPersonForm()">
-                <mat-icon>add</mat-icon>
+                <i class="fa-solid fa-plus" aria-hidden="true"></i>
                 {{ 'people.addPerson' | translate }}
               </button>
             } @else {
@@ -170,19 +168,19 @@ interface FilterState {
                   <div class="ft-person-card__meta">
                     @if (person.birthDate) {
                       <span class="ft-person-card__meta-item">
-                        <mat-icon>cake</mat-icon>
+                        <i class="fa-solid fa-cake-candles" aria-hidden="true"></i>
                         {{ formatDate(person.birthDate) }}
                       </span>
                     }
                     @if (person.deathDate) {
                       <span class="ft-person-card__meta-item">
-                        <mat-icon>schedule</mat-icon>
+                        <i class="fa-solid fa-clock" aria-hidden="true"></i>
                         {{ formatDate(person.deathDate) }}
                       </span>
                     }
                     @if (person.birthPlace) {
                       <span class="ft-person-card__meta-item">
-                        <mat-icon>place</mat-icon>
+                        <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
                         {{ person.birthPlace }}
                       </span>
                     }
@@ -194,7 +192,7 @@ interface FilterState {
                       <span class="ft-badge ft-badge--media ft-badge--clickable"
                             [matTooltip]="person.mediaCount + ' media files - Click to view'"
                             (click)="viewPersonMedia(person, $event)">
-                        <mat-icon style="font-size: 12px; width: 12px; height: 12px;">photo_camera</mat-icon>
+                        <i class="fa-solid fa-camera" aria-hidden="true" style="font-size: 12px;"></i>
                         {{ person.mediaCount }}
                       </span>
                     }
@@ -206,7 +204,7 @@ interface FilterState {
                     }
                     @if (person.isVerified) {
                       <span class="ft-badge ft-badge--primary">
-                        <mat-icon style="font-size: 12px; width: 12px; height: 12px;">verified</mat-icon>
+                        <i class="fa-solid fa-circle-check" aria-hidden="true" style="font-size: 12px;"></i>
                       </span>
                     }
                   </div>
@@ -215,24 +213,24 @@ interface FilterState {
                 <!-- Actions Menu -->
                 <div class="ft-person-card__actions" (click)="$event.stopPropagation()">
                   <button mat-icon-button [matMenuTriggerFor]="personMenu">
-                    <mat-icon>more_vert</mat-icon>
+                    <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
                   </button>
                   <mat-menu #personMenu="matMenu">
                     <button mat-menu-item (click)="viewPerson(person)">
-                      <mat-icon>visibility</mat-icon>
+                      <i class="fa-solid fa-eye" aria-hidden="true"></i>
                       <span>{{ 'people.viewProfile' | translate }}</span>
                     </button>
                     <button mat-menu-item (click)="editPerson(person)">
-                      <mat-icon>edit</mat-icon>
+                      <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
                       <span>{{ 'people.editPerson' | translate }}</span>
                     </button>
                     <button mat-menu-item (click)="viewInTree(person)">
-                      <mat-icon>account_tree</mat-icon>
+                      <i class="fa-solid fa-sitemap" aria-hidden="true"></i>
                       <span>{{ 'nav.familyTree' | translate }}</span>
                     </button>
                     <mat-divider></mat-divider>
                     <button mat-menu-item class="text-error" (click)="deletePerson(person)">
-                      <mat-icon color="warn">delete</mat-icon>
+                      <i class="fa-solid fa-trash" aria-hidden="true" style="color: var(--ft-error);"></i>
                       <span>{{ 'people.deletePerson' | translate }}</span>
                     </button>
                   </mat-menu>
@@ -260,13 +258,13 @@ interface FilterState {
       </div>
       
       <!-- FAB Button (Mobile) -->
-      <button 
-        mat-fab 
-        color="primary" 
+      <button
+        mat-fab
+        color="primary"
         class="ft-btn--fab d-desktop-none"
         [matTooltip]="'people.addPerson' | translate"
         (click)="openPersonForm()">
-        <mat-icon>add</mat-icon>
+        <i class="fa-solid fa-plus" aria-hidden="true"></i>
       </button>
     </div>
   `,
@@ -358,10 +356,8 @@ interface FilterState {
       margin-top: var(--ft-spacing-sm);
     }
     
-    .ft-chip__icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
+    i.fa-solid.ft-chip__icon {
+      font-size: 14px;
       margin-inline-end: 4px;
     }
     

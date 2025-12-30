@@ -2,7 +2,6 @@ import { Component, EventEmitter, Input, Output, inject, signal } from '@angular
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -39,7 +38,6 @@ export interface NameVariantSelectedEvent {
     CommonModule,
     FormsModule,
     MatButtonModule,
-    MatIconModule,
     MatInputModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
@@ -58,7 +56,7 @@ export interface NameVariantSelectedEvent {
             [(ngModel)]="inputName"
             [placeholder]="'transliteration.namePlaceholder' | translate"
             (keyup.enter)="onTransliterate()">
-          <mat-icon matSuffix>translate</mat-icon>
+          <i class="fa-solid fa-language" matSuffix aria-hidden="true"></i>
         </mat-form-field>
 
         <button
@@ -70,7 +68,7 @@ export interface NameVariantSelectedEvent {
           @if (loading()) {
             <mat-spinner diameter="20"></mat-spinner>
           } @else {
-            <mat-icon>auto_fix_high</mat-icon>
+            <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
             {{ 'transliteration.transliterate' | translate }}
           }
         </button>
@@ -82,7 +80,7 @@ export interface NameVariantSelectedEvent {
           <mat-card-content>
             <!-- Confidence indicator -->
             <div class="confidence-badge" [style.background-color]="getConfidenceBackground()">
-              <mat-icon>{{ getConfidenceIcon() }}</mat-icon>
+              <i [class]="'fa-solid ' + getConfidenceIcon()" aria-hidden="true"></i>
               <span>{{ (result()!.english.confidence * 100).toFixed(0) }}%</span>
             </div>
 
@@ -147,7 +145,7 @@ export interface NameVariantSelectedEvent {
               <div class="warnings">
                 @for (warning of result()!.metadata.warnings; track warning) {
                   <div class="warning">
-                    <mat-icon>warning</mat-icon>
+                    <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
                     {{ warning }}
                   </div>
                 }
@@ -157,7 +155,7 @@ export interface NameVariantSelectedEvent {
             <!-- Review indicator -->
             @if (result()!.metadata.needsReview) {
               <div class="review-needed">
-                <mat-icon>rate_review</mat-icon>
+                <i class="fa-solid fa-star-half-stroke" aria-hidden="true"></i>
                 {{ 'transliteration.needsReview' | translate }}
               </div>
             }
@@ -173,7 +171,7 @@ export interface NameVariantSelectedEvent {
               color="primary"
               [disabled]="!selectedVariant"
               (click)="confirmSelection()">
-              <mat-icon>check</mat-icon>
+              <i class="fa-solid fa-check" aria-hidden="true"></i>
               {{ 'transliteration.useSelected' | translate }}
             </button>
           </mat-card-actions>
@@ -183,7 +181,7 @@ export interface NameVariantSelectedEvent {
       <!-- Error message -->
       @if (error()) {
         <div class="error-message">
-          <mat-icon>error</mat-icon>
+          <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
           {{ error() }}
         </div>
       }
@@ -226,7 +224,7 @@ export interface NameVariantSelectedEvent {
           font-weight: 600;
           color: white;
 
-          mat-icon {
+          i.fa-solid {
             font-size: 14px;
             width: 14px;
             height: 14px;
@@ -334,7 +332,7 @@ export interface NameVariantSelectedEvent {
         border-radius: var(--ft-radius-sm);
         font-size: 0.875rem;
 
-        mat-icon {
+        i.fa-solid {
           color: var(--ft-warning);
         }
       }
@@ -351,7 +349,7 @@ export interface NameVariantSelectedEvent {
       border-radius: var(--ft-radius-sm);
       font-size: 0.875rem;
 
-      mat-icon {
+      i.fa-solid {
         color: var(--ft-info);
       }
     }
@@ -365,7 +363,7 @@ export interface NameVariantSelectedEvent {
       color: var(--ft-on-error-container);
       border-radius: var(--ft-radius-md);
 
-      mat-icon {
+      i.fa-solid {
         color: var(--ft-error);
       }
     }
@@ -457,8 +455,8 @@ export class NameTransliterationComponent {
 
   getConfidenceIcon(): string {
     const confidence = this.result()?.english.confidence ?? 0;
-    if (confidence >= 0.9) return 'verified';
-    if (confidence >= 0.7) return 'help';
-    return 'warning';
+    if (confidence >= 0.9) return 'fa-circle-check';
+    if (confidence >= 0.7) return 'fa-circle-question';
+    return 'fa-triangle-exclamation';
   }
 }

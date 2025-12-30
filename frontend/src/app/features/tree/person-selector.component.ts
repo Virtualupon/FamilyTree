@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 
 import { MatBottomSheetRef } from '@angular/material/bottom-sheet';
-import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatRippleModule } from '@angular/material/core';
@@ -20,7 +19,6 @@ import { SkeletonComponent } from '../../shared/components';
   imports: [
     CommonModule,
     FormsModule,
-    MatIconModule,
     MatButtonModule,
     MatProgressSpinnerModule,
     MatRippleModule,
@@ -36,14 +34,14 @@ import { SkeletonComponent } from '../../shared/components';
       <div class="person-selector__header">
         <h3 class="person-selector__title">{{ 'tree.selectPerson' | translate }}</h3>
         <button mat-icon-button (click)="close()">
-          <mat-icon>close</mat-icon>
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
       </div>
       
       <!-- Search -->
       <div class="person-selector__search">
         <div class="ft-search">
-          <mat-icon class="ft-search__icon">search</mat-icon>
+          <i class="fa-solid fa-magnifying-glass ft-search__icon" aria-hidden="true"></i>
           <input
             type="text"
             class="ft-search__input"
@@ -54,7 +52,7 @@ import { SkeletonComponent } from '../../shared/components';
             autofocus>
           @if (searchQuery) {
             <button class="ft-search__clear" (click)="clearSearch()">
-              <mat-icon>close</mat-icon>
+              <i class="fa-solid fa-xmark" aria-hidden="true"></i>
             </button>
           }
         </div>
@@ -70,7 +68,7 @@ import { SkeletonComponent } from '../../shared/components';
           </div>
         } @else if (people().length === 0) {
           <div class="person-selector__empty">
-            <mat-icon>person_search</mat-icon>
+            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
             <p>{{ 'common.noResults' | translate }}</p>
           </div>
         } @else {
@@ -102,14 +100,14 @@ import { SkeletonComponent } from '../../shared/components';
                     }
                     @if (person.birthPlace) {
                       <span class="person-selector__place">
-                        <mat-icon>place</mat-icon>
+                        <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
                         {{ person.birthPlace }}
                       </span>
                     }
                   </div>
                 </div>
                 
-                <mat-icon class="person-selector__arrow">chevron_right</mat-icon>
+                <i class="fa-solid fa-chevron-right person-selector__arrow" aria-hidden="true"></i>
               </div>
             }
           </div>
@@ -255,8 +253,8 @@ import { SkeletonComponent } from '../../shared/components';
         display: inline-flex;
         align-items: center;
         gap: 2px;
-        
-        mat-icon {
+
+        i.fa-solid {
           font-size: 14px;
           width: 14px;
           height: 14px;
@@ -276,15 +274,15 @@ import { SkeletonComponent } from '../../shared/components';
         padding: var(--ft-spacing-xxl);
         text-align: center;
         color: var(--ft-on-surface-variant);
-        
-        mat-icon {
+
+        i.fa-solid {
           font-size: 48px;
           width: 48px;
           height: 48px;
           margin-bottom: var(--ft-spacing-md);
           opacity: 0.5;
         }
-        
+
         p {
           margin: 0;
         }

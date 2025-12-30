@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject, takeUntil, debounceTime } from 'rxjs';
 
-import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
@@ -35,7 +34,6 @@ import { RelationshipPathViewComponent } from './relationship-path-view.componen
   imports: [
     CommonModule,
     FormsModule,
-    MatIconModule,
     MatButtonModule,
     MatSelectModule,
     MatSlideToggleModule,
@@ -82,26 +80,26 @@ import { RelationshipPathViewComponent } from './relationship-path-view.componen
           <!-- Mobile View Mode Menu -->
           <button mat-stroked-button class="d-desktop-none" [matMenuTriggerFor]="viewModeMenu">
             {{ getViewModeLabel() }}
-            <mat-icon>arrow_drop_down</mat-icon>
+            <i class="fa-solid fa-caret-down" aria-hidden="true"></i>
           </button>
           <mat-menu #viewModeMenu="matMenu">
             <button mat-menu-item (click)="setViewMode('pedigree')">
-              <mat-icon>arrow_upward</mat-icon>
+              <i class="fa-solid fa-arrow-up" aria-hidden="true"></i>
               {{ 'tree.pedigree' | translate }}
             </button>
             <button mat-menu-item (click)="setViewMode('descendants')">
-              <mat-icon>arrow_downward</mat-icon>
+              <i class="fa-solid fa-arrow-down" aria-hidden="true"></i>
               {{ 'tree.descendants' | translate }}
             </button>
             <button mat-menu-item (click)="setViewMode('hourglass')">
-              <mat-icon>swap_vert</mat-icon>
+              <i class="fa-solid fa-arrows-up-down" aria-hidden="true"></i>
               {{ 'tree.hourglass' | translate }}
             </button>
           </mat-menu>
-          
+
           <!-- Settings Menu -->
           <button mat-icon-button [matMenuTriggerFor]="settingsMenu" [matTooltip]="'nav.settings' | translate">
-            <mat-icon>tune</mat-icon>
+            <i class="fa-solid fa-sliders" aria-hidden="true"></i>
           </button>
           <mat-menu #settingsMenu="matMenu">
             <div class="menu-setting" (click)="$event.stopPropagation()">
@@ -143,11 +141,11 @@ import { RelationshipPathViewComponent } from './relationship-path-view.componen
       </ng-container>
     } @else {
       <ng-container>
-        <mat-icon>person_search</mat-icon>
+        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
         <span>{{ 'tree.selectPerson' | translate }}</span>
       </ng-container>
     }
-    <mat-icon class="person-selector-btn__arrow">arrow_drop_down</mat-icon>
+    <i class="fa-solid fa-caret-down person-selector-btn__arrow" aria-hidden="true"></i>
   </button>
 </div>
       
@@ -157,11 +155,11 @@ import { RelationshipPathViewComponent } from './relationship-path-view.componen
           <app-loading [message]="'common.loading' | translate"></app-loading>
         } @else if (!selectedPerson()) {
           <app-empty-state
-            icon="account_tree"
+            icon="fa-sitemap"
             [title]="'tree.selectPerson' | translate"
             [description]="''">
             <button mat-flat-button color="primary" (click)="openPersonSelector()">
-              <mat-icon>person_search</mat-icon>
+              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
               {{ 'common.search' | translate }}
             </button>
           </app-empty-state>
@@ -184,21 +182,21 @@ import { RelationshipPathViewComponent } from './relationship-path-view.componen
           <!-- Zoom Controls -->
           <div class="tree-zoom-controls">
             <button mat-icon-button (click)="d3ZoomIn()" [matTooltip]="'tree.zoomIn' | translate">
-              <mat-icon>add</mat-icon>
+              <i class="fa-solid fa-plus" aria-hidden="true"></i>
             </button>
             <button mat-icon-button (click)="d3ZoomOut()" [matTooltip]="'tree.zoomOut' | translate">
-              <mat-icon>remove</mat-icon>
+              <i class="fa-solid fa-minus" aria-hidden="true"></i>
             </button>
             <button mat-icon-button (click)="d3ResetZoom()" [matTooltip]="'tree.resetView' | translate">
-              <mat-icon>center_focus_strong</mat-icon>
+              <i class="fa-solid fa-crosshairs" aria-hidden="true"></i>
             </button>
             <button mat-icon-button (click)="d3FitToScreen()" [matTooltip]="'tree.fitToScreen' | translate">
-              <mat-icon>fit_screen</mat-icon>
+              <i class="fa-solid fa-expand" aria-hidden="true"></i>
             </button>
           </div>
         } @else {
           <app-empty-state
-            icon="warning"
+            icon="fa-triangle-exclamation"
             [title]="'error.generic' | translate">
           </app-empty-state>
         }

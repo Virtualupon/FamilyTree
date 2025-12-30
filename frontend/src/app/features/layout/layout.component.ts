@@ -6,7 +6,6 @@ import { filter } from 'rxjs';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
-import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -35,7 +34,6 @@ interface NavItem {
     MatToolbarModule,
     MatSidenavModule,
     MatListModule,
-    MatIconModule,
     MatButtonModule,
     MatMenuModule,
     MatTooltipModule,
@@ -51,16 +49,16 @@ interface NavItem {
       <header class="layout__header">
         <div class="layout__header-content">
           <!-- Mobile Menu Button -->
-          <button 
-            mat-icon-button 
+          <button
+            mat-icon-button
             class="layout__menu-btn d-desktop-none"
             (click)="toggleMobileMenu()">
-            <mat-icon>{{ mobileMenuOpen() ? 'close' : 'menu' }}</mat-icon>
+            <i class="fa-solid" [class.fa-xmark]="mobileMenuOpen()" [class.fa-bars]="!mobileMenuOpen()" aria-hidden="true"></i>
           </button>
-          
+
           <!-- Logo -->
           <a routerLink="/dashboard" class="layout__logo">
-            <mat-icon class="layout__logo-icon">family_restroom</mat-icon>
+            <i class="fa-solid fa-people-roof layout__logo-icon" aria-hidden="true"></i>
             <span class="layout__logo-text d-mobile-none">Family Tree</span>
           </a>
 
@@ -71,11 +69,11 @@ interface NavItem {
                 mat-button
                 [matMenuTriggerFor]="townMenu"
                 class="layout__tree-btn">
-                <mat-icon>location_city</mat-icon>
+                <i class="fa-solid fa-city" aria-hidden="true"></i>
                 <span class="layout__tree-name">
                   {{ getSelectedTownName() || ('nav.selectTown' | translate) }}
                 </span>
-                <mat-icon>arrow_drop_down</mat-icon>
+                <i class="fa-solid fa-caret-down" aria-hidden="true"></i>
               </button>
               <mat-menu #townMenu="matMenu" class="layout__tree-menu">
                 @if (treeContext.loadingTowns()) {
@@ -84,7 +82,7 @@ interface NavItem {
                   </div>
                 } @else if (treeContext.assignedTowns().length === 0) {
                   <div class="layout__tree-empty">
-                    <mat-icon>info</mat-icon>
+                    <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
                     <span>{{ 'nav.noTownsAssigned' | translate }}</span>
                   </div>
                 } @else {
@@ -93,7 +91,7 @@ interface NavItem {
                       mat-menu-item
                       (click)="selectTown(town.id)"
                       [class.layout__tree-item--active]="treeContext.selectedTownId() === town.id">
-                      <mat-icon>location_city</mat-icon>
+                      <i class="fa-solid fa-city" aria-hidden="true"></i>
                       <div class="layout__tree-item-content">
                         <span class="layout__tree-item-name">{{ getLocalizedTownName(town) }}</span>
                         <span class="layout__tree-item-meta">
@@ -101,7 +99,7 @@ interface NavItem {
                         </span>
                       </div>
                       @if (treeContext.selectedTownId() === town.id) {
-                        <mat-icon class="layout__tree-item-check">check</mat-icon>
+                        <i class="fa-solid fa-check layout__tree-item-check" aria-hidden="true"></i>
                       }
                     </button>
                   }
@@ -117,11 +115,11 @@ interface NavItem {
                 mat-button
                 [matMenuTriggerFor]="treeMenu"
                 class="layout__tree-btn">
-                <mat-icon>account_tree</mat-icon>
+                <i class="fa-solid fa-sitemap" aria-hidden="true"></i>
                 <span class="layout__tree-name">
                   {{ treeContext.selectedTree()?.name || ('nav.selectTree' | translate) }}
                 </span>
-                <mat-icon>arrow_drop_down</mat-icon>
+                <i class="fa-solid fa-caret-down" aria-hidden="true"></i>
               </button>
               <mat-menu #treeMenu="matMenu" class="layout__tree-menu">
                 @if (treeContext.loading()) {
@@ -130,7 +128,7 @@ interface NavItem {
                   </div>
                 } @else if (treeContext.availableTrees().length === 0) {
                   <div class="layout__tree-empty">
-                    <mat-icon>info</mat-icon>
+                    <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
                     <span>{{ 'nav.noTrees' | translate }}</span>
                   </div>
                 } @else {
@@ -139,7 +137,7 @@ interface NavItem {
                       mat-menu-item
                       (click)="selectTree(tree.id)"
                       [class.layout__tree-item--active]="treeContext.selectedTreeId() === tree.id">
-                      <mat-icon>{{ tree.userRole !== null ? 'forest' : 'admin_panel_settings' }}</mat-icon>
+                      <i class="fa-solid" [class.fa-tree]="tree.userRole !== null" [class.fa-user-shield]="tree.userRole === null" aria-hidden="true"></i>
                       <div class="layout__tree-item-content">
                         <span class="layout__tree-item-name">{{ tree.name }}</span>
                         <span class="layout__tree-item-meta">
@@ -150,7 +148,7 @@ interface NavItem {
                         </span>
                       </div>
                       @if (treeContext.selectedTreeId() === tree.id) {
-                        <mat-icon class="layout__tree-item-check">check</mat-icon>
+                        <i class="fa-solid fa-check layout__tree-item-check" aria-hidden="true"></i>
                       }
                     </button>
                   }
@@ -166,7 +164,7 @@ interface NavItem {
                 class="layout__nav-item"
                 [routerLink]="item.route"
                 routerLinkActive="layout__nav-item--active">
-                <mat-icon>{{ item.icon }}</mat-icon>
+                <i class="fa-solid" [ngClass]="getFaIconClass(item.icon)" aria-hidden="true"></i>
                 <span>{{ item.labelKey | translate }}</span>
               </a>
             }
@@ -185,14 +183,14 @@ interface NavItem {
             </button>
             <mat-menu #langMenu="matMenu" class="layout__lang-menu">
               @for (lang of i18n.supportedLanguages; track lang.code) {
-                <button 
-                  mat-menu-item 
+                <button
+                  mat-menu-item
                   (click)="setLanguage(lang.code)"
                   [class.layout__lang-item--active]="i18n.currentLang() === lang.code">
                   <span class="layout__lang-flag">{{ lang.flag }}</span>
                   <span>{{ lang.nativeName }}</span>
                   @if (i18n.currentLang() === lang.code) {
-                    <mat-icon>check</mat-icon>
+                    <i class="fa-solid fa-check" aria-hidden="true"></i>
                   }
                 </button>
               }
@@ -221,11 +219,11 @@ interface NavItem {
               </div>
               <mat-divider></mat-divider>
               <button mat-menu-item routerLink="/settings">
-                <mat-icon>settings</mat-icon>
+                <i class="fa-solid fa-gear" aria-hidden="true"></i>
                 <span>{{ 'nav.settings' | translate }}</span>
               </button>
               <button mat-menu-item (click)="logout()">
-                <mat-icon>logout</mat-icon>
+                <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
                 <span>{{ 'nav.logout' | translate }}</span>
               </button>
             </mat-menu>
@@ -262,10 +260,10 @@ interface NavItem {
                     class="layout__mobile-tree-item"
                     [class.layout__mobile-tree-item--active]="treeContext.selectedTreeId() === tree.id"
                     (click)="selectTree(tree.id)">
-                    <mat-icon>{{ tree.userRole !== null ? 'forest' : 'admin_panel_settings' }}</mat-icon>
+                    <i class="fa-solid" [class.fa-tree]="tree.userRole !== null" [class.fa-user-shield]="tree.userRole === null" aria-hidden="true"></i>
                     <span>{{ tree.name }}</span>
                     @if (treeContext.selectedTreeId() === tree.id) {
-                      <mat-icon class="layout__mobile-tree-check">check</mat-icon>
+                      <i class="fa-solid fa-check layout__mobile-tree-check" aria-hidden="true"></i>
                     }
                   </button>
                 }
@@ -282,7 +280,7 @@ interface NavItem {
                 routerLinkActive="layout__mobile-nav-item--active"
                 matRipple
                 (click)="closeMobileMenu()">
-                <mat-icon>{{ item.icon }}</mat-icon>
+                <i class="fa-solid" [ngClass]="getFaIconClass(item.icon)" aria-hidden="true"></i>
                 <span>{{ item.labelKey | translate }}</span>
               </a>
             }
@@ -307,11 +305,11 @@ interface NavItem {
               </div>
             </div>
             
-            <button 
+            <button
               class="layout__mobile-nav-item layout__mobile-nav-item--logout"
               matRipple
               (click)="logout()">
-              <mat-icon>logout</mat-icon>
+              <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
               <span>{{ 'nav.logout' | translate }}</span>
             </button>
           </div>
@@ -331,7 +329,7 @@ interface NavItem {
             [routerLink]="item.route"
             routerLinkActive="layout__bottom-nav-item--active"
             matRipple>
-            <mat-icon>{{ item.icon }}</mat-icon>
+            <i class="fa-solid" [ngClass]="getFaIconClass(item.icon)" aria-hidden="true"></i>
             <span>{{ item.labelKey | translate }}</span>
           </a>
         }
@@ -385,9 +383,7 @@ interface NavItem {
       }
       
       &__logo-icon {
-        font-size: 28px;
-        width: 28px;
-        height: 28px;
+        font-size: 1.75rem;
       }
 
       // Tree Selector
@@ -406,11 +402,9 @@ interface NavItem {
         min-width: 160px;
         max-width: 240px;
 
-        mat-icon:first-child {
+        i.fa-solid:first-child {
           color: var(--ft-primary);
-          font-size: 20px;
-          width: 20px;
-          height: 20px;
+          font-size: 1.125rem;
         }
       }
 
@@ -432,10 +426,8 @@ interface NavItem {
         align-items: center;
         gap: var(--ft-spacing-sm);
 
-        mat-icon {
-          font-size: 20px;
-          width: 20px;
-          height: 20px;
+        i.fa-solid {
+          font-size: 1.125rem;
         }
       }
 
@@ -517,11 +509,11 @@ interface NavItem {
         text-align: start;
         width: 100%;
 
-        mat-icon {
+        i.fa-solid {
           color: var(--ft-on-surface-variant);
-          font-size: 20px;
+          font-size: 1.125rem;
           width: 20px;
-          height: 20px;
+          text-align: center;
         }
 
         span {
@@ -539,7 +531,7 @@ interface NavItem {
           border-color: var(--ft-primary);
           background: rgba(25, 118, 210, 0.1);
 
-          mat-icon {
+          i.fa-solid {
             color: var(--ft-primary);
           }
         }
@@ -567,18 +559,18 @@ interface NavItem {
         font-weight: 500;
         font-size: 0.875rem;
         transition: all var(--ft-transition-fast);
-        
-        mat-icon {
-          font-size: 20px;
+
+        i.fa-solid {
+          font-size: 1.125rem;
           width: 20px;
-          height: 20px;
+          text-align: center;
         }
-        
+
         &:hover {
           background: var(--ft-surface-variant);
           color: var(--ft-on-surface);
         }
-        
+
         &--active {
           background: rgba(25, 118, 210, 0.1);
           color: var(--ft-primary);
@@ -602,8 +594,8 @@ interface NavItem {
       
       &__lang-item--active {
         background: rgba(25, 118, 210, 0.1);
-        
-        mat-icon {
+
+        i.fa-solid {
           color: var(--ft-primary);
           margin-inline-start: auto;
         }
@@ -743,24 +735,27 @@ interface NavItem {
         color: var(--ft-on-surface);
         font-weight: 500;
         transition: background var(--ft-transition-fast);
-        
-        mat-icon {
+
+        i.fa-solid {
           color: var(--ft-on-surface-variant);
+          font-size: 1.25rem;
+          width: 24px;
+          text-align: center;
         }
-        
+
         &:hover {
           background: var(--ft-surface-variant);
         }
-        
+
         &--active {
           background: rgba(25, 118, 210, 0.1);
           color: var(--ft-primary);
-          
-          mat-icon {
+
+          i.fa-solid {
             color: var(--ft-primary);
           }
         }
-        
+
         &--logout {
           color: var(--ft-error);
           border: none;
@@ -768,8 +763,8 @@ interface NavItem {
           width: 100%;
           cursor: pointer;
           font-size: 1rem;
-          
-          mat-icon {
+
+          i.fa-solid {
             color: var(--ft-error);
           }
         }
@@ -850,13 +845,11 @@ interface NavItem {
         font-size: 0.625rem;
         font-weight: 500;
         transition: color var(--ft-transition-fast);
-        
-        mat-icon {
-          font-size: 24px;
-          width: 24px;
-          height: 24px;
+
+        i.fa-solid {
+          font-size: 1.375rem;
         }
-        
+
         &--active {
           color: var(--ft-primary);
         }
@@ -1004,5 +997,78 @@ export class LayoutComponent implements OnInit {
       default:
         return town.nameEn || town.name;
     }
+  }
+
+  /**
+   * Maps Material icon names to Font Awesome CSS classes
+   */
+  getFaIconClass(materialIcon: string): string {
+    const iconMap: Record<string, string> = {
+      'dashboard': 'fa-gauge-high',
+      'location_city': 'fa-city',
+      'forest': 'fa-tree',
+      'people': 'fa-users',
+      'account_tree': 'fa-sitemap',
+      'photo_library': 'fa-images',
+      'link': 'fa-link',
+      'admin_panel_settings': 'fa-user-shield',
+      'settings': 'fa-gear',
+      'logout': 'fa-right-from-bracket',
+      'menu': 'fa-bars',
+      'close': 'fa-xmark',
+      'family_restroom': 'fa-people-roof',
+      'check': 'fa-check',
+      'info': 'fa-circle-info',
+      'arrow_drop_down': 'fa-caret-down',
+      'person': 'fa-user',
+      'person_add': 'fa-user-plus',
+      'edit': 'fa-pen-to-square',
+      'delete': 'fa-trash',
+      'add': 'fa-plus',
+      'remove': 'fa-minus',
+      'search': 'fa-magnifying-glass',
+      'person_search': 'fa-magnifying-glass',
+      'visibility': 'fa-eye',
+      'visibility_off': 'fa-eye-slash',
+      'male': 'fa-mars',
+      'female': 'fa-venus',
+      'help_outline': 'fa-circle-question',
+      'warning': 'fa-triangle-exclamation',
+      'error': 'fa-circle-exclamation',
+      'cake': 'fa-cake-candles',
+      'schedule': 'fa-clock',
+      'place': 'fa-location-dot',
+      'language': 'fa-globe',
+      'translate': 'fa-language',
+      'download': 'fa-download',
+      'upload': 'fa-upload',
+      'cloud_upload': 'fa-cloud-arrow-up',
+      'image': 'fa-image',
+      'add_photo_alternate': 'fa-image',
+      'audiotrack': 'fa-music',
+      'videocam': 'fa-video',
+      'play_arrow': 'fa-play',
+      'more_vert': 'fa-ellipsis-vertical',
+      'arrow_upward': 'fa-arrow-up',
+      'arrow_downward': 'fa-arrow-down',
+      'arrow_forward': 'fa-arrow-right',
+      'chevron_right': 'fa-chevron-right',
+      'swap_vert': 'fa-arrows-up-down',
+      'tune': 'fa-sliders',
+      'center_focus_strong': 'fa-crosshairs',
+      'fit_screen': 'fa-expand',
+      'public': 'fa-globe',
+      'lock': 'fa-lock',
+      'save': 'fa-floppy-disk',
+      'cancel': 'fa-ban',
+      'clear': 'fa-xmark',
+      'sync_alt': 'fa-rotate',
+      'auto_fix_high': 'fa-wand-magic-sparkles',
+      'rate_review': 'fa-star-half-stroke',
+      'tips_and_updates': 'fa-lightbulb',
+      'history': 'fa-clock-rotate-left',
+      'link_off': 'fa-link-slash'
+    };
+    return iconMap[materialIcon] || 'fa-circle';
   }
 }

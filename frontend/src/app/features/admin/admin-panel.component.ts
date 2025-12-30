@@ -5,7 +5,6 @@ import { MatCardModule } from '@angular/material/card';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -36,7 +35,6 @@ import { I18nService } from '../../core/i18n/i18n.service';
     MatTabsModule,
     MatTableModule,
     MatButtonModule,
-    MatIconModule,
     MatSelectModule,
     MatFormFieldModule,
     MatInputModule,
@@ -48,7 +46,7 @@ import { I18nService } from '../../core/i18n/i18n.service';
     <div class="admin-panel">
       <div class="admin-panel__header">
         <h1 class="admin-panel__title">
-          <mat-icon>admin_panel_settings</mat-icon>
+          <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
           Admin Panel
         </h1>
         <p class="admin-panel__subtitle">Manage users, roles, and platform settings</p>
@@ -59,7 +57,7 @@ import { I18nService } from '../../core/i18n/i18n.service';
         <mat-card class="stat-card stat-card--users">
           <mat-card-content>
             <div class="stat-card__icon">
-              <mat-icon>people</mat-icon>
+              <i class="fa-solid fa-users" aria-hidden="true"></i>
             </div>
             <div class="stat-card__content">
               <span class="stat-card__value">{{ stats()?.totalUsers || 0 }}</span>
@@ -71,7 +69,7 @@ import { I18nService } from '../../core/i18n/i18n.service';
         <mat-card class="stat-card stat-card--trees">
           <mat-card-content>
             <div class="stat-card__icon">
-              <mat-icon>account_tree</mat-icon>
+              <i class="fa-solid fa-sitemap" aria-hidden="true"></i>
             </div>
             <div class="stat-card__content">
               <span class="stat-card__value">{{ stats()?.totalTrees || 0 }}</span>
@@ -83,7 +81,7 @@ import { I18nService } from '../../core/i18n/i18n.service';
         <mat-card class="stat-card stat-card--people">
           <mat-card-content>
             <div class="stat-card__icon">
-              <mat-icon>person</mat-icon>
+              <i class="fa-solid fa-user" aria-hidden="true"></i>
             </div>
             <div class="stat-card__content">
               <span class="stat-card__value">{{ stats()?.totalPeople || 0 }}</span>
@@ -95,7 +93,7 @@ import { I18nService } from '../../core/i18n/i18n.service';
         <mat-card class="stat-card stat-card--relations">
           <mat-card-content>
             <div class="stat-card__icon">
-              <mat-icon>family_restroom</mat-icon>
+              <i class="fa-solid fa-people-roof" aria-hidden="true"></i>
             </div>
             <div class="stat-card__content">
               <span class="stat-card__value">{{ stats()?.totalRelationships || 0 }}</span>
@@ -111,15 +109,15 @@ import { I18nService } from '../../core/i18n/i18n.service';
           <!-- Users Tab -->
           <mat-tab>
             <ng-template mat-tab-label>
-              <mat-icon>people</mat-icon>
+              <i class="fa-solid fa-users" aria-hidden="true"></i>
               <span>Users</span>
             </ng-template>
-            
+
             <div class="tab-content">
               <div class="tab-header">
                 <h3>System Users</h3>
                 <button mat-flat-button color="primary" (click)="showCreateUserModal = true">
-                  <mat-icon>person_add</mat-icon>
+                  <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
                   Create User
                 </button>
               </div>
@@ -183,7 +181,7 @@ import { I18nService } from '../../core/i18n/i18n.service';
                     <td mat-cell *matCellDef="let user">
                       @if (user.systemRole === 'Admin') {
                         <button mat-stroked-button color="primary" (click)="showTownAssignModal(user)">
-                          <mat-icon>location_city</mat-icon>
+                          <i class="fa-solid fa-city" aria-hidden="true"></i>
                           Assign Towns
                         </button>
                       }
@@ -196,7 +194,7 @@ import { I18nService } from '../../core/i18n/i18n.service';
 
                 @if (users().length === 0) {
                   <div class="empty-state">
-                    <mat-icon>people_outline</mat-icon>
+                    <i class="fa-solid fa-users" aria-hidden="true"></i>
                     <p>No users found</p>
                   </div>
                 }
@@ -207,7 +205,7 @@ import { I18nService } from '../../core/i18n/i18n.service';
           <!-- Town Assignments Tab (Primary - Town-scoped access) -->
           <mat-tab>
             <ng-template mat-tab-label>
-              <mat-icon>location_city</mat-icon>
+              <i class="fa-solid fa-city" aria-hidden="true"></i>
               <span>Town Assignments</span>
             </ng-template>
 
@@ -216,7 +214,7 @@ import { I18nService } from '../../core/i18n/i18n.service';
                 <h3>Admin Town Assignments</h3>
                 <p class="tab-description">Assign admins to towns. Admins can manage all trees within their assigned towns.</p>
                 <button mat-flat-button color="primary" (click)="showNewTownAssignmentModal = true">
-                  <mat-icon>add</mat-icon>
+                  <i class="fa-solid fa-plus" aria-hidden="true"></i>
                   Assign Town
                 </button>
               </div>
@@ -242,7 +240,7 @@ import { I18nService } from '../../core/i18n/i18n.service';
                   <td mat-cell *matCellDef="let a">
                     <mat-chip-set>
                       <mat-chip class="town-chip">
-                        <mat-icon>location_city</mat-icon>
+                        <i class="fa-solid fa-city" aria-hidden="true"></i>
                         {{ getLocalizedAssignmentTownName(a) }}
                       </mat-chip>
                     </mat-chip-set>
@@ -270,7 +268,7 @@ import { I18nService } from '../../core/i18n/i18n.service';
                   <th mat-header-cell *matHeaderCellDef>Actions</th>
                   <td mat-cell *matCellDef="let a">
                     <button mat-icon-button color="warn" (click)="removeTownAssignment(a)">
-                      <mat-icon>delete</mat-icon>
+                      <i class="fa-solid fa-trash" aria-hidden="true"></i>
                     </button>
                   </td>
                 </ng-container>
@@ -281,7 +279,7 @@ import { I18nService } from '../../core/i18n/i18n.service';
 
               @if (townAssignments().length === 0) {
                 <div class="empty-state">
-                  <mat-icon>location_city</mat-icon>
+                  <i class="fa-solid fa-city" aria-hidden="true"></i>
                   <p>No town assignments yet</p>
                   <span class="empty-hint">Assign admins to towns to give them access to all trees within those towns</span>
                 </div>
@@ -293,17 +291,17 @@ import { I18nService } from '../../core/i18n/i18n.service';
           <!-- All Trees Tab -->
           <mat-tab>
             <ng-template mat-tab-label>
-              <mat-icon>forest</mat-icon>
+              <i class="fa-solid fa-tree" aria-hidden="true"></i>
               <span>All Trees</span>
             </ng-template>
-            
+
             <div class="tab-content">
               <table mat-table [dataSource]="allTrees()" class="trees-table">
                 <ng-container matColumnDef="name">
                   <th mat-header-cell *matHeaderCellDef>Name</th>
                   <td mat-cell *matCellDef="let tree">
                     <div class="tree-cell">
-                      <mat-icon class="tree-icon">account_tree</mat-icon>
+                      <i class="fa-solid fa-sitemap tree-icon" aria-hidden="true"></i>
                       <div class="tree-info">
                         <span class="tree-name">{{ tree.name }}</span>
                         @if (tree.description) {
@@ -324,12 +322,12 @@ import { I18nService } from '../../core/i18n/i18n.service';
                   <td mat-cell *matCellDef="let tree">
                     @if (tree.isPublic) {
                       <mat-chip class="visibility-chip visibility-chip--public">
-                        <mat-icon>public</mat-icon>
+                        <i class="fa-solid fa-globe" aria-hidden="true"></i>
                         Public
                       </mat-chip>
                     } @else {
                       <mat-chip class="visibility-chip visibility-chip--private">
-                        <mat-icon>lock</mat-icon>
+                        <i class="fa-solid fa-lock" aria-hidden="true"></i>
                         Private
                       </mat-chip>
                     }
@@ -347,7 +345,7 @@ import { I18nService } from '../../core/i18n/i18n.service';
 
               @if (allTrees().length === 0) {
                 <div class="empty-state">
-                  <mat-icon>forest</mat-icon>
+                  <i class="fa-solid fa-tree" aria-hidden="true"></i>
                   <p>No family trees yet</p>
                 </div>
               }
@@ -367,15 +365,15 @@ import { I18nService } from '../../core/i18n/i18n.service';
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>Email</mat-label>
                 <input matInput type="email" [(ngModel)]="newUser.email" placeholder="user@example.com">
-                <mat-icon matPrefix>email</mat-icon>
+                <i matPrefix class="fa-solid fa-envelope input-prefix-icon" aria-hidden="true"></i>
               </mat-form-field>
 
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>Password</mat-label>
                 <input matInput [type]="hidePassword ? 'password' : 'text'" [(ngModel)]="newUser.password">
-                <mat-icon matPrefix>lock</mat-icon>
+                <i matPrefix class="fa-solid fa-lock input-prefix-icon" aria-hidden="true"></i>
                 <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword" type="button">
-                  <mat-icon>{{ hidePassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+                  <i class="fa-solid" [class.fa-eye-slash]="hidePassword" [class.fa-eye]="!hidePassword" aria-hidden="true"></i>
                 </button>
               </mat-form-field>
 
@@ -383,7 +381,7 @@ import { I18nService } from '../../core/i18n/i18n.service';
                 <mat-form-field appearance="outline" class="half-width">
                   <mat-label>First Name</mat-label>
                   <input matInput [(ngModel)]="newUser.firstName">
-                  <mat-icon matPrefix>person</mat-icon>
+                  <i matPrefix class="fa-solid fa-user input-prefix-icon" aria-hidden="true"></i>
                 </mat-form-field>
 
                 <mat-form-field appearance="outline" class="half-width">
@@ -399,12 +397,12 @@ import { I18nService } from '../../core/i18n/i18n.service';
                   <mat-option value="Admin">Admin</mat-option>
                   <mat-option value="SuperAdmin">SuperAdmin</mat-option>
                 </mat-select>
-                <mat-icon matPrefix>admin_panel_settings</mat-icon>
+                <i matPrefix class="fa-solid fa-user-shield input-prefix-icon" aria-hidden="true"></i>
               </mat-form-field>
 
               @if (createUserError) {
                 <div class="error-message">
-                  <mat-icon>error</mat-icon>
+                  <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
                   {{ createUserError }}
                 </div>
               }
@@ -444,7 +442,7 @@ import { I18nService } from '../../core/i18n/i18n.service';
                     </mat-option>
                   }
                 </mat-select>
-                <mat-icon matPrefix>person</mat-icon>
+                <i matPrefix class="fa-solid fa-user input-prefix-icon" aria-hidden="true"></i>
               </mat-form-field>
 
               <mat-form-field appearance="outline" class="full-width">
@@ -465,7 +463,7 @@ import { I18nService } from '../../core/i18n/i18n.service';
                     <mat-option disabled>No towns available</mat-option>
                   }
                 </mat-select>
-                <mat-icon matPrefix>location_city</mat-icon>
+                <i matPrefix class="fa-solid fa-city input-prefix-icon" aria-hidden="true"></i>
                 <mat-hint>Towns are geographic locations (cities/villages)</mat-hint>
               </mat-form-field>
             </mat-card-content>
@@ -498,10 +496,8 @@ import { I18nService } from '../../core/i18n/i18n.service';
         font-weight: 600;
         color: var(--ft-on-surface);
 
-        mat-icon {
-          font-size: 32px;
-          width: 32px;
-          height: 32px;
+        i.fa-solid {
+          font-size: 1.75rem;
           color: var(--ft-primary);
         }
       }
@@ -538,10 +534,8 @@ import { I18nService } from '../../core/i18n/i18n.service';
         align-items: center;
         justify-content: center;
 
-        mat-icon {
-          font-size: 28px;
-          width: 28px;
-          height: 28px;
+        i.fa-solid {
+          font-size: 1.5rem;
           color: white;
         }
       }
@@ -691,11 +685,9 @@ import { I18nService } from '../../core/i18n/i18n.service';
 
     .visibility-chip {
       font-size: 12px;
-      
-      mat-icon {
-        font-size: 14px;
-        width: 14px;
-        height: 14px;
+
+      i.fa-solid {
+        font-size: 0.75rem;
         margin-right: 4px;
       }
 
@@ -717,10 +709,8 @@ import { I18nService } from '../../core/i18n/i18n.service';
       padding: 48px;
       color: var(--ft-on-surface-variant);
 
-      mat-icon {
-        font-size: 48px;
-        width: 48px;
-        height: 48px;
+      i.fa-solid {
+        font-size: 3rem;
         margin-bottom: 16px;
         opacity: 0.5;
       }
@@ -835,11 +825,15 @@ import { I18nService } from '../../core/i18n/i18n.service';
       margin-bottom: 16px;
       font-size: 14px;
 
-      mat-icon {
-        font-size: 20px;
-        width: 20px;
-        height: 20px;
+      i.fa-solid {
+        font-size: 1.125rem;
       }
+    }
+
+    .input-prefix-icon {
+      font-size: 1rem;
+      color: var(--ft-on-surface-variant);
+      margin-right: 8px;
     }
 
     ::ng-deep {

@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 
-import { MatIconModule } from '@angular/material/icon';
+
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatRippleModule } from '@angular/material/core';
@@ -22,7 +22,7 @@ import { FamilyListItem, Family, CreateFamilyRequest, UpdateFamilyRequest } from
     CommonModule,
     RouterModule,
     FormsModule,
-    MatIconModule,
+    
     MatButtonModule,
     MatProgressSpinnerModule,
     MatRippleModule,

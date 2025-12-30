@@ -861,13 +861,14 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
       .attr('stroke', 'white')
       .attr('stroke-width', 2);
 
-    // Link icon (simple lines forming a chain link)
+    // Link icon using Font Awesome Unicode glyph
     button.append('text')
+      .attr('class', 'node-icon-solid')
       .attr('text-anchor', 'middle')
-      .attr('dy', '0.35em')
+      .attr('dominant-baseline', 'central')
       .attr('fill', 'white')
-      .attr('font-size', '12px')
-      .text('\u{1F517}'); // Link emoji - fallback to simple icon
+      .attr('font-size', '10px')
+      .text('\uf0c1'); // fa-link Unicode
 
     // Show button on node hover
     g.on('mouseenter', function() {

@@ -1,7 +1,6 @@
 import { Component, OnInit, OnDestroy, inject, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, Router } from '@angular/router';
-import { MatIconModule } from '@angular/material/icon';
+import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatRippleModule } from '@angular/material/core';
 import { MatDialog } from '@angular/material/dialog';
@@ -37,9 +36,8 @@ interface StatCard {
   selector: 'app-dashboard',
   standalone: true,
   imports: [
-    CommonModule, 
-    RouterModule, 
-    MatIconModule, 
+    CommonModule,
+    RouterModule,
     MatButtonModule,
     MatRippleModule,
     TranslatePipe
@@ -58,7 +56,7 @@ interface StatCard {
             }
           </div>
           <div class="dashboard__hero-illustration">
-            <mat-icon>family_restroom</mat-icon>
+            <i class="fa-solid fa-people-roof" aria-hidden="true"></i>
           </div>
         </div>
       </section>
@@ -68,7 +66,7 @@ interface StatCard {
         <section class="dashboard__section">
           <div class="no-trees-prompt">
             <div class="no-trees-prompt__icon">
-              <mat-icon>account_tree</mat-icon>
+              <i class="fa-solid fa-sitemap" aria-hidden="true"></i>
             </div>
             <div class="no-trees-prompt__content">
               <h2>{{ 'dashboard.getStarted' | translate }}</h2>
@@ -76,7 +74,7 @@ interface StatCard {
             </div>
             <div class="no-trees-prompt__actions">
               <button mat-flat-button color="primary" routerLink="/trees">
-                <mat-icon>add</mat-icon>
+                <i class="fa-solid fa-plus" aria-hidden="true"></i>
                 {{ 'dashboard.createTree' | translate }}
               </button>
             </div>
@@ -97,7 +95,7 @@ interface StatCard {
               [matRippleDisabled]="!stat.route"
               (click)="stat.route && navigateTo(stat.route)">
               <div class="stat-card__icon">
-                <mat-icon>{{ stat.icon }}</mat-icon>
+                <i class="fa-solid" [ngClass]="'fa-' + stat.icon" aria-hidden="true"></i>
               </div>
               <div class="stat-card__content">
                 <span class="stat-card__value">{{ stat.value }}</span>
@@ -119,7 +117,7 @@ interface StatCard {
               matRipple
               (click)="handleAction(action)">
               <div class="action-card__icon">
-                <mat-icon>{{ action.icon }}</mat-icon>
+                <i class="fa-solid" [ngClass]="'fa-' + action.icon" aria-hidden="true"></i>
               </div>
               <span class="action-card__label">{{ action.labelKey | translate }}</span>
             </button>
@@ -133,7 +131,7 @@ interface StatCard {
           <h2 class="dashboard__section-title">{{ 'dashboard.recentActivity' | translate }}</h2>
           <button mat-button color="primary" routerLink="/people">
             {{ 'common.all' | translate }}
-            <mat-icon>arrow_forward</mat-icon>
+            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
           </button>
         </div>
         
@@ -174,16 +172,16 @@ interface StatCard {
                     }
                   </span>
                 </div>
-                <mat-icon class="recent-item__arrow">chevron_right</mat-icon>
+                <i class="fa-solid fa-chevron-right recent-item__arrow" aria-hidden="true"></i>
               </div>
             }
           </div>
         } @else {
           <div class="empty-recent">
-            <mat-icon>history</mat-icon>
+            <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
             <p>{{ 'people.noPeople' | translate }}</p>
             <button mat-stroked-button color="primary" (click)="openAddPerson()">
-              <mat-icon>add</mat-icon>
+              <i class="fa-solid fa-plus" aria-hidden="true"></i>
               {{ 'people.addPerson' | translate }}
             </button>
           </div>
@@ -194,7 +192,7 @@ interface StatCard {
       <section class="dashboard__section">
         <div class="features-banner">
           <div class="features-banner__content">
-            <mat-icon>tips_and_updates</mat-icon>
+            <i class="fa-solid fa-lightbulb" aria-hidden="true"></i>
             <div>
               <h3>{{ 'dashboard.welcome' | translate }}</h3>
               <p>Start by adding family members and building your family tree.</p>
@@ -257,11 +255,11 @@ interface StatCard {
       
       &__hero-illustration {
         display: none;
-        
+
         @media (min-width: 768px) {
           display: flex;
-          
-          mat-icon {
+
+          i.fa-solid {
             font-size: 80px;
             width: 80px;
             height: 80px;
@@ -331,8 +329,8 @@ interface StatCard {
         align-items: center;
         justify-content: center;
         background: color-mix(in srgb, var(--stat-color, var(--ft-primary)) 15%, transparent);
-        
-        mat-icon {
+
+        i.fa-solid {
           color: var(--stat-color, var(--ft-primary));
           font-size: 24px;
         }
@@ -398,8 +396,8 @@ interface StatCard {
         align-items: center;
         justify-content: center;
         background: color-mix(in srgb, var(--action-color, var(--ft-primary)) 15%, transparent);
-        
-        mat-icon {
+
+        i.fa-solid {
           color: var(--action-color, var(--ft-primary));
           font-size: 28px;
           width: 28px;
@@ -508,8 +506,8 @@ interface StatCard {
       border-radius: var(--ft-radius-lg);
       border: 1px solid var(--ft-border);
       text-align: center;
-      
-      mat-icon {
+
+      i.fa-solid {
         font-size: 48px;
         width: 48px;
         height: 48px;
@@ -517,7 +515,7 @@ interface StatCard {
         opacity: 0.5;
         margin-bottom: var(--ft-spacing-md);
       }
-      
+
       p {
         margin: 0 0 var(--ft-spacing-md);
         color: var(--ft-on-surface-variant);
@@ -543,7 +541,7 @@ interface StatCard {
         align-items: flex-start;
         gap: var(--ft-spacing-md);
 
-        mat-icon {
+        i.fa-solid {
           color: var(--ft-primary);
           font-size: 32px;
           width: 32px;
@@ -586,7 +584,7 @@ interface StatCard {
         background: rgba(255, 152, 0, 0.2);
         margin-bottom: var(--ft-spacing-lg);
 
-        mat-icon {
+        i.fa-solid {
           font-size: 40px;
           width: 40px;
           height: 40px;
@@ -630,6 +628,7 @@ export class DashboardComponent implements OnInit {
   private readonly relationshipService = inject(RelationshipService);
   private readonly i18n = inject(I18nService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
 
@@ -641,17 +640,17 @@ export class DashboardComponent implements OnInit {
   hasNoTrees = signal(false);
   checkingTrees = signal(true);
   stats = signal<StatCard[]>([
-    { icon: 'people', labelKey: 'dashboard.totalPeople', value: '-', color: '#1976d2', route: '/people' },
-    { icon: 'male', labelKey: 'people.male', value: '-', color: '#1976d2', route: '/people?sex=male' },
-    { icon: 'female', labelKey: 'people.female', value: '-', color: '#c2185b', route: '/people?sex=female' },
-    { icon: 'family_restroom', labelKey: 'dashboard.totalFamilies', value: '-', color: '#7b1fa2', route: '/families' }
+    { icon: 'users', labelKey: 'dashboard.totalPeople', value: '-', color: '#1976d2', route: '/people' },
+    { icon: 'mars', labelKey: 'people.male', value: '-', color: '#1976d2', route: '/people?sex=male' },
+    { icon: 'venus', labelKey: 'people.female', value: '-', color: '#c2185b', route: '/people?sex=female' },
+    { icon: 'people-roof', labelKey: 'dashboard.totalFamilies', value: '-', color: '#7b1fa2', route: '/families' }
   ]);
 
   quickActions: QuickAction[] = [
-    { icon: 'person_add', labelKey: 'people.addPerson', action: () => this.openAddPerson(), color: '#1976d2' },
-    { icon: 'account_tree', labelKey: 'nav.familyTree', route: '/tree', color: '#2e7d32' },
-    { icon: 'people', labelKey: 'nav.people', route: '/people', color: '#7b1fa2' },
-    { icon: 'photo_library', labelKey: 'nav.media', route: '/media', color: '#f57c00' }
+    { icon: 'user-plus', labelKey: 'people.addPerson', action: () => this.openAddPerson(), color: '#1976d2' },
+    { icon: 'sitemap', labelKey: 'nav.familyTree', route: '/tree', color: '#2e7d32' },
+    { icon: 'users', labelKey: 'nav.people', route: '/people', color: '#7b1fa2' },
+    { icon: 'images', labelKey: 'nav.media', route: '/media', color: '#f57c00' }
   ];
 
   // Track previous tree ID to detect changes
@@ -669,16 +668,25 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.currentUser.set(this.authService.getCurrentUser());
-    this.checkUserTrees();
+    
+    // Check for tree ID in route params (from /trees/:id)
+    this.route.params.subscribe(params => {
+      const treeId = params['id'];
+      if (treeId) {
+        // Set this tree as the active context
+        this.treeContext.selectTree(treeId);
+      }
+      this.checkUserTrees();
+    });
   }
 
   private reloadDashboardData(): void {
     // Reset stats
     this.stats.set([
-      { icon: 'people', labelKey: 'dashboard.totalPeople', value: '-', color: '#1976d2', route: '/people' },
-      { icon: 'male', labelKey: 'people.male', value: '-', color: '#1976d2', route: '/people?sex=male' },
-      { icon: 'female', labelKey: 'people.female', value: '-', color: '#c2185b', route: '/people?sex=female' },
-      { icon: 'family_restroom', labelKey: 'dashboard.totalFamilies', value: '-', color: '#7b1fa2', route: '/families' }
+      { icon: 'users', labelKey: 'dashboard.totalPeople', value: '-', color: '#1976d2', route: '/people' },
+      { icon: 'mars', labelKey: 'people.male', value: '-', color: '#1976d2', route: '/people?sex=male' },
+      { icon: 'venus', labelKey: 'people.female', value: '-', color: '#c2185b', route: '/people?sex=female' },
+      { icon: 'people-roof', labelKey: 'dashboard.totalFamilies', value: '-', color: '#7b1fa2', route: '/families' }
     ]);
     this.recentPeople.set([]);
 

@@ -2,7 +2,6 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
 
 export interface ConfirmDialogData {
@@ -17,14 +16,13 @@ export interface ConfirmDialogData {
 @Component({
   selector: 'app-confirm-dialog',
   standalone: true,
-  imports: [CommonModule, MatDialogModule, MatButtonModule, MatIconModule, TranslatePipe],
+  imports: [CommonModule, MatDialogModule, MatButtonModule, TranslatePipe],
   template: `
     <div class="confirm-dialog">
       <div class="confirm-dialog__header">
         @if (data.icon) {
-          <mat-icon [class]="'confirm-dialog__icon confirm-dialog__icon--' + (data.confirmColor || 'primary')">
-            {{ data.icon }}
-          </mat-icon>
+          <i [ngClass]="[data.icon, 'confirm-dialog__icon', 'confirm-dialog__icon--' + (data.confirmColor || 'primary')]"
+             aria-hidden="true"></i>
         }
         <h2 class="confirm-dialog__title">{{ data.title }}</h2>
       </div>
@@ -64,19 +62,22 @@ export interface ConfirmDialogData {
       }
       
       &__icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
         width: 48px;
         height: 48px;
         font-size: 48px;
         margin-bottom: var(--ft-spacing-md);
-        
+
         &--primary {
           color: var(--ft-primary);
         }
-        
+
         &--warn {
           color: var(--ft-error);
         }
-        
+
         &--accent {
           color: var(--ft-accent);
         }

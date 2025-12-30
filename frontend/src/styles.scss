@@ -39,6 +39,31 @@ html {
 
 // CSS Custom Properties for theming
 :root {
+  // =============================================
+  // Font Awesome Icon Theme Tokens
+  // =============================================
+  --icon-xs: 0.75rem;
+  --icon-sm: 0.875rem;
+  --icon-md: 1rem;
+  --icon-lg: 1.25rem;
+  --icon-xl: 1.5rem;
+  --icon-2xl: 2rem;
+
+  // Nubian theme colors for icons
+  --icon-primary: #C17E3E;
+  --icon-primary-light: #D4A574;
+  --icon-primary-dark: #8B5A2B;
+  --icon-secondary: #1976d2;
+  --icon-accent: #ff6f00;
+
+  // Icon hover effects
+  --icon-hover-scale: 1.1;
+  --icon-hover-opacity: 0.8;
+
+  // Icon glow/emphasis
+  --icon-glow-color: rgba(193, 126, 62, 0.4);
+  --icon-glow-size: 0 0 8px;
+
   // Colors
   --ft-primary: #1976d2;
   --ft-primary-light: #42a5f5;
@@ -147,10 +172,162 @@ body {
 [dir="rtl"] {
   direction: rtl;
   text-align: right;
-  
+
   body {
     font-family: var(--ft-font-family-ar);
   }
+}
+
+// =============================================
+// Nobiin/Nubian Font Setup (DO NOT MODIFY)
+// =============================================
+@font-face {
+  font-family: 'SophiaNubian';
+  src: url('/assets/fonts/sophia-nubian/SophiaNubian.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --font-nubian: 'SophiaNubian', system-ui, sans-serif;
+}
+
+.nubian {
+  font-family: var(--font-nubian);
+}
+
+// =============================================
+// Font Awesome Icon Utilities
+// =============================================
+
+// Base icon class for consistent styling
+.fa-icon {
+  font-size: var(--icon-md);
+  color: inherit;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+
+  &--sm { font-size: var(--icon-sm); }
+  &--md { font-size: var(--icon-md); }
+  &--lg { font-size: var(--icon-lg); }
+  &--xl { font-size: var(--icon-xl); }
+  &--2xl { font-size: var(--icon-2xl); }
+
+  &--primary { color: var(--icon-primary); }
+  &--secondary { color: var(--icon-secondary); }
+  &--accent { color: var(--icon-accent); }
+  &--male { color: var(--ft-male); }
+  &--female { color: var(--ft-female); }
+  &--success { color: var(--ft-success); }
+  &--warning { color: var(--ft-warning); }
+  &--error { color: var(--ft-error); }
+  &--muted { color: var(--ft-on-surface-variant); }
+
+  &--hover:hover {
+    transform: scale(var(--icon-hover-scale));
+    opacity: var(--icon-hover-opacity);
+  }
+
+  &--glow {
+    filter: drop-shadow(var(--icon-glow-size) var(--icon-glow-color));
+  }
+}
+
+// Icon button styling
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--ft-touch-target);
+  min-height: var(--ft-touch-target);
+  padding: var(--ft-spacing-sm);
+  border: none;
+  background: transparent;
+  border-radius: var(--ft-radius-full);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.04);
+  }
+
+  &:active {
+    background: rgba(0, 0, 0, 0.08);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// =============================================
+// D3 SVG Icon Strategy (Font Awesome as Font)
+// =============================================
+
+// Base class for Font Awesome icons in D3 SVG
+.node-icon {
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+  fill: var(--icon-primary);
+  pointer-events: none;
+  dominant-baseline: central;
+  text-anchor: middle;
+}
+
+// Solid icons (weight 900)
+.node-icon-solid {
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+  fill: currentColor;
+  pointer-events: none;
+}
+
+// Regular icons (weight 400)
+.node-icon-regular {
+  font-family: "Font Awesome 6 Free";
+  font-weight: 400;
+  fill: currentColor;
+  pointer-events: none;
+}
+
+// Brands icons
+.node-icon-brands {
+  font-family: "Font Awesome 6 Brands";
+  font-weight: 400;
+  fill: currentColor;
+  pointer-events: none;
+}
+
+// D3 node icon variants
+.node-icon-male {
+  @extend .node-icon-solid;
+  fill: var(--ft-male);
+}
+
+.node-icon-female {
+  @extend .node-icon-solid;
+  fill: var(--ft-female);
+}
+
+.node-icon-unknown {
+  @extend .node-icon-solid;
+  fill: var(--ft-unknown);
+}
+
+.node-icon-deceased {
+  @extend .node-icon-solid;
+  fill: #666;
+}
+
+.node-icon-private {
+  @extend .node-icon-solid;
+  fill: var(--ft-warning);
+}
+
+.node-icon-marriage {
+  @extend .node-icon-solid;
+  fill: #e91e63;
 }
 
 // Mobile-first breakpoints
@@ -546,8 +723,7 @@ $breakpoints: (
   text-align: center;
   
   &__icon {
-    width: 80px;
-    height: 80px;
+    font-size: 80px;
     margin-bottom: var(--ft-spacing-lg);
     color: var(--ft-on-surface-variant);
     opacity: 0.5;

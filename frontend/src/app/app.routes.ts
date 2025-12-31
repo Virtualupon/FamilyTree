@@ -77,6 +77,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/family-trees/accept-invitation.component').then(m => m.AcceptInvitationComponent)
   },
   {
+    path: 'offline',
+    loadComponent: () => import('./features/offline/offline.component').then(m => m.OfflineComponent)
+  },
+  {
     path: '**',
     redirectTo: ''
   }

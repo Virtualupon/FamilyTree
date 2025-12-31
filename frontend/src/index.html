@@ -5,30 +5,40 @@
   <title>Family Tree Platform</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#1976d2">
+
+  <!-- PWA Meta Tags -->
+  <meta name="theme-color" content="#187573">
+  <meta name="description" content="Preserve your Nubian heritage with our family tree platform">
+  <meta name="application-name" content="Family Tree">
+
+  <!-- iOS PWA Support -->
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="description" content="Professional family tree management platform">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Family Tree">
+  <link rel="apple-touch-icon" href="icons/icon-152x152.png">
+
+  <!-- Manifest -->
+  <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
-  
+
   <!-- Preconnect to Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  
-  <!-- Fonts: Inter (Latin), Cairo (Arabic), Roboto (fallback) -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Cairo:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-  
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+
+  <!-- Fonts: Inter (Latin), Cairo (Arabic), Cinzel (Headings), Roboto (fallback) -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Cairo:wght@300;400;500;600;700&amp;family=Cinzel:wght@400;500;600;700&amp;family=Roboto:wght@300;400;500;700&amp;display=swap" rel="stylesheet">
+
   <!-- Font Awesome Free is loaded via angular.json styles -->
-  
+
   <!-- Prevent flash of unstyled content -->
   <style>
-    html, body { 
-      margin: 0; 
-      padding: 0; 
+    html, body {
+      margin: 0;
+      padding: 0;
       height: 100%;
-      background: #fafafa;
+      background: #FAF7F1; /* Nubian warm white */
     }
-    
+
     /* Initial loading state */
     .app-loading {
       position: fixed;
@@ -37,26 +47,26 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background: #fafafa;
+      background: #FAF7F1; /* Nubian warm white */
       z-index: 9999;
     }
-    
+
     .app-loading__spinner {
       width: 40px;
       height: 40px;
-      border: 3px solid #e0e0e0;
-      border-top-color: #1976d2;
+      border: 3px solid #F4E4D7; /* Nubian beige */
+      border-top-color: #187573; /* Nubian teal */
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
-    
+
     .app-loading__text {
       margin-top: 16px;
-      color: #666;
+      color: #6B6B6B; /* Nubian gray */
       font-family: 'Inter', sans-serif;
       font-size: 14px;
     }
-    
+
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
@@ -68,9 +78,9 @@
     <div class="app-loading__spinner"></div>
     <div class="app-loading__text">Loading...</div>
   </div>
-  
+
   <app-root></app-root>
-  
+
   <script>
     // Remove loading indicator when app is ready
     window.addEventListener('load', function() {
@@ -86,5 +96,6 @@
       }, 100);
     });
   </script>
+  <noscript>Please enable JavaScript to continue using this application.</noscript>
 </body>
 </html>

@@ -1,17 +1,52 @@
 @use '@angular/material' as mat;
 
-// Custom theme colors
-$family-tree-primary: (
-  50: #e3f2fd,
-  100: #bbdefb,
-  200: #90caf9,
-  300: #64b5f6,
-  400: #42a5f5,
-  500: #1976d2,
-  600: #1565c0,
-  700: #0d47a1,
-  800: #0a3d8f,
-  900: #062a63,
+// ============================================
+// NUBIAN THEME IMPORT
+// ============================================
+@import 'styles/nubian-theme';
+
+// ============================================
+// GOOGLE FONTS
+// ============================================
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Cormorant+Garamond:wght@300;400;600;700&family=Inter:wght@300;400;500;600;700&family=Amiri:wght@400;700&family=Cairo:wght@400;600;700&family=Playfair+Display:wght@400;700;900&display=swap');
+
+// Custom Nubian Material Theme
+$nubian-primary-palette: (
+  50: #E6F5F5,
+  100: #B3E0DF,
+  200: #80CBCA,
+  300: #4DB6B4,
+  400: #2B9A97,
+  500: #187573,
+  600: #136160,
+  700: #0D5654,
+  800: #094544,
+  900: #063433,
+  contrast: (
+    50: rgba(0, 0, 0, 0.87),
+    100: rgba(0, 0, 0, 0.87),
+    200: rgba(0, 0, 0, 0.87),
+    300: rgba(0, 0, 0, 0.87),
+    400: white,
+    500: white,
+    600: white,
+    700: white,
+    800: white,
+    900: white,
+  )
+);
+
+$nubian-accent-palette: (
+  50: #FFF8F0,
+  100: #FFEDD5,
+  200: #FED9AA,
+  300: #FDC07D,
+  400: #D4A574,
+  500: #C17E3E,
+  600: #A66A2E,
+  700: #8B5A2B,
+  800: #704820,
+  900: #5A3A1A,
   contrast: (
     50: rgba(0, 0, 0, 0.87),
     100: rgba(0, 0, 0, 0.87),
@@ -29,15 +64,15 @@ $family-tree-primary: (
 html {
   @include mat.theme((
     color: (
-      primary: mat.$azure-palette,
-      tertiary: mat.$blue-palette,
+      primary: $nubian-primary-palette,
+      tertiary: $nubian-accent-palette,
     ),
-    typography: Roboto,
+    typography: Inter,
     density: 0,
   ));
 }
 
-// CSS Custom Properties for theming
+// CSS Custom Properties for theming (Nubian Theme)
 :root {
   // =============================================
   // Font Awesome Icon Theme Tokens
@@ -53,8 +88,8 @@ html {
   --icon-primary: #C17E3E;
   --icon-primary-light: #D4A574;
   --icon-primary-dark: #8B5A2B;
-  --icon-secondary: #1976d2;
-  --icon-accent: #ff6f00;
+  --icon-secondary: #187573;
+  --icon-accent: #E85D35;
 
   // Icon hover effects
   --icon-hover-scale: 1.1;
@@ -64,35 +99,37 @@ html {
   --icon-glow-color: rgba(193, 126, 62, 0.4);
   --icon-glow-size: 0 0 8px;
 
-  // Colors
-  --ft-primary: #1976d2;
-  --ft-primary-light: #42a5f5;
-  --ft-primary-dark: #0d47a1;
-  --ft-accent: #ff6f00;
-  --ft-accent-light: #ffa040;
-  --ft-accent-dark: #c43e00;
+  // Primary Colors (Nubian Teal)
+  --ft-primary: #187573;
+  --ft-primary-light: #2B9A97;
+  --ft-primary-dark: #0D5654;
+  
+  // Secondary Colors (Nubian Gold)
+  --ft-accent: #C17E3E;
+  --ft-accent-light: #D4A574;
+  --ft-accent-dark: #8B5A2B;
   
   // Semantic colors
-  --ft-success: #2e7d32;
-  --ft-warning: #ed6c02;
-  --ft-error: #d32f2f;
-  --ft-info: #0288d1;
+  --ft-success: #2D7A3E;
+  --ft-warning: #E85D35;
+  --ft-error: #D32F2F;
+  --ft-info: #187573;
   
-  // Neutral colors
-  --ft-background: #fafafa;
+  // Neutral colors (Nubian styled)
+  --ft-background: #FAF7F1;
   --ft-surface: #ffffff;
-  --ft-surface-variant: #f5f5f5;
-  --ft-on-surface: #212121;
-  --ft-on-surface-variant: #666666;
-  --ft-border: #e0e0e0;
-  --ft-divider: #eeeeee;
+  --ft-surface-variant: #FFF9F5;
+  --ft-on-surface: #2D2D2D;
+  --ft-on-surface-variant: #6B6B6B;
+  --ft-border: #F4E4D7;
+  --ft-divider: #F4E4D7;
   
-  // Gender colors
-  --ft-male: #1976d2;
-  --ft-male-light: #e3f2fd;
-  --ft-female: #c2185b;
-  --ft-female-light: #fce4ec;
-  --ft-unknown: #757575;
+  // Gender colors (Nubian themed)
+  --ft-male: #187573;
+  --ft-male-light: #E6F5F5;
+  --ft-female: #C17E3E;
+  --ft-female-light: #FFF8F0;
+  --ft-unknown: #6B6B6B;
   --ft-unknown-light: #f5f5f5;
   
   // Spacing
@@ -1431,5 +1468,36 @@ $breakpoints: (
 @for $i from 1 through 20 {
   .ft-stagger-#{$i} {
     animation-delay: #{$i * 50}ms;
+  }
+}
+
+// ============================================
+// PWA SNACKBAR STYLES
+// ============================================
+.nubian-snackbar {
+  &--info {
+    --mdc-snackbar-container-color: #187573;
+    --mdc-snackbar-supporting-text-color: white;
+    --mat-snack-bar-button-color: #C17E3E;
+
+    .mat-mdc-button {
+      color: #C17E3E !important;
+      font-weight: 600;
+    }
+  }
+
+  &--success {
+    --mdc-snackbar-container-color: #2D7A3E;
+    --mdc-snackbar-supporting-text-color: white;
+  }
+
+  &--warning {
+    --mdc-snackbar-container-color: #E85D35;
+    --mdc-snackbar-supporting-text-color: white;
+  }
+
+  &--error {
+    --mdc-snackbar-container-color: #D32F2F;
+    --mdc-snackbar-supporting-text-color: white;
   }
 }

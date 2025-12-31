@@ -16,6 +16,8 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 
 import { AuthService } from '../../core/services/auth.service';
 import { TreeContextService } from '../../core/services/tree-context.service';
+import { NetworkService } from '../../core/services/network.service';
+import { UpdateService } from '../../core/services/update.service';
 import { I18nService, TranslatePipe, Language, LanguageConfig } from '../../core/i18n';
 
 interface NavItem {
@@ -61,6 +63,14 @@ interface NavItem {
             <i class="fa-solid fa-people-roof layout__logo-icon" aria-hidden="true"></i>
             <span class="layout__logo-text d-mobile-none">Family Tree</span>
           </a>
+
+          <!-- Offline Indicator -->
+          @if (networkService.isOffline()) {
+            <div class="layout__offline-indicator" [matTooltip]="'You are offline'">
+              <i class="fa-solid fa-wifi" aria-hidden="true"></i>
+              <span class="d-mobile-none">Offline</span>
+            </div>
+          }
 
           <!-- Town Selector (for Admin/SuperAdmin with assigned towns) -->
           @if (treeContext.showTownSelector()) {
@@ -391,6 +401,31 @@ interface NavItem {
       &__logo-icon {
         font-size: 1.75rem;
         color: #C17E3E; // $nubian-gold
+      }
+
+      // Offline Indicator
+      &__offline-indicator {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%);
+        border: 1px solid #E85D35; // Nubian orange
+        border-radius: 20px;
+        color: #E85D35;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-inline-start: var(--ft-spacing-sm);
+        animation: pulse 2s ease-in-out infinite;
+
+        i.fa-solid {
+          font-size: 0.875rem;
+        }
+      }
+
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
       }
 
       // Tree Selector
@@ -889,6 +924,8 @@ export class LayoutComponent implements OnInit {
   private readonly router = inject(Router);
   readonly i18n = inject(I18nService);
   readonly treeContext = inject(TreeContextService);
+  readonly networkService = inject(NetworkService);
+  private readonly updateService = inject(UpdateService); // Initialized to check for updates
 
   mobileMenuOpen = signal(false);
   currentUser = computed(() => this.authService.getCurrentUser());

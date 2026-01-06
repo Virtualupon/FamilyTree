@@ -282,6 +282,10 @@
     "lastName": "ⲛⲟ̄ⲅ ⲓⲣⲓⲛ",
     "addName": "ⲓⲣⲓⲛ ⲇⲓⲣⲣ",
     "transliterate": "ⲥⲁⲃⲃⲓⲗ",
+    "namesHint": "Enter name in one language. Others auto-filled.",
+    "nobiinOptional": "Optional - Nobiin script",
+    "autoFillNames": "Auto-fill Names",
+    "autoFillHint": "Auto transliterate to other languages",
     "family": "ⲛⲟ̄ⲅ",
     "noFamily": "ⲛⲟ̄ⲅ ⲙⲓⲛⲛⲁ"
   },
@@ -429,5 +433,27 @@
     "selectTownHint": "ⲕⲟ̄ⲣⲁ ⲥⲟⲗⲗ ⲛⲟ̄ⲅ ⲅⲓⲣⲣ ⲥⲁⲃⲃⲓⲗ",
     "manageFamilies": "ⲛⲟ̄ⲅ ⲕⲟⲗⲗⲟ ⲥⲁⲃⲃⲓⲗ ⲕⲁⲱⲓ",
     "viewMembers": "ⲓⲇⲇⲓ ⲅⲓⲣⲣ"
+  },
+  "relationshipEditor": {
+    "createTitle": "ⲱⲁⲥⲗⲁ ⲇⲓⲣⲣ",
+    "editTitle": "ⲱⲁⲥⲗⲁ ⲥⲁⲃⲃⲓⲗ",
+    "person": "ⲓⲇⲇⲓ",
+    "direction": "ⲱⲁⲥⲗⲁ ⲧⲁⲣⲓⲕ",
+    "addAsParent": "ⲁⲃⲃⲁ/ⲁⲛⲛⲁ ⲇⲓⲣⲣ",
+    "addAsChild": "ⲁⲅⲅ ⲇⲓⲣⲣ",
+    "addAsSpouse": "ⲧⲁⲱⲓ ⲇⲓⲣⲣ",
+    "relationshipType": "ⲱⲁⲥⲗⲁ ⲛⲟ̄ⲩ",
+    "selectType": "ⲱⲁⲥⲗⲁ ⲛⲟ̄ⲩ ⲥⲟⲗⲗ",
+    "relatedPerson": "ⲓⲇⲇⲓ ⲧⲁⲛⲓ",
+    "searchHint": "ⲓⲇⲇⲓ ⲕⲁⲱⲓ ⲱⲁⲥⲗⲁ ⲇⲓⲣⲣ",
+    "notes": "ⲛⲟ̄ⲧ",
+    "notesPlaceholder": "ⲱⲁⲥⲗⲁ ⲛⲟ̄ⲧ ⲧⲁⲛⲓ...",
+    "createSuccess": "ⲱⲁⲥⲗⲁ ⲇⲓⲣⲣ ⲧⲁⲙⲙ",
+    "updateSuccess": "ⲱⲁⲥⲗⲁ ⲥⲁⲃⲃⲓⲗ ⲧⲁⲙⲙ",
+    "deleteSuccess": "ⲱⲁⲥⲗⲁ ⲙⲁⲥⲥ ⲧⲁⲙⲙ",
+    "createError": "ⲱⲁⲥⲗⲁ ⲇⲓⲣⲣ ⲫⲁⲓⲗ",
+    "updateError": "ⲱⲁⲥⲗⲁ ⲥⲁⲃⲃⲓⲗ ⲫⲁⲓⲗ",
+    "deleteError": "ⲱⲁⲥⲗⲁ ⲙⲁⲥⲥ ⲫⲁⲓⲗ",
+    "relationshipCreated": "ⲱⲁⲥⲗⲁ ⲇⲓⲣⲣ ⲧⲁⲙⲙ"
   }
 }

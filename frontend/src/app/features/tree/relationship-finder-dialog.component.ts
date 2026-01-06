@@ -8,22 +8,23 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatRippleModule } from '@angular/material/core';
 
-import { PersonService } from '../../core/services/person.service';
+import { PersonSearchService } from '../../core/services/person-search.service';
 import { TreeService } from '../../core/services/tree.service';
 import { TreeContextService } from '../../core/services/tree-context.service';
 import { I18nService, TranslatePipe } from '../../core/i18n';
-import { PersonListItem, Sex } from '../../core/models/person.models';
+import { Sex } from '../../core/models/person.models';
+import { SearchPersonItem, getPrimaryName } from '../../core/models/search.models';
 import { TreePersonNode } from '../../core/models/tree.models';
 import { RelationshipPathResponse } from '../../core/models/relationship-path.models';
 
 export interface RelationshipFinderDialogData {
-  fromPerson: TreePersonNode | PersonListItem;
+  fromPerson: TreePersonNode | SearchPersonItem;
 }
 
 export interface RelationshipFinderDialogResult {
   pathData: RelationshipPathResponse;
-  fromPerson: TreePersonNode | PersonListItem;
-  toPerson: PersonListItem;
+  fromPerson: TreePersonNode | SearchPersonItem;
+  toPerson: SearchPersonItem;
 }
 
 @Component({
@@ -79,9 +80,9 @@ export interface RelationshipFinderDialogResult {
                 class="relationship-finder__avatar"
                 [class.relationship-finder__avatar--male]="selectedToPerson()!.sex === Sex.Male"
                 [class.relationship-finder__avatar--female]="selectedToPerson()!.sex === Sex.Female">
-                {{ getInitials(selectedToPerson()!.primaryName) }}
+                {{ getInitials(getPersonDisplayName(selectedToPerson())) }}
               </div>
-              <span class="relationship-finder__person-name">{{ selectedToPerson()!.primaryName }}</span>
+              <span class="relationship-finder__person-name">{{ getPersonDisplayName(selectedToPerson()) }}</span>
               <i class="fa-solid fa-xmark relationship-finder__remove" aria-hidden="true"></i>
             </div>
           } @else {
@@ -124,10 +125,10 @@ export interface RelationshipFinderDialogResult {
                         class="relationship-finder__avatar relationship-finder__avatar--small"
                         [class.relationship-finder__avatar--male]="person.sex === Sex.Male"
                         [class.relationship-finder__avatar--female]="person.sex === Sex.Female">
-                        {{ getInitials(person.primaryName) }}
+                        {{ getInitials(getPersonDisplayName(person)) }}
                       </div>
                       <div class="relationship-finder__result-info">
-                        <div class="relationship-finder__result-name">{{ person.primaryName }}</div>
+                        <div class="relationship-finder__result-name">{{ getPersonDisplayName(person) }}</div>
                         <div class="relationship-finder__result-meta">
                           @if (person.birthDate) {
                             <span>{{ formatYear(person.birthDate) }}</span>
@@ -400,7 +401,7 @@ export interface RelationshipFinderDialogResult {
 export class RelationshipFinderDialogComponent implements OnInit, OnDestroy {
   readonly dialogRef = inject(MatDialogRef<RelationshipFinderDialogComponent>);
   readonly data = inject<RelationshipFinderDialogData>(MAT_DIALOG_DATA);
-  private readonly personService = inject(PersonService);
+  private readonly searchService = inject(PersonSearchService);
   private readonly treeService = inject(TreeService);
   private readonly treeContext = inject(TreeContextService);
   private readonly i18n = inject(I18nService);
@@ -410,7 +411,16 @@ export class RelationshipFinderDialogComponent implements OnInit, OnDestroy {
 
   // From person info
   get fromPersonName(): string {
-    return this.data.fromPerson.primaryName || 'Unknown';
+    const person = this.data.fromPerson;
+    // Check if it's a TreePersonNode with primaryName property
+    if ('primaryName' in person && person.primaryName) {
+      return person.primaryName;
+    }
+    // Otherwise it's a SearchPersonItem - use getPrimaryName
+    if ('names' in person && person.names) {
+      return getPrimaryName(person as SearchPersonItem);
+    }
+    return 'Unknown';
   }
 
   get fromPersonSex(): Sex {
@@ -419,9 +429,9 @@ export class RelationshipFinderDialogComponent implements OnInit, OnDestroy {
 
   // Search state
   searchQuery = '';
-  searchResults = signal<PersonListItem[]>([]);
+  searchResults = signal<SearchPersonItem[]>([]);
   searching = signal(false);
-  selectedToPerson = signal<PersonListItem | null>(null);
+  selectedToPerson = signal<SearchPersonItem | null>(null);
   findingPath = signal(false);
 
   private searchSubject = new Subject<string>();
@@ -457,11 +467,7 @@ export class RelationshipFinderDialogComponent implements OnInit, OnDestroy {
   search(query: string): void {
     this.searching.set(true);
 
-    this.personService.searchPeople({
-      nameQuery: query,
-      page: 1,
-      pageSize: 20
-    }).subscribe({
+    this.searchService.quickSearch(query, 1, 20).subscribe({
       next: (response) => {
         // Filter out the from person
         const filtered = response.items.filter(p => p.id !== this.data.fromPerson.id);
@@ -476,7 +482,12 @@ export class RelationshipFinderDialogComponent implements OnInit, OnDestroy {
     });
   }
 
-  selectToPerson(person: PersonListItem): void {
+  // Helper to get display name from SearchPersonItem
+  getPersonDisplayName(person: SearchPersonItem | null): string {
+    return person ? getPrimaryName(person) : 'Unknown';
+  }
+
+  selectToPerson(person: SearchPersonItem): void {
     if (person.id === this.data.fromPerson.id) {
       return;
     }

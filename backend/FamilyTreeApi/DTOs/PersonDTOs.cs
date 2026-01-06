@@ -9,6 +9,9 @@ namespace FamilyTreeApi.DTOs;
 public record PersonListItemDto(
     Guid Id,
     string? PrimaryName,
+    string? NameArabic,
+    string? NameEnglish,
+    string? NameNobiin,
     Sex? Sex,
     DateTime? BirthDate,
     DatePrecision BirthPrecision,
@@ -25,6 +28,9 @@ public record PersonResponseDto(
     Guid Id,
     Guid OrgId,
     string? PrimaryName,
+    string? NameArabic,
+    string? NameEnglish,
+    string? NameNobiin,
     Sex? Sex,
     string? Gender,
     DateTime? BirthDate,
@@ -46,13 +52,15 @@ public record PersonResponseDto(
     bool NeedsReview,
     bool HasConflict,
     DateTime CreatedAt,
-    DateTime UpdatedAt,
-    List<PersonNameDto> Names
+    DateTime UpdatedAt
 );
 
 public record CreatePersonDto(
     Guid? TreeId = null,  // Optional: for SuperAdmin/Admin to specify which tree
     string? PrimaryName = null,
+    string? NameArabic = null,
+    string? NameEnglish = null,
+    string? NameNobiin = null,
     Sex? Sex = null,
     string? Gender = null,
     DateTime? BirthDate = null,
@@ -67,12 +75,14 @@ public record CreatePersonDto(
     string? Religion = null,
     string? Nationality = null,
     string? Ethnicity = null,
-    string? Notes = null,
-    List<PersonNameDto>? Names = null
+    string? Notes = null
 );
 
 public record UpdatePersonDto(
     string? PrimaryName = null,
+    string? NameArabic = null,
+    string? NameEnglish = null,
+    string? NameNobiin = null,
     Sex? Sex = null,
     string? Gender = null,
     DateTime? BirthDate = null,
@@ -92,6 +102,10 @@ public record UpdatePersonDto(
     bool? NeedsReview = null
 );
 
+/// <summary>
+/// Legacy DTO for backward compatibility. Use direct name columns instead.
+/// </summary>
+[Obsolete("Use NameArabic, NameEnglish, NameNobiin columns directly on Person")]
 public record PersonNameDto(
     Guid? Id,
     string? Script,

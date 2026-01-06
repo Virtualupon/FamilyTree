@@ -12,27 +12,28 @@ namespace FamilyTreeApi.Services;
 /// Person service implementation containing all business logic.
 /// Uses repositories for data access and AutoMapper for DTO mapping.
 /// Services do NOT reference DbContext directly.
+/// Auto-transliterates names to Arabic, English, and Nobiin when created.
 /// </summary>
 public class PersonService : IPersonService
 {
     private readonly IPersonRepository _personRepository;
-    private readonly IPersonNameRepository _personNameRepository;
     private readonly IOrgRepository _orgRepository;
+    private readonly INameTransliterationService? _transliterationService;
     private readonly IMapper _mapper;
     private readonly ILogger<PersonService> _logger;
 
     public PersonService(
         IPersonRepository personRepository,
-        IPersonNameRepository personNameRepository,
         IOrgRepository orgRepository,
         IMapper mapper,
-        ILogger<PersonService> logger)
+        ILogger<PersonService> logger,
+        INameTransliterationService? transliterationService = null)
     {
         _personRepository = personRepository;
-        _personNameRepository = personNameRepository;
         _orgRepository = orgRepository;
         _mapper = mapper;
         _logger = logger;
+        _transliterationService = transliterationService;
     }
 
     // ============================================================================
@@ -142,46 +143,30 @@ public class PersonService : IPersonService
 
         var person = _mapper.Map<Person>(dto);
         person.OrgId = orgId.Value;
+        person.NameArabic = dto.NameArabic;
+        person.NameEnglish = dto.NameEnglish;
+        person.NameNobiin = dto.NameNobiin;
         person.CreatedAt = DateTime.UtcNow;
         person.UpdatedAt = DateTime.UtcNow;
+
+        // Set primary name from provided names if not explicitly set
+        if (string.IsNullOrWhiteSpace(person.PrimaryName))
+        {
+            person.PrimaryName = dto.NameEnglish ?? dto.NameArabic ?? dto.NameNobiin;
+        }
 
         _personRepository.Add(person);
         await _personRepository.SaveChangesAsync(cancellationToken);
 
-        // Handle names separately (not mapped due to complexity)
-        if (dto.Names != null && dto.Names.Any())
+        // Auto-transliterate to fill in missing name variants
+        var sourceName = dto.NameArabic ?? dto.NameEnglish ?? dto.NameNobiin;
+        if (!string.IsNullOrWhiteSpace(sourceName))
         {
-            foreach (var nameDto in dto.Names)
-            {
-                var personName = new PersonName
-                {
-                    PersonId = person.Id,
-                    Script = nameDto.Script ?? "Latin",
-                    Given = nameDto.Given,
-                    Middle = nameDto.Middle,
-                    Family = nameDto.Family,
-                    Full = nameDto.Full,
-                    Transliteration = nameDto.Transliteration,
-                    Type = nameDto.Type,
-                    CreatedAt = DateTime.UtcNow
-                };
-                _personNameRepository.Add(personName);
-            }
-
-            // Set primary name if not already set
-            if (string.IsNullOrWhiteSpace(person.PrimaryName))
-            {
-                var primaryName = dto.Names.FirstOrDefault(n => n.Type == NameType.Primary);
-                if (primaryName != null && !string.IsNullOrWhiteSpace(primaryName.Full))
-                {
-                    person.PrimaryName = primaryName.Full;
-                }
-            }
-
-            await _personNameRepository.SaveChangesAsync(cancellationToken);
+            await GenerateTransliteratedNamesAsync(person, sourceName, orgId.Value, cancellationToken);
+            await _personRepository.SaveChangesAsync(cancellationToken);
         }
 
-        // Reload with includes for response
+        // Reload for response
         var createdPerson = await _personRepository.GetByIdWithDetailsAsync(person.Id, orgId.Value, cancellationToken);
 
         _logger.LogInformation("Person created: {PersonId} in Org: {OrgId}", person.Id, orgId);
@@ -217,6 +202,9 @@ public class PersonService : IPersonService
 
         // Apply partial updates (preserving existing behavior)
         if (dto.PrimaryName != null) person.PrimaryName = dto.PrimaryName;
+        if (dto.NameArabic != null) person.NameArabic = dto.NameArabic;
+        if (dto.NameEnglish != null) person.NameEnglish = dto.NameEnglish;
+        if (dto.NameNobiin != null) person.NameNobiin = dto.NameNobiin;
         if (dto.Sex.HasValue) person.Sex = dto.Sex.Value;
         if (dto.Gender != null) person.Gender = dto.Gender;
         if (dto.BirthDate.HasValue) person.BirthDate = dto.BirthDate;
@@ -290,131 +278,6 @@ public class PersonService : IPersonService
 
         _logger.LogInformation("Person deleted: {PersonId} with {ParentChildCount} parent-child links, {UnionCount} union memberships, and {TagCount} tags",
             id, parentChildRecords.Count, unionMemberships.Count, personTags.Count);
-
-        return ServiceResult.Success();
-    }
-
-    // ============================================================================
-    // PERSON NAME OPERATIONS
-    // ============================================================================
-
-    public async Task<ServiceResult<PersonNameDto>> AddPersonNameAsync(
-        Guid personId,
-        PersonNameDto dto,
-        Guid? treeId,
-        UserContext userContext,
-        CancellationToken cancellationToken = default)
-    {
-        if (!userContext.CanContribute())
-        {
-            return ServiceResult<PersonNameDto>.Forbidden();
-        }
-
-        var (orgId, error) = await ResolveOrgIdAsync(treeId, userContext, cancellationToken);
-        if (orgId == null)
-        {
-            return ServiceResult<PersonNameDto>.Failure(error!);
-        }
-
-        if (!await _personRepository.ExistsInOrgAsync(personId, orgId.Value, cancellationToken))
-        {
-            return ServiceResult<PersonNameDto>.NotFound("Person not found");
-        }
-
-        var personName = new PersonName
-        {
-            PersonId = personId,
-            Script = dto.Script ?? "Latin",
-            Given = dto.Given,
-            Middle = dto.Middle,
-            Family = dto.Family,
-            Full = dto.Full,
-            Transliteration = dto.Transliteration,
-            Type = dto.Type,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        _personNameRepository.Add(personName);
-        await _personNameRepository.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation("Name added to person {PersonId}: {NameId}", personId, personName.Id);
-
-        var responseDto = _mapper.Map<PersonNameDto>(personName);
-        return ServiceResult<PersonNameDto>.Success(responseDto);
-    }
-
-    public async Task<ServiceResult<PersonNameDto>> UpdatePersonNameAsync(
-        Guid personId,
-        Guid nameId,
-        PersonNameDto dto,
-        Guid? treeId,
-        UserContext userContext,
-        CancellationToken cancellationToken = default)
-    {
-        if (!userContext.CanEdit())
-        {
-            return ServiceResult<PersonNameDto>.Forbidden();
-        }
-
-        var (orgId, error) = await ResolveOrgIdAsync(treeId, userContext, cancellationToken);
-        if (orgId == null)
-        {
-            return ServiceResult<PersonNameDto>.Failure(error!);
-        }
-
-        var personName = await _personNameRepository.GetByIdWithPersonAsync(nameId, personId, orgId.Value, cancellationToken);
-
-        if (personName == null)
-        {
-            return ServiceResult<PersonNameDto>.NotFound("Person name not found");
-        }
-
-        // Update all fields (preserving original behavior)
-        personName.Script = dto.Script ?? "Latin";
-        personName.Given = dto.Given;
-        personName.Middle = dto.Middle;
-        personName.Family = dto.Family;
-        personName.Full = dto.Full;
-        personName.Transliteration = dto.Transliteration;
-        personName.Type = dto.Type;
-
-        await _personNameRepository.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation("Name updated: {NameId} for person {PersonId}", nameId, personId);
-
-        var responseDto = _mapper.Map<PersonNameDto>(personName);
-        return ServiceResult<PersonNameDto>.Success(responseDto);
-    }
-
-    public async Task<ServiceResult> DeletePersonNameAsync(
-        Guid personId,
-        Guid nameId,
-        Guid? treeId,
-        UserContext userContext,
-        CancellationToken cancellationToken = default)
-    {
-        if (!userContext.CanEdit())
-        {
-            return ServiceResult.Forbidden();
-        }
-
-        var (orgId, error) = await ResolveOrgIdAsync(treeId, userContext, cancellationToken);
-        if (orgId == null)
-        {
-            return ServiceResult.Failure(error!);
-        }
-
-        var personName = await _personNameRepository.GetByIdWithPersonAsync(nameId, personId, orgId.Value, cancellationToken);
-
-        if (personName == null)
-        {
-            return ServiceResult.NotFound("Person name not found");
-        }
-
-        _personNameRepository.Remove(personName);
-        await _personNameRepository.SaveChangesAsync(cancellationToken);
-
-        _logger.LogInformation("Name deleted: {NameId} from person {PersonId}", nameId, personId);
 
         return ServiceResult.Success();
     }
@@ -520,4 +383,125 @@ public class PersonService : IPersonService
         return (userContext.OrgId, null);
     }
 
+    // ============================================================================
+    // AUTO-TRANSLITERATION HELPER
+    // ============================================================================
+
+    /// <summary>
+    /// Automatically generates transliterated names in other languages.
+    /// Sets NameArabic, NameEnglish, and NameNobiin directly on the Person entity.
+    /// When you add an Arabic name, it creates English and Nobiin versions.
+    /// When you add an English name, it creates Arabic and Nobiin versions.
+    /// </summary>
+    private async Task GenerateTransliteratedNamesAsync(
+        Person person,
+        string sourceName,
+        Guid orgId,
+        CancellationToken cancellationToken)
+    {
+        if (_transliterationService == null)
+        {
+            _logger.LogWarning("Transliteration service not available - skipping auto-transliteration");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(sourceName))
+        {
+            return;
+        }
+
+        // Determine source language from content
+        var sourceLanguage = DetectSourceLanguage(null, sourceName);
+
+        try
+        {
+            var request = new FamilyTreeApi.DTOs.TransliterationRequest
+            {
+                InputName = sourceName,
+                SourceLanguage = sourceLanguage,
+                DisplayLanguage = "en",
+                OrgId = orgId,
+                IsGedImport = false
+            };
+
+            var result = await _transliterationService.TransliterateNameAsync(request);
+
+            var namesGenerated = 0;
+
+            // Set Arabic name if not already present and we have a result
+            if (string.IsNullOrWhiteSpace(person.NameArabic) &&
+                !string.IsNullOrWhiteSpace(result.Arabic) &&
+                sourceLanguage != "ar")
+            {
+                person.NameArabic = result.Arabic;
+                namesGenerated++;
+                _logger.LogInformation("Auto-generated Arabic name: {Name}", result.Arabic);
+            }
+
+            // Set English name if not already present and we have a result
+            if (string.IsNullOrWhiteSpace(person.NameEnglish) &&
+                !string.IsNullOrWhiteSpace(result.English?.Best) &&
+                sourceLanguage != "en")
+            {
+                person.NameEnglish = result.English.Best;
+                namesGenerated++;
+                _logger.LogInformation("Auto-generated English name: {Name}", result.English.Best);
+            }
+
+            // Set Nobiin name if not already present and we have a result
+            if (string.IsNullOrWhiteSpace(person.NameNobiin) &&
+                !string.IsNullOrWhiteSpace(result.Nobiin?.Value) &&
+                sourceLanguage != "nob")
+            {
+                person.NameNobiin = result.Nobiin.Value;
+                namesGenerated++;
+                _logger.LogInformation("Auto-generated Nobiin name: {Name}", result.Nobiin.Value);
+            }
+
+            if (namesGenerated > 0)
+            {
+                _logger.LogInformation(
+                    "Auto-generated {Count} transliterated name(s) for person {PersonId}",
+                    namesGenerated, person.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log but don't fail - transliteration is a nice-to-have
+            _logger.LogWarning(ex,
+                "Failed to auto-transliterate name '{Name}' for person {PersonId}",
+                sourceName, person.Id);
+        }
+    }
+
+    /// <summary>
+    /// Detects source language from script field, with fallback to content-based Unicode detection.
+    /// Arabic: U+0600-U+06FF, U+0750-U+077F, U+08A0-U+08FF
+    /// Coptic: U+2C80-U+2CFF, U+0370-U+03FF
+    /// </summary>
+    private static string DetectSourceLanguage(string? script, string? nameContent)
+    {
+        // First check script field
+        if (!string.IsNullOrWhiteSpace(script))
+        {
+            var normalized = script.ToLowerInvariant();
+            if (normalized is "arabic" or "ar") return "ar";
+            if (normalized is "coptic" or "nobiin" or "nob") return "nob";
+            if (normalized is "latin" or "english" or "en") return "en";
+        }
+
+        // Fallback: detect from content
+        if (!string.IsNullOrWhiteSpace(nameContent))
+        {
+            // Check for Arabic characters
+            if (System.Text.RegularExpressions.Regex.IsMatch(nameContent, @"[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]"))
+                return "ar";
+
+            // Check for Coptic characters
+            if (System.Text.RegularExpressions.Regex.IsMatch(nameContent, @"[\u2C80-\u2CFF\u0370-\u03FF]"))
+                return "nob";
+        }
+
+        return "en"; // Default to English/Latin
+    }
 }

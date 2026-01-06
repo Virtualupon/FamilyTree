@@ -1,0 +1,672 @@
+You are a senior .NET 8 / ASP.NET Core + Angular architect.
+
+Implement TRILINGUAL support for the entire application. Languages: Arabic (ar), English (en), Nobiin (nob). Do NOT break existing code.
+
+LANGUAGES:
+- Arabic (ar) - RTL (right-to-left)
+- English (en) - LTR (left-to-right)
+- Nobiin (nob) - LTR (left-to-left), uses Coptic script characters
+
+REQUIREMENTS OVERVIEW:
+
+1. Language selection on login page (before login)
+2. Save user's language preference
+3. Apply language to entire application
+4. Handle RTL/LTR layout switching
+5. All UI text translatable
+
+BEST PRACTICE FOR TRANSLATIONS:
+
+Use JSON files for static UI translations (Angular standard i18n approach):
+- assets/i18n/en.json
+- assets/i18n/ar.json
+- assets/i18n/nob.json
+
+Reason: JSON files are faster, cached by browser, no API calls needed, easy to maintain.
+
+Use Database for dynamic content (like RelationshipTypes) - already implemented.
+
+BACKEND REQUIREMENTS:
+
+1. User language preference:
+   - Add PreferredLanguage (string, default 'en') to User entity
+   - Update on login/settings change
+   - Return in auth response
+
+2. Endpoint to update language:
+   - PUT /api/users/language
+   - Body: { "language": "ar" }
+   - Save to user profile
+
+3. For non-authenticated users:
+   - Store in localStorage until login
+   - Transfer to user profile on login
+
+FRONTEND REQUIREMENTS:
+
+1. Install ngx-translate:
+   - @ngx-translate/core
+   - @ngx-translate/http-loader
+
+2. Create translation JSON files:
+
+assets/i18n/en.json:
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "loading": "Loading...",
+    "noData": "No data found",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "username": "Username",
+    "password": "Password",
+    "rememberMe": "Remember me",
+    "forgotPassword": "Forgot password?",
+    "selectLanguage": "Select Language"
+  },
+  "nav": {
+    "home": "Home",
+    "persons": "Persons",
+    "families": "Families",
+    "settings": "Settings",
+    "profile": "Profile"
+  },
+  "person": {
+    "title": "Persons",
+    "addNew": "Add Person",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "dateOfBirth": "Date of Birth",
+    "gender": "Gender",
+    "male": "Male",
+    "female": "Female",
+    "media": "Media",
+    "relationships": "Relationships"
+  },
+  "media": {
+    "title": "Media",
+    "upload": "Upload",
+    "image": "Image",
+    "audio": "Audio",
+    "video": "Video",
+    "description": "Description",
+    "noMedia": "No media files"
+  },
+  "messages": {
+    "saveSuccess": "Saved successfully",
+    "saveError": "Error saving",
+    "deleteSuccess": "Deleted successfully",
+    "deleteConfirm": "Are you sure you want to delete?"
+  }
+}
+
+assets/i18n/ar.json:
+{
+  "common": {
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "add": "إضافة",
+    "search": "بحث",
+    "loading": "جاري التحميل...",
+    "noData": "لا توجد بيانات",
+    "confirm": "تأكيد",
+    "yes": "نعم",
+    "no": "لا"
+  },
+  "auth": {
+    "login": "تسجيل الدخول",
+    "logout": "تسجيل الخروج",
+    "username": "اسم المستخدم",
+    "password": "كلمة المرور",
+    "rememberMe": "تذكرني",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "selectLanguage": "اختر اللغة"
+  },
+  "nav": {
+    "home": "الرئيسية",
+    "persons": "الأشخاص",
+    "families": "العائلات",
+    "settings": "الإعدادات",
+    "profile": "الملف الشخصي"
+  },
+  "person": {
+    "title": "الأشخاص",
+    "addNew": "إضافة شخص",
+    "firstName": "الاسم الأول",
+    "lastName": "اسم العائلة",
+    "dateOfBirth": "تاريخ الميلاد",
+    "gender": "الجنس",
+    "male": "ذكر",
+    "female": "أنثى",
+    "media": "الوسائط",
+    "relationships": "العلاقات"
+  },
+  "media": {
+    "title": "الوسائط",
+    "upload": "رفع",
+    "image": "صورة",
+    "audio": "صوت",
+    "video": "فيديو",
+    "description": "الوصف",
+    "noMedia": "لا توجد ملفات وسائط"
+  },
+  "messages": {
+    "saveSuccess": "تم الحفظ بنجاح",
+    "saveError": "خطأ في الحفظ",
+    "deleteSuccess": "تم الحذف بنجاح",
+    "deleteConfirm": "هل أنت متأكد من الحذف؟"
+  }
+}
+
+assets/i18n/nob.json:
+{
+  "common": {
+    "save": "ⲕⲁⲙ",
+    "cancel": "ⲃⲁⲧⲧⲓⲗ",
+    "delete": "ⲙⲁⲥⲥ",
+    "edit": "ⲥⲁⲃⲃⲓⲗ",
+    "add": "ⲇⲓⲣⲣ",
+    "search": "ⲕⲁⲱⲓ",
+    "loading": "ⲕⲁⲱⲓ...",
+    "noData": "ⲇⲁⲧⲁ ⲙⲓⲛⲛⲁ",
+    "confirm": "ⲁⲕⲕⲓⲇ",
+    "yes": "ⲁ̄",
+    "no": "ⲙⲁⲛⲛ"
+  },
+  "auth": {
+    "login": "ⲅⲓⲣⲣ",
+    "logout": "ⲃⲁⲣⲣ",
+    "username": "ⲓⲣⲓⲛ",
+    "password": "ⲕⲁⲗⲓⲙⲁ",
+    "rememberMe": "ⲁⲛ ⲫⲁⲕⲕⲓⲣ",
+    "selectLanguage": "ⲕⲁⲗⲁⲙ ⲥⲟⲗⲗ"
+  },
+  "nav": {
+    "home": "ⲧⲟ̄ⲅ",
+    "persons": "ⲓⲇⲇⲓ",
+    "families": "ⲛⲟ̄ⲅ",
+    "settings": "ⲥⲁⲃⲃⲓⲗ",
+    "profile": "ⲥⲟ̄ⲣⲁ"
+  },
+  "person": {
+    "title": "ⲓⲇⲇⲓ",
+    "addNew": "ⲓⲇ ⲁⲅⲅⲓ ⲇⲓⲣⲣ",
+    "firstName": "ⲓⲣⲓⲛ",
+    "lastName": "ⲛⲟ̄ⲅ ⲓⲣⲓⲛ",
+    "dateOfBirth": "ⲧⲁⲣⲓⲕ",
+    "gender": "ⲛⲟ̄ⲅ",
+    "male": "ⲓⲇ",
+    "female": "ⲓⲇⲉ̄ⲛ",
+    "media": "ⲥⲟ̄ⲣⲁ",
+    "relationships": "ⲛⲁⲥⲁⲃ"
+  },
+  "media": {
+    "title": "ⲥⲟ̄ⲣⲁ",
+    "upload": "ⲇⲓⲣⲣ",
+    "image": "ⲥⲟ̄ⲣⲁ",
+    "audio": "ⲥⲟⲧⲧ",
+    "video": "ⲫⲓⲇⲓⲟ",
+    "description": "ⲱⲁⲥⲫ",
+    "noMedia": "ⲥⲟ̄ⲣⲁ ⲙⲓⲛⲛⲁ"
+  },
+  "messages": {
+    "saveSuccess": "ⲕⲁⲙ ⲧⲁⲙⲙ",
+    "saveError": "ⲅⲁⲗⲁⲧ",
+    "deleteSuccess": "ⲙⲁⲥⲥ ⲧⲁⲙⲙ",
+    "deleteConfirm": "ⲙⲁⲥⲥ ⲁⲕⲕⲓⲇ?"
+  }
+}
+
+3. Create LanguageService:
+   - getCurrentLanguage(): string
+   - setLanguage(lang: string): void
+   - getAvailableLanguages(): returns [{code: 'en', name: 'English'}, {code: 'ar', name: 'العربية'}, {code: 'nob', name: 'ⲛⲟⲃⲓ̄ⲛ'}]
+   - isRTL(): boolean (true if current language is 'ar')
+   - Save preference to localStorage and user profile
+
+4. App initialization:
+   - Load saved language preference on app start
+   - Apply language before rendering
+   - Set document direction (dir="rtl" or dir="ltr")
+   - Set lang attribute on html element
+
+5. Login page:
+   - Add language selector dropdown BEFORE login form
+   - Show flag or language name
+   - User can switch language without logging in
+   - Selected language applies immediately
+   - Save to localStorage, transfer to profile after login
+
+6. Header/Navbar:
+   - Add language switcher (dropdown or buttons)
+   - Show current language
+   - Switch applies immediately to entire app
+
+7. RTL/LTR handling:
+   - When Arabic selected: add dir="rtl" to body/html
+   - When English/Nobiin: add dir="ltr"
+   - Use CSS logical properties where possible (margin-inline-start instead of margin-left)
+   - Or use Angular CDK Bidi module
+
+IMPLEMENTATION STEPS:
+
+1. Setup ngx-translate in AppModule:
+   - TranslateModule.forRoot with HttpLoader
+   - Configure to load from assets/i18n/
+
+2. Create translation JSON files for all 3 languages
+
+3. Create LanguageService:
+   - Inject TranslateService
+   - Handle localStorage persistence
+   - Handle RTL switching
+
+4. Update AppComponent:
+   - Initialize language on startup
+   - Subscribe to language changes for RTL updates
+
+5. Update Login component:
+   - Add language selector at top
+   - Use translate pipe for all text
+
+6. Update all components:
+   - Replace hardcoded text with translate pipe: {{ 'common.save' | translate }}
+   - Or use TranslateService.instant() in TypeScript
+
+7. Add language switcher to header/navbar
+
+8. Create RTL stylesheet or use CSS logical properties
+
+USAGE IN TEMPLATES:
+
+HTML with translate pipe:
+<button>{{ 'common.save' | translate }}</button>
+<h1>{{ 'person.title' | translate }}</h1>
+<input [placeholder]="'auth.username' | translate">
+
+In TypeScript:
+constructor(private translate: TranslateService) {}
+showMessage() {
+  const msg = this.translate.instant('messages.saveSuccess');
+  alert(msg);
+}
+
+LANGUAGE SWITCHER COMPONENT:
+
+<div class="language-switcher">
+  <select [(ngModel)]="currentLang" (change)="onLanguageChange()">
+    <option value="en">English</option>
+    <option value="ar">العربية</option>
+    <option value="nob">ⲛⲟⲃⲓ̄ⲛ</option>
+  </select>
+</div>
+
+Or as buttons:
+<div class="language-buttons">
+  <button (click)="setLanguage('en')" [class.active]="currentLang === 'en'">EN</button>
+  <button (click)="setLanguage('ar')" [class.active]="currentLang === 'ar'">ع</button>
+  <button (click)="setLanguage('nob')" [class.active]="currentLang === 'nob'">ⲛⲟⲃ</button>
+</div>
+
+RTL CSS HANDLING:
+
+Option A - Conditional class:
+body.rtl { direction: rtl; }
+body.ltr { direction: ltr; }
+
+Option B - CSS logical properties:
+.container {
+  margin-inline-start: 10px;  /* replaces margin-left */
+  padding-inline-end: 20px;   /* replaces padding-right */
+}
+
+Option C - Separate RTL stylesheet:
+@import 'styles-rtl.css' when dir="rtl"
+
+DELIVERABLES:
+
+1. Translation JSON files (en.json, ar.json, nob.json) with all UI text
+2. LanguageService with get/set/persist methods
+3. ngx-translate module setup in AppModule
+4. Login page with language selector
+5. Header/navbar with language switcher
+6. RTL/LTR direction handling
+7. Update all components to use translate pipe
+8. Backend: User.PreferredLanguage field
+9. Backend: PUT /api/users/language endpoint
+
+PRIORITY ORDER:
+
+1. Setup ngx-translate and create JSON files
+2. Create LanguageService
+3. Add language selector to login page
+4. Add switcher to header
+5. Implement RTL handling
+6. Update existing components to use translations
+7. Backend language preference storage
+
+NOTE: For Nobiin translations, use placeholder text initially. Real translations can be added later by a Nobiin speaker. The structure should be in place.
+
+OUTPUT: Provide code changes with clear file paths. Start with core setup, then component updates.
+
+
+
+
+TRILINGUAL IMPLEMENTATION ANALYSIS
+Based on Database Schema: Schema_DATABASE_02.sql
+Languages: Arabic (ar), English (en), Nobiin (nob)
+
+================================================================================
+CURRENT STATE ANALYSIS
+================================================================================
+
+GOOD NEWS - Already Trilingual:
+- Towns table already has: Name, NameEn, NameAr, NameLocal
+- This pattern can be followed for other entities
+
+MISSING - Need Updates:
+- Users table: No PreferredLanguage field
+- People table: Likely single name field (not in dump, but referenced)
+- Places table: Referenced but not in dump
+- Sources.Title: Single language only
+- Tags.Name: Single language only
+
+================================================================================
+WHAT NEEDS TRILINGUAL SUPPORT
+================================================================================
+
+CATEGORY 1: USER DATA (Names - Transliterations)
+These are the SAME name written in different scripts:
+- محمد (Arabic) = Mohammed (English) = ⲙⲟⲩⲭⲁⲙⲙⲁⲇ (Nobiin)
+
+Tables affected:
+- People: FirstName, LastName, Nickname
+- Places: Name
+- Sources: Title
+- Tags: Name
+
+CATEGORY 2: SYSTEM DATA (Translations)
+These are DIFFERENT words with same meaning:
+- أب (Arabic) = Father (English) = ⲫⲁ̄ⲡ (Nobiin)
+
+This is for:
+- RelationshipTypes (already discussed)
+- UI labels (handled by JSON files)
+- Enum display values
+
+================================================================================
+RECOMMENDED DATABASE CHANGES
+================================================================================
+
+1. PEOPLE TABLE (assumed structure, add trilingual columns):
+
+Before:
+  FirstName VARCHAR(100)
+  LastName VARCHAR(100)
+  
+After:
+  FirstName VARCHAR(100)      -- Primary/default
+  FirstNameEn VARCHAR(100)    -- English
+  FirstNameAr VARCHAR(100)    -- Arabic
+  FirstNameNob VARCHAR(100)   -- Nobiin
+  LastName VARCHAR(100)       -- Primary/default
+  LastNameEn VARCHAR(100)
+  LastNameAr VARCHAR(100)
+  LastNameNob VARCHAR(100)
+
+2. USERS TABLE - Add language preference:
+
+ALTER TABLE "Users" ADD COLUMN "PreferredLanguage" VARCHAR(10) DEFAULT 'en';
+
+3. PLACES TABLE (if similar to Towns):
+
+Already good pattern in Towns:
+  Name, NameEn, NameAr, NameLocal
+
+4. SOURCES TABLE:
+
+  Title VARCHAR(300)          -- Primary
+  TitleEn VARCHAR(300)
+  TitleAr VARCHAR(300)
+  TitleNob VARCHAR(300)
+
+================================================================================
+POTENTIAL ISSUES AND SOLUTIONS
+================================================================================
+
+ISSUE 1: DATA ENTRY COMPLEXITY
+Problem: User must enter name in 3 languages every time?
+Solution: 
+- Make only ONE language required (based on user's preferred language)
+- Other languages OPTIONAL
+- Show "Add translation" button for other languages
+- Auto-suggest transliteration where possible
+
+ISSUE 2: WHICH NAME TO DISPLAY
+Problem: When showing a person, which name column to use?
+Solution:
+- Use user's PreferredLanguage setting
+- Fallback chain: PreferredLang -> English -> Arabic -> First non-null
+- Example: User prefers Nobiin, but person has no Nobiin name
+  -> Show English name (or Arabic if no English)
+
+ISSUE 3: SEARCH ACROSS LANGUAGES
+Problem: User searches "Mohammed" but person stored as "محمد"
+Solution A - Search all columns:
+  WHERE FirstNameEn ILIKE '%search%'
+     OR FirstNameAr ILIKE '%search%'
+     OR FirstNameNob ILIKE '%search%'
+     OR FirstName ILIKE '%search%'
+
+Solution B - Full-text search index (better performance):
+  CREATE INDEX idx_people_name_search ON People 
+  USING gin(to_tsvector('simple', 
+    COALESCE(FirstName,'') || ' ' || 
+    COALESCE(FirstNameEn,'') || ' ' || 
+    COALESCE(FirstNameAr,'') || ' ' ||
+    COALESCE(FirstNameNob,'')
+  ));
+
+ISSUE 4: SORTING
+Problem: Arabic sorts right-to-left, different character order
+Solution:
+- Sort by the language column matching user preference
+- Use PostgreSQL collation for proper sorting:
+  ORDER BY FirstNameAr COLLATE "ar_SA" (for Arabic)
+
+ISSUE 5: NULL VALUES
+Problem: Not all persons will have all 3 language names
+Solution:
+- Accept NULLs for non-primary languages
+- Always have fallback display logic
+- Never show "null" or empty to user
+
+ISSUE 6: EXISTING DATA MIGRATION
+Problem: Current data has single-language names
+Solution:
+- Copy current Name to primary column
+- Detect language of existing name (Arabic chars = Arabic)
+- Leave other language columns NULL initially
+- Provide bulk-edit tools for users to add translations
+
+ISSUE 7: RELATIONSHIPS DISPLAY
+Problem: Show relationship type in user's language
+Solution:
+- RelationshipTypes table with NameAr, NameEn, NameNob (already designed)
+- Join to get correct language name
+- Backend returns all three, frontend picks based on user lang
+
+ISSUE 8: REPORTS AND EXPORTS
+Problem: Which language for PDF exports, family tree prints?
+Solution:
+- Add language selector to export dialog
+- Or use user's preferred language
+- Option: Include all languages in export
+
+================================================================================
+IMPLEMENTATION STRATEGY
+================================================================================
+
+PHASE 1: Infrastructure (No visible changes yet)
+1. Add PreferredLanguage to Users table
+2. Add language columns to People table
+3. Create migration scripts
+4. Update EF Core entities
+5. Update DTOs to include all language fields
+
+PHASE 2: Backend Logic
+1. Create LanguageHelper utility class
+2. Implement GetLocalizedName(person, language) method
+3. Update Person service to handle trilingual data
+4. Update search to query all language columns
+5. Add PreferredLanguage to auth response
+
+PHASE 3: Frontend - Language Selection
+1. Add language selector to login page
+2. Add language switcher to header
+3. Create LanguageService
+4. Store preference in localStorage + user profile
+5. Implement RTL/LTR switching
+
+PHASE 4: Frontend - Forms
+1. Update Person create/edit form
+2. Add tabs or sections for each language
+3. Make primary language required, others optional
+4. Show "Add Arabic name" / "Add Nobiin name" buttons
+
+PHASE 5: Frontend - Display
+1. Update person list to show localized name
+2. Update person details to show all names
+3. Update family tree to use localized names
+4. Update search to work across languages
+
+================================================================================
+DATABASE MIGRATION SCRIPT
+================================================================================
+
+-- Add language preference to Users
+ALTER TABLE "Users" 
+ADD COLUMN "PreferredLanguage" VARCHAR(10) DEFAULT 'en' NOT NULL;
+
+-- Add trilingual columns to People (adjust based on actual schema)
+ALTER TABLE "People"
+ADD COLUMN "FirstNameEn" VARCHAR(100),
+ADD COLUMN "FirstNameAr" VARCHAR(100),
+ADD COLUMN "FirstNameNob" VARCHAR(100),
+ADD COLUMN "LastNameEn" VARCHAR(100),
+ADD COLUMN "LastNameAr" VARCHAR(100),
+ADD COLUMN "LastNameNob" VARCHAR(100);
+
+-- Migrate existing data - detect Arabic text
+UPDATE "People" 
+SET "FirstNameAr" = "FirstName"
+WHERE "FirstName" ~ '[؀-ۿ]';  -- Arabic Unicode range
+
+UPDATE "People" 
+SET "FirstNameEn" = "FirstName"
+WHERE "FirstName" !~ '[؀-ۿ]' 
+  AND "FirstName" ~ '^[A-Za-z]';
+
+-- Create search index
+CREATE INDEX idx_people_fullname_search ON "People" 
+USING gin(to_tsvector('simple', 
+  COALESCE("FirstName",'') || ' ' || 
+  COALESCE("FirstNameEn",'') || ' ' || 
+  COALESCE("FirstNameAr",'') || ' ' ||
+  COALESCE("FirstNameNob",'') || ' ' ||
+  COALESCE("LastName",'') || ' ' || 
+  COALESCE("LastNameEn",'') || ' ' || 
+  COALESCE("LastNameAr",'') || ' ' ||
+  COALESCE("LastNameNob",'')
+));
+
+-- Add to RelationshipTypes table
+CREATE TABLE "RelationshipTypes" (
+  "Id" SERIAL PRIMARY KEY,
+  "NameEn" VARCHAR(100) NOT NULL,
+  "NameAr" VARCHAR(100) NOT NULL,
+  "NameNob" VARCHAR(100),
+  "SortOrder" INT DEFAULT 0,
+  "IsActive" BOOLEAN DEFAULT TRUE,
+  "CreatedAt" TIMESTAMP DEFAULT NOW()
+);
+
+================================================================================
+BACKEND SERVICE PATTERN
+================================================================================
+
+public class PersonService
+{
+    public string GetLocalizedName(Person person, string language)
+    {
+        return language switch
+        {
+            "ar" => person.FirstNameAr ?? person.FirstNameEn ?? person.FirstName,
+            "nob" => person.FirstNameNob ?? person.FirstNameEn ?? person.FirstName,
+            _ => person.FirstNameEn ?? person.FirstName
+        };
+    }
+    
+    public IQueryable<Person> SearchByName(string searchTerm)
+    {
+        var term = $"%{searchTerm}%";
+        return _context.People.Where(p =>
+            EF.Functions.ILike(p.FirstName, term) ||
+            EF.Functions.ILike(p.FirstNameEn, term) ||
+            EF.Functions.ILike(p.FirstNameAr, term) ||
+            EF.Functions.ILike(p.FirstNameNob, term) ||
+            EF.Functions.ILike(p.LastName, term) ||
+            EF.Functions.ILike(p.LastNameEn, term) ||
+            EF.Functions.ILike(p.LastNameAr, term) ||
+            EF.Functions.ILike(p.LastNameNob, term)
+        );
+    }
+}
+
+================================================================================
+SUMMARY OF CHANGES NEEDED
+================================================================================
+
+DATABASE:
+[x] Users.PreferredLanguage (VARCHAR 10, default 'en')
+[x] People: Add 6 columns (FirstName/LastName x 3 languages)
+[x] RelationshipTypes table (new)
+[x] Full-text search index on People
+[ ] Places: Verify trilingual columns exist
+[ ] Sources: Add TitleEn, TitleAr, TitleNob
+
+BACKEND:
+[x] Update Person entity with new columns
+[x] Create GetLocalizedName helper
+[x] Update PersonService with trilingual logic
+[x] Update PersonDTO with all language fields
+[x] Update search to query all languages
+[x] Add PreferredLanguage to User entity
+[x] Add language update endpoint
+
+FRONTEND:
+[x] LanguageService with get/set/persist
+[x] Language selector on login
+[x] Language switcher in header
+[x] RTL/LTR handling
+[x] Person form with language tabs/sections
+[x] Display logic using localized names
+[x] Search working across languages
+
+NO BREAKING CHANGES IF:
+- Keep original FirstName/LastName columns
+- New language columns are nullable
+- Fallback logic always returns a name
+- Existing APIs continue to work (just with more fields)

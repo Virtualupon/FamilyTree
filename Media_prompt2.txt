@@ -1,0 +1,66 @@
+
+You are a senior .NET 8 / ASP.NET Core + Angular architect.
+
+Two enhancements needed for Person Media feature WITHOUT breaking existing code:
+
+FEATURE 1: MEDIA DESCRIPTION FIELD
+
+Required: Each media file should have an optional description field.
+
+Backend changes:
+- Add Description (string, nullable, max 500 chars) to Media entity if not exists
+- Add Description to upload DTO
+- Add Description to response DTOs
+- Update migration if needed
+
+Frontend changes:
+- Add description textarea to upload dialog/form
+- Display description under each media item in gallery/list view
+- Make it optional (not required)
+- Show placeholder text like "Add a description..." if empty
+
+FEATURE 2: CLEAR VISUAL MEDIA INDICATOR ON PERSON LIST
+
+Required: When viewing person list/table/cards, it must be VERY CLEAR and OBVIOUS which persons have media files attached.
+
+Backend changes:
+- Add HasMedia (bool) or MediaCount (int) to Person list DTO
+- Query: include count from PersonMedia junction table
+- Return this field in all person list endpoints
+
+Frontend changes - make it HIGHLY VISIBLE:
+- Option A: Colored badge with icon and count (e.g. blue badge with camera icon + "3")
+- Option B: Row highlight or background tint for persons with media
+- Option C: Prominent icon column in table view
+- Option D: Media thumbnail preview chip
+
+Recommended implementation:
+- Add dedicated column or badge area in person list/table
+- Use contrasting color (blue, green) so it stands out
+- Show icon + count like: 🖼️ 5 or 📷 3
+- If MediaCount = 0, show nothing or grey "No media"
+- Make it clickable to jump directly to person's media tab
+
+Example visual:
+
+Person Name     | Age | Media
+----------------|-----|----------------
+John Smith      | 32  | 📷 5 (blue badge)
+Jane Doe        | 28  | (empty/grey)
+Bob Wilson      | 45  | 🎬 2 (blue badge)
+
+DELIVERABLES:
+
+1. Media entity: Description field (string, nullable)
+2. Upload DTO: Description field
+3. Response DTOs: Description field
+4. Upload form: Description textarea
+5. Media display: Show description
+6. Person list DTO: MediaCount or HasMedia field
+7. Person list query: Include media count efficiently
+8. Person list UI: Prominent visual indicator with icon and count
+9. Optional: Click indicator to navigate to media tab
+
+PRIORITY: The media indicator must be IMMEDIATELY VISIBLE when scanning the person list. Users should not have to hover or click to know if a person has media.
+
+OUTPUT: Provide code changes with clear file paths. Minimal changes to existing code.

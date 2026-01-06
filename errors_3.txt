@@ -1,0 +1,11 @@
+debug_node-Dn-GvQJo.mjs:17801 Angular is running in development mode.
+:8080/api/familytree:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+:8080/api/admin/users/103/assignments:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+:8080/api/town?page=1&pageSize=1000:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+:8080/api/familytree:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+:8080/api/auth/refresh:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+:8080/api/auth/refresh:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+:8080/api/auth/refresh:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+:8080/api/auth/refresh:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+:8080/api/auth/revoke:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+:8080/api/admin/users/103/assignments:1  Failed to load resource: the server responded with a status of 403 (Forbidden)

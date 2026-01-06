@@ -16,13 +16,12 @@ public class PersonMediaRepository : Repository<PersonMedia>, IPersonMediaReposi
     /// <inheritdoc />
     public async Task<IEnumerable<PersonMedia>> GetByPersonIdWithMediaAsync(Guid personId, CancellationToken cancellationToken = default)
     {
-        // Use tracking query to avoid cycle error with PersonMedia -> Media -> PersonLinks -> Person
-        // AsSplitQuery splits into separate SQL queries to handle the complex include
+        // Only include Media without the PersonLinks navigation to avoid cycle:
+        // PersonMedia -> Media -> PersonLinks -> Person -> PersonMedia (cycle!)
+        // The PersonLinks can be loaded separately if needed
         return await _dbSet
-            .AsSplitQuery()
+            .AsNoTracking()
             .Include(pm => pm.Media)
-                .ThenInclude(m => m.PersonLinks)
-                    .ThenInclude(pl => pl.Person)
             .Where(pm => pm.PersonId == personId)
             .OrderBy(pm => pm.SortOrder)
             .ThenByDescending(pm => pm.LinkedAt)
@@ -83,5 +82,16 @@ public class PersonMediaRepository : Repository<PersonMedia>, IPersonMediaReposi
         return await _context.MediaFiles
             .AsNoTracking()
             .FirstOrDefaultAsync(m => m.Id == mediaId, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async Task<IEnumerable<PersonMedia>> GetByMediaIdsWithPersonsAsync(IEnumerable<Guid> mediaIds, CancellationToken cancellationToken = default)
+    {
+        var mediaIdList = mediaIds.ToList();
+        return await _dbSet
+            .AsNoTracking()
+            .Include(pm => pm.Person)
+            .Where(pm => mediaIdList.Contains(pm.MediaId))
+            .ToListAsync(cancellationToken);
     }
 }

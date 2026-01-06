@@ -1,0 +1,536 @@
+# FamilyTree Auto-Transliteration for Family Names - Claude Code Prompt
+
+Copy and paste this directly into Claude Code:
+
+---
+
+```
+Analyze this FamilyTree codebase to verify Family Name auto-transliteration is correctly implemented.
+
+## STEP 1: READ THE DATABASE SCHEMA
+
+First, read: backend/Schema_DATABASE_03.sql
+
+Find the Families table and verify it has these columns:
+- FamilyNameEn (English)
+- FamilyNameAr (Arabic)
+- FamilyNameNob (Nobiin)
+
+## REQUIREMENT: AUTO-TRANSLITERATION
+
+When Admin creates a Family and enters the name in ONE language:
+→ System AUTOMATICALLY generates the other 2 language versions
+→ All 3 fields are EDITABLE (Admin can correct if needed)
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  SCENARIO 1: Admin enters ENGLISH name                                      │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │ Family Name (EN): [ Hassan                    ] ← Admin types this  │    │
+│  │ Family Name (AR): [ حسن                       ] ← Auto-generated    │    │
+│  │ Family Name (NOB): [ ϩⲁⲥⲥⲁⲛ                  ] ← Auto-generated    │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                                                             │
+│  SCENARIO 2: Admin enters ARABIC name                                       │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │ Family Name (EN): [ Hassan                    ] ← Auto-generated    │    │
+│  │ Family Name (AR): [ حسن                       ] ← Admin types this  │    │
+│  │ Family Name (NOB): [ ϩⲁⲥⲥⲁⲛ                  ] ← Auto-generated    │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                                                             │
+│  SCENARIO 3: Admin enters NOBIIN name                                       │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │ Family Name (EN): [ Hassan                    ] ← Auto-generated    │    │
+│  │ Family Name (AR): [ حسن                       ] ← Auto-generated    │    │
+│  │ Family Name (NOB): [ ϩⲁⲥⲥⲁⲛ                  ] ← Admin types this  │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+After auto-generation:
+→ Admin CAN edit/correct ANY of the 3 fields
+→ Edited values override auto-generated values
+→ All 3 values saved to database
+
+## DISPLAY LANGUAGE RULE
+
+When VIEWING families (lists, details, tree), show family name in user's selected language:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  USER LANGUAGE SETTING: [English ▼]  [العربية ▼]  [ⲛⲟⲃⲓⲓⲛ ▼]                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  IF selected language = English:                                            │
+│     Display: "Hassan Family"                                                │
+│                                                                             │
+│  IF selected language = Arabic:                                             │
+│     Display: "عائلة حسن"                                                    │
+│                                                                             │
+│  IF selected language = Nobiin:                                             │
+│     Display: "ϩⲁⲥⲥⲁⲛ"                                                       │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+FALLBACK LOGIC (if selected language is empty/null):
+  1. User selects Arabic → Show FamilyNameAr
+  2. If FamilyNameAr is null → Fallback to FamilyNameEn
+  3. If FamilyNameEn is null → Fallback to FamilyNameNob
+  4. NEVER show empty name
+```
+
+### Where Display Language Applies:
+
+| View | Show Family Name In |
+|------|---------------------|
+| Family List | Selected language |
+| Family Detail Page | Selected language (with option to see all 3) |
+| Person's Family Badge | Selected language |
+| Family Tree Nodes | Selected language |
+| Search Results | Selected language |
+| Dropdown Selectors | Selected language |
+| Breadcrumbs | Selected language |
+| Reports/Exports | Selected language (or all 3) |
+
+### API Response Should Include:
+
+```json
+GET /api/families
+
+Response:
+{
+  "families": [
+    {
+      "familyId": 1,
+      "familyNameEn": "Hassan",
+      "familyNameAr": "حسن",
+      "familyNameNob": "ϩⲁⲥⲥⲁⲛ",
+      "displayName": "حسن",        // ← Based on user's language setting
+      "displayLanguage": "ar",     // ← Current display language
+      "townId": 1,
+      ...
+    }
+  ]
+}
+```
+
+### Frontend Display Component:
+
+```jsx
+// Get family display name based on user's language
+function getFamilyDisplayName(family, userLanguage) {
+  switch (userLanguage) {
+    case 'ar':
+      return family.familyNameAr || family.familyNameEn || family.familyNameNob;
+    case 'nob':
+      return family.familyNameNob || family.familyNameEn || family.familyNameAr;
+    case 'en':
+    default:
+      return family.familyNameEn || family.familyNameAr || family.familyNameNob;
+  }
+}
+
+// Usage in component
+<FamilyCard>
+  <h3>{getFamilyDisplayName(family, userSettings.language)}</h3>
+</FamilyCard>
+```
+
+---
+
+## EXPECTED BEHAVIOR
+
+### On Create (Frontend):
+
+1. Form shows 3 input fields: EN, AR, NOB
+2. Admin types in ONE field
+3. On blur/change → Call transliteration API
+4. Auto-populate the other 2 fields
+5. All 3 fields remain EDITABLE
+6. Admin can correct any field before saving
+7. On submit → Save all 3 values
+
+### On Edit (Frontend):
+
+1. Load existing values into all 3 fields
+2. Admin edits any field
+3. Two options:
+   a) Re-transliterate: Update other fields automatically
+   b) Independent edit: Only save the changed field
+4. Recommend: Show "Re-transliterate" button (optional action)
+5. All 3 fields always editable
+
+## API REQUIREMENTS
+
+### Transliteration Endpoint:
+```
+POST /api/transliterate/family-name
+Request:
+{
+  "inputName": "Hassan",
+  "sourceLanguage": "en",    // "en" | "ar" | "nob"
+  "targetLanguages": ["ar", "nob"]
+}
+
+Response:
+{
+  "original": {
+    "value": "Hassan",
+    "language": "en"
+  },
+  "transliterations": {
+    "ar": {
+      "value": "حسن",
+      "confidence": 0.92,
+      "source": "rule_based"
+    },
+    "nob": {
+      "value": "ϩⲁⲥⲥⲁⲛ",
+      "confidence": 0.95,
+      "source": "deterministic_ipa"
+    }
+  }
+}
+```
+
+### Create Family Endpoint:
+```
+POST /api/families
+Request:
+{
+  "townId": 1,
+  "familyNameEn": "Hassan",      // Can be auto-generated or manual
+  "familyNameAr": "حسن",         // Can be auto-generated or manual
+  "familyNameNob": "ϩⲁⲥⲥⲁⲛ",     // Can be auto-generated or manual
+  "foundedYear": 1920,
+  "description": "..."
+}
+
+Response:
+{
+  "familyId": 123,
+  "townId": 1,
+  "familyNameEn": "Hassan",
+  "familyNameAr": "حسن",
+  "familyNameNob": "ϩⲁⲥⲥⲁⲛ",
+  ...
+}
+```
+
+### Update Family Endpoint:
+```
+PUT /api/families/{familyId}
+Request:
+{
+  "familyNameEn": "Al-Hassan",   // Corrected by Admin
+  "familyNameAr": "الحسن",       // Corrected by Admin
+  "familyNameNob": "ⲁⲗϩⲁⲥⲥⲁⲛ",   // Corrected by Admin
+  ...
+}
+```
+
+## FRONTEND COMPONENT REQUIREMENTS
+
+### Family Create/Edit Form:
+
+```jsx
+// Pseudo-code for expected behavior
+
+function FamilyForm() {
+  const [familyNameEn, setFamilyNameEn] = useState('');
+  const [familyNameAr, setFamilyNameAr] = useState('');
+  const [familyNameNob, setFamilyNameNob] = useState('');
+  const [isAutoFilled, setIsAutoFilled] = useState({ ar: false, nob: false });
+
+  // When English field changes
+  const handleEnglishChange = async (value) => {
+    setFamilyNameEn(value);
+    
+    // Auto-transliterate to other languages
+    if (value.length > 1) {
+      const result = await transliterateAPI(value, 'en');
+      setFamilyNameAr(result.ar);
+      setFamilyNameNob(result.nob);
+      setIsAutoFilled({ ar: true, nob: true });
+    }
+  };
+
+  // Similar handlers for Arabic and Nobiin inputs...
+
+  return (
+    <form>
+      {/* English Input */}
+      <input
+        label="Family Name (English)"
+        value={familyNameEn}
+        onChange={handleEnglishChange}
+        editable={true}  // Always editable
+      />
+
+      {/* Arabic Input */}
+      <input
+        label="Family Name (Arabic)"
+        value={familyNameAr}
+        onChange={setFamilyNameAr}
+        editable={true}  // Always editable
+        indicator={isAutoFilled.ar ? "Auto-generated" : "Manual"}
+      />
+
+      {/* Nobiin Input */}
+      <input
+        label="Family Name (Nobiin)"
+        value={familyNameNob}
+        onChange={setFamilyNameNob}
+        editable={true}  // Always editable
+        indicator={isAutoFilled.nob ? "Auto-generated" : "Manual"}
+      />
+
+      <button type="submit">Save Family</button>
+    </form>
+  );
+}
+```
+
+### Visual Indicators (Optional but Recommended):
+
+- Show "Auto-generated ✨" badge on auto-filled fields
+- Badge disappears when Admin manually edits
+- Different border/style for auto-generated vs manual fields
+- Show confidence score for auto-generated values
+
+## TRANSLITERATION RULES
+
+The transliteration should follow these rules:
+
+### English → Arabic:
+- Use common Egyptian Arabic spellings
+- "Hassan" → "حسن"
+- "Mohamed" → "محمد"
+- "Abdel Rahman" → "عبد الرحمن"
+
+### Arabic → English:
+- Use Egyptian romanization (Mohamed not Muhammad)
+- "حسن" → "Hassan"
+- "محمد" → "Mohamed"
+
+### English → Nobiin:
+- Deterministic IPA-based transliteration
+- "Hassan" → IPA: "hassan" → Nobiin: "ϩⲁⲥⲥⲁⲛ"
+
+### Nobiin → English:
+- Reverse IPA mapping
+- "ϩⲁⲥⲥⲁⲛ" → "Hassan"
+
+### Arabic ↔ Nobiin:
+- Route through English: Arabic → English → Nobiin
+
+## VERIFICATION CHECKLIST
+
+### Database Schema:
+□ Families table has FamilyNameEn column
+□ Families table has FamilyNameAr column
+□ Families table has FamilyNameNob column
+□ All 3 columns are nullable (auto-gen may fail)
+□ At least ONE name column should be NOT NULL
+
+### Backend:
+□ Transliteration service/endpoint exists
+□ Supports EN → AR, NOB
+□ Supports AR → EN, NOB
+□ Supports NOB → EN, AR
+□ Family create accepts all 3 name fields
+□ Family update accepts all 3 name fields
+□ No field is marked as read-only
+□ API returns displayName based on user's language setting
+□ Fallback logic implemented when preferred language is null
+
+### Frontend - Create/Edit:
+□ Create Family form has 3 name input fields
+□ All 3 fields are editable (not disabled/readonly)
+□ Typing in one field triggers transliteration
+□ Auto-generated values populate other fields
+□ Admin can override/edit auto-generated values
+□ Edit Family form loads all 3 existing values
+□ Edit form allows changing any field
+
+### Frontend - Display/View:
+□ User language setting stored (localStorage, context, or user profile)
+□ Language selector available (header/settings)
+□ Family list shows names in selected language
+□ Family detail shows name in selected language
+□ Family tree nodes show names in selected language
+□ Person cards show family name in selected language
+□ Search results display in selected language
+□ Dropdown selectors use selected language
+□ Fallback to other languages if preferred is null
+
+### Edge Cases:
+□ Empty input → Don't transliterate
+□ Very short input (1 char) → Wait for more input
+□ Transliteration fails → Show error, keep fields editable
+□ Low confidence result → Show warning indicator
+□ Network error → Allow manual entry, retry button
+□ Missing language value → Fallback chain works correctly
+
+## OUTPUT REQUIRED
+
+### 1. Schema Check
+Show Families table columns from Schema_DATABASE_03.sql
+
+### 2. Transliteration Service
+- Does it exist? Where? (file path)
+- What endpoints are available?
+- Show the transliteration logic
+
+### 3. Frontend Form
+- Find Family create/edit components
+- Are all 3 language fields present?
+- Is auto-transliteration implemented?
+- Are all fields editable?
+
+### 4. Gaps Found
+List missing functionality:
+- [ ] Missing transliteration endpoint
+- [ ] Frontend doesn't auto-generate
+- [ ] Fields are read-only
+- [ ] etc.
+
+### 5. Implementation Recommendations
+Priority-ordered changes needed.
+
+## START ANALYSIS
+
+1. Read backend/Schema_DATABASE_03.sql
+2. Find Families entity/model
+3. Find transliteration service (ClaudeService or similar)
+4. Find Family controller
+5. Find frontend Family form components
+6. Trace the data flow: Input → API → Transliterate → Display
+7. Report findings with file paths
+
+BEGIN by reading the schema file.
+```
+
+---
+
+## Quick Visual: Expected Form Behavior
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        CREATE FAMILY                                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Town: [ Wadi Halfa          ▼ ]                                           │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │ Family Name (English)                                                │   │
+│  │ [ Hassan_______________________________________________ ]            │   │
+│  │                                               ↑ Admin types here    │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                              │                                              │
+│                              ▼ Auto-transliterate                           │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │ Family Name (Arabic)                              ✨ Auto-generated  │   │
+│  │ [ حسن________________________________________________ ]            │   │
+│  │                                               ↑ Editable            │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │ Family Name (Nobiin)                              ✨ Auto-generated  │   │
+│  │ [ ϩⲁⲥⲥⲁⲛ_____________________________________________ ]            │   │
+│  │                                               ↑ Editable            │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+│  Founded Year: [ 1920 ]                                                     │
+│                                                                             │
+│  Description: [ __________________________________________ ]                │
+│                                                                             │
+│                                    [ Cancel ]  [ Save Family ]              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Focused Sub-Prompts
+
+### Check Schema Only:
+```
+Read backend/Schema_DATABASE_03.sql
+
+Find the Families table and show:
+1. All columns
+2. Which columns store family names (EN, AR, NOB)
+3. Are they nullable?
+4. Any constraints?
+```
+
+### Check Transliteration Service:
+```
+Find the transliteration service in the codebase:
+1. Service class that handles name transliteration
+2. Endpoints that call this service
+3. Does it support EN ↔ AR ↔ NOB?
+4. Show the key methods/logic
+```
+
+### Check Frontend Form:
+```
+Find the Family create/edit form component:
+1. How many input fields for family name?
+2. Are all 3 languages present?
+3. Is there auto-transliteration on input change?
+4. Are all fields editable?
+5. Show the relevant code
+```
+
+### Implement Auto-Transliteration (if missing):
+```
+The Family form needs auto-transliteration:
+
+1. When admin types in English field:
+   - Call transliteration API
+   - Auto-fill Arabic and Nobiin fields
+
+2. When admin types in Arabic field:
+   - Call transliteration API
+   - Auto-fill English and Nobiin fields
+
+3. When admin types in Nobiin field:
+   - Call transliteration API
+   - Auto-fill English and Arabic fields
+
+4. All 3 fields must remain editable
+
+Implement this in the frontend Family form.
+Use debounce (300ms) to avoid excessive API calls.
+```
+
+### Check Display Language Implementation:
+```
+Find how family names are displayed to users:
+
+1. Where is user's language preference stored?
+   - localStorage?
+   - User profile in database?
+   - Context/Redux state?
+
+2. How is language selector implemented?
+   - Header dropdown?
+   - Settings page?
+
+3. Find all places where family name is displayed:
+   - Family list component
+   - Family detail page
+   - Family tree nodes
+   - Person cards (family badge)
+   - Search results
+   - Dropdown selectors
+
+4. Verify each displays name in user's selected language:
+   - If language = 'en' → Show FamilyNameEn
+   - If language = 'ar' → Show FamilyNameAr
+   - If language = 'nob' → Show FamilyNameNob
+
+5. Verify fallback logic exists:
+   - If selected language value is null → fallback to other language
+
+Show code for each component.
+```

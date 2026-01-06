@@ -7,12 +7,13 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { AuthService } from '../../core/services/auth.service';
-import { PersonService } from '../../core/services/person.service';
+import { PersonSearchService } from '../../core/services/person-search.service';
 import { FamilyTreeService } from '../../core/services/family-tree.service';
 import { TreeContextService } from '../../core/services/tree-context.service';
 import { RelationshipService } from '../../core/services/relationship.service';
 import { I18nService, TranslatePipe } from '../../core/i18n';
-import { PersonListItem, Sex } from '../../core/models/person.models';
+import { Sex } from '../../core/models/person.models';
+import { SearchPersonItem, getPrimaryName } from '../../core/models/search.models';
 import { User } from '../../core/models/auth.models';
 import { PersonFormDialogComponent } from '../people/person-form-dialog.component';
 
@@ -155,20 +156,20 @@ interface StatCard {
                 [class]="'ft-stagger-' + (i + 1)"
                 matRipple
                 (click)="viewPerson(person)">
-                <div 
+                <div
                   class="recent-item__avatar"
                   [class.recent-item__avatar--male]="person.sex === Sex.Male"
                   [class.recent-item__avatar--female]="person.sex === Sex.Female">
-                  {{ getInitials(person.primaryName) }}
+                  {{ getInitials(getPersonDisplayName(person)) }}
                 </div>
                 <div class="recent-item__content">
-                  <span class="recent-item__name">{{ person.primaryName || ('common.unknown' | translate) }}</span>
+                  <span class="recent-item__name">{{ getPersonDisplayName(person) || ('common.unknown' | translate) }}</span>
                   <span class="recent-item__meta">
                     @if (person.birthDate) {
                       {{ formatYear(person.birthDate) }}
                     }
-                    @if (person.birthPlace) {
-                      · {{ person.birthPlace }}
+                    @if (person.birthPlaceName) {
+                      · {{ person.birthPlaceName }}
                     }
                   </span>
                 </div>
@@ -651,7 +652,7 @@ interface StatCard {
 })
 export class DashboardComponent implements OnInit {
   private readonly authService = inject(AuthService);
-  private readonly personService = inject(PersonService);
+  private readonly searchService = inject(PersonSearchService);
   private readonly treeService = inject(FamilyTreeService);
   private readonly treeContext = inject(TreeContextService);
   private readonly relationshipService = inject(RelationshipService);
@@ -664,7 +665,7 @@ export class DashboardComponent implements OnInit {
   readonly Sex = Sex;
 
   currentUser = signal<User | null>(null);
-  recentPeople = signal<PersonListItem[]>([]);
+  recentPeople = signal<SearchPersonItem[]>([]);
   loadingRecent = signal(true);
   hasNoTrees = signal(false);
   checkingTrees = signal(true);
@@ -770,7 +771,8 @@ export class DashboardComponent implements OnInit {
   
   loadRecentPeople(): void {
     this.loadingRecent.set(true);
-    this.personService.searchPeople({ page: 1, pageSize: 5 }).subscribe({
+    // Use search() with empty request for loading recent people (no search term required)
+    this.searchService.search({ page: 1, pageSize: 5 }).subscribe({
       next: (response) => {
         this.recentPeople.set(response.items);
         this.loadingRecent.set(false);
@@ -784,29 +786,30 @@ export class DashboardComponent implements OnInit {
   
   loadStats(): void {
     const treeId = this.treeContext.effectiveTreeId() || undefined;
-    
-    this.personService.searchPeople({ page: 1, pageSize: 1 }).subscribe({
+
+    // Use search() with empty request for getting total counts (no search term required)
+    this.searchService.search({ page: 1, pageSize: 1 }).subscribe({
       next: (response) => {
         this.stats.update(stats => {
           const updated = [...stats];
-          updated[0] = { ...updated[0], value: response.totalCount };
+          updated[0] = { ...updated[0], value: response.total };
           return updated;
         });
-        
+
         // Load male count
-        this.personService.searchPeople({ page: 1, pageSize: 1, sex: Sex.Male }).subscribe(res => {
+        this.searchService.search({ page: 1, pageSize: 1, sex: Sex.Male }).subscribe(res => {
           this.stats.update(stats => {
             const updated = [...stats];
-            updated[1] = { ...updated[1], value: res.totalCount };
+            updated[1] = { ...updated[1], value: res.total };
             return updated;
           });
         });
-        
+
         // Load female count
-        this.personService.searchPeople({ page: 1, pageSize: 1, sex: Sex.Female }).subscribe(res => {
+        this.searchService.search({ page: 1, pageSize: 1, sex: Sex.Female }).subscribe(res => {
           this.stats.update(stats => {
             const updated = [...stats];
-            updated[2] = { ...updated[2], value: res.totalCount };
+            updated[2] = { ...updated[2], value: res.total };
             return updated;
           });
         });
@@ -862,8 +865,13 @@ export class DashboardComponent implements OnInit {
     });
   }
   
-  viewPerson(person: PersonListItem): void {
+  viewPerson(person: SearchPersonItem): void {
     this.router.navigate(['/people', person.id]);
+  }
+
+  // Helper to get display name
+  getPersonDisplayName(person: SearchPersonItem): string {
+    return getPrimaryName(person);
   }
   
   getInitials(name: string | null): string {

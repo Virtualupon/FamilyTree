@@ -1,0 +1,134 @@
+# Bug Fixes and Feature Updates
+
+## 1. Bug Fix: Relationship Labels Using Wrong Person's Sex
+
+### The Problem
+In the relationship path view, the edge labels between persons (like "Father", "Mother", "Son", "Daughter") were incorrectly using the **current** person's sex instead of the **next** person's sex.
+
+### Example from Your Screenshot
+The path shows: **أواب → نوال → هجره → معز** (representing "معز is أواب's nephew")
+
+| From Person | To Person | Label Shown | Correct Label |
+|-------------|-----------|-------------|---------------|
+| أواب (male) | نوال (female) | "Father" ❌ | "Mother" ✓ |
+| هجره (female) | معز (male) | "Daughter" ❌ | "Son" ✓ |
+
+### Root Cause
+In `TreeViewService.cs`, the `BuildPathResponseAsync` method was using the current person's sex instead of the next person's sex.
+
+### The Fix
+Changed to a two-pass approach: first load all nodes, then set labels using the **next** person's sex.
+
+**File Modified:** `Services/TreeViewService.cs` (lines 874-926)
+
+---
+
+## 2. Feature: Town-Based Person Search
+
+### The Problem
+When searching for a person to add a relationship, the search was querying the **entire database**, which is inefficient and can spam the DB.
+
+### The Solution
+Implemented a two-step search process:
+1. **Select a Town first** - User must choose a town from dropdown
+2. **Search by name within that town** - Search only queries people in trees belonging to that town
+
+### Backend Changes
+
+**1. PersonDTOs.cs** - Added `TownId` parameter:
+```csharp
+public record PersonSearchDto(
+    Guid? TreeId = null,
+    Guid? TownId = null,  // NEW: Filter by town
+    string? NameQuery = null,
+    // ... rest of parameters
+);
+```
+
+**2. IPersonRepository.cs** - Added new method:
+```csharp
+Task<(List<PersonListItemDto> Items, int TotalCount)> SearchByTownAsync(
+    Guid townId,
+    PersonSearchDto search,
+    CancellationToken cancellationToken = default);
+```
+
+**3. PersonRepository.cs** - Implemented `SearchByTownAsync`:
+- Joins with `Org` table to filter by `Org.TownId`
+- Applies all existing filters (name, sex, dates, etc.)
+
+**4. PersonService.cs** - Updated `GetPersonsAsync`:
+- If `TownId` is provided, uses `SearchByTownAsync`
+- Otherwise, falls back to standard tree-based search
+
+### Frontend Changes
+
+**1. person.models.ts** - Added `townId` and `treeId` to `PersonSearchRequest`:
+```typescript
+export interface PersonSearchRequest {
+  townId?: string;   // Filter by town
+  treeId?: string;   // Filter by specific tree
+  nameQuery?: string;
+  // ... rest of parameters
+}
+```
+
+**2. person.service.ts** - Updated `searchPeople`:
+- Passes `townId` parameter when provided
+- Falls back to `treeId` if no `townId`
+
+**3. add-relationship-dialog.component.ts** - Major UI changes:
+- Added town dropdown selector that appears **before** person search
+- Person search is **disabled** until a town is selected
+- Search queries include `townId` parameter
+- Clear search results when town changes
+
+### How It Works Now
+
+1. User opens "Add Parent/Child/Spouse" dialog
+2. User sees a **"Select Town/Village First"** dropdown
+3. User selects a town (e.g., "Cairo" or "Alexandria")
+4. Person search input becomes **enabled**
+5. User types a name to search
+6. Search only queries people in trees within the selected town
+7. Results appear quickly without spamming the entire database
+
+---
+
+## Files Modified
+
+### Backend (C#)
+| File | Location |
+|------|----------|
+| `PersonDTOs.cs` | `DTOs/PersonDTOs.cs` |
+| `IPersonRepository.cs` | `Repositories/IPersonRepository.cs` |
+| `PersonRepository.cs` | `Repositories/PersonRepository.cs` |
+| `PersonService.cs` | `Services/PersonService.cs` |
+| `TreeViewService.cs` | `Services/TreeViewService.cs` |
+
+### Frontend (TypeScript)
+| File | Location |
+|------|----------|
+| `person.models.ts` | `src/app/core/models/person.models.ts` |
+| `person.service.ts` | `src/app/core/services/person.service.ts` |
+| `add-relationship-dialog.component.ts` | `src/app/features/people/add-relationship-dialog.component.ts` |
+
+---
+
+## Database Query Optimization
+
+**Before:** Search across entire `Person` table
+```sql
+SELECT * FROM Person 
+WHERE PrimaryName LIKE '%search%'
+```
+
+**After:** Search filtered by Town through Org relationship
+```sql
+SELECT * FROM Person p
+JOIN Org o ON p.OrgId = o.Id
+WHERE o.TownId = @townId
+AND p.PrimaryName LIKE '%search%'
+```
+
+This significantly reduces the search scope and improves performance.

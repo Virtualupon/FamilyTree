@@ -16,9 +16,9 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { debounceTime, distinctUntilChanged, switchMap, catchError } from 'rxjs/operators';
 import { Observable, of, Subject } from 'rxjs';
 
-import type { PersonListItem, PagedResult } from '../../core/models/person.models';
 import { Sex } from '../../core/models/person.models';
-import { PersonService } from '../../core/services/person.service';
+import { PersonSearchService } from '../../core/services/person-search.service';
+import { SearchPersonItem, getPrimaryName } from '../../core/models/search.models';
 import {
   RelationshipService,
   ParentChildRelationshipType,
@@ -106,7 +106,7 @@ export interface RelationshipDialogData {
             @for (person of searchResults(); track person.id) {
               <mat-option [value]="person">
                 <div class="person-option">
-                  <span class="name">{{ person.primaryName || 'Unknown' }}</span>
+                  <span class="name">{{ displayPerson(person) }}</span>
                   @if (person.birthDate || person.deathDate) {
                     <span class="dates">
                       ({{ formatYear(person.birthDate) }} - {{ formatYear(person.deathDate) }})
@@ -134,7 +134,7 @@ export interface RelationshipDialogData {
           <div class="selected-person">
             <mat-chip-row (removed)="clearSelection()">
               <i class="fa-solid fa-user" matChipAvatar aria-hidden="true"></i>
-              {{ selectedPerson()?.primaryName || 'Unknown' }}
+              {{ displayPerson(selectedPerson()!) }}
               <button matChipRemove>
                 <i class="fa-solid fa-ban" aria-hidden="true"></i>
               </button>
@@ -415,7 +415,7 @@ export interface RelationshipDialogData {
   `]
 })
 export class AddRelationshipDialogComponent implements OnInit {
-  private personService = inject(PersonService);
+  private searchService = inject(PersonSearchService);
   private relationshipService = inject(RelationshipService);
   private familyRelTypeService = inject(FamilyRelationshipTypeService);
   private townService = inject(TownService);
@@ -442,8 +442,8 @@ export class AddRelationshipDialogComponent implements OnInit {
   townsLoading = signal(false);
 
   // State signals
-  searchResults = signal<PersonListItem[]>([]);
-  selectedPerson = signal<PersonListItem | null>(null);
+  searchResults = signal<SearchPersonItem[]>([]);
+  selectedPerson = signal<SearchPersonItem | null>(null);
   isSearching = signal(false);
   isSaving = signal(false);
   error = signal<string | null>(null);
@@ -493,10 +493,10 @@ export class AddRelationshipDialogComponent implements OnInit {
           return of(null);
         }
         this.isSearching.set(true);
-        return this.personService.searchPeople({ nameQuery: term, townId, page: 1, pageSize: 10 }).pipe(
+        return this.searchService.searchByTown(townId, term, 1, 10).pipe(
           catchError((err: any) => {
             console.error('Search error:', err);
-            return of({ items: [], totalCount: 0, page: 1, pageSize: 10, totalPages: 0 });
+            return of({ items: [], totalCount: 0, page: 1, pageSize: 10, totalPages: 0, searchDurationMs: 0 });
           })
         );
       })
@@ -569,8 +569,8 @@ export class AddRelationshipDialogComponent implements OnInit {
     return town.nameEn || 'Unknown';
   }
 
-  displayPerson(person: PersonListItem): string {
-    return person?.primaryName || '';
+  displayPerson(person: SearchPersonItem): string {
+    return person ? getPrimaryName(person) : '';
   }
 
   displayRelType(relType: FamilyRelationshipType | null): string {
@@ -578,7 +578,7 @@ export class AddRelationshipDialogComponent implements OnInit {
     return `${relType.nameEnglish} (${relType.nameArabic})`;
   }
 
-  onPersonSelected(person: PersonListItem) {
+  onPersonSelected(person: SearchPersonItem) {
     this.selectedPerson.set(person);
     this.searchControl.setValue('');
     this.searchResults.set([]);

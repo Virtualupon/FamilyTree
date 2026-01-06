@@ -46,4 +46,9 @@ public interface IPersonMediaRepository : IRepository<PersonMedia>
     /// Gets a Media entity by its ID
     /// </summary>
     Task<Models.Media?> GetMediaByIdAsync(Guid mediaId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all person links for multiple media items with Person details
+    /// </summary>
+    Task<IEnumerable<PersonMedia>> GetByMediaIdsWithPersonsAsync(IEnumerable<Guid> mediaIds, CancellationToken cancellationToken = default);
 }

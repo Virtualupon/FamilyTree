@@ -277,6 +277,9 @@ public class UnionService : IUnionService
             Id = member.Id,
             PersonId = dto.PersonId,
             PersonName = person?.PrimaryName,
+            PersonNameArabic = person?.NameArabic,
+            PersonNameEnglish = person?.NameEnglish,
+            PersonNameNobiin = person?.NameNobiin,
             Sex = person?.Sex
         });
     }
@@ -484,6 +487,9 @@ public class UnionService : IUnionService
                 Id = m.Id,
                 PersonId = m.PersonId,
                 PersonName = m.Person?.PrimaryName,
+                PersonNameArabic = m.Person?.NameArabic,
+                PersonNameEnglish = m.Person?.NameEnglish,
+                PersonNameNobiin = m.Person?.NameNobiin,
                 Sex = m.Person?.Sex
             }).ToList(),
             union.CreatedAt,

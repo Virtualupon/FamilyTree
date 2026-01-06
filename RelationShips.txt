@@ -1,0 +1,143 @@
+You are a senior .NET 8 / ASP.NET Core + Angular architect.
+
+Update the Relationship feature to use standardized relationship types from a predefined list with trilingual support (Arabic, English, Nubian). Do NOT break existing code.
+
+REFERENCE FILE: family_relationships_trilingual_ar_en_nub.csv
+
+This CSV contains 38 relationship types with three columns:
+- Arabic (e.g., أب, أم, أخ, أخت)
+- English (e.g., Father, Mother, Brother, Sister)
+- Nubian (e.g., ⲫⲁ̄ⲡ, ⲉ̄ⲛ, ⲉⳟⳟⲁ, ⲉⲥⲥⲓ)
+
+COMPLETE RELATIONSHIP LIST (38 types):
+
+Immediate Family:
+1. أب / Father / ⲫⲁ̄ⲡ
+2. أم / Mother / ⲉ̄ⲛ
+3. ولد / Son / ⲧⲟ̄ⲇ
+4. بنت / Daughter / ⲓⲥⲥⲉ̄ ⲓⲥⲥⲉ̄
+5. أخ / Brother / ⲉⳟⳟⲁ
+6. أخت / Sister / ⲉⲥⲥⲓ
+7. زوج / Husband / ⲓⲇ
+8. زوجة / Wife / ⲓⲇⲉ̄ⲛ
+
+Grandparents/Grandchildren:
+9. جد / Grandfather / ⲟ̅ⲩ̅
+10. جدة / Grandmother / ⲁ̄ⳣ
+11. حفيد / Grandson / ⲁⲥⲥⲓ
+12. حفيدة / Granddaughter / ⲁⲥⲥⲓ
+13. ابن الحفيد / Great-grandson / ⳣⲓⲥⲥⲓ
+14. بنت الحفيد / Great-granddaughter / ⳣⲓⲥⲥⲓ
+
+Uncles/Aunts:
+15. عم / Paternal Uncle / ⲫⲁ̄ⲡⲓⲛ ⲉⳟⳟⲁ
+16. عمة / Paternal Aunt / ⲁⳡⳡⲓ
+17. خال / Maternal Uncle / ⲅⲓ̄
+18. خالة / Maternal Aunt / ⲉ̄ⲛⲡⲉⲥ
+
+Cousins:
+19. ابن العم / Cousin (paternal uncle's son) / ⲁⲡⲡⲛ ⲉⳟⳟⲁⲛ ⲧⲟ̄ⲇ
+20. بنت العم / Cousin (paternal uncle's daughter) / ⲁⲡⲟⲛ ⲉⳟⳟⲁⲛ ⲁⲥ
+21. ابن العمة / Cousin (paternal aunt's son) / ⲁⲛⲛⲁⳡⲓⲛ ⲧⲟ̄ⲇ
+22. بنت العمة / Cousin (paternal aunt's daughter) / ⲁⲡⲛⲁⲃⲓⲛ ⲁⲇ ⲁⲥ
+23. ابن الخال / Cousin (maternal uncle's son) / ⲁⲛⲉ̄ⲛ ⲡⲣⲥⲓⲛ ⲧⲟ̄ⲇ
+24. بنت الخال / Cousin (maternal uncle's daughter) / ⲁⲛⲉ̄ⲛ ⲡⲉⲥⲟⲛ ⲁⲥ
+
+Nephews/Nieces:
+25. ابن الأخ / Nephew (brother's son) / ⳝⲟⲩⲧⲧⲓ
+26. بنت الأخ / Niece (brother's daughter) / ⳝⲟⲩⲧⲧⲓ
+27. ابن الأخت / Nephew (sister's son) / ⳝⲟⲩⲧⲧⲓ
+28. بنت الأخت / Niece (sister's daughter) / ⳝⲟⲩⲧⲧⲓ
+
+In-Laws:
+29. حما / Father-in-law / ⲁⲅⲟ
+30. حماة / Mother-in-law / ⲁⲅⲟ
+31. صهر / Son-in-law / ⲟⲧⲧⲓ
+32. كنّة / Daughter-in-law / ⲟⲧⲧⲓ
+33. زوج الأخت / Sister's husband / ⲓⲇ ⲉⲥⲥⲓ
+34. زوجة الأخ / Brother's wife / ⲓⲇ ⲉⳟⳟⲁ
+
+Step Relations:
+35. زوج الأم / Stepfather / ⲓⲇ ⲉ̄ⲛ
+36. زوجة الأب / Stepmother / ōčča-r
+37. ابن الزوجة / Stepson / ⲧⲟ̄ⲇ ⲓⲇⲉ̄ⲛ
+38. بنت الزوجة / Stepdaughter / ⲓⲇⲉ̄ⲛ ⲓⲥⲥⲉ̄
+
+BACKEND REQUIREMENTS:
+
+1. Create RelationshipType entity:
+   - Id (int, PK)
+   - NameArabic (string, required)
+   - NameEnglish (string, required)
+   - NameNubian (string, required)
+   - SortOrder (int, for display ordering)
+   - IsActive (bool, default true)
+
+2. Seed database with all 38 relationship types from CSV file
+
+3. Create endpoint:
+   - GET /api/relationship-types
+   - Returns list with Id, NameArabic, NameEnglish, NameNubian
+
+4. Update Relationship entity:
+   - Add RelationshipTypeId (FK to RelationshipType)
+   - Keep existing fields for backward compatibility
+
+5. Update Relationship DTOs to include:
+   - RelationshipTypeId
+   - RelationshipNameArabic, RelationshipNameEnglish, RelationshipNameNubian (resolved from type)
+
+FRONTEND REQUIREMENTS:
+
+1. Create RelationshipType interface:
+   - id: number
+   - nameArabic: string
+   - nameEnglish: string
+   - nameNubian: string
+
+2. Create RelationshipTypeService:
+   - getAll(): Observable<RelationshipType[]>
+   - Cache results (static data)
+
+3. Update Relationship create/edit form:
+   - Replace text input with searchable dropdown
+   - Show names in user's preferred language
+   - Store RelationshipTypeId on save
+
+4. Update Relationship display:
+   - Show relationship name in preferred language
+   - Option: show all three languages or tooltip with translations
+
+DROPDOWN DISPLAY FORMAT:
+
+Recommended - show English with Arabic:
+- "Father (أب)"
+- "Mother (أم)"
+- "Brother (أخ)"
+
+Or based on app language setting, show primary language only.
+
+Make dropdown searchable - user can type in any language to filter.
+
+SEED DATA SQL EXAMPLE:
+
+INSERT INTO RelationshipTypes (NameArabic, NameEnglish, NameNubian, SortOrder, IsActive) VALUES
+('أب', 'Father', 'ⲫⲁ̄ⲡ', 1, 1),
+('أم', 'Mother', 'ⲉ̄ⲛ', 2, 1),
+('ولد', 'Son', 'ⲧⲟ̄ⲇ', 3, 1),
+... (all 38 rows)
+
+DELIVERABLES:
+
+1. RelationshipType entity with trilingual columns
+2. EF Core migration for new table
+3. Database seed with all 38 types
+4. GET /api/relationship-types endpoint
+5. Updated Relationship entity with RelationshipTypeId FK
+6. Updated DTOs with resolved names
+7. Angular RelationshipType model and service
+8. Updated create/edit form with searchable dropdown
+9. Updated display showing correct language names
+10. Migration script for existing relationship data (if any)
+
+OUTPUT: Provide code changes with clear file paths. Include seed data for all 38 relationship types.

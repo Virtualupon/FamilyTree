@@ -1,0 +1,356 @@
+# Nubian Theme Implementation Guide
+
+## Overview
+
+This document describes the comprehensive Nubian theme system implemented for the Family Tree Platform. The theme brings the cultural heritage of Nubia into the application's visual design through carefully selected colors, typography, and design patterns.
+
+---
+
+## Color Palette
+
+### Primary Colors - Nubian Teal
+| Token | Hex | Usage |
+|-------|-----|-------|
+| `$nubian-teal` | `#187573` | Primary actions, headers, active states |
+| `$nubian-teal-400` | `#2B9A97` | Hover states, gradients |
+| `$nubian-teal-700` | `#0D5654` | Dark accents |
+
+### Secondary Colors - Nubian Gold
+| Token | Hex | Usage |
+|-------|-----|-------|
+| `$nubian-gold` | `#C17E3E` | Accents, icons, secondary actions |
+| `$nubian-gold-400` | `#D4A574` | Lighter accents, gradients |
+| `$nubian-gold-700` | `#8B5A2B` | Dark accents |
+
+### Accent Colors - Nubian Orange
+| Token | Hex | Usage |
+|-------|-----|-------|
+| `$nubian-orange` | `#E85D35` | Warnings, highlights |
+| `$nubian-orange-400` | `#FF7A52` | Lighter warnings |
+
+### Accent Colors - Nubian Green
+| Token | Hex | Usage |
+|-------|-----|-------|
+| `$nubian-green` | `#2D7A3E` | Success states |
+| `$nubian-green-400` | `#3FA055` | Lighter success |
+
+### Neutral Colors
+| Token | Hex | Usage |
+|-------|-----|-------|
+| `$warm-white` | `#FAF7F1` | Main background |
+| `$nubian-cream` | `#FFF9F5` | Card backgrounds, surfaces |
+| `$nubian-beige` | `#F4E4D7` | Borders, dividers |
+| `$nubian-charcoal` | `#2D2D2D` | Primary text |
+| `$nubian-gray` | `#6B6B6B` | Secondary text |
+
+### Gender Colors (Culturally Adapted)
+- **Male**: Nubian Teal (`#187573`)
+- **Female**: Nubian Gold (`#C17E3E`)
+
+---
+
+## Typography
+
+### Font Families
+```scss
+$font-primary: 'Inter', sans-serif;           // Body text
+$font-display: 'Cinzel', serif;               // Headings, titles
+$font-serif: 'Cormorant Garamond', serif;     // Elegant text
+$font-arabic: 'Amiri', serif;                 // Arabic text (RTL)
+$font-nubian: 'SophiaNubian', sans-serif;     // Nubian script
+```
+
+### Usage Example
+```scss
+.heading {
+  @include heading-display;  // Cinzel, bold, teal
+}
+
+.body-text {
+  @include body-text;  // Inter, normal weight
+}
+```
+
+---
+
+## File Structure
+
+```
+src/
+├── styles/
+│   ├── _nubian-variables.scss    # Color, spacing, typography variables
+│   ├── _nubian-mixins.scss       # Reusable mixins and keyframes
+│   ├── _nubian-components.scss   # Component-specific styles
+│   └── _nubian-theme.scss        # Main entry point + Material overrides
+├── styles.scss                    # Global styles (imports theme)
+└── app/
+    └── features/
+        └── auth/
+            ├── login.component.ts      # Updated with Nubian theme
+            └── register.component.ts   # Updated with Nubian theme
+```
+
+---
+
+## Using the Theme
+
+### In Components (SCSS)
+```scss
+// Import the theme
+@import 'styles/nubian-theme';
+
+// Or just variables/mixins
+@import 'styles/nubian-variables';
+@import 'styles/nubian-mixins';
+
+.my-component {
+  background: $nubian-cream;
+  color: $nubian-teal;
+  @include card-nubian;  // Apply card styles
+}
+```
+
+### In Templates (CSS Classes)
+```html
+<!-- Use pre-built component classes -->
+<div class="nubian-card">
+  <div class="nubian-card__header">
+    <h2 class="nubian-card__title">Title</h2>
+  </div>
+  <div class="nubian-card__body">Content</div>
+</div>
+
+<!-- Or utility classes -->
+<button class="nubian-btn nubian-btn--primary nubian-btn--lg">
+  Click Me
+</button>
+
+<div class="bg-nubian-cream text-nubian-teal">
+  Styled with utilities
+</div>
+```
+
+### CSS Custom Properties (Runtime)
+```css
+.my-element {
+  background: var(--nubian-bg);
+  color: var(--nubian-primary);
+  border-color: var(--nubian-border);
+}
+```
+
+---
+
+## Available Mixins
+
+### Buttons
+```scss
+@include button-primary;   // Teal gradient button
+@include button-secondary; // White with teal border
+@include button-gold;      // Gold gradient button
+@include button-ghost;     // Transparent background
+```
+
+### Cards
+```scss
+@include card-base;      // Basic card styling
+@include card-elevated;  // With hover lift effect
+@include card-nubian;    // With Nubian colors
+@include card-glass;     // Glassmorphism effect
+```
+
+### Typography
+```scss
+@include heading-display;  // Display headings (Cinzel)
+@include heading-serif;    // Serif headings (Cormorant)
+@include body-text;        // Body text styles
+@include text-truncate;    // Single line ellipsis
+@include text-clamp(3);    // Multi-line ellipsis
+```
+
+### Layout
+```scss
+@include flex-center;      // Center items
+@include flex-between;     // Space between
+@include container;        // Centered container with padding
+@include absolute-fill;    // Fill parent
+```
+
+### Responsive
+```scss
+@include respond-to('md') { ... }  // Min-width breakpoint
+@include respond-below('lg') { ... }  // Max-width breakpoint
+@include landscape { ... }  // Landscape orientation
+```
+
+---
+
+## Component Classes
+
+### Authentication Pages
+```html
+<div class="nubian-auth">
+  <div class="nubian-auth__card">
+    <div class="nubian-auth__header">
+      <div class="nubian-auth__logo">
+        <i class="fa-solid fa-tree"></i>
+      </div>
+      <h1>Title</h1>
+    </div>
+    <div class="nubian-auth__content">
+      <form class="nubian-auth__form">...</form>
+      <button class="nubian-auth__submit">Submit</button>
+    </div>
+    <div class="nubian-auth__footer">...</div>
+  </div>
+</div>
+```
+
+### Stat Cards
+```html
+<div class="nubian-stat">
+  <div class="nubian-stat__icon nubian-stat__icon--teal">
+    <i class="fa-solid fa-users"></i>
+  </div>
+  <div class="nubian-stat__value">1,234</div>
+  <div class="nubian-stat__label">Total Users</div>
+  <div class="nubian-stat__change nubian-stat__change--up">
+    <i class="fa-solid fa-arrow-up"></i> 12%
+  </div>
+</div>
+```
+
+### Buttons
+```html
+<button class="nubian-btn nubian-btn--primary">Primary</button>
+<button class="nubian-btn nubian-btn--secondary">Secondary</button>
+<button class="nubian-btn nubian-btn--gold">Gold</button>
+<button class="nubian-btn nubian-btn--ghost">Ghost</button>
+```
+
+### Badges
+```html
+<span class="nubian-badge nubian-badge--teal">Active</span>
+<span class="nubian-badge nubian-badge--gold">Pending</span>
+<span class="nubian-badge nubian-badge--orange">Warning</span>
+```
+
+### Avatars
+```html
+<div class="nubian-avatar nubian-avatar--lg nubian-avatar--male">JD</div>
+<div class="nubian-avatar nubian-avatar--md nubian-avatar--female">SA</div>
+```
+
+---
+
+## Angular Material Overrides
+
+The theme automatically overrides Angular Material components:
+
+- **Form Fields**: Nubian beige borders, teal focus states
+- **Buttons**: Teal primary, gold accent, rounded corners
+- **Cards**: White background, beige borders, xl radius
+- **Dialogs**: Cream background, 2xl radius
+- **Chips**: Cream background, teal selected state
+- **Tables**: Cream header, teal hover states
+- **Tabs**: Teal active indicator
+- **Checkboxes/Radios**: Teal selected state
+- **Sliders**: Teal handle and track
+- **Progress**: Teal indicators
+
+---
+
+## Animations
+
+### Available Keyframes
+```scss
+@keyframes fadeIn { ... }
+@keyframes fadeInUp { ... }
+@keyframes fadeInDown { ... }
+@keyframes slideInLeft { ... }
+@keyframes slideInRight { ... }
+@keyframes scaleIn { ... }
+@keyframes pulse { ... }
+@keyframes spin { ... }
+@keyframes shimmer { ... }
+@keyframes bounce { ... }
+@keyframes float { ... }
+```
+
+### Animation Classes
+```html
+<div class="nubian-fade-in">Fades in</div>
+<div class="nubian-fade-in-up">Slides up while fading</div>
+<div class="nubian-scale-in">Scales in</div>
+<div class="nubian-stagger-1">First item (50ms delay)</div>
+<div class="nubian-stagger-2">Second item (100ms delay)</div>
+```
+
+---
+
+## RTL Support
+
+The theme includes RTL (Right-to-Left) support:
+
+```scss
+// In your styles
+.my-element {
+  margin-left: 1rem;
+  
+  @include rtl {
+    margin-left: 0;
+    margin-right: 1rem;
+  }
+}
+```
+
+Arabic text automatically uses the Amiri font family when `[dir="rtl"]` is set.
+
+---
+
+## Accessibility
+
+- Focus states use gold outline with 3px width
+- Reduced motion support via `@media (prefers-reduced-motion)`
+- High contrast mode support
+- Sufficient color contrast ratios
+
+---
+
+## Files to Deploy
+
+### New Files (Create)
+1. `src/styles/_nubian-variables.scss`
+2. `src/styles/_nubian-mixins.scss`
+3. `src/styles/_nubian-components.scss`
+4. `src/styles/_nubian-theme.scss`
+
+### Updated Files (Replace)
+1. `src/styles.scss` - Global styles with Nubian theme
+2. `src/app/features/auth/login.component.ts` - Nubian login page
+3. `src/app/features/auth/register.component.ts` - Nubian register page
+
+---
+
+## Next Steps
+
+To complete the theme across the entire app, apply similar patterns to:
+
+1. **Layout Component** (`layout.component.ts`)
+   - Header with `nubian-header` classes
+   - Sidebar with `nubian-sidebar` classes
+   
+2. **Dashboard** (`dashboard.component.ts`)
+   - Use `nubian-stat` for statistics cards
+   - Use `nubian-card` for content sections
+
+3. **People Pages** (`person-*.component.ts`)
+   - Apply `nubian-card`, `nubian-table`, `nubian-avatar`
+   
+4. **Tree View** (`tree.component.ts`)
+   - Update node colors to use Nubian gender colors
+
+5. **Admin Pages**
+   - Consistent use of Nubian form styles and cards
+
+The theme system is now in place - you can apply the classes and mixins throughout the application!

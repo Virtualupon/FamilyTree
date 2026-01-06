@@ -11,10 +11,12 @@ import { MatInputModule } from '@angular/material/input';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { AdminService } from '../../core/services/admin.service';
 import { FamilyTreeService } from '../../core/services/family-tree.service';
 import { TownService } from '../../core/services/town.service';
+import { TransliterationService } from '../../core/services/transliteration.service';
 import {
   AdminUser,
   AdminTownAssignment,
@@ -23,6 +25,7 @@ import {
   CreateUserRequest
 } from '../../core/models/family-tree.models';
 import { TownListItem } from '../../core/models/town.models';
+import { NameMapping, BulkTransliterationResult, getConfidenceLevel } from '../../core/models/transliteration.models';
 import { I18nService } from '../../core/i18n/i18n.service';
 
 @Component({
@@ -40,7 +43,8 @@ import { I18nService } from '../../core/i18n/i18n.service';
     MatInputModule,
     MatDialogModule,
     MatProgressSpinnerModule,
-    MatChipsModule
+    MatChipsModule,
+    MatTooltipModule
   ],
   template: `
     <div class="admin-panel">
@@ -349,6 +353,142 @@ import { I18nService } from '../../core/i18n/i18n.service';
                   <p>No family trees yet</p>
                 </div>
               }
+            </div>
+          </mat-tab>
+
+          <!-- Transliteration Tab -->
+          <mat-tab>
+            <ng-template mat-tab-label>
+              <i class="fa-solid fa-language" aria-hidden="true"></i>
+              <span>Transliteration</span>
+            </ng-template>
+
+            <div class="tab-content transliteration-tab">
+              <div class="transliteration-header">
+                <h3>Generate Missing Translations</h3>
+                <p class="transliteration-desc">
+                  Automatically generate Arabic, English, and Nobiin name variants for persons who are missing them.
+                </p>
+              </div>
+
+              <!-- Bulk Generation Section -->
+              <mat-card class="transliteration-card">
+                <mat-card-header>
+                  <mat-card-title>
+                    <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+                    Bulk Generate
+                  </mat-card-title>
+                </mat-card-header>
+                <mat-card-content>
+                  <div class="bulk-options">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Max Persons to Process</mat-label>
+                      <input matInput type="number" [(ngModel)]="bulkTranslitOptions.maxPersons" min="1" max="500">
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline">
+                      <mat-label>Family Tree</mat-label>
+                      <mat-select [(ngModel)]="bulkTranslitOptions.orgId">
+                        <mat-option value="">All Trees (My Org)</mat-option>
+                        @for (tree of allTrees(); track tree.id) {
+                          <mat-option [value]="tree.id">{{ tree.name }}</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+                  </div>
+
+                  @if (bulkTranslitResult()) {
+                    <div class="translit-result" [class.translit-result--success]="bulkTranslitResult()!.success">
+                      <div class="translit-result__header">
+                        <i class="fa-solid" [class.fa-check-circle]="bulkTranslitResult()!.success" [class.fa-exclamation-circle]="!bulkTranslitResult()!.success" aria-hidden="true"></i>
+                        <span>{{ bulkTranslitResult()!.message }}</span>
+                      </div>
+                      <div class="translit-result__stats">
+                        <span><strong>{{ bulkTranslitResult()!.totalPersonsProcessed }}</strong> persons processed</span>
+                        <span><strong>{{ bulkTranslitResult()!.totalNamesGenerated }}</strong> names generated</span>
+                        @if (bulkTranslitResult()!.errors > 0) {
+                          <span class="error-count"><strong>{{ bulkTranslitResult()!.errors }}</strong> errors</span>
+                        }
+                      </div>
+                    </div>
+                  }
+                </mat-card-content>
+                <mat-card-actions align="end">
+                  <button mat-flat-button color="primary" 
+                          [disabled]="bulkTranslitLoading()" 
+                          (click)="runBulkTransliteration()">
+                    @if (bulkTranslitLoading()) {
+                      <mat-spinner diameter="20"></mat-spinner>
+                      Processing...
+                    } @else {
+                      <i class="fa-solid fa-play" aria-hidden="true"></i>
+                      Generate Missing Names
+                    }
+                  </button>
+                </mat-card-actions>
+              </mat-card>
+
+              <!-- Mappings Needing Review -->
+              <mat-card class="transliteration-card">
+                <mat-card-header>
+                  <mat-card-title>
+                    <i class="fa-solid fa-flag" aria-hidden="true"></i>
+                    Mappings Needing Review ({{ mappingsNeedingReview().length }})
+                  </mat-card-title>
+                </mat-card-header>
+                <mat-card-content>
+                  @if (mappingsNeedingReview().length > 0) {
+                    <table mat-table [dataSource]="mappingsNeedingReview()" class="mappings-table">
+                      <ng-container matColumnDef="arabic">
+                        <th mat-header-cell *matHeaderCellDef>Arabic</th>
+                        <td mat-cell *matCellDef="let m" class="rtl-cell">{{ m.arabic || '—' }}</td>
+                      </ng-container>
+
+                      <ng-container matColumnDef="english">
+                        <th mat-header-cell *matHeaderCellDef>English</th>
+                        <td mat-cell *matCellDef="let m">{{ m.english || '—' }}</td>
+                      </ng-container>
+
+                      <ng-container matColumnDef="nobiin">
+                        <th mat-header-cell *matHeaderCellDef>Nobiin</th>
+                        <td mat-cell *matCellDef="let m" class="nobiin-cell">{{ m.nobiin || '—' }}</td>
+                      </ng-container>
+
+                      <ng-container matColumnDef="confidence">
+                        <th mat-header-cell *matHeaderCellDef>Confidence</th>
+                        <td mat-cell *matCellDef="let m">
+                          <mat-chip [class]="'confidence-' + getConfidenceLevel(m.confidence)">
+                            {{ (m.confidence * 100).toFixed(0) }}%
+                          </mat-chip>
+                        </td>
+                      </ng-container>
+
+                      <ng-container matColumnDef="actions">
+                        <th mat-header-cell *matHeaderCellDef>Actions</th>
+                        <td mat-cell *matCellDef="let m">
+                          <button mat-icon-button color="primary" (click)="verifyMapping(m)" matTooltip="Verify">
+                            <i class="fa-solid fa-check" aria-hidden="true"></i>
+                          </button>
+                        </td>
+                      </ng-container>
+
+                      <tr mat-header-row *matHeaderRowDef="mappingColumns"></tr>
+                      <tr mat-row *matRowDef="let row; columns: mappingColumns;"></tr>
+                    </table>
+                  } @else {
+                    <div class="empty-state empty-state--small">
+                      <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                      <p>All mappings are verified!</p>
+                    </div>
+                  }
+                </mat-card-content>
+                <mat-card-actions align="end">
+                  <button mat-button (click)="loadMappingsNeedingReview()">
+                    <i class="fa-solid fa-refresh" aria-hidden="true"></i>
+                    Refresh
+                  </button>
+                </mat-card-actions>
+              </mat-card>
             </div>
           </mat-tab>
         </mat-tab-group>
@@ -851,6 +991,109 @@ import { I18nService } from '../../core/i18n/i18n.service';
         }
       }
     }
+
+    // Transliteration Tab Styles
+    .transliteration-tab {
+      .transliteration-header {
+        margin-bottom: 24px;
+
+        h3 {
+          margin: 0 0 8px;
+          font-size: 1.25rem;
+        }
+
+        .transliteration-desc {
+          color: var(--ft-on-surface-variant);
+          margin: 0;
+        }
+      }
+
+      .transliteration-card {
+        margin-bottom: 24px;
+
+        mat-card-title {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 1rem;
+
+          i.fa-solid {
+            color: var(--ft-primary);
+          }
+        }
+      }
+
+      .bulk-options {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+
+        mat-form-field {
+          min-width: 200px;
+        }
+      }
+
+      .translit-result {
+        padding: 16px;
+        border-radius: 8px;
+        background: var(--ft-surface-variant);
+        margin-top: 16px;
+
+        &--success {
+          background: #e8f5e9;
+        }
+
+        &__header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-weight: 500;
+          margin-bottom: 8px;
+
+          .fa-check-circle { color: #4caf50; }
+          .fa-exclamation-circle { color: #f44336; }
+        }
+
+        &__stats {
+          display: flex;
+          gap: 24px;
+          font-size: 14px;
+          color: var(--ft-on-surface-variant);
+
+          .error-count {
+            color: #f44336;
+          }
+        }
+      }
+
+      .mappings-table {
+        width: 100%;
+
+        .rtl-cell {
+          direction: rtl;
+          text-align: right;
+          font-family: 'Noto Sans Arabic', 'Amiri', serif;
+        }
+
+        .nobiin-cell {
+          font-family: 'Noto Sans Coptic', 'Antinoou', serif;
+        }
+      }
+
+      .confidence-high { background: #e8f5e9 !important; color: #2e7d32 !important; }
+      .confidence-medium { background: #fff3e0 !important; color: #e65100 !important; }
+      .confidence-low { background: #ffebee !important; color: #c62828 !important; }
+
+      .empty-state--small {
+        padding: 24px;
+
+        i.fa-solid {
+          font-size: 2rem;
+          color: #4caf50;
+        }
+      }
+    }
   `]
 })
 export class AdminPanelComponent implements OnInit {
@@ -879,16 +1122,28 @@ export class AdminPanelComponent implements OnInit {
   userColumns = ['user', 'role', 'trees', 'created', 'actions'];
   townAssignmentColumns = ['admin', 'town', 'trees', 'assignedBy', 'date', 'actions'];
   treeColumns = ['name', 'people', 'public', 'created'];
+  mappingColumns = ['arabic', 'english', 'nobiin', 'confidence', 'actions'];
+
+  // Transliteration state
+  bulkTranslitLoading = signal(false);
+  bulkTranslitResult = signal<BulkTransliterationResult | null>(null);
+  mappingsNeedingReview = signal<NameMapping[]>([]);
+  bulkTranslitOptions = {
+    maxPersons: 100,
+    orgId: ''
+  };
 
   constructor(
     private adminService: AdminService,
     private treeService: FamilyTreeService,
     private townService: TownService,
+    private transliterationService: TransliterationService,
     private i18n: I18nService
   ) {}
 
   ngOnInit() {
     this.loadData();
+    this.loadMappingsNeedingReview();
   }
 
   loadData() {
@@ -1029,5 +1284,67 @@ export class AdminPanelComponent implements OnInit {
       default:
         return assignment.townNameEn || assignment.townName || '';
     }
+  }
+
+  // ============================================================================
+  // Transliteration Methods
+  // ============================================================================
+
+  loadMappingsNeedingReview(): void {
+    this.transliterationService.getMappingsNeedingReview().subscribe({
+      next: (mappings) => this.mappingsNeedingReview.set(mappings),
+      error: (err) => console.error('Failed to load mappings:', err)
+    });
+  }
+
+  runBulkTransliteration(): void {
+    this.bulkTranslitLoading.set(true);
+    this.bulkTranslitResult.set(null);
+
+    const request = {
+      maxPersons: this.bulkTranslitOptions.maxPersons,
+      orgId: this.bulkTranslitOptions.orgId || undefined,
+      skipComplete: true
+    };
+
+    this.transliterationService.bulkGenerate(request).subscribe({
+      next: (result) => {
+        this.bulkTranslitResult.set(result);
+        this.bulkTranslitLoading.set(false);
+        // Refresh mappings needing review
+        this.loadMappingsNeedingReview();
+      },
+      error: (err) => {
+        this.bulkTranslitLoading.set(false);
+        this.bulkTranslitResult.set({
+          success: false,
+          message: err.error?.message || 'Failed to run bulk transliteration',
+          totalPersonsProcessed: 0,
+          totalNamesGenerated: 0,
+          personsSkipped: 0,
+          errors: 1,
+          results: []
+        });
+      }
+    });
+  }
+
+  verifyMapping(mapping: NameMapping): void {
+    this.transliterationService.verifyMapping({
+      mappingId: mapping.id
+    }).subscribe({
+      next: () => {
+        // Remove from list
+        this.mappingsNeedingReview.update(list => 
+          list.filter(m => m.id !== mapping.id)
+        );
+      },
+      error: (err) => alert(err.error?.message || 'Failed to verify mapping')
+    });
+  }
+
+  getConfidenceLevel(confidence: number | null): string {
+    if (confidence === null) return 'low';
+    return getConfidenceLevel(confidence);
   }
 }

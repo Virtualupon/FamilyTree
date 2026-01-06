@@ -282,6 +282,10 @@
     "lastName": "اسم العائلة",
     "addName": "إضافة اسم",
     "transliterate": "تحويل",
+    "namesHint": "أدخل الاسم بلغة واحدة على الأقل. سيتم ملء اللغات الأخرى تلقائياً.",
+    "nobiinOptional": "اختياري - بالنوبية",
+    "autoFillNames": "ملء تلقائي",
+    "autoFillHint": "تحويل الأسماء تلقائياً إلى اللغات الأخرى",
     "family": "مجموعة العائلة",
     "noFamily": "بدون عائلة"
   },
@@ -429,5 +433,27 @@
     "selectTownHint": "اختر مدينة من القائمة أعلاه لعرض وإدارة عائلاتها",
     "manageFamilies": "إدارة واستكشاف مجموعات العائلات",
     "viewMembers": "عرض الأعضاء"
+  },
+  "relationshipEditor": {
+    "createTitle": "إضافة علاقة",
+    "editTitle": "تعديل العلاقة",
+    "person": "الشخص",
+    "direction": "اتجاه العلاقة",
+    "addAsParent": "إضافة كوالد/والدة",
+    "addAsChild": "إضافة كابن/ابنة",
+    "addAsSpouse": "إضافة كزوج/زوجة",
+    "relationshipType": "نوع العلاقة",
+    "selectType": "اختر نوع العلاقة",
+    "relatedPerson": "الشخص المرتبط",
+    "searchHint": "ابحث عن شخص لإضافة العلاقة",
+    "notes": "ملاحظات",
+    "notesPlaceholder": "ملاحظات إضافية حول هذه العلاقة...",
+    "createSuccess": "تم إنشاء العلاقة بنجاح",
+    "updateSuccess": "تم تحديث العلاقة بنجاح",
+    "deleteSuccess": "تم حذف العلاقة بنجاح",
+    "createError": "فشل في إنشاء العلاقة",
+    "updateError": "فشل في تحديث العلاقة",
+    "deleteError": "فشل في حذف العلاقة",
+    "relationshipCreated": "تمت إضافة العلاقة"
   }
 }

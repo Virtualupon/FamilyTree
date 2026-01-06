@@ -21,7 +21,6 @@ public class UnionRepository : Repository<Union>, IUnionRepository
             .Where(u => u.Id == id && u.OrgId == orgId)
             .Include(u => u.Members)
                 .ThenInclude(m => m.Person)
-                .ThenInclude(p => p.Names)
             .Include(u => u.StartPlace)
             .Include(u => u.EndPlace)
             .FirstOrDefaultAsync(cancellationToken);
@@ -75,6 +74,9 @@ public class UnionRepository : Repository<Union>, IUnionRepository
                 u.Members.Select(m => new UnionMemberSummaryDto(
                     m.PersonId,
                     m.Person.PrimaryName,
+                    m.Person.NameArabic,
+                    m.Person.NameEnglish,
+                    m.Person.NameNobiin,
                     m.Role
                 )).ToList()
             ))
@@ -92,7 +94,6 @@ public class UnionRepository : Repository<Union>, IUnionRepository
     {
         return await _context.UnionMembers
             .Include(m => m.Person)
-                .ThenInclude(p => p.Names)
             .Where(m => m.UnionId == unionId)
             .ToListAsync(cancellationToken);
     }
@@ -114,8 +115,6 @@ public class UnionRepository : Repository<Union>, IUnionRepository
 
         // Get children where both parents are members of this union
         return await _context.ParentChildren
-            .Include(pc => pc.Child)
-                .ThenInclude(c => c.Names)
             .Include(pc => pc.Child)
                 .ThenInclude(c => c.BirthPlace)
             .Where(pc => memberIds.Contains(pc.ParentId))

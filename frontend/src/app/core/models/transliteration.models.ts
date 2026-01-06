@@ -158,3 +158,88 @@ export function getConfidenceColor(confidence: number): string {
   if (confidence >= 0.7) return 'orange';
   return 'red';
 }
+
+// ============================================================================
+// Person-based transliteration types
+// ============================================================================
+
+/**
+ * Request for bulk transliteration generation
+ */
+export interface BulkTransliterationRequest {
+  orgId?: string;
+  missingScripts?: string[];
+  maxPersons?: number;
+  skipComplete?: boolean;
+}
+
+/**
+ * Result of generating translations for a single person
+ */
+export interface PersonTransliterationResult {
+  success: boolean;
+  message: string | null;
+  personId: string;
+  namesGenerated: number;
+  generatedNames: GeneratedNameInfo[];
+  warnings: string[];
+}
+
+/**
+ * Info about a generated name
+ */
+export interface GeneratedNameInfo {
+  nameId: string;
+  script: string;
+  fullName: string;
+  sourceScript: string;
+  sourceName: string;
+  confidence: number;
+}
+
+/**
+ * Result of bulk transliteration generation
+ */
+export interface BulkTransliterationResult {
+  success: boolean;
+  message: string | null;
+  totalPersonsProcessed: number;
+  totalNamesGenerated: number;
+  personsSkipped: number;
+  errors: number;
+  results: PersonTransliterationResult[];
+}
+
+/**
+ * Preview of what translations would be generated
+ */
+export interface TransliterationPreviewResult {
+  success: boolean;
+  message: string | null;
+  personId: string;
+  existingNames: ExistingNameInfo[];
+  proposedNames: ProposedNameInfo[];
+  missingScripts: string[];
+}
+
+/**
+ * Info about an existing name
+ */
+export interface ExistingNameInfo {
+  nameId: string;
+  script: string;
+  fullName: string;
+  isPrimary: boolean;
+}
+
+/**
+ * Info about a proposed name to generate
+ */
+export interface ProposedNameInfo {
+  script: string;
+  proposedFullName: string;
+  sourceScript: string;
+  sourceName: string;
+  confidence: number;
+  needsReview: boolean;
+}

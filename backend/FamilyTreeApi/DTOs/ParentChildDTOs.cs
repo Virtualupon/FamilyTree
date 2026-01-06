@@ -22,18 +22,28 @@ public class ParentChildResponse
     public Guid Id { get; set; }
     public Guid ParentId { get; set; }
     public string? ParentName { get; set; }
+    public string? ParentNameArabic { get; set; }
+    public string? ParentNameEnglish { get; set; }
+    public string? ParentNameNobiin { get; set; }
     public Sex? ParentSex { get; set; }
     public Guid ChildId { get; set; }
     public string? ChildName { get; set; }
+    public string? ChildNameArabic { get; set; }
+    public string? ChildNameEnglish { get; set; }
+    public string? ChildNameNobiin { get; set; }
     public Sex? ChildSex { get; set; }
     public RelationshipType RelationshipType { get; set; }
     public string? Notes { get; set; }
+    public bool IsAdopted => RelationshipType == RelationshipType.Adoptive;
 }
 
 public class SiblingResponse
 {
     public Guid PersonId { get; set; }
     public string? PersonName { get; set; }
+    public string? PersonNameArabic { get; set; }
+    public string? PersonNameEnglish { get; set; }
+    public string? PersonNameNobiin { get; set; }
     public Sex? PersonSex { get; set; }
     public int SharedParentCount { get; set; }
     public bool IsFullSibling { get; set; }

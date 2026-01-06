@@ -1,0 +1,311 @@
+// ============================================
+// NUBIAN THEME VARIABLES
+// Family Tree Platform - Nubian Heritage Theme
+// ============================================
+
+// ============================================
+// COLOR PALETTE
+// ============================================
+
+// Primary Colors - Nubian Gold
+$nubian-gold: #C17E3E;
+$nubian-gold-50: #FFF8F0;
+$nubian-gold-100: #FFEDD5;
+$nubian-gold-200: #FED9AA;
+$nubian-gold-300: #FDC07D;
+$nubian-gold-400: #D4A574;
+$nubian-gold-500: #C17E3E;
+$nubian-gold-600: #A66A2E;
+$nubian-gold-700: #8B5A2B;
+$nubian-gold-800: #704820;
+$nubian-gold-900: #5A3A1A;
+
+// Secondary Colors - Nubian Teal
+$nubian-teal: #187573;
+$nubian-teal-50: #E6F5F5;
+$nubian-teal-100: #B3E0DF;
+$nubian-teal-200: #80CBCA;
+$nubian-teal-300: #4DB6B4;
+$nubian-teal-400: #2B9A97;
+$nubian-teal-500: #187573;
+$nubian-teal-600: #136160;
+$nubian-teal-700: #0D5654;
+$nubian-teal-800: #094544;
+$nubian-teal-900: #063433;
+
+// Accent Colors - Nubian Orange
+$nubian-orange: #E85D35;
+$nubian-orange-50: #FFF3EF;
+$nubian-orange-100: #FFE0D6;
+$nubian-orange-200: #FFCABC;
+$nubian-orange-300: #FFB09D;
+$nubian-orange-400: #FF7A52;
+$nubian-orange-500: #E85D35;
+$nubian-orange-600: #C94621;
+$nubian-orange-700: #A53618;
+$nubian-orange-800: #822910;
+$nubian-orange-900: #601E0A;
+
+// Accent Colors - Nubian Green
+$nubian-green: #2D7A3E;
+$nubian-green-50: #EDF7EF;
+$nubian-green-100: #C9E9CF;
+$nubian-green-200: #A5DBAF;
+$nubian-green-300: #7ECB8E;
+$nubian-green-400: #3FA055;
+$nubian-green-500: #2D7A3E;
+$nubian-green-600: #236630;
+$nubian-green-700: #1F5A2B;
+$nubian-green-800: #1A4A23;
+$nubian-green-900: #143A1B;
+
+// Neutral Colors
+$nubian-cream: #FFF9F5;
+$nubian-beige: #F4E4D7;
+$nubian-sand: #CEC5B0;
+$nubian-brown: #8B6F47;
+$nubian-charcoal: #2D2D2D;
+$nubian-gray: #6B6B6B;
+$nubian-gray-light: #9CA3AF;
+
+// Warm Backgrounds
+$warm-white: #FAF7F1;
+$white-highlight: #FEFEFC;
+$pale-gray-green: #E0E6DC;
+$muted-teal: #769B96;
+$light-bronze: #DAAD73;
+
+// ============================================
+// SEMANTIC COLORS
+// ============================================
+$color-primary: $nubian-teal;
+$color-primary-light: $nubian-teal-400;
+$color-primary-dark: $nubian-teal-700;
+
+$color-secondary: $nubian-gold;
+$color-secondary-light: $nubian-gold-400;
+$color-secondary-dark: $nubian-gold-700;
+
+$color-accent: $nubian-orange;
+$color-accent-light: $nubian-orange-400;
+$color-accent-dark: $nubian-orange-700;
+
+$color-success: $nubian-green;
+$color-success-light: $nubian-green-400;
+$color-success-dark: $nubian-green-700;
+
+$color-warning: $nubian-orange;
+$color-warning-light: $nubian-orange-300;
+$color-warning-dark: $nubian-orange-600;
+
+$color-error: #D32F2F;
+$color-error-light: #EF5350;
+$color-error-dark: #C62828;
+
+$color-info: $nubian-teal;
+$color-info-light: $nubian-teal-400;
+$color-info-dark: $nubian-teal-700;
+
+// Background colors
+$color-background: $warm-white;
+$color-surface: #FFFFFF;
+$color-surface-variant: $nubian-cream;
+$color-surface-elevated: #FFFFFF;
+
+// Text colors
+$color-on-primary: #FFFFFF;
+$color-on-secondary: #FFFFFF;
+$color-on-surface: $nubian-charcoal;
+$color-on-surface-variant: $nubian-gray;
+$color-on-background: $nubian-charcoal;
+
+// Border colors
+$color-border: $nubian-beige;
+$color-border-light: rgba($nubian-beige, 0.5);
+$color-divider: $nubian-beige;
+
+// Gender colors (Nubian themed)
+$color-male: $nubian-teal;
+$color-male-light: $nubian-teal-100;
+$color-female: $nubian-gold;
+$color-female-light: $nubian-gold-100;
+$color-unknown: $nubian-gray;
+$color-unknown-light: #F5F5F5;
+
+// ============================================
+// TYPOGRAPHY
+// ============================================
+$font-primary: 'Inter', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+$font-display: 'Cinzel', 'Playfair Display', 'Times New Roman', serif;
+$font-serif: 'Cormorant Garamond', Georgia, serif;
+$font-arabic: 'Amiri', 'Cairo', 'Noto Sans Arabic', serif;
+$font-coptic: 'Noto Sans Coptic', serif;
+$font-nubian: 'SophiaNubian', system-ui, sans-serif;
+
+// Font sizes (fluid)
+$font-size-xs: clamp(0.625rem, 0.6rem + 0.15vw, 0.75rem);
+$font-size-sm: clamp(0.75rem, 0.7rem + 0.2vw, 0.875rem);
+$font-size-base: clamp(0.875rem, 0.8rem + 0.25vw, 1rem);
+$font-size-md: clamp(1rem, 0.9rem + 0.3vw, 1.125rem);
+$font-size-lg: clamp(1.125rem, 1rem + 0.4vw, 1.25rem);
+$font-size-xl: clamp(1.25rem, 1.1rem + 0.5vw, 1.5rem);
+$font-size-2xl: clamp(1.5rem, 1.3rem + 0.6vw, 1.875rem);
+$font-size-3xl: clamp(1.875rem, 1.6rem + 0.8vw, 2.25rem);
+$font-size-4xl: clamp(2.25rem, 1.9rem + 1vw, 3rem);
+$font-size-5xl: clamp(3rem, 2.5rem + 1.5vw, 4rem);
+
+// Font weights
+$font-weight-light: 300;
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+$font-weight-black: 900;
+
+// Line heights
+$line-height-tight: 1.2;
+$line-height-snug: 1.375;
+$line-height-normal: 1.5;
+$line-height-relaxed: 1.625;
+$line-height-loose: 2;
+
+// Letter spacing
+$letter-spacing-tight: -0.025em;
+$letter-spacing-normal: 0;
+$letter-spacing-wide: 0.025em;
+$letter-spacing-wider: 0.05em;
+$letter-spacing-widest: 0.1em;
+
+// ============================================
+// SPACING
+// ============================================
+$spacing-xs: 0.25rem;    // 4px
+$spacing-sm: 0.5rem;     // 8px
+$spacing-md: 1rem;       // 16px
+$spacing-lg: 1.5rem;     // 24px
+$spacing-xl: 2rem;       // 32px
+$spacing-2xl: 3rem;      // 48px
+$spacing-3xl: 4rem;      // 64px
+$spacing-4xl: 6rem;      // 96px
+
+// Fluid spacing
+$space-xs: clamp(0.25rem, 0.5vw, 0.5rem);
+$space-sm: clamp(0.5rem, 1vw, 0.75rem);
+$space-md: clamp(0.75rem, 2vw, 1rem);
+$space-lg: clamp(1rem, 3vw, 1.5rem);
+$space-xl: clamp(1.5rem, 4vw, 2rem);
+$space-2xl: clamp(2rem, 5vw, 3rem);
+$space-3xl: clamp(3rem, 6vw, 4rem);
+
+// ============================================
+// BORDERS & RADIUS
+// ============================================
+$border-width-thin: 1px;
+$border-width-medium: 2px;
+$border-width-thick: 3px;
+
+$radius-xs: 4px;
+$radius-sm: 6px;
+$radius-md: 8px;
+$radius-lg: 12px;
+$radius-xl: 16px;
+$radius-2xl: 24px;
+$radius-3xl: 32px;
+$radius-full: 9999px;
+
+// ============================================
+// SHADOWS
+// ============================================
+$shadow-xs: 0 1px 2px rgba($nubian-charcoal, 0.04);
+$shadow-sm: 0 2px 4px rgba($nubian-charcoal, 0.06);
+$shadow-md: 0 4px 8px rgba($nubian-charcoal, 0.08);
+$shadow-lg: 0 8px 16px rgba($nubian-charcoal, 0.10);
+$shadow-xl: 0 12px 24px rgba($nubian-charcoal, 0.12);
+$shadow-2xl: 0 20px 40px rgba($nubian-charcoal, 0.15);
+
+// Colored shadows
+$shadow-gold: 0 4px 20px rgba($nubian-gold, 0.25);
+$shadow-teal: 0 4px 20px rgba($nubian-teal, 0.25);
+$shadow-orange: 0 4px 20px rgba($nubian-orange, 0.25);
+
+// Inset shadows
+$shadow-inset-sm: inset 0 1px 2px rgba($nubian-charcoal, 0.06);
+$shadow-inset-md: inset 0 2px 4px rgba($nubian-charcoal, 0.08);
+
+// ============================================
+// BREAKPOINTS
+// ============================================
+$breakpoint-xs: 320px;
+$breakpoint-sm: 576px;
+$breakpoint-md: 768px;
+$breakpoint-lg: 992px;
+$breakpoint-xl: 1200px;
+$breakpoint-2xl: 1400px;
+$breakpoint-3xl: 1920px;
+
+// ============================================
+// TRANSITIONS
+// ============================================
+$transition-fast: 150ms ease;
+$transition-base: 250ms ease;
+$transition-slow: 350ms ease;
+$transition-slower: 500ms ease;
+
+$ease-in: cubic-bezier(0.4, 0, 1, 1);
+$ease-out: cubic-bezier(0, 0, 0.2, 1);
+$ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+$ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+// ============================================
+// Z-INDEX LAYERS
+// ============================================
+$z-base: 1;
+$z-dropdown: 1000;
+$z-sticky: 1020;
+$z-fixed: 1030;
+$z-modal-backdrop: 1040;
+$z-modal: 1050;
+$z-popover: 1060;
+$z-tooltip: 1070;
+$z-header: 1080;
+
+// ============================================
+// COMPONENT SPECIFIC
+// ============================================
+
+// Sidebar
+$sidebar-width: 280px;
+$sidebar-width-collapsed: 64px;
+
+// Header
+$header-height: 64px;
+$header-height-mobile: 56px;
+
+// Cards
+$card-padding: $spacing-lg;
+$card-radius: $radius-xl;
+
+// Buttons
+$button-height-sm: 32px;
+$button-height-md: 40px;
+$button-height-lg: 48px;
+$button-radius: $radius-lg;
+
+// Inputs
+$input-height: 48px;
+$input-radius: $radius-md;
+$input-border-width: 1px;
+
+// ============================================
+// GRADIENTS
+// ============================================
+$gradient-gold: linear-gradient(135deg, $nubian-gold 0%, $nubian-gold-400 100%);
+$gradient-teal: linear-gradient(135deg, $nubian-teal 0%, $muted-teal 100%);
+$gradient-orange: linear-gradient(135deg, $nubian-orange 0%, $nubian-orange-400 100%);
+$gradient-warm: linear-gradient(135deg, $warm-white 0%, $nubian-cream 100%);
+$gradient-hero: linear-gradient(135deg, $nubian-cream 0%, #FFF5EB 50%, $nubian-beige 100%);
+$gradient-dark: linear-gradient(135deg, $nubian-charcoal 0%, #1a1a1a 100%);
+
+// Card gradients
+$gradient-card-gold: linear-gradient(145deg, rgba($nubian-gold, 0.05) 0%, rgba($nubian-gold, 0.02) 100%);
+$gradient-card-teal: linear-gradient(145deg, rgba($nubian-teal, 0.05) 0%, rgba($nubian-teal, 0.02) 100%);

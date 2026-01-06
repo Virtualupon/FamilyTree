@@ -15,9 +15,15 @@ export interface ParentChildResponse {
   id: string;
   parentId: string;
   parentName: string | null;
+  parentNameArabic?: string | null;
+  parentNameEnglish?: string | null;
+  parentNameNobiin?: string | null;
   parentSex: Sex | null;
   childId: string;
   childName: string | null;
+  childNameArabic?: string | null;
+  childNameEnglish?: string | null;
+  childNameNobiin?: string | null;
   childSex: Sex | null;
   relationshipType: ParentChildRelationshipType;
   isAdopted: boolean;
@@ -42,6 +48,9 @@ export interface UpdateParentChildRequest {
 export interface SiblingResponse {
   personId: string;
   personName: string | null;
+  personNameArabic?: string | null;
+  personNameEnglish?: string | null;
+  personNameNobiin?: string | null;
   personSex: Sex | null;
   sharedParentCount: number;
   isFullSibling: boolean;
@@ -80,6 +89,9 @@ export interface UnionMemberDto {
   id: string;
   personId: string;
   personName: string | null;
+  personNameArabic?: string | null;
+  personNameEnglish?: string | null;
+  personNameNobiin?: string | null;
   personSex: Sex | null;
 }
 

@@ -8,9 +8,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatRippleModule } from '@angular/material/core';
 
-import { PersonService } from '../../core/services/person.service';
+import { PersonSearchService } from '../../core/services/person-search.service';
 import { I18nService, TranslatePipe } from '../../core/i18n';
-import { PersonListItem, Sex } from '../../core/models/person.models';
+import { Sex } from '../../core/models/person.models';
+import { SearchPersonItem, getPrimaryName } from '../../core/models/search.models';
 import { SkeletonComponent } from '../../shared/components';
 
 @Component({
@@ -79,15 +80,15 @@ import { SkeletonComponent } from '../../shared/components';
                 matRipple
                 (click)="selectPerson(person)">
                 
-                <div 
+                <div
                   class="person-selector__avatar"
                   [class.person-selector__avatar--male]="person.sex === Sex.Male"
                   [class.person-selector__avatar--female]="person.sex === Sex.Female">
-                  {{ getInitials(person.primaryName) }}
+                  {{ getInitials(getPersonDisplayName(person)) }}
                 </div>
-                
+
                 <div class="person-selector__info">
-                  <div class="person-selector__name">{{ person.primaryName || ('common.unknown' | translate) }}</div>
+                  <div class="person-selector__name">{{ getPersonDisplayName(person) || ('common.unknown' | translate) }}</div>
                   <div class="person-selector__meta">
                     @if (person.birthDate) {
                       <span>{{ formatYear(person.birthDate) }}</span>
@@ -98,10 +99,10 @@ import { SkeletonComponent } from '../../shared/components';
                     @if (person.deathDate) {
                       <span>{{ formatYear(person.deathDate) }}</span>
                     }
-                    @if (person.birthPlace) {
+                    @if (person.birthPlaceName) {
                       <span class="person-selector__place">
                         <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
-                        {{ person.birthPlace }}
+                        {{ person.birthPlaceName }}
                       </span>
                     }
                   </div>
@@ -298,13 +299,13 @@ import { SkeletonComponent } from '../../shared/components';
 })
 export class PersonSelectorComponent implements OnInit, OnDestroy {
   private readonly bottomSheetRef = inject(MatBottomSheetRef<PersonSelectorComponent>);
-  private readonly personService = inject(PersonService);
+  private readonly searchService = inject(PersonSearchService);
   private readonly i18n = inject(I18nService);
   private readonly destroy$ = new Subject<void>();
   
   readonly Sex = Sex;
   
-  people = signal<PersonListItem[]>([]);
+  people = signal<SearchPersonItem[]>([]);
   loading = signal(true);
   loadingMore = signal(false);
   totalCount = signal(0);
@@ -340,19 +341,21 @@ export class PersonSelectorComponent implements OnInit, OnDestroy {
     } else {
       this.loading.set(true);
     }
-    
-    this.personService.searchPeople({
-      page: this.currentPage(),
-      pageSize: this.pageSize,
-      nameQuery: this.searchQuery || undefined
-    }).subscribe({
+
+    const query = this.searchQuery || '';
+    // Use search() for empty queries, quickSearch() for actual searches
+    const searchObs = query.trim()
+      ? this.searchService.quickSearch(query, this.currentPage(), this.pageSize)
+      : this.searchService.search({ page: this.currentPage(), pageSize: this.pageSize });
+
+    searchObs.subscribe({
       next: (response) => {
         if (append) {
           this.people.update(p => [...p, ...response.items]);
         } else {
           this.people.set(response.items);
         }
-        this.totalCount.set(response.totalCount);
+        this.totalCount.set(response.total);
         this.loading.set(false);
         this.loadingMore.set(false);
       },
@@ -378,8 +381,13 @@ export class PersonSelectorComponent implements OnInit, OnDestroy {
     this.loadPeople(true);
   }
   
-  selectPerson(person: PersonListItem): void {
+  selectPerson(person: SearchPersonItem): void {
     this.bottomSheetRef.dismiss(person);
+  }
+
+  // Helper to get display name
+  getPersonDisplayName(person: SearchPersonItem): string {
+    return getPrimaryName(person);
   }
   
   close(): void {

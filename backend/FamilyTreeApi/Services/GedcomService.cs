@@ -470,11 +470,12 @@ public class GedcomService : IGedcomService
 
     private Person CreatePersonFromGedcom(GedcomIndividual indi, Guid orgId, GedcomImportOptions options)
     {
+        var fullName = indi.FullName ?? $"{indi.GivenName} {indi.Surname}".Trim();
         var person = new Person
         {
             Id = Guid.NewGuid(),
             OrgId = orgId,
-            PrimaryName = indi.FullName ?? $"{indi.GivenName} {indi.Surname}".Trim(),
+            PrimaryName = fullName,
             Sex = indi.Sex?.ToUpperInvariant() switch
             {
                 "M" => Sex.Male,
@@ -488,22 +489,10 @@ public class GedcomService : IGedcomService
             Occupation = options.ImportOccupations ? indi.Occupation : null,
             Notes = options.ImportNotes ? indi.Notes : null,
             CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            UpdatedAt = DateTime.UtcNow,
+            // Set name directly on person (GEDCOM names are typically Latin/English)
+            NameEnglish = fullName
         };
-
-        // Add name record
-        var personName = new PersonName
-        {
-            Id = Guid.NewGuid(),
-            PersonId = person.Id,
-            Given = indi.GivenName,
-            Family = indi.Surname,
-            Full = person.PrimaryName,
-            Type = NameType.Primary,
-            Script = "Latin",
-            CreatedAt = DateTime.UtcNow
-        };
-        person.Names.Add(personName);
 
         return person;
     }

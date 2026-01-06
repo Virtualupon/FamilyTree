@@ -96,56 +96,6 @@ public class PersonController : ControllerBase
         return NoContent();
     }
 
-    /// <summary>
-    /// Add a name to a person (multi-script support)
-    /// </summary>
-    [HttpPost("{id}/names")]
-    public async Task<ActionResult<PersonNameDto>> AddPersonName(Guid id, PersonNameDto dto, [FromQuery] Guid? treeId = null)
-    {
-        var userContext = BuildUserContext();
-        var result = await _personService.AddPersonNameAsync(id, dto, treeId, userContext);
-
-        if (!result.IsSuccess)
-        {
-            return HandleError(result);
-        }
-
-        return CreatedAtAction(nameof(GetPerson), new { id }, result.Data);
-    }
-
-    /// <summary>
-    /// Update a person's name
-    /// </summary>
-    [HttpPut("{personId}/names/{nameId}")]
-    public async Task<ActionResult<PersonNameDto>> UpdatePersonName(
-        Guid personId,
-        Guid nameId,
-        PersonNameDto dto,
-        [FromQuery] Guid? treeId = null)
-    {
-        var userContext = BuildUserContext();
-        var result = await _personService.UpdatePersonNameAsync(personId, nameId, dto, treeId, userContext);
-
-        return HandleResult(result);
-    }
-
-    /// <summary>
-    /// Delete a person's name
-    /// </summary>
-    [HttpDelete("{personId}/names/{nameId}")]
-    public async Task<IActionResult> DeletePersonName(Guid personId, Guid nameId, [FromQuery] Guid? treeId = null)
-    {
-        var userContext = BuildUserContext();
-        var result = await _personService.DeletePersonNameAsync(personId, nameId, treeId, userContext);
-
-        if (!result.IsSuccess)
-        {
-            return HandleError(result);
-        }
-
-        return NoContent();
-    }
-
     // ============================================================================
     // PRIVATE HELPER METHODS
     // ============================================================================

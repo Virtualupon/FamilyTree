@@ -321,6 +321,7 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
   @Output() personDoubleClicked = new EventEmitter<TreePersonNode>();
   @Output() crossTreeLinkClicked = new EventEmitter<PersonLinkSummary>();
   @Output() findRelationshipClicked = new EventEmitter<TreePersonNode>();
+  @Output() addRelationshipClicked = new EventEmitter<TreePersonNode>();
 
   private svg: d3.Selection<SVGSVGElement, unknown, null, undefined> | null = null;
   private container: d3.Selection<SVGGElement, unknown, null, undefined> | null = null;
@@ -834,6 +835,9 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
 
       // Find relationship button (top-left corner, appears on hover)
       this.drawFindRelationshipButton(g, node);
+
+      // Add relationship button (top-right corner, appears on hover)
+      this.drawAddRelationshipButton(g, node);
     });
   }
 
@@ -880,6 +884,65 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
 
     g.on('mouseleave', function() {
       d3.select(this).select('.find-relationship-btn')
+        .transition()
+        .duration(200)
+        .style('opacity', 0);
+    });
+  }
+
+  private drawAddRelationshipButton(
+    g: d3.Selection<SVGGElement, D3Node, null, undefined>,
+    node: D3Node
+  ): void {
+    // Position at top-right corner
+    const buttonX = this.nodeWidth - 25;
+    const buttonY = 5;
+
+    const button = g.append('g')
+      .attr('class', 'add-relationship-btn')
+      .attr('transform', `translate(${buttonX}, ${buttonY})`)
+      .style('opacity', 0)
+      .style('cursor', 'pointer')
+      .on('click', (event: MouseEvent) => {
+        event.stopPropagation();
+        this.addRelationshipClicked.emit(node.data);
+      });
+
+    // Button background (green for add)
+    button.append('circle')
+      .attr('r', 12)
+      .attr('fill', '#2D7A3E')  // Nubian green
+      .attr('stroke', 'white')
+      .attr('stroke-width', 2);
+
+    // Plus icon
+    button.append('text')
+      .attr('class', 'node-icon-solid')
+      .attr('text-anchor', 'middle')
+      .attr('dominant-baseline', 'central')
+      .attr('fill', 'white')
+      .attr('font-size', '12px')
+      .attr('font-weight', 'bold')
+      .text('+');
+
+    // Show button on node hover (integrate with existing handlers)
+    const existingMouseEnter = g.on('mouseenter');
+    g.on('mouseenter', function(this: SVGGElement, event: MouseEvent, d: any) {
+      if (existingMouseEnter) {
+        (existingMouseEnter as any).call(this, event, d);
+      }
+      d3.select(this).select('.add-relationship-btn')
+        .transition()
+        .duration(200)
+        .style('opacity', 1);
+    });
+
+    const existingMouseLeave = g.on('mouseleave');
+    g.on('mouseleave', function(this: SVGGElement, event: MouseEvent, d: any) {
+      if (existingMouseLeave) {
+        (existingMouseLeave as any).call(this, event, d);
+      }
+      d3.select(this).select('.add-relationship-btn')
         .transition()
         .duration(200)
         .style('opacity', 0);

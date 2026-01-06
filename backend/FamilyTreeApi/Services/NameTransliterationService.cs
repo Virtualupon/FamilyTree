@@ -40,7 +40,7 @@ public sealed class NameTransliterationService : INameTransliterationService
         _logger = logger;
     }
 
-    public async Task<TransliterationResult> TransliterateNameAsync(TransliterationRequest request)
+    public async Task<FamilyTreeApi.DTOs.TransliterationResult> TransliterateNameAsync(FamilyTreeApi.DTOs.TransliterationRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.InputName))
         {
@@ -116,11 +116,11 @@ public sealed class NameTransliterationService : INameTransliterationService
         }
     }
 
-    public async Task<BatchTransliterationResult> TransliterateBatchAsync(
-        List<TransliterationRequest> requests,
+    public async Task<FamilyTreeApi.DTOs.BatchTransliterationResult> TransliterateBatchAsync(
+        List<FamilyTreeApi.DTOs.TransliterationRequest> requests,
         IProgress<int>? progress = null)
     {
-        var results = new List<TransliterationResult>();
+        var results = new List<FamilyTreeApi.DTOs.TransliterationResult>();
         var processed = 0;
         var needsReviewCount = 0;
         var conflictCount = 0;
@@ -149,20 +149,20 @@ public sealed class NameTransliterationService : INameTransliterationService
                 _logger.LogWarning(ex, "Failed to transliterate: {Name}", request.InputName);
 
                 // Never block GED import - return partial result
-                var fallback = new TransliterationResult
+                var fallback = new FamilyTreeApi.DTOs.TransliterationResult
                 {
-                    English = new EnglishResult
+                    English = new FamilyTreeApi.DTOs.EnglishResult
                     {
                         Best = request.InputName,
                         Source = "manual_required",
                         Confidence = 0.0
                     },
-                    Display = new DisplayResult
+                    Display = new FamilyTreeApi.DTOs.DisplayResult
                     {
                         Value = request.InputName,
                         Lang = "en"
                     },
-                    Metadata = new MetadataResult
+                    Metadata = new FamilyTreeApi.DTOs.MetadataResult
                     {
                         NeedsReview = true,
                         HasConflict = true,
@@ -178,7 +178,7 @@ public sealed class NameTransliterationService : INameTransliterationService
             progress?.Report(processed);
         }
 
-        return new BatchTransliterationResult
+        return new FamilyTreeApi.DTOs.BatchTransliterationResult
         {
             Results = results,
             TotalProcessed = processed,
@@ -188,13 +188,13 @@ public sealed class NameTransliterationService : INameTransliterationService
         };
     }
 
-    public async Task<VerifyMappingResult> VerifyMappingAsync(VerifyMappingRequest request, long userId)
+    public async Task<FamilyTreeApi.DTOs.VerifyMappingResult> VerifyMappingAsync(FamilyTreeApi.DTOs.VerifyMappingRequest request, long userId)
     {
         var mapping = await _context.NameMappings.FindAsync(request.MappingId);
 
         if (mapping == null)
         {
-            return new VerifyMappingResult
+            return new FamilyTreeApi.DTOs.VerifyMappingResult
             {
                 MappingId = request.MappingId,
                 Success = false,
@@ -231,7 +231,7 @@ public sealed class NameTransliterationService : INameTransliterationService
             "Mapping {Id} verified by user {UserId}",
             mapping.Id, userId);
 
-        return new VerifyMappingResult
+        return new FamilyTreeApi.DTOs.VerifyMappingResult
         {
             MappingId = mapping.Id,
             Success = true,
@@ -240,7 +240,7 @@ public sealed class NameTransliterationService : INameTransliterationService
         };
     }
 
-    public async Task<List<NameMappingDto>> GetMappingsNeedingReviewAsync(Guid? orgId = null)
+    public async Task<List<FamilyTreeApi.DTOs.NameMappingDto>> GetMappingsNeedingReviewAsync(Guid? orgId = null)
     {
         var query = _context.NameMappings
             .Where(m => m.NeedsReview && !m.IsVerified);
@@ -258,7 +258,7 @@ public sealed class NameTransliterationService : INameTransliterationService
         return mappings.Select(MapToDto).ToList();
     }
 
-    public async Task<List<NameMappingDto>> SearchMappingsAsync(string searchTerm, int limit = 20)
+    public async Task<List<FamilyTreeApi.DTOs.NameMappingDto>> SearchMappingsAsync(string searchTerm, int limit = 20)
     {
         var normalized = NormalizeName(searchTerm);
 
@@ -275,7 +275,7 @@ public sealed class NameTransliterationService : INameTransliterationService
         return mappings.Select(MapToDto).ToList();
     }
 
-    public async Task<NameMappingDto?> GetMappingByIdAsync(int id)
+    public async Task<FamilyTreeApi.DTOs.NameMappingDto?> GetMappingByIdAsync(int id)
     {
         var mapping = await _context.NameMappings.FindAsync(id);
         return mapping == null ? null : MapToDto(mapping);
@@ -297,7 +297,7 @@ public sealed class NameTransliterationService : INameTransliterationService
             .ToListAsync();
     }
 
-    private TransliterationResult BuildResultFromMapping(NameMapping mapping, string displayLanguage, bool fromCache)
+    private FamilyTreeApi.DTOs.TransliterationResult BuildResultFromMapping(NameMapping mapping, string displayLanguage, bool fromCache)
     {
         var displayValue = displayLanguage switch
         {
@@ -306,28 +306,28 @@ public sealed class NameTransliterationService : INameTransliterationService
             _ => mapping.English ?? mapping.Arabic ?? mapping.Nobiin ?? ""
         };
 
-        return new TransliterationResult
+        return new FamilyTreeApi.DTOs.TransliterationResult
         {
             Arabic = mapping.Arabic,
-            English = new EnglishResult
+            English = new FamilyTreeApi.DTOs.EnglishResult
             {
                 Best = mapping.English ?? "",
                 Alternatives = new List<string>(),
                 Source = mapping.IsVerified ? "db_reuse" : (mapping.Source ?? "ai_suggestion"),
                 Confidence = mapping.Confidence ?? (mapping.IsVerified ? 1.0 : 0.8)
             },
-            Nobiin = new NobiinResult
+            Nobiin = new FamilyTreeApi.DTOs.NobiinResult
             {
                 Value = mapping.Nobiin,
                 Ipa = mapping.Ipa,
                 Source = mapping.IsVerified ? "db_reuse" : "deterministic_ipa"
             },
-            Display = new DisplayResult
+            Display = new FamilyTreeApi.DTOs.DisplayResult
             {
                 Value = displayValue,
                 Lang = displayLanguage
             },
-            Metadata = new MetadataResult
+            Metadata = new FamilyTreeApi.DTOs.MetadataResult
             {
                 NeedsReview = mapping.NeedsReview,
                 HasConflict = false,
@@ -338,7 +338,7 @@ public sealed class NameTransliterationService : INameTransliterationService
         };
     }
 
-    private string BuildUserPrompt(TransliterationRequest request, List<NameMapping> existingMappings)
+    private string BuildUserPrompt(FamilyTreeApi.DTOs.TransliterationRequest request, List<NameMapping> existingMappings)
     {
         var sb = new StringBuilder();
 
@@ -377,7 +377,7 @@ public sealed class NameTransliterationService : INameTransliterationService
         return sb.ToString();
     }
 
-    private TransliterationResult ParseResponse(string rawJson)
+    private FamilyTreeApi.DTOs.TransliterationResult ParseResponse(string rawJson)
     {
         // Clean potential markdown formatting
         var json = rawJson
@@ -390,11 +390,11 @@ public sealed class NameTransliterationService : INameTransliterationService
             PropertyNameCaseInsensitive = true
         };
 
-        return JsonSerializer.Deserialize<TransliterationResult>(json, options)
+        return JsonSerializer.Deserialize<FamilyTreeApi.DTOs.TransliterationResult>(json, options)
             ?? throw new InvalidOperationException("Failed to deserialize response");
     }
 
-    private void ApplyConfidenceRules(TransliterationResult result, bool isGedImport)
+    private void ApplyConfidenceRules(FamilyTreeApi.DTOs.TransliterationResult result, bool isGedImport)
     {
         var confidence = result.English.Confidence;
 
@@ -422,7 +422,7 @@ public sealed class NameTransliterationService : INameTransliterationService
         }
     }
 
-    private async Task<NameMapping> SaveMappingAsync(TransliterationResult result, TransliterationRequest request)
+    private async Task<NameMapping> SaveMappingAsync(FamilyTreeApi.DTOs.TransliterationResult result, FamilyTreeApi.DTOs.TransliterationRequest request)
     {
         var mapping = new NameMapping
         {
@@ -457,9 +457,9 @@ public sealed class NameTransliterationService : INameTransliterationService
             .Trim();
     }
 
-    private static NameMappingDto MapToDto(NameMapping mapping)
+    private static FamilyTreeApi.DTOs.NameMappingDto MapToDto(NameMapping mapping)
     {
-        return new NameMappingDto
+        return new FamilyTreeApi.DTOs.NameMappingDto
         {
             Id = mapping.Id,
             Arabic = mapping.Arabic,
@@ -675,6 +675,454 @@ Prefer existing verified data.
 Preserve consistency across family tree.
 Be deterministic where possible.
 Produce safe, production-grade output for genealogy records.";
+    }
+
+    #endregion
+
+    #region Person-Based Transliteration
+
+    public async Task<FamilyTreeApi.DTOs.PersonTransliterationResult> GenerateMissingNamesForPersonAsync(
+        Guid personId,
+        Guid? orgId = null)
+    {
+        var result = new FamilyTreeApi.DTOs.PersonTransliterationResult
+        {
+            PersonId = personId,
+            Success = false
+        };
+
+        try
+        {
+            // Get person
+            var person = await _context.People
+                .FirstOrDefaultAsync(p => p.Id == personId && (!orgId.HasValue || p.OrgId == orgId));
+
+            if (person == null)
+            {
+                result.Message = "Person not found";
+                return result;
+            }
+
+            // Check which scripts are missing (using direct columns)
+            var hasArabic = !string.IsNullOrWhiteSpace(person.NameArabic);
+            var hasEnglish = !string.IsNullOrWhiteSpace(person.NameEnglish);
+            var hasNobiin = !string.IsNullOrWhiteSpace(person.NameNobiin);
+
+            // Find source name to transliterate from
+            var sourceName = person.NameArabic ?? person.NameEnglish ?? person.NameNobiin ?? person.PrimaryName;
+            if (string.IsNullOrWhiteSpace(sourceName))
+            {
+                result.Message = "Person has no names to transliterate";
+                result.Success = true;
+                return result;
+            }
+
+            if (hasArabic && hasEnglish && hasNobiin)
+            {
+                result.Message = "Person already has names in all scripts";
+                result.Success = true;
+                return result;
+            }
+
+            // Detect source language from content
+            var sourceLanguage = DetectSourceLanguageFromContent(sourceName);
+            var sourceScript = sourceLanguage switch
+            {
+                "ar" => "Arabic",
+                "nob" => "Coptic",
+                _ => "Latin"
+            };
+
+            // Transliterate
+            var translitRequest = new FamilyTreeApi.DTOs.TransliterationRequest
+            {
+                InputName = sourceName,
+                SourceLanguage = sourceLanguage,
+                DisplayLanguage = "en",
+                OrgId = person.OrgId,
+                PersonId = personId
+            };
+
+            var translitResult = await TransliterateNameAsync(translitRequest);
+
+            var namesGenerated = 0;
+
+            // Set Arabic name if missing and we have a result
+            if (!hasArabic && !string.IsNullOrWhiteSpace(translitResult.Arabic) && sourceLanguage != "ar")
+            {
+                person.NameArabic = translitResult.Arabic;
+                namesGenerated++;
+                result.GeneratedNames.Add(new FamilyTreeApi.DTOs.GeneratedNameInfo
+                {
+                    Script = "Arabic",
+                    FullName = translitResult.Arabic,
+                    SourceScript = sourceScript,
+                    SourceName = sourceName,
+                    Confidence = translitResult.English?.Confidence ?? 0
+                });
+            }
+
+            // Set English name if missing and we have a result
+            if (!hasEnglish && !string.IsNullOrWhiteSpace(translitResult.English?.Best) && sourceLanguage != "en")
+            {
+                person.NameEnglish = translitResult.English.Best;
+                namesGenerated++;
+                result.GeneratedNames.Add(new FamilyTreeApi.DTOs.GeneratedNameInfo
+                {
+                    Script = "Latin",
+                    FullName = translitResult.English.Best,
+                    SourceScript = sourceScript,
+                    SourceName = sourceName,
+                    Confidence = translitResult.English.Confidence
+                });
+            }
+
+            // Set Nobiin name if missing and we have a result
+            if (!hasNobiin && !string.IsNullOrWhiteSpace(translitResult.Nobiin?.Value) && sourceLanguage != "nob")
+            {
+                person.NameNobiin = translitResult.Nobiin.Value;
+                namesGenerated++;
+                result.GeneratedNames.Add(new FamilyTreeApi.DTOs.GeneratedNameInfo
+                {
+                    Script = "Coptic/Nobiin",
+                    FullName = translitResult.Nobiin.Value,
+                    SourceScript = sourceScript,
+                    SourceName = sourceName,
+                    Confidence = 1.0 // Nobiin is deterministic
+                });
+            }
+
+            // Save changes
+            if (namesGenerated > 0)
+            {
+                person.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+            }
+
+            result.NamesGenerated = namesGenerated;
+            result.Success = true;
+            result.Message = namesGenerated > 0
+                ? $"Generated {namesGenerated} name(s)"
+                : "No new names could be generated";
+
+            if (translitResult.Metadata?.Warnings?.Any() == true)
+            {
+                result.Warnings.AddRange(translitResult.Metadata.Warnings);
+            }
+
+            _logger.LogInformation(
+                "Generated {Count} names for person {PersonId}",
+                namesGenerated, personId);
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating names for person {PersonId}", personId);
+            result.Message = $"Error: {ex.Message}";
+            return result;
+        }
+    }
+
+    public async Task<FamilyTreeApi.DTOs.TransliterationPreviewResult> PreviewTransliterationsForPersonAsync(
+        Guid personId,
+        Guid? orgId = null)
+    {
+        var result = new FamilyTreeApi.DTOs.TransliterationPreviewResult
+        {
+            PersonId = personId,
+            Success = false
+        };
+
+        try
+        {
+            var person = await _context.People
+                .FirstOrDefaultAsync(p => p.Id == personId && (!orgId.HasValue || p.OrgId == orgId));
+
+            if (person == null)
+            {
+                result.Message = "Person not found";
+                return result;
+            }
+
+            // Populate existing names from direct columns
+            if (!string.IsNullOrWhiteSpace(person.NameArabic))
+            {
+                result.ExistingNames.Add(new FamilyTreeApi.DTOs.ExistingNameInfo
+                {
+                    Script = "Arabic",
+                    FullName = person.NameArabic,
+                    IsPrimary = person.PrimaryName == person.NameArabic
+                });
+            }
+            if (!string.IsNullOrWhiteSpace(person.NameEnglish))
+            {
+                result.ExistingNames.Add(new FamilyTreeApi.DTOs.ExistingNameInfo
+                {
+                    Script = "Latin",
+                    FullName = person.NameEnglish,
+                    IsPrimary = person.PrimaryName == person.NameEnglish
+                });
+            }
+            if (!string.IsNullOrWhiteSpace(person.NameNobiin))
+            {
+                result.ExistingNames.Add(new FamilyTreeApi.DTOs.ExistingNameInfo
+                {
+                    Script = "Coptic/Nobiin",
+                    FullName = person.NameNobiin,
+                    IsPrimary = person.PrimaryName == person.NameNobiin
+                });
+            }
+
+            // Determine missing scripts using direct columns
+            var missingScripts = new List<string>();
+            if (string.IsNullOrWhiteSpace(person.NameArabic)) missingScripts.Add("arabic");
+            if (string.IsNullOrWhiteSpace(person.NameEnglish)) missingScripts.Add("latin");
+            if (string.IsNullOrWhiteSpace(person.NameNobiin)) missingScripts.Add("coptic");
+
+            result.MissingScripts = missingScripts;
+
+            if (!result.MissingScripts.Any())
+            {
+                result.Message = "All scripts present";
+                result.Success = true;
+                return result;
+            }
+
+            // Find source name to transliterate from
+            var sourceName = person.NameArabic ?? person.NameEnglish ?? person.NameNobiin ?? person.PrimaryName;
+            if (string.IsNullOrWhiteSpace(sourceName))
+            {
+                result.Message = "No valid source name found for transliteration";
+                result.Success = true;
+                return result;
+            }
+
+            var sourceLanguage = DetectSourceLanguageFromContent(sourceName);
+            var sourceScript = sourceLanguage switch
+            {
+                "ar" => "Arabic",
+                "nob" => "Coptic",
+                _ => "Latin"
+            };
+
+            // Get transliteration preview (without saving)
+            var translitRequest = new FamilyTreeApi.DTOs.TransliterationRequest
+            {
+                InputName = sourceName,
+                SourceLanguage = sourceLanguage,
+                DisplayLanguage = "en"
+            };
+
+            var translitResult = await TransliterateNameAsync(translitRequest);
+
+            // Build proposed names
+            if (result.MissingScripts.Contains("arabic") && !string.IsNullOrWhiteSpace(translitResult.Arabic))
+            {
+                result.ProposedNames.Add(new FamilyTreeApi.DTOs.ProposedNameInfo
+                {
+                    Script = "Arabic",
+                    ProposedFullName = translitResult.Arabic,
+                    SourceScript = sourceScript,
+                    SourceName = sourceName,
+                    Confidence = translitResult.English?.Confidence ?? 0,
+                    NeedsReview = translitResult.Metadata?.NeedsReview ?? false
+                });
+            }
+
+            if (result.MissingScripts.Contains("latin") && !string.IsNullOrWhiteSpace(translitResult.English?.Best))
+            {
+                result.ProposedNames.Add(new FamilyTreeApi.DTOs.ProposedNameInfo
+                {
+                    Script = "Latin/English",
+                    ProposedFullName = translitResult.English.Best,
+                    SourceScript = sourceScript,
+                    SourceName = sourceName,
+                    Confidence = translitResult.English.Confidence,
+                    NeedsReview = translitResult.Metadata?.NeedsReview ?? false
+                });
+            }
+
+            if (result.MissingScripts.Contains("coptic") && !string.IsNullOrWhiteSpace(translitResult.Nobiin?.Value))
+            {
+                result.ProposedNames.Add(new FamilyTreeApi.DTOs.ProposedNameInfo
+                {
+                    Script = "Coptic/Nobiin",
+                    ProposedFullName = translitResult.Nobiin.Value,
+                    SourceScript = sourceScript,
+                    SourceName = sourceName,
+                    Confidence = 1.0,
+                    NeedsReview = false
+                });
+            }
+
+            result.Success = true;
+            result.Message = result.ProposedNames.Any()
+                ? $"Can generate {result.ProposedNames.Count} name(s)"
+                : "No translations available";
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error previewing translations for person {PersonId}", personId);
+            result.Message = $"Error: {ex.Message}";
+            return result;
+        }
+    }
+
+    public async Task<FamilyTreeApi.DTOs.BulkTransliterationResult> BulkGenerateMissingNamesAsync(FamilyTreeApi.DTOs.BulkTransliterationRequest request)
+    {
+        var result = new FamilyTreeApi.DTOs.BulkTransliterationResult
+        {
+            Success = false
+        };
+
+        if (!request.OrgId.HasValue)
+        {
+            result.Message = "OrgId is required";
+            return result;
+        }
+
+        try
+        {
+            // Find persons with incomplete names (using direct columns)
+            var personsQuery = _context.People
+                .Where(p => p.OrgId == request.OrgId.Value);
+
+            if (request.SkipComplete)
+            {
+                // Only get persons missing at least one script
+                personsQuery = personsQuery.Where(p =>
+                    string.IsNullOrEmpty(p.NameArabic) ||
+                    string.IsNullOrEmpty(p.NameEnglish) ||
+                    string.IsNullOrEmpty(p.NameNobiin));
+            }
+
+            var persons = await personsQuery
+                .Take(request.MaxPersons)
+                .ToListAsync();
+
+            _logger.LogInformation(
+                "Bulk transliteration: Found {Count} persons to process in org {OrgId}",
+                persons.Count, request.OrgId);
+
+            foreach (var person in persons)
+            {
+                try
+                {
+                    var personResult = await GenerateMissingNamesForPersonAsync(person.Id, request.OrgId);
+                    result.Results.Add(personResult);
+
+                    if (personResult.Success)
+                    {
+                        result.TotalNamesGenerated += personResult.NamesGenerated;
+                        result.TotalPersonsProcessed++;
+                    }
+                    else
+                    {
+                        result.Errors++;
+                    }
+
+                    // Rate limiting
+                    if (personResult.NamesGenerated > 0)
+                    {
+                        await Task.Delay(300); // Prevent API rate limiting
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error processing person {PersonId} in bulk", person.Id);
+                    result.Errors++;
+                    result.Results.Add(new FamilyTreeApi.DTOs.PersonTransliterationResult
+                    {
+                        PersonId = person.Id,
+                        Success = false,
+                        Message = ex.Message
+                    });
+                }
+            }
+
+            result.Success = true;
+            result.Message = $"Processed {result.TotalPersonsProcessed} persons, generated {result.TotalNamesGenerated} names";
+
+            _logger.LogInformation(
+                "Bulk transliteration complete: {Processed} persons, {Generated} names, {Errors} errors",
+                result.TotalPersonsProcessed, result.TotalNamesGenerated, result.Errors);
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in bulk transliteration for org {OrgId}", request.OrgId);
+            result.Message = $"Error: {ex.Message}";
+            return result;
+        }
+    }
+
+    private static string NormalizeScript(string? script)
+    {
+        if (string.IsNullOrWhiteSpace(script)) return "unknown";
+
+        return script.ToLowerInvariant() switch
+        {
+            "ar" or "arabic" => "arabic",
+            "nob" or "nobiin" or "coptic" => "coptic",
+            "en" or "english" or "latin" => "latin",
+            _ => "unknown"
+        };
+    }
+
+    /// <summary>
+    /// Detects script from Unicode character ranges in the content.
+    /// Arabic: U+0600-U+06FF, U+0750-U+077F, U+08A0-U+08FF
+    /// Coptic: U+2C80-U+2CFF, U+0370-U+03FF (Greek/Coptic block)
+    /// </summary>
+    private static string DetectScriptFromContent(string? content)
+    {
+        if (string.IsNullOrWhiteSpace(content)) return "latin";
+
+        // Check for Arabic characters
+        if (System.Text.RegularExpressions.Regex.IsMatch(content, @"[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]"))
+            return "arabic";
+
+        // Check for Coptic characters
+        if (System.Text.RegularExpressions.Regex.IsMatch(content, @"[\u2C80-\u2CFF\u0370-\u03FF]"))
+            return "coptic";
+
+        return "latin";
+    }
+
+    /// <summary>
+    /// Gets the effective script, using content detection if script field is unknown.
+    /// </summary>
+    private static string GetEffectiveScript(string? script, string? content)
+    {
+        var normalized = NormalizeScript(script);
+        if (normalized == "unknown" && !string.IsNullOrWhiteSpace(content))
+        {
+            return DetectScriptFromContent(content);
+        }
+        return normalized == "unknown" ? "latin" : normalized;
+    }
+
+    /// <summary>
+    /// Detects source language code from content using Unicode detection.
+    /// Returns: "ar" for Arabic, "nob" for Nobiin/Coptic, "en" for English/Latin
+    /// </summary>
+    private static string DetectSourceLanguageFromContent(string? content)
+    {
+        if (string.IsNullOrWhiteSpace(content)) return "en";
+
+        // Check for Arabic characters
+        if (System.Text.RegularExpressions.Regex.IsMatch(content, @"[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]"))
+            return "ar";
+
+        // Check for Coptic characters
+        if (System.Text.RegularExpressions.Regex.IsMatch(content, @"[\u2C80-\u2CFF\u0370-\u03FF]"))
+            return "nob";
+
+        return "en";
     }
 
     #endregion

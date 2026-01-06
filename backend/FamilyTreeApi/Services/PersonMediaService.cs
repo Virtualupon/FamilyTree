@@ -201,26 +201,41 @@ public class PersonMediaService : IPersonMediaService
 
             var links = await _personMediaRepository.GetByPersonIdWithMediaAsync(personId, cancellationToken);
 
-            var items = links.Select(link => new PersonMediaListItemDto(
-                link.MediaId,
-                link.Media.FileName,
-                link.Media.MimeType,
-                link.Media.FileSize,
-                link.Media.Kind.ToString(),
-                link.Media.Title,
-                link.Media.Description,
-                link.Media.ThumbnailPath,
-                link.IsPrimary,
-                link.SortOrder,
-                link.LinkedAt,
-                link.Media.PersonLinks.Select(pl => new LinkedPersonDto(
-                    pl.PersonId,
-                    pl.Person?.PrimaryName,
-                    pl.IsPrimary,
-                    pl.Notes,
-                    pl.LinkedAt
-                )).ToList()
-            ));
+            // Get all linked persons for these media items in a separate query to avoid cycle
+            var mediaIds = links.Select(l => l.MediaId).Distinct().ToList();
+            var allPersonLinks = await _personMediaRepository.GetByMediaIdsWithPersonsAsync(mediaIds, cancellationToken);
+
+            // Group person links by media ID for efficient lookup
+            var personLinksByMedia = allPersonLinks
+                .GroupBy(pm => pm.MediaId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            var items = links.Select(link => {
+                var linkedPersons = personLinksByMedia.TryGetValue(link.MediaId, out var pLinks)
+                    ? pLinks.Select(pl => new LinkedPersonDto(
+                        pl.PersonId,
+                        pl.Person?.PrimaryName,
+                        pl.IsPrimary,
+                        pl.Notes,
+                        pl.LinkedAt
+                    )).ToList()
+                    : new List<LinkedPersonDto>();
+
+                return new PersonMediaListItemDto(
+                    link.MediaId,
+                    link.Media.FileName,
+                    link.Media.MimeType,
+                    link.Media.FileSize,
+                    link.Media.Kind.ToString(),
+                    link.Media.Title,
+                    link.Media.Description,
+                    link.Media.ThumbnailPath,
+                    link.IsPrimary,
+                    link.SortOrder,
+                    link.LinkedAt,
+                    linkedPersons
+                );
+            });
 
             return ServiceResult<IEnumerable<PersonMediaListItemDto>>.Success(items);
         }

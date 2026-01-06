@@ -1,0 +1,235 @@
+# Claude Code Prompt: Convert Angular App to PWA
+
+Copy and paste this prompt into Claude Code to implement PWA functionality.
+
+---
+
+## PROMPT START
+
+```
+I need you to convert my Angular application into a Progressive Web App (PWA). The app is a Family Tree Platform with a Nubian theme.
+
+## Project Context
+- Angular 17+ standalone components
+- Uses Angular Material
+- Has a Nubian color theme:
+  - Primary (Teal): #187573
+  - Secondary (Gold): #C17E3E
+  - Background: #FAF7F1
+  - Cream: #FFF9F5
+- App name: "Family Tree Platform"
+- Short name: "Family Tree"
+
+## Tasks to Complete
+
+### 1. Add Angular PWA Package
+Run the Angular PWA schematic:
+```bash
+ng add @angular/pwa --skip-confirmation
+```
+
+### 2. Update manifest.webmanifest
+Replace the generated manifest with these settings:
+- name: "Family Tree Platform"
+- short_name: "Family Tree"  
+- description: "Preserve your Nubian heritage with our family tree platform"
+- theme_color: "#187573"
+- background_color: "#FAF7F1"
+- display: "standalone"
+- orientation: "portrait-primary"
+- Add shortcuts for "/tree" (My Family Tree) and "/people/new" (Add Person)
+- Ensure all icon sizes are defined: 72, 96, 128, 144, 152, 192, 384, 512
+
+### 3. Update ngsw-config.json
+Configure service worker with:
+- Prefetch app shell (index.html, CSS, JS)
+- Lazy load assets (images, fonts)
+- API caching strategies:
+  - "freshness" strategy for /api/persons/**, /api/trees/**, /api/relationships/** (timeout: 10s, maxAge: 1h)
+  - "performance" strategy for /api/towns/**, /api/lookup/** (maxAge: 1d)
+
+### 4. Update index.html
+Add these meta tags and links:
+- theme-color meta tag: #187573
+- description meta tag
+- apple-mobile-web-app-capable: yes
+- apple-mobile-web-app-status-bar-style: black-translucent
+- apple-mobile-web-app-title: Family Tree
+- apple-touch-icon link to 152x152 icon
+- Ensure manifest link exists
+
+### 5. Create NetworkService
+Create `src/app/core/services/network.service.ts`:
+- Injectable service with providedIn: 'root'
+- Use Angular signals for reactive online/offline status
+- Listen to window 'online' and 'offline' events
+- Export `isOnline` signal
+
+### 6. Create UpdateService  
+Create `src/app/core/services/update.service.ts`:
+- Injectable service with providedIn: 'root'
+- Inject SwUpdate, ApplicationRef, MatSnackBar
+- Check for updates every 6 hours after app stabilizes
+- Show snackbar notification when new version is ready
+- Use Nubian snackbar styling (panelClass: 'nubian-snackbar--info')
+- Reload app when user clicks "Update"
+
+### 7. Create OfflineComponent
+Create `src/app/features/offline/offline.component.ts`:
+- Standalone component
+- Use Nubian auth page styling (nubian-auth classes)
+- Show wifi-slash icon
+- Display "You're Offline" message
+- Add "Try Again" button that reloads the page
+- Style with Nubian theme colors
+
+### 8. Update app.config.ts
+Ensure service worker is registered:
+```typescript
+provideServiceWorker('ngsw-worker.js', {
+  enabled: !isDevMode(),
+  registrationStrategy: 'registerWhenStable:30000'
+})
+```
+
+### 9. Update app.routes.ts
+Add offline route:
+```typescript
+{ path: 'offline', component: OfflineComponent }
+```
+
+### 10. Create Icon Generation Script
+Create `scripts/generate-pwa-icons.js`:
+- Use sharp or jimp package
+- Take a source image (512x512 minimum)
+- Generate all required icon sizes
+- Output to src/assets/icons/
+- Include both regular and maskable versions
+
+### 11. Update Layout Component
+In the main layout component:
+- Inject NetworkService
+- Show offline indicator in header when offline
+- Use Nubian orange color (#E85D35) for offline warning
+
+### 12. Create Install Prompt Component (Optional)
+Create `src/app/shared/components/install-prompt/install-prompt.component.ts`:
+- Listen for 'beforeinstallprompt' event
+- Show custom install banner with Nubian styling
+- Store user preference in localStorage
+- Don't show again for 7 days if dismissed
+
+## File Structure Expected
+```
+src/
+├── app/
+│   ├── core/
+│   │   └── services/
+│   │       ├── network.service.ts (new)
+│   │       └── update.service.ts (new)
+│   ├── features/
+│   │   └── offline/
+│   │       └── offline.component.ts (new)
+│   ├── shared/
+│   │   └── components/
+│   │       └── install-prompt/
+│   │           └── install-prompt.component.ts (new, optional)
+│   ├── app.config.ts (updated)
+│   └── app.routes.ts (updated)
+├── assets/
+│   └── icons/
+│       ├── icon-72x72.png
+│       ├── icon-96x96.png
+│       ├── icon-128x128.png
+│       ├── icon-144x144.png
+│       ├── icon-152x152.png
+│       ├── icon-192x192.png
+│       ├── icon-384x384.png
+│       └── icon-512x512.png
+├── index.html (updated)
+├── manifest.webmanifest (updated)
+└── ngsw-config.json (updated)
+scripts/
+└── generate-pwa-icons.js (new)
+```
+
+## Nubian Theme Reference
+Use these colors consistently:
+- Primary buttons/headers: #187573 (teal)
+- Accent/icons: #C17E3E (gold)
+- Warning/offline: #E85D35 (orange)
+- Success: #2D7A3E (green)
+- Background: #FAF7F1 (warm white)
+- Surface: #FFF9F5 (cream)
+- Border: #F4E4D7 (beige)
+- Text: #2D2D2D (charcoal)
+
+## Testing Instructions
+After implementation, verify:
+1. Build production: `ng build --configuration production`
+2. Serve with http-server: `npx http-server dist/family-tree -c-1`
+3. Open Chrome DevTools → Application tab
+4. Verify Service Worker is registered
+5. Verify Manifest is detected
+6. Test offline mode (Network tab → Offline)
+7. Test install prompt on mobile/desktop
+
+Please implement all these changes, creating new files and updating existing ones as needed. Show me the complete code for each file.
+```
+
+## PROMPT END
+
+---
+
+## Usage Instructions
+
+1. Open your project in Claude Code (or VS Code with Claude extension)
+2. Copy the entire prompt above (everything between PROMPT START and PROMPT END)
+3. Paste into Claude Code chat
+4. Claude will implement all PWA features
+
+## After Running the Prompt
+
+### Generate Icons
+You'll need a source logo image. Then run:
+```bash
+node scripts/generate-pwa-icons.js path/to/your-logo.png
+```
+
+Or use an online tool like https://realfavicongenerator.net/
+
+### Test PWA
+```bash
+# Build for production
+ng build --configuration production
+
+# Serve locally
+npx http-server dist/your-app-name -c-1 -p 8080
+
+# Open http://localhost:8080 in Chrome
+# Use DevTools → Application to verify PWA
+```
+
+### Lighthouse Audit
+Run a Lighthouse audit in Chrome DevTools to verify PWA compliance:
+1. Open DevTools (F12)
+2. Go to Lighthouse tab
+3. Check "Progressive Web App"
+4. Click "Analyze page load"
+
+---
+
+## Quick Reference: Files Created/Modified
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `manifest.webmanifest` | Modified | App metadata, icons, theme |
+| `ngsw-config.json` | Modified | Service worker caching rules |
+| `index.html` | Modified | PWA meta tags, iOS support |
+| `app.config.ts` | Modified | Register service worker |
+| `app.routes.ts` | Modified | Add offline route |
+| `network.service.ts` | Created | Online/offline detection |
+| `update.service.ts` | Created | App update notifications |
+| `offline.component.ts` | Created | Offline fallback page |
+| `install-prompt.component.ts` | Created | Custom install UI |
+| `generate-pwa-icons.js` | Created | Icon generation script |

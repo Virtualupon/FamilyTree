@@ -1,0 +1,152 @@
+2025-12-20 09:02:31.372 -05:00 [WARNIN] The query uses the 'First'/'FirstOrDefault' operator without 'OrderBy' and filter operators. This may lead to unpredictable results.
+2025-12-20 09:02:31.885 -05:00 [INFORM] Family Tree database initialized successfully.
+2025-12-20 09:02:32.782 -05:00 [INFORM] Family Tree API starting on port 8080...
+2025-12-20 09:02:35.810 -05:00 [WARNIN] Overriding address(es) 'https://localhost:7249, http://localhost:5001'. Binding to endpoints defined via IConfiguration and/or UseKestrel() instead.
+2025-12-20 09:04:06.286 -05:00 [INFORM] HTTP GET /api/admin/users/103/assignments responded 401 in 2219.2364 ms
+2025-12-20 09:04:06.286 -05:00 [INFORM] HTTP GET /api/familytree responded 401 in 2219.4923 ms
+2025-12-20 09:04:06.293 -05:00 [INFORM] HTTP GET /api/town responded 401 in 2228.7915 ms
+2025-12-20 09:04:06.317 -05:00 [INFORM] HTTP GET /api/familytree responded 401 in 14.5425 ms
+2025-12-20 09:04:07.055 -05:00 [INFORM] HTTP POST /api/auth/refresh responded 200 in 726.4121 ms
+2025-12-20 09:04:07.055 -05:00 [INFORM] HTTP POST /api/auth/refresh responded 200 in 734.6519 ms
+2025-12-20 09:04:07.055 -05:00 [INFORM] HTTP POST /api/auth/refresh responded 200 in 734.8917 ms
+2025-12-20 09:04:07.055 -05:00 [INFORM] HTTP POST /api/auth/refresh responded 200 in 731.8399 ms
+2025-12-20 09:04:07.084 -05:00 [INFORM] HTTP GET /api/admin/users/103/assignments responded 403 in 6.2254 ms
+2025-12-20 09:04:07.084 -05:00 [INFORM] HTTP GET /api/admin/users/103/assignments responded 403 in 0.5198 ms
+2025-12-20 09:04:07.088 -05:00 [INFORM] HTTP GET /api/admin/users/103/assignments responded 403 in 0.2791 ms
+2025-12-20 09:04:07.345 -05:00 [INFORM] GetTowns called: Page=1, PageSize=1000, NameQuery=null, Country=null
+2025-12-20 09:04:07.345 -05:00 [INFORM] GetTowns called: Page=1, PageSize=1000, NameQuery=null, Country=null
+2025-12-20 09:04:07.725 -05:00 [INFORM] HTTP GET /api/familytree responded 200 in 373.2493 ms
+2025-12-20 09:04:07.725 -05:00 [INFORM] HTTP GET /api/familytree responded 200 in 373.2651 ms
+2025-12-20 09:04:07.725 -05:00 [INFORM] HTTP GET /api/familytree responded 200 in 658.4575 ms
+2025-12-20 09:04:07.725 -05:00 [INFORM] HTTP GET /api/familytree responded 200 in 639.1095 ms
+2025-12-20 09:04:07.734 -05:00 [INFORM] HTTP GET /api/admin/users/103/assignments responded 403 in 0.4525 ms
+2025-12-20 09:04:07.744 -05:00 [INFORM] HTTP GET /api/admin/users/103/assignments responded 403 in 0.2873 ms
+2025-12-20 09:04:07.812 -05:00 [INFORM] GetTowns called: Page=1, PageSize=1000, NameQuery=null, Country=null
+2025-12-20 09:04:07.812 -05:00 [INFORM] GetTowns called: Page=1, PageSize=1000, NameQuery=null, Country=null
+2025-12-20 09:04:07.828 -05:00 [INFORM] HTTP GET /api/town responded 200 in 747.0578 ms
+2025-12-20 09:04:07.835 -05:00 [INFORM] GetTowns called: Page=1, PageSize=1000, NameQuery=null, Country=null
+2025-12-20 09:04:07.865 -05:00 [INFORM] HTTP GET /api/town responded 200 in 771.1913 ms
+2025-12-20 09:04:07.888 -05:00 [INFORM] HTTP GET /api/town responded 200 in 153.5088 ms
+2025-12-20 09:04:07.888 -05:00 [INFORM] HTTP GET /api/town responded 200 in 140.6985 ms
+2025-12-20 09:04:07.913 -05:00 [INFORM] HTTP GET /api/town responded 200 in 80.0501 ms
+2025-12-20 09:04:08.011 -05:00 [INFORM] HTTP GET /api/familytree responded 200 in 274.7968 ms
+2025-12-20 09:04:08.011 -05:00 [INFORM] HTTP GET /api/familytree responded 200 in 269.8579 ms
+2025-12-20 09:04:08.091 -05:00 [INFORM] HTTP POST /api/auth/revoke responded 404 in 220.0855 ms
+2025-12-20 09:04:15.342 -05:00 [INFORM] HTTP POST /api/auth/login responded 200 in 838.9196 ms
+2025-12-20 09:04:15.390 -05:00 [INFORM] GetTowns called: Page=1, PageSize=1000, NameQuery=null, Country=null
+2025-12-20 09:04:15.391 -05:00 [INFORM] HTTP GET /api/admin/users/103/assignments responded 403 in 0.3631 ms
+2025-12-20 09:04:15.471 -05:00 [INFORM] HTTP GET /api/town responded 200 in 82.6619 ms
+2025-12-20 09:04:15.559 -05:00 [INFORM] HTTP GET /api/familytree responded 200 in 175.8565 ms
+2025-12-20 09:04:15.588 -05:00 [INFORM] HTTP GET /api/familytree responded 200 in 169.5719 ms
+2025-12-20 09:04:15.637 -05:00 [INFORM] GetPersons called: TreeId=07665bfd-8244-4a07-8087-0377707443a3, Page=1, PageSize=1
+2025-12-20 09:04:15.637 -05:00 [INFORM] GetPersons called: TreeId=07665bfd-8244-4a07-8087-0377707443a3, Page=1, PageSize=5
+2025-12-20 09:04:15.683 -05:00 [INFORM] Resolved OrgId: 07665bfd-8244-4a07-8087-0377707443a3
+2025-12-20 09:04:15.683 -05:00 [INFORM] Resolved OrgId: 07665bfd-8244-4a07-8087-0377707443a3
+2025-12-20 09:04:15.785 -05:00 [INFORM] HTTP GET /api/person responded 200 in 169.1666 ms
+2025-12-20 09:04:15.785 -05:00 [INFORM] HTTP GET /api/person responded 200 in 167.8453 ms
+2025-12-20 09:04:15.794 -05:00 [INFORM] HTTP GET /api/union responded 200 in 173.1159 ms
+2025-12-20 09:04:15.911 -05:00 [INFORM] GetPersons called: TreeId=07665bfd-8244-4a07-8087-0377707443a3, Page=1, PageSize=1
+2025-12-20 09:04:15.911 -05:00 [INFORM] GetPersons called: TreeId=07665bfd-8244-4a07-8087-0377707443a3, Page=1, PageSize=1
+2025-12-20 09:04:15.950 -05:00 [INFORM] Resolved OrgId: 07665bfd-8244-4a07-8087-0377707443a3
+2025-12-20 09:04:15.958 -05:00 [INFORM] Resolved OrgId: 07665bfd-8244-4a07-8087-0377707443a3
+2025-12-20 09:04:16.023 -05:00 [INFORM] HTTP GET /api/person responded 200 in 118.2930 ms
+2025-12-20 09:04:16.023 -05:00 [INFORM] HTTP GET /api/person responded 200 in 116.8566 ms
+2025-12-20 09:04:19.835 -05:00 [INFORM] GetParents called - PersonId: 497203d7-be90-47bc-b7eb-328f346d9c28, UserId: 103, SystemRole: Admin
+2025-12-20 09:04:19.835 -05:00 [INFORM] GetChildren called - PersonId: 497203d7-be90-47bc-b7eb-328f346d9c28, UserId: 103, SystemRole: Admin
+2025-12-20 09:04:19.847 -05:00 [INFORM] GetSiblings called - PersonId: 497203d7-be90-47bc-b7eb-328f346d9c28, UserId: 103, SystemRole: Admin
+2025-12-20 09:04:19.897 -05:00 [INFORM] HTTP GET /api/union responded 200 in 57.9199 ms
+2025-12-20 09:04:19.994 -05:00 [INFORM] GetChildren - Person: ????, OrgId: 07665bfd-8244-4a07-8087-0377707443a3, HasAccess: True
+2025-12-20 09:04:19.994 -05:00 [INFORM] GetParents - Person: ????, OrgId: 07665bfd-8244-4a07-8087-0377707443a3, HasAccess: True
+2025-12-20 09:04:20.039 -05:00 [INFORM] HTTP GET /api/parentchild/person/497203d7-be90-47bc-b7eb-328f346d9c28/children responded 200 in 217.9389 ms
+2025-12-20 09:04:20.042 -05:00 [INFORM] HTTP GET /api/parentchild/person/497203d7-be90-47bc-b7eb-328f346d9c28/parents responded 200 in 226.9210 ms
+2025-12-20 09:04:20.046 -05:00 [INFORM] HTTP GET /api/person/497203d7-be90-47bc-b7eb-328f346d9c28 responded 200 in 239.2222 ms
+2025-12-20 09:04:20.075 -05:00 [INFORM] HTTP GET /api/parentchild/person/497203d7-be90-47bc-b7eb-328f346d9c28/siblings responded 200 in 244.2528 ms
+2025-12-20 09:04:20.933 -05:00 [ERROR] Failed executing DbCommand (26ms) [Parameters=[@__personId_0='?' (DbType = Guid)], CommandType='Text', CommandTimeout='30']
+SELECT p."Id", p."CreatedAt", p."IsPrimary", p."LinkedAt", p."MediaId", p."Notes", p."PersonId", p."SortOrder", m."Id", m."CaptureDate", m."CapturePlaceId", m."Category", m."Copyright", m."CreatedAt", m."Description", m."FileName", m."FileSize", m."Kind", m."MetadataJson", m."MimeType", m."OrgId", m."PersonId", m."StorageKey", m."StorageType", m."ThumbnailPath", m."Title", m."UpdatedAt", m."UploadedByUserId", m."Url", m."Visibility"
+FROM "PersonMedia" AS p
+INNER JOIN "MediaFiles" AS m ON p."MediaId" = m."Id"
+WHERE p."PersonId" = @__personId_0
+ORDER BY p."SortOrder", p."LinkedAt" DESC, p."Id", m."Id"
+2025-12-20 09:04:20.986 -05:00 [ERROR] An exception occurred while iterating over the results of a query for context type 'FamilyTreeApi.Data.ApplicationDbContext'.
+Npgsql.PostgresException (0x80004005): 42703: column p.MediaId does not exist
+
+POSITION: 496
+   at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Query.Internal.SplitQueryingEnumerable`1.AsyncEnumerator.InitializeReaderAsync(AsyncEnumerator enumerator, CancellationToken cancellationToken)
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Query.Internal.SplitQueryingEnumerable`1.AsyncEnumerator.MoveNextAsync()
+  Exception data:
+    Severity: ERROR
+    SqlState: 42703
+    MessageText: column p.MediaId does not exist
+    Position: 496
+    File: parse_relation.c
+    Line: 3656
+    Routine: errorMissingColumn
+Npgsql.PostgresException (0x80004005): 42703: column p.MediaId does not exist
+
+POSITION: 496
+   at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Query.Internal.SplitQueryingEnumerable`1.AsyncEnumerator.InitializeReaderAsync(AsyncEnumerator enumerator, CancellationToken cancellationToken)
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Query.Internal.SplitQueryingEnumerable`1.AsyncEnumerator.MoveNextAsync()
+  Exception data:
+    Severity: ERROR
+    SqlState: 42703
+    MessageText: column p.MediaId does not exist
+    Position: 496
+    File: parse_relation.c
+    Line: 3656
+    Routine: errorMissingColumn
+2025-12-20 09:04:21.246 -05:00 [ERROR] Error getting media for person 497203d7-be90-47bc-b7eb-328f346d9c28
+Npgsql.PostgresException (0x80004005): 42703: column p.MediaId does not exist
+
+POSITION: 496
+   at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+   at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+   at Npgsql.NpgsqlCommand.ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Query.Internal.SplitQueryingEnumerable`1.AsyncEnumerator.InitializeReaderAsync(AsyncEnumerator enumerator, CancellationToken cancellationToken)
+   at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.Query.Internal.SplitQueryingEnumerable`1.AsyncEnumerator.MoveNextAsync()
+   at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync[TSource](IQueryable`1 source, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync[TSource](IQueryable`1 source, CancellationToken cancellationToken)
+   at FamilyTreeApi.Repositories.PersonMediaRepository.GetByPersonIdWithMediaAsync(Guid personId, CancellationToken cancellationToken) in B:\Development\Apps\repo\FamilyTree\backend\FamilyTreeApi\Repositories\PersonMediaRepository.cs:line 21
+   at FamilyTreeApi.Services.PersonMediaService.GetMediaByPersonAsync(Guid personId, UserContext userContext, CancellationToken cancellationToken) in B:\Development\Apps\repo\FamilyTree\backend\FamilyTreeApi\Services\PersonMediaService.cs:line 202
+  Exception data:
+    Severity: ERROR
+    SqlState: 42703
+    MessageText: column p.MediaId does not exist
+    Position: 496
+    File: parse_relation.c
+    Line: 3656
+    Routine: errorMissingColumn
+2025-12-20 09:04:21.323 -05:00 [ERROR] HTTP GET /api/persons/497203d7-be90-47bc-b7eb-328f346d9c28/media/grouped responded 500 in 838.4764 ms
+
+
+
+{
+  "normalizedNames": {},
+  "lazyUpdate": null
+}

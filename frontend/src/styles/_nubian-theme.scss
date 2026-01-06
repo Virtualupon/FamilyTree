@@ -1,0 +1,428 @@
+// ============================================
+// NUBIAN THEME - MAIN ENTRY POINT
+// Family Tree Platform Theme System
+// ============================================
+//
+// Usage in components:
+// @import 'styles/nubian-theme';
+// 
+// Or in global styles:
+// @import 'nubian-theme';
+//
+// ============================================
+
+// Import all theme partials
+@import 'nubian-variables';
+@import 'nubian-mixins';
+@import 'nubian-components';
+
+// ============================================
+// CSS CUSTOM PROPERTIES (for runtime theming)
+// ============================================
+
+:root {
+  // ==========================================
+  // NUBIAN COLOR TOKENS
+  // ==========================================
+  
+  // Primary - Nubian Teal
+  --nubian-primary: #{$nubian-teal};
+  --nubian-primary-light: #{$nubian-teal-400};
+  --nubian-primary-dark: #{$nubian-teal-700};
+  --nubian-primary-50: #{$nubian-teal-50};
+  --nubian-primary-100: #{$nubian-teal-100};
+  
+  // Secondary - Nubian Gold
+  --nubian-secondary: #{$nubian-gold};
+  --nubian-secondary-light: #{$nubian-gold-400};
+  --nubian-secondary-dark: #{$nubian-gold-700};
+  --nubian-secondary-50: #{$nubian-gold-50};
+  --nubian-secondary-100: #{$nubian-gold-100};
+  
+  // Accent - Nubian Orange
+  --nubian-accent: #{$nubian-orange};
+  --nubian-accent-light: #{$nubian-orange-400};
+  --nubian-accent-dark: #{$nubian-orange-700};
+  
+  // Success - Nubian Green
+  --nubian-success: #{$nubian-green};
+  --nubian-success-light: #{$nubian-green-400};
+  --nubian-success-dark: #{$nubian-green-700};
+  
+  // Semantic colors
+  --nubian-warning: #{$nubian-orange};
+  --nubian-error: #{$color-error};
+  --nubian-info: #{$nubian-teal};
+  
+  // Background colors
+  --nubian-bg: #{$warm-white};
+  --nubian-bg-cream: #{$nubian-cream};
+  --nubian-bg-surface: #FFFFFF;
+  --nubian-bg-elevated: #FFFFFF;
+  
+  // Text colors
+  --nubian-text: #{$nubian-charcoal};
+  --nubian-text-secondary: #{$nubian-gray};
+  --nubian-text-muted: #{$nubian-gray-light};
+  --nubian-text-inverse: #FFFFFF;
+  
+  // Border colors
+  --nubian-border: #{$nubian-beige};
+  --nubian-border-light: #{rgba($nubian-beige, 0.5)};
+  --nubian-divider: #{$nubian-beige};
+  
+  // Gender colors (Nubian styled)
+  --nubian-male: #{$nubian-teal};
+  --nubian-male-light: #{$nubian-teal-100};
+  --nubian-female: #{$nubian-gold};
+  --nubian-female-light: #{$nubian-gold-100};
+  
+  // ==========================================
+  // TYPOGRAPHY TOKENS
+  // ==========================================
+  --nubian-font-primary: #{$font-primary};
+  --nubian-font-display: #{$font-display};
+  --nubian-font-serif: #{$font-serif};
+  --nubian-font-arabic: #{$font-arabic};
+  --nubian-font-nubian: #{$font-nubian};
+  
+  // ==========================================
+  // SPACING TOKENS
+  // ==========================================
+  --nubian-space-xs: #{$spacing-xs};
+  --nubian-space-sm: #{$spacing-sm};
+  --nubian-space-md: #{$spacing-md};
+  --nubian-space-lg: #{$spacing-lg};
+  --nubian-space-xl: #{$spacing-xl};
+  --nubian-space-2xl: #{$spacing-2xl};
+  
+  // ==========================================
+  // BORDER RADIUS TOKENS
+  // ==========================================
+  --nubian-radius-sm: #{$radius-sm};
+  --nubian-radius-md: #{$radius-md};
+  --nubian-radius-lg: #{$radius-lg};
+  --nubian-radius-xl: #{$radius-xl};
+  --nubian-radius-2xl: #{$radius-2xl};
+  --nubian-radius-full: #{$radius-full};
+  
+  // ==========================================
+  // SHADOW TOKENS
+  // ==========================================
+  --nubian-shadow-sm: #{$shadow-sm};
+  --nubian-shadow-md: #{$shadow-md};
+  --nubian-shadow-lg: #{$shadow-lg};
+  --nubian-shadow-xl: #{$shadow-xl};
+  --nubian-shadow-gold: #{$shadow-gold};
+  --nubian-shadow-teal: #{$shadow-teal};
+  
+  // ==========================================
+  // LAYOUT TOKENS
+  // ==========================================
+  --nubian-header-height: #{$header-height};
+  --nubian-sidebar-width: #{$sidebar-width};
+  --nubian-sidebar-collapsed: #{$sidebar-width-collapsed};
+  
+  // ==========================================
+  // TRANSITION TOKENS
+  // ==========================================
+  --nubian-transition-fast: #{$transition-fast};
+  --nubian-transition-base: #{$transition-base};
+  --nubian-transition-slow: #{$transition-slow};
+  
+  // ==========================================
+  // Z-INDEX TOKENS
+  // ==========================================
+  --nubian-z-dropdown: #{$z-dropdown};
+  --nubian-z-sticky: #{$z-sticky};
+  --nubian-z-fixed: #{$z-fixed};
+  --nubian-z-modal: #{$z-modal};
+  --nubian-z-tooltip: #{$z-tooltip};
+  --nubian-z-header: #{$z-header};
+}
+
+// ============================================
+// ANGULAR MATERIAL OVERRIDES
+// ============================================
+
+// Form field customization
+.mat-mdc-form-field {
+  --mdc-filled-text-field-container-color: #{$nubian-cream};
+  --mdc-filled-text-field-focus-active-indicator-color: #{$nubian-teal};
+  --mdc-filled-text-field-focus-label-text-color: #{$nubian-teal};
+  --mdc-filled-text-field-caret-color: #{$nubian-teal};
+  
+  --mdc-outlined-text-field-outline-color: #{$nubian-beige};
+  --mdc-outlined-text-field-focus-outline-color: #{$nubian-teal};
+  --mdc-outlined-text-field-focus-label-text-color: #{$nubian-teal};
+  --mdc-outlined-text-field-caret-color: #{$nubian-teal};
+}
+
+// Button customization
+.mat-mdc-button,
+.mat-mdc-raised-button,
+.mat-mdc-stroked-button,
+.mat-mdc-flat-button {
+  --mdc-text-button-label-text-color: #{$nubian-teal};
+  --mdc-filled-button-container-color: #{$nubian-teal};
+  --mdc-filled-button-label-text-color: white;
+  --mdc-protected-button-container-color: #{$nubian-teal};
+  --mdc-protected-button-label-text-color: white;
+  --mdc-outlined-button-outline-color: #{$nubian-teal};
+  --mdc-outlined-button-label-text-color: #{$nubian-teal};
+  
+  border-radius: $radius-lg !important;
+  font-weight: $font-weight-semibold !important;
+  letter-spacing: 0.5px;
+}
+
+// FAB customization
+.mat-mdc-fab,
+.mat-mdc-mini-fab {
+  --mdc-fab-container-color: #{$nubian-gold};
+  --mdc-fab-icon-color: white;
+  --mat-fab-foreground-color: white;
+  
+  box-shadow: $shadow-gold !important;
+}
+
+// Checkbox customization
+.mat-mdc-checkbox {
+  --mdc-checkbox-selected-checkmark-color: white;
+  --mdc-checkbox-selected-focus-icon-color: #{$nubian-teal};
+  --mdc-checkbox-selected-hover-icon-color: #{$nubian-teal};
+  --mdc-checkbox-selected-icon-color: #{$nubian-teal};
+  --mdc-checkbox-selected-pressed-icon-color: #{$nubian-teal};
+}
+
+// Radio button customization
+.mat-mdc-radio-button {
+  --mdc-radio-selected-focus-icon-color: #{$nubian-teal};
+  --mdc-radio-selected-hover-icon-color: #{$nubian-teal};
+  --mdc-radio-selected-icon-color: #{$nubian-teal};
+  --mdc-radio-selected-pressed-icon-color: #{$nubian-teal};
+}
+
+// Slider customization
+.mat-mdc-slider {
+  --mdc-slider-handle-color: #{$nubian-teal};
+  --mdc-slider-focus-handle-color: #{$nubian-teal};
+  --mdc-slider-hover-handle-color: #{$nubian-teal};
+  --mdc-slider-active-track-color: #{$nubian-teal};
+  --mdc-slider-inactive-track-color: #{$nubian-beige};
+}
+
+// Progress bar customization
+.mat-mdc-progress-bar {
+  --mdc-linear-progress-active-indicator-color: #{$nubian-teal};
+  --mdc-linear-progress-track-color: #{$nubian-beige};
+}
+
+// Progress spinner customization
+.mat-mdc-progress-spinner {
+  --mdc-circular-progress-active-indicator-color: #{$nubian-teal};
+}
+
+// Tabs customization
+.mat-mdc-tab-group,
+.mat-mdc-tab-nav-bar {
+  --mdc-tab-indicator-active-indicator-color: #{$nubian-teal};
+  --mat-tab-header-active-focus-indicator-color: #{$nubian-teal};
+  --mat-tab-header-active-hover-indicator-color: #{$nubian-teal};
+  --mat-tab-header-active-label-text-color: #{$nubian-teal};
+  --mat-tab-header-active-focus-label-text-color: #{$nubian-teal};
+  --mat-tab-header-active-hover-label-text-color: #{$nubian-teal};
+}
+
+// Chip customization
+.mat-mdc-chip {
+  --mdc-chip-elevated-container-color: #{$nubian-cream};
+  --mdc-chip-label-text-color: #{$nubian-charcoal};
+  
+  &.mat-primary {
+    --mdc-chip-elevated-container-color: #{$nubian-teal};
+    --mdc-chip-label-text-color: white;
+  }
+}
+
+// Menu customization
+.mat-mdc-menu-panel {
+  background: white !important;
+  border: 1px solid $nubian-beige !important;
+  border-radius: $radius-lg !important;
+  box-shadow: $shadow-lg !important;
+}
+
+.mat-mdc-menu-item {
+  &:hover {
+    background: rgba($nubian-teal, 0.08) !important;
+  }
+  
+  &.mat-mdc-menu-item-highlighted {
+    background: rgba($nubian-teal, 0.08) !important;
+  }
+}
+
+// Dialog customization
+.mat-mdc-dialog-container {
+  --mdc-dialog-container-color: #{$nubian-cream};
+  
+  border-radius: $radius-2xl !important;
+  
+  .mat-mdc-dialog-surface {
+    background: $nubian-cream !important;
+    border-radius: $radius-2xl !important;
+  }
+}
+
+// Select customization
+.mat-mdc-select {
+  --mat-select-enabled-trigger-text-color: #{$nubian-charcoal};
+  --mat-select-enabled-arrow-color: #{$nubian-gold};
+  --mat-select-focused-arrow-color: #{$nubian-teal};
+}
+
+.mat-mdc-option {
+  &:hover {
+    background: rgba($nubian-teal, 0.08) !important;
+  }
+  
+  &.mat-mdc-option-active,
+  &.mdc-list-item--selected {
+    background: rgba($nubian-teal, 0.12) !important;
+  }
+}
+
+// Tooltip customization
+.mat-mdc-tooltip {
+  --mdc-plain-tooltip-container-color: #{$nubian-charcoal};
+  --mdc-plain-tooltip-supporting-text-color: white;
+  
+  .mdc-tooltip__surface {
+    border-radius: $radius-md !important;
+    font-size: $font-size-xs !important;
+  }
+}
+
+// Snackbar customization
+.mat-mdc-snack-bar-container {
+  --mdc-snackbar-container-color: #{$nubian-charcoal};
+  --mdc-snackbar-supporting-text-color: white;
+  --mat-snack-bar-button-color: #{$nubian-gold};
+  
+  border-radius: $radius-lg !important;
+}
+
+// Card customization
+.mat-mdc-card {
+  --mdc-elevated-card-container-color: white;
+  --mdc-outlined-card-container-color: white;
+  --mdc-outlined-card-outline-color: #{$nubian-beige};
+  
+  border-radius: $radius-xl !important;
+  box-shadow: $shadow-md !important;
+}
+
+// List customization
+.mat-mdc-list-item {
+  &:hover {
+    background: rgba($nubian-teal, 0.04) !important;
+  }
+}
+
+// Divider customization
+.mat-divider {
+  border-color: $nubian-beige !important;
+}
+
+// Expansion panel customization
+.mat-expansion-panel {
+  background: white !important;
+  border-radius: $radius-lg !important;
+  border: 1px solid $nubian-beige !important;
+  box-shadow: none !important;
+  
+  &.mat-expanded {
+    border-color: $nubian-teal !important;
+  }
+}
+
+.mat-expansion-panel-header {
+  &:hover {
+    background: rgba($nubian-teal, 0.04) !important;
+  }
+}
+
+// Table customization
+.mat-mdc-table {
+  background: white !important;
+  
+  .mat-mdc-header-cell {
+    background: $nubian-cream !important;
+    color: $nubian-charcoal !important;
+    font-weight: $font-weight-semibold !important;
+    border-bottom: 2px solid $nubian-beige !important;
+  }
+  
+  .mat-mdc-cell {
+    border-bottom-color: $nubian-beige !important;
+  }
+  
+  .mat-mdc-row {
+    &:hover {
+      background: rgba($nubian-teal, 0.04) !important;
+    }
+  }
+}
+
+// Paginator customization
+.mat-mdc-paginator {
+  background: transparent !important;
+  color: $nubian-charcoal !important;
+  
+  .mat-mdc-paginator-icon {
+    fill: $nubian-teal !important;
+  }
+}
+
+// ============================================
+// GLOBAL UTILITY CLASSES
+// ============================================
+
+// Background utilities
+.bg-nubian-cream { background: $nubian-cream !important; }
+.bg-nubian-warm { background: $warm-white !important; }
+.bg-nubian-teal { background: $nubian-teal !important; }
+.bg-nubian-gold { background: $nubian-gold !important; }
+.bg-nubian-beige { background: $nubian-beige !important; }
+
+// Text color utilities
+.text-nubian-teal { color: $nubian-teal !important; }
+.text-nubian-gold { color: $nubian-gold !important; }
+.text-nubian-orange { color: $nubian-orange !important; }
+.text-nubian-green { color: $nubian-green !important; }
+.text-nubian-gray { color: $nubian-gray !important; }
+
+// Border utilities
+.border-nubian { border-color: $nubian-beige !important; }
+.border-nubian-teal { border-color: $nubian-teal !important; }
+.border-nubian-gold { border-color: $nubian-gold !important; }
+
+// Font family utilities
+.font-display { font-family: $font-display !important; }
+.font-serif { font-family: $font-serif !important; }
+.font-arabic { font-family: $font-arabic !important; }
+.font-nubian { font-family: $font-nubian !important; }
+
+// Shadow utilities
+.shadow-nubian-sm { box-shadow: $shadow-sm !important; }
+.shadow-nubian-md { box-shadow: $shadow-md !important; }
+.shadow-nubian-lg { box-shadow: $shadow-lg !important; }
+.shadow-nubian-gold { box-shadow: $shadow-gold !important; }
+.shadow-nubian-teal { box-shadow: $shadow-teal !important; }
+
+// Gradient utilities
+.gradient-nubian-teal { background: $gradient-teal !important; }
+.gradient-nubian-gold { background: $gradient-gold !important; }
+.gradient-nubian-warm { background: $gradient-warm !important; }
+.gradient-nubian-hero { background: $gradient-hero !important; }

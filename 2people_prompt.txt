@@ -1,0 +1,61 @@
+First, read and understand the project structure:
+
+1. Read the database schema: `B:\Development\Apps\repo\FamilyTree\backend\Schema_DATABASE_03.sql`
+2. Explore the backend folder: `B:\Development\Apps\repo\FamilyTree\backend\` - read all API routes, models, controllers, and services
+3. Explore the frontend folder: `B:\Development\Apps\repo\FamilyTree\frontend\` - focus on D3 diagram components and how person click events are handled
+
+After understanding the codebase, implement the following feature:
+
+## Feature: Relationship Finder Between Two People
+
+### Objective
+When a user clicks on a person in the D3 family tree diagram, they should be able to:
+1. Search for any other person in the entire database
+2. Select a person from search results
+3. Click "Show Link" to see an org chart visualization showing the complete relationship path between both people
+4. Each person node in the path should display detailed information
+
+### Requirements
+
+#### Backend
+1. **Person Search API** - Create an endpoint to search all persons by name (supports partial matching), returning: ID, full name, birth/death dates, photo, and a brief identifier. Paginate results.
+
+2. **Relationship Path Finder API** - Create an endpoint that accepts two person IDs and returns:
+   - The shortest path between them (using BFS algorithm)
+   - Each node in the path with FULL person details (name, birth date, birth place, death date, death place, gender, occupation, bio, photo, and any other available fields from the database)
+   - The relationship type between each consecutive pair (e.g., "father of", "married to", "sibling of")
+   - A human-readable relationship description (e.g., "2nd Cousin Once Removed", "Great Uncle", "Father-in-law")
+   - Common ancestors if applicable
+
+3. **Relationship Calculator** - Implement logic to correctly name relationships:
+   - Direct line: Parent, Grandparent, Great-grandparent, Child, Grandchild, etc.
+   - Collateral: Sibling, Aunt/Uncle, Niece/Nephew, Cousin (with degrees and removals)
+   - In-laws: Father-in-law, Sister-in-law, etc.
+   - Step relations: Step-mother, Step-sibling, etc.
+
+#### Frontend
+1. **Enhanced Click Handler** - When clicking a person node in the D3 diagram, show options including a "Find Relationship To..." button
+
+2. **Person Search Modal** - A modal/dialog with:
+   - Search input (debounced, 300ms)
+   - Results list showing photo, name, dates, location
+   - Ability to select a person
+   - "Show Link" button to find the relationship
+
+3. **Relationship Path Org Chart** - A new D3 visualization (horizontal or vertical org chart style) that:
+   - Shows the complete path from Person A to Person B
+   - Each node displays detailed person info (photo, name, dates, places, occupation, bio)
+   - Connection lines are labeled with the relationship type
+   - Header shows the overall relationship description
+   - Nodes are clickable to expand/show more details
+   - Supports zoom and pan for long paths
+
+### Implementation Notes
+- Follow existing code patterns and conventions in the project
+- Use the same styling/theming as the existing D3 diagram
+- Handle edge cases: no path found, same person selected twice, very long paths
+- Make the UI responsive and user-friendly
+- Add loading states during API calls
+- Show meaningful error messages
+
+Please analyze the existing code first, then implement this feature step by step, explaining your approach as you go.

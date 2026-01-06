@@ -163,7 +163,7 @@ public class FamilyService : IFamilyService
                 .OrderBy(p => p.PrimaryName ?? "")
                 .Select(p => new FamilyMemberDto(
                     p.Id,
-                    p.PrimaryName ?? p.Names.FirstOrDefault(n => n.Type == Models.Enums.NameType.Primary)?.Full ?? p.Names.FirstOrDefault()?.Full,
+                    p.PrimaryName ?? p.NameEnglish ?? p.NameArabic ?? p.NameNobiin,
                     (int)p.Sex,
                     p.BirthDate?.ToString("yyyy-MM-dd"),
                     p.DeathDate?.ToString("yyyy-MM-dd"),
@@ -525,8 +525,9 @@ public class FamilyService : IFamilyService
     {
         if (person == null) return null;
         return person.PrimaryName
-            ?? person.Names?.FirstOrDefault(n => n.Type == Models.Enums.NameType.Primary)?.Full
-            ?? person.Names?.FirstOrDefault()?.Full;
+            ?? person.NameEnglish
+            ?? person.NameArabic
+            ?? person.NameNobiin;
     }
 
     private async Task<bool> HasTreeAccessAsync(

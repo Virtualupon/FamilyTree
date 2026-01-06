@@ -59,8 +59,7 @@ public class TreeViewService : ITreeViewService
             }
 
             var person = await _personRepository.QueryNoTracking()
-                .Include(p => p.Names)
-                .Include(p => p.BirthPlace)
+                                .Include(p => p.BirthPlace)
                 .Include(p => p.DeathPlace)
                 .FirstOrDefaultAsync(p => p.Id == request.PersonId && p.OrgId == orgId, cancellationToken);
 
@@ -101,8 +100,7 @@ public class TreeViewService : ITreeViewService
             }
 
             var person = await _personRepository.QueryNoTracking()
-                .Include(p => p.Names)
-                .Include(p => p.BirthPlace)
+                                .Include(p => p.BirthPlace)
                 .Include(p => p.DeathPlace)
                 .FirstOrDefaultAsync(p => p.Id == request.PersonId && p.OrgId == orgId, cancellationToken);
 
@@ -143,8 +141,7 @@ public class TreeViewService : ITreeViewService
             }
 
             var person = await _personRepository.QueryNoTracking()
-                .Include(p => p.Names)
-                .Include(p => p.BirthPlace)
+                                .Include(p => p.BirthPlace)
                 .Include(p => p.DeathPlace)
                 .FirstOrDefaultAsync(p => p.Id == request.PersonId && p.OrgId == orgId, cancellationToken);
 
@@ -193,8 +190,7 @@ public class TreeViewService : ITreeViewService
             }
 
             var person = await _personRepository.QueryNoTracking()
-                .Include(p => p.Names)
-                .Include(p => p.BirthPlace)
+                                .Include(p => p.BirthPlace)
                 .Include(p => p.DeathPlace)
                 .FirstOrDefaultAsync(p => p.Id == personId && p.OrgId == orgId, cancellationToken);
 
@@ -207,8 +203,7 @@ public class TreeViewService : ITreeViewService
             var unions = await _unionRepository.QueryNoTracking()
                 .Include(u => u.Members)
                 .ThenInclude(um => um.Person)
-                .ThenInclude(p => p.Names)
-                .Include(u => u.Members)
+                                .Include(u => u.Members)
                 .ThenInclude(um => um.Person)
                 .ThenInclude(p => p.BirthPlace)
                 .Include(u => u.Members)
@@ -220,16 +215,14 @@ public class TreeViewService : ITreeViewService
             // Get all children
             var children = await _personRepository.QueryNoTracking()
                 .Where(p => p.AsChild.Any(pc => pc.ParentId == personId))
-                .Include(p => p.Names)
-                .Include(p => p.BirthPlace)
+                                .Include(p => p.BirthPlace)
                 .Include(p => p.DeathPlace)
                 .ToListAsync(cancellationToken);
 
             // Get parents
             var parents = await _personRepository.QueryNoTracking()
                 .Where(p => p.AsParent.Any(pc => pc.ChildId == personId))
-                .Include(p => p.Names)
-                .Include(p => p.BirthPlace)
+                                .Include(p => p.BirthPlace)
                 .Include(p => p.DeathPlace)
                 .ToListAsync(cancellationToken);
 
@@ -362,8 +355,7 @@ public class TreeViewService : ITreeViewService
         {
             var parentRelations = await _personRepository.QueryNoTracking()
                 .Where(p => p.AsParent.Any(pc => pc.ChildId == person.Id))
-                .Include(p => p.Names)
-                .Include(p => p.BirthPlace)
+                                .Include(p => p.BirthPlace)
                 .Include(p => p.DeathPlace)
                 .ToListAsync(cancellationToken);
 
@@ -437,8 +429,7 @@ public class TreeViewService : ITreeViewService
     {
         var children = await _personRepository.QueryNoTracking()
             .Where(p => p.AsChild.Any(pc => pc.ParentId == parentId))
-            .Include(p => p.Names)
-            .Include(p => p.BirthPlace)
+                        .Include(p => p.BirthPlace)
             .Include(p => p.DeathPlace)
             .ToListAsync(cancellationToken);
 
@@ -467,8 +458,7 @@ public class TreeViewService : ITreeViewService
             .Where(u => u.OrgId == orgId && u.Members.Any(um => um.PersonId == personId))
             .Include(u => u.Members)
             .ThenInclude(um => um.Person)
-            .ThenInclude(p => p.Names)
-            .Include(u => u.Members)
+                        .Include(u => u.Members)
             .ThenInclude(um => um.Person)
             .ThenInclude(p => p.BirthPlace)
             .Include(u => u.Members)
@@ -877,7 +867,7 @@ public class TreeViewService : ITreeViewService
     {
         var pathNodes = new List<PathPersonNode>();
 
-        // First pass: Load all nodes
+        // First pass: Load all person nodes
         for (int i = 0; i < path.Count; i++)
         {
             var (personId, edgeType) = path[i];
@@ -891,16 +881,20 @@ public class TreeViewService : ITreeViewService
             pathNodes.Add(node);
         }
 
-        // Second pass: Set edge info using NEXT person's sex (not current person's sex)
-        // This fixes the bug where labels like Father/Mother were based on wrong person
+        // Second pass: Set edge info using NEXT person's sex for relationship labels
+        // This fixes the bug where the current person's sex was used instead of the next person's sex
         for (int i = 0; i < pathNodes.Count - 1; i++)
         {
             var currentNode = pathNodes[i];
             var nextNode = pathNodes[i + 1];
+
+            // Find the corresponding edge in the original path
+            // The edge at index i+1 describes the relationship TO that person
             var nextEdge = path[i + 1].Edge;
 
             currentNode.EdgeToNext = nextEdge;
-            // Use NEXT person's sex to determine the relationship label
+            // Use the NEXT person's sex to determine the gendered relationship label
+            // because the edge describes what the NEXT person IS (parent/child/spouse)
             currentNode.RelationshipToNextKey = GetEdgeRelationshipKey(nextEdge, nextNode.Sex);
         }
 

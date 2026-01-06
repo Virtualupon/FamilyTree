@@ -1,0 +1,159 @@
+# FamilyTree Hierarchy Analysis - Claude Code Prompt
+
+Copy and paste this directly into Claude Code:
+
+---
+
+```
+Analyze this FamilyTree codebase to enforce the following MANDATORY hierarchy:
+
+## STEP 1: READ THE DATABASE SCHEMA
+
+First, read the database schema file:
+- Path: backend/Schema_DATABASE_03.sql
+
+Extract from this file:
+1. All table definitions
+2. Towns table data (these are the ONLY valid towns)
+3. Existing foreign key relationships
+4. Current constraints
+
+## HIERARCHY STRUCTURE (STRICT)
+
+LEVEL 1: TOWN (Root)
+- Towns come from the Towns table in Schema_DATABASE_03.sql
+- Users CANNOT create/edit/delete towns (read-only)
+- Source of truth for all families
+
+LEVEL 2: FAMILY  
+- MUST have TownId FK (NOT NULL)
+- Grouped under their town
+- Contains people
+
+LEVEL 3: PERSON
+- MUST have FamilyId FK (NOT NULL)
+- Can have relationships across families/towns/globally
+
+## ANALYSIS CHECKLIST
+
+### Schema Analysis (from Schema_DATABASE_03.sql):
+□ List all towns from Towns table
+□ Verify Families table has TownId (NOT NULL, FK to Towns)
+□ Verify Persons table has FamilyId (NOT NULL, FK to Families)
+□ Document all existing relationships and constraints
+□ Identify any missing constraints
+
+### Backend Code:
+□ NO POST/PUT/DELETE endpoints for Towns (read-only)
+□ Family creation REQUIRES townId
+□ Person creation REQUIRES familyId
+□ API returns towns from database (not hardcoded in code)
+
+### Frontend Code:
+□ Town selector/filter on main view
+□ Tree visualization starts at TOWN level
+□ Families grouped under towns
+□ People grouped under families
+□ Cross-town relationships have distinct visual style
+□ NO UI to create/edit/delete towns
+
+### Data Integrity:
+□ No orphan families (without town)
+□ No orphan persons (without family)
+□ Proper cascade/restrict rules on FKs
+
+## RELATIONSHIP SCENARIOS TO SUPPORT
+
+1. Same town, same family
+2. Same town, different families
+3. Cross-town marriage (Person in Town A marries Person in Town B)
+4. Relationships can span ANY towns in the database
+5. Handle historical/incomplete data gracefully
+
+## OUTPUT REQUIRED
+
+1. **Schema Summary**: List all tables and their relationships from Schema_DATABASE_03.sql
+2. **Towns List**: Extract and display all towns from the schema
+3. **Violations**: List any hierarchy rule violations found
+4. **Fixes**: Provide specific code changes needed
+5. **Migration**: Generate migration script if schema changes needed
+
+## START ANALYSIS
+
+1. Read backend/Schema_DATABASE_03.sql
+2. Parse and summarize the schema
+3. List all towns found in Towns table
+4. Find all model/entity files in codebase
+5. Find all API controllers
+6. Find all frontend tree components
+7. Compare code against schema
+8. Report violations with: File path, Line number, Issue, Fix
+
+BEGIN by reading the schema file first.
+```
+
+---
+
+## Alternative: Step-by-Step Prompts
+
+### Step 1 - Read Schema:
+```
+Read the file: backend/Schema_DATABASE_03.sql
+
+Summarize:
+1. All tables and their columns
+2. All foreign key relationships
+3. Contents of Towns table (list all town names)
+4. Any seed data or INSERT statements
+```
+
+### Step 2 - Verify Hierarchy:
+```
+Based on the schema from Schema_DATABASE_03.sql, verify:
+
+1. Families table has TownId column that is:
+   - NOT NULL
+   - Foreign key to Towns table
+   
+2. Persons table has FamilyId column that is:
+   - NOT NULL  
+   - Foreign key to Families table
+
+3. Relationships table supports cross-town connections
+
+Report any missing constraints or issues.
+```
+
+### Step 3 - Check Backend:
+```
+Find all API controllers and verify against the schema:
+
+1. TownsController - Should be READ-ONLY (GET only, no POST/PUT/DELETE)
+2. FamiliesController - Must require townId (from Towns table) on create
+3. PersonsController - Must require familyId on create
+4. All town references must come from database, not hardcoded
+
+Show violations with file paths.
+```
+
+### Step 4 - Check Frontend:
+```
+Find all frontend components for the family tree and verify:
+
+1. Town selector pulls from API (which reads from Towns table)
+2. Tree renders hierarchy: Town → Family → Person
+3. No UI allows creating/editing/deleting towns
+4. Cross-town relationships are visually indicated
+
+Show component files and any issues.
+```
+
+---
+
+## Key Points
+
+- **Towns are defined in Schema_DATABASE_03.sql** - this is the single source of truth
+- **Do NOT hardcode town names** anywhere in application code
+- **Read towns from database** via API
+- **Hierarchy is strict**: Town → Family → Person
+- **Cross-boundary relationships allowed** at Person level only

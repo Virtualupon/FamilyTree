@@ -1,0 +1,556 @@
+# FamilyTree Admin Management Workflow - Claude Code Prompt
+
+Copy and paste this directly into Claude Code:
+
+---
+
+```
+Analyze this FamilyTree codebase to verify the Admin Management workflow is correctly implemented.
+
+## STEP 1: READ THE DATABASE SCHEMA
+
+First, read: backend/Schema_DATABASE_03.sql
+
+Extract:
+1. Users/Admins table structure
+2. Roles table (SuperAdmin, Admin, User roles)
+3. AdminTowns junction table (Admin ↔ Town assignments)
+4. All related foreign keys and constraints
+
+## ROLE HIERARCHY (STRICT)
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  SUPERADMIN (Highest Level)                                                 │
+│  ├── Can create/edit/delete Admin users                                     │
+│  ├── Can assign Admin to one or MORE towns (dropdown multi-select)          │
+│  ├── Can manage ALL towns                                                   │
+│  └── Does NOT need to select town on login (sees all)                       │
+│                                                                             │
+│  ADMIN (Town-Scoped)                                                        │
+│  ├── Created by SuperAdmin only                                             │
+│  ├── Assigned to one or more towns                                          │
+│  ├── MUST select town on login (if assigned to multiple)                    │
+│  ├── Can only see/manage data in assigned town(s)                           │
+│  └── Within assigned town, can:                                             │
+│      • Create Family                                                        │
+│      • Add Person (single entry)                                            │
+│      • Add Persons (bulk from file)                                         │
+│      • Link Person to Family (single)                                       │
+│      • Link Persons to Family (bulk from file)                              │
+│      • Edit Family/Person                                                   │
+│      • Delete Family/Person                                                 │
+│                                                                             │
+│  USER (Read-Only or Limited)                                                │
+│  └── View only, or limited to own family data                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+## EXPECTED DATABASE SCHEMA
+
+Verify these tables exist (or similar):
+
+```sql
+-- Roles
+CREATE TABLE Roles (
+    RoleId INT PRIMARY KEY,
+    RoleName NVARCHAR(50) NOT NULL, -- 'SuperAdmin', 'Admin', 'User'
+    CONSTRAINT UQ_Role_Name UNIQUE (RoleName)
+);
+
+-- Users (includes Admins)
+CREATE TABLE Users (
+    UserId INT PRIMARY KEY IDENTITY,
+    Email NVARCHAR(255) NOT NULL,
+    PasswordHash NVARCHAR(255),
+    FirstName NVARCHAR(100),
+    LastName NVARCHAR(100),
+    RoleId INT NOT NULL,
+    IsActive BIT DEFAULT 1,
+    CreatedAt DATETIME2 DEFAULT GETUTCDATE(),
+    CreatedBy INT, -- SuperAdmin who created this user
+    CONSTRAINT FK_User_Role FOREIGN KEY (RoleId) REFERENCES Roles(RoleId),
+    CONSTRAINT UQ_User_Email UNIQUE (Email)
+);
+
+-- Admin-Town Assignments (Many-to-Many)
+CREATE TABLE AdminTownAssignments (
+    AssignmentId INT PRIMARY KEY IDENTITY,
+    UserId INT NOT NULL,            -- The Admin
+    TownId INT NOT NULL,            -- Assigned town
+    AssignedAt DATETIME2 DEFAULT GETUTCDATE(),
+    AssignedBy INT NOT NULL,        -- SuperAdmin who assigned
+    IsActive BIT DEFAULT 1,
+    CONSTRAINT FK_AdminTown_User FOREIGN KEY (UserId) REFERENCES Users(UserId),
+    CONSTRAINT FK_AdminTown_Town FOREIGN KEY (TownId) REFERENCES Towns(TownId),
+    CONSTRAINT FK_AdminTown_AssignedBy FOREIGN KEY (AssignedBy) REFERENCES Users(UserId),
+    CONSTRAINT UQ_AdminTown UNIQUE (UserId, TownId)
+);
+```
+
+## WORKFLOW VERIFICATION CHECKLIST
+
+### 1. SUPERADMIN FUNCTIONS
+
+□ **Create Admin**
+  - Endpoint: POST /api/admin/users or POST /api/users
+  - Only SuperAdmin can call (check authorization)
+  - Creates user with Role = 'Admin'
+  - Returns new user ID
+
+□ **Assign Admin to Towns**
+  - Endpoint: POST /api/admin/users/{userId}/towns
+  - Request body: { townIds: [1, 3, 5] } (array for multi-select)
+  - Dropdown populated from Towns table
+  - Creates entries in AdminTownAssignments
+  - Only SuperAdmin can call
+
+□ **Update Admin Town Assignments**
+  - Endpoint: PUT /api/admin/users/{userId}/towns
+  - Can add/remove town assignments
+  - Only SuperAdmin can call
+
+□ **List Admins with Their Towns**
+  - Endpoint: GET /api/admin/users
+  - Returns admins with assigned towns
+  - Only SuperAdmin can view all
+
+### 2. ADMIN LOGIN FLOW
+
+□ **Login**
+  - Endpoint: POST /api/auth/login
+  - Returns user info + assigned towns list
+
+□ **Town Selection (Post-Login)**
+  - If Admin has 1 town → Auto-select, no prompt
+  - If Admin has 2+ towns → MUST show town selector
+  - Endpoint: POST /api/auth/select-town or stored in session/token
+  - Selected town stored in: JWT claim, session, or context
+
+□ **Town Context Required**
+  - All subsequent API calls must include/validate town context
+  - Admin cannot access data outside assigned towns
+
+### 3. ADMIN CRUD OPERATIONS (Within Assigned Town)
+
+□ **Create Family**
+  - Endpoint: POST /api/families
+  - TownId auto-set from Admin's selected town (or validated against it)
+  - Admin cannot create family in unassigned town
+
+□ **Add Single Person**
+  - Endpoint: POST /api/persons
+  - FamilyId required (family must be in Admin's assigned town)
+  - Validates family belongs to Admin's current town
+
+□ **Add Persons from File (Bulk)**
+  - Endpoint: POST /api/persons/import
+  - Accepts: CSV, Excel, JSON file
+  - All persons linked to specified FamilyId
+  - Family must be in Admin's assigned town
+  - Returns: success count, error count, error details
+
+□ **Link Single Person to Family**
+  - Endpoint: PUT /api/persons/{personId}/family
+  - Request: { familyId: 123 }
+  - Both person and family must be in Admin's assigned town
+
+□ **Link Persons to Family (Bulk from File)**
+  - Endpoint: POST /api/persons/link-family
+  - Accepts file with PersonId + FamilyId mappings
+  - Validates all records against Admin's assigned towns
+
+□ **Edit Family**
+  - Endpoint: PUT /api/families/{familyId}
+  - Family must be in Admin's assigned town
+
+□ **Edit Person**
+  - Endpoint: PUT /api/persons/{personId}
+  - Person's family must be in Admin's assigned town
+
+□ **Delete Family**
+  - Endpoint: DELETE /api/families/{familyId}
+  - Family must be in Admin's assigned town
+  - Handle cascade: What happens to persons?
+
+□ **Delete Person**
+  - Endpoint: DELETE /api/persons/{personId}
+  - Person's family must be in Admin's assigned town
+
+### 5. RELATIONSHIP MANAGEMENT
+
+□ **FamilyRelationshipTypes Table**
+  - Read from: Schema_DATABASE_03.sql
+  - Contains all valid relationship types
+  - Examples: Parent, Child, Spouse, Sibling, Grandparent, Uncle, Aunt, Cousin, etc.
+  - Admin CANNOT create/edit/delete relationship types (read-only like Towns)
+
+□ **Assign Relationship**
+  - Endpoint: POST /api/relationships
+  - Request body:
+    ```json
+    {
+      "person1Id": 123,
+      "person2Id": 456,
+      "relationshipTypeId": 1,  // From FamilyRelationshipTypes dropdown
+      "startDate": "1995-06-15",
+      "notes": "optional"
+    }
+    ```
+  - Dropdown populated from FamilyRelationshipTypes table
+  - Both persons must be accessible by Admin (in assigned town OR cross-town allowed)
+  - Validate no duplicate relationship exists
+
+□ **Edit Relationship**
+  - Endpoint: PUT /api/relationships/{relationshipId}
+  - Can change:
+    - RelationshipTypeId (from dropdown)
+    - StartDate / EndDate
+    - Notes
+    - IsActive status
+  - Cannot change Person1Id or Person2Id (delete and recreate instead)
+
+□ **Delete Relationship**
+  - Endpoint: DELETE /api/relationships/{relationshipId}
+  - Soft delete preferred (IsActive = false)
+  - Or hard delete with confirmation
+
+□ **List Relationships for Person**
+  - Endpoint: GET /api/persons/{personId}/relationships
+  - Returns all relationships with type names resolved
+  - Includes cross-town relationships
+
+□ **Relationship Type Dropdown (Read-Only)**
+  - Endpoint: GET /api/relationship-types
+  - Returns all types from FamilyRelationshipTypes table
+  - Used to populate dropdowns in UI
+  - NO POST/PUT/DELETE endpoints for relationship types
+
+## EXPECTED RELATIONSHIP SCHEMA
+
+```sql
+-- Relationship Types (Read-Only, Seeded)
+CREATE TABLE FamilyRelationshipTypes (
+    RelationshipTypeId INT PRIMARY KEY,
+    TypeNameEn NVARCHAR(50) NOT NULL,    -- 'Parent', 'Child', 'Spouse', etc.
+    TypeNameAr NVARCHAR(50),             -- 'والد', 'ابن', 'زوج'
+    TypeNameNob NVARCHAR(50),            -- Nobiin translation
+    InverseTypeId INT,                   -- Parent ↔ Child are inverses
+    Category NVARCHAR(50),               -- 'Immediate', 'Extended', 'In-Law'
+    IsActive BIT DEFAULT 1,
+    CONSTRAINT UQ_RelType_NameEn UNIQUE (TypeNameEn),
+    CONSTRAINT FK_RelType_Inverse FOREIGN KEY (InverseTypeId) 
+        REFERENCES FamilyRelationshipTypes(RelationshipTypeId)
+);
+
+-- Relationships between Persons
+CREATE TABLE Relationships (
+    RelationshipId INT PRIMARY KEY IDENTITY,
+    Person1Id INT NOT NULL,
+    Person2Id INT NOT NULL,
+    RelationshipTypeId INT NOT NULL,     -- FK to FamilyRelationshipTypes
+    StartDate DATE,
+    EndDate DATE,
+    IsActive BIT DEFAULT 1,
+    Notes NVARCHAR(500),
+    CreatedAt DATETIME2 DEFAULT GETUTCDATE(),
+    CreatedBy INT,                       -- Admin who created
+    CONSTRAINT FK_Rel_Person1 FOREIGN KEY (Person1Id) REFERENCES Persons(PersonId),
+    CONSTRAINT FK_Rel_Person2 FOREIGN KEY (Person2Id) REFERENCES Persons(PersonId),
+    CONSTRAINT FK_Rel_Type FOREIGN KEY (RelationshipTypeId) 
+        REFERENCES FamilyRelationshipTypes(RelationshipTypeId),
+    CONSTRAINT CK_Rel_Different CHECK (Person1Id <> Person2Id),
+    CONSTRAINT UQ_Rel_Pair_Type UNIQUE (Person1Id, Person2Id, RelationshipTypeId)
+);
+```
+
+## EXPECTED RELATIONSHIP TYPES (Seed Data)
+
+Extract from Schema_DATABASE_03.sql, expect types like:
+
+| ID | TypeNameEn | TypeNameAr | InverseTypeId | Category |
+|----|------------|------------|---------------|----------|
+| 1  | Parent     | والد/والدة | 2 (Child)     | Immediate |
+| 2  | Child      | ابن/ابنة   | 1 (Parent)    | Immediate |
+| 3  | Spouse     | زوج/زوجة   | 3 (Spouse)    | Immediate |
+| 4  | Sibling    | أخ/أخت     | 4 (Sibling)   | Immediate |
+| 5  | Grandparent| جد/جدة     | 6             | Extended |
+| 6  | Grandchild | حفيد/حفيدة | 5             | Extended |
+| 7  | Uncle      | عم/خال     | 9             | Extended |
+| 8  | Aunt       | عمة/خالة   | 9             | Extended |
+| 9  | Nephew/Niece| ابن/ابنة الأخ | 7/8        | Extended |
+| 10 | Cousin     | ابن/ابنة العم | 10          | Extended |
+| 11 | Father-in-Law | حمو     | 12            | In-Law |
+| 12 | Son-in-Law | صهر        | 11            | In-Law |
+| ...| ...        | ...        | ...           | ... |
+
+### 6. FRONTEND VERIFICATION
+
+□ **SuperAdmin Dashboard**
+  - List all Admins
+  - Create Admin button/form
+  - Town assignment dropdown (multi-select)
+  - Edit/Delete Admin actions
+
+□ **Admin Login**
+  - Login form
+  - Post-login town selector (if multiple towns)
+  - Current town indicator in header/navbar
+
+□ **Admin Dashboard (Town-Scoped)**
+  - Shows only data from selected town
+  - Town switcher (if admin has multiple towns)
+  - Family list for selected town
+  - Person list for selected town
+
+□ **Family Management UI**
+  - Create Family form
+  - Edit Family form
+  - Delete Family button (with confirmation)
+
+□ **Person Management UI**
+  - Add Single Person form
+  - Import Persons from File (upload)
+  - Link Person to Family (dropdown or search)
+  - Bulk Link from File (upload)
+  - Edit Person form
+  - Delete Person button (with confirmation)
+
+□ **Relationship Management UI**
+  - View person's relationships (list/tree view)
+  - "Add Relationship" button on person detail
+  - Relationship form:
+    - Person 1: Current person (pre-filled)
+    - Person 2: Search/dropdown to select
+    - Relationship Type: DROPDOWN from FamilyRelationshipTypes
+    - Start Date: Date picker
+    - Notes: Optional text field
+  - Edit Relationship:
+    - Change type from dropdown
+    - Update dates
+    - Update notes
+  - Delete Relationship button (with confirmation)
+  - Visual indication of cross-town relationships
+
+□ **Relationship Type Dropdown**
+  - Populated from GET /api/relationship-types
+  - Shows TypeNameEn (or localized based on user language)
+  - Grouped by Category (Immediate, Extended, In-Law)
+  - Read-only (no add/edit/delete option in UI)
+
+□ **File Import UI**
+  - File upload component
+  - Preview before import
+  - Progress indicator
+  - Results summary (success/errors)
+  - Error details/download
+
+## AUTHORIZATION CHECKS
+
+Verify these authorization rules in code:
+
+| Action | SuperAdmin | Admin (Assigned Town) | Admin (Other Town) | User |
+|--------|------------|----------------------|-------------------|------|
+| Create Admin | ✅ | ❌ | ❌ | ❌ |
+| Assign Towns | ✅ | ❌ | ❌ | ❌ |
+| Create Family | ✅ | ✅ | ❌ | ❌ |
+| Add Person | ✅ | ✅ | ❌ | ❌ |
+| Import Persons | ✅ | ✅ | ❌ | ❌ |
+| Edit Family | ✅ | ✅ | ❌ | ❌ |
+| Edit Person | ✅ | ✅ | ❌ | ❌ |
+| Delete Family | ✅ | ✅ | ❌ | ❌ |
+| Delete Person | ✅ | ✅ | ❌ | ❌ |
+| **Assign Relationship** | ✅ | ✅ | ❌ | ❌ |
+| **Edit Relationship** | ✅ | ✅ | ❌ | ❌ |
+| **Delete Relationship** | ✅ | ✅ | ❌ | ❌ |
+| View Relationship Types | ✅ | ✅ | ✅ | ✅ |
+| Create/Edit Rel Types | ❌ | ❌ | ❌ | ❌ |
+| View All Towns | ✅ | ❌ | ❌ | ❌ |
+| View Assigned Town | ✅ | ✅ | ❌ | ❌ |
+
+**Relationship Authorization Rules:**
+- Admin can create relationships where AT LEAST ONE person is in their assigned town
+- Cross-town relationships allowed (Person A in Town 1 ↔ Person B in Town 2)
+- Relationship types are READ-ONLY for ALL users (seeded data)
+
+## FILE IMPORT SPECIFICATIONS
+
+### Persons Import File Format:
+```csv
+FirstNameEn,FirstNameAr,LastNameEn,LastNameAr,Gender,BirthDate,FamilyId
+Mohamed,محمد,Hassan,حسن,M,1985-03-15,123
+Fatma,فاطمة,Hassan,حسن,F,1988-07-22,123
+```
+
+### Bulk Link File Format:
+```csv
+PersonId,FamilyId
+456,123
+457,123
+458,124
+```
+
+### Import Validation:
+□ File format validation (CSV/Excel/JSON)
+□ Required fields check
+□ FamilyId exists and belongs to Admin's town
+□ Duplicate detection
+□ Data type validation (dates, etc.)
+□ Return detailed error report
+
+## OUTPUT REQUIRED
+
+### 1. Schema Analysis
+- List all auth/user/role related tables from Schema_DATABASE_03.sql
+- Confirm AdminTownAssignments table (or equivalent) exists
+- Show current structure
+
+### 2. API Endpoints Found
+| Endpoint | Method | Purpose | Auth Required |
+|----------|--------|---------|---------------|
+| /api/... | POST | ... | SuperAdmin |
+
+### 3. Authorization Implementation
+- Where is role checking implemented? (middleware, attributes, etc.)
+- Where is town-scoping implemented?
+- Show code snippets
+
+### 4. Missing Features
+List any workflow steps not implemented:
+- [ ] Feature X not found
+- [ ] Endpoint Y missing
+
+### 5. Violations
+| Issue | File | Line | Fix Required |
+|-------|------|------|--------------|
+| ... | ... | ... | ... |
+
+### 6. Recommended Changes
+Priority-ordered list of changes needed.
+
+## START ANALYSIS
+
+1. Read backend/Schema_DATABASE_03.sql - find auth tables
+2. Find User/Admin entity models
+3. Find authentication/authorization middleware
+4. Find all controllers related to users, families, persons
+5. Find file import services
+6. Check frontend for admin components
+7. Verify town-scoping logic throughout
+
+Report findings with file paths and line numbers.
+```
+
+---
+
+## Quick Reference: Expected Flow
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                         SUPERADMIN                                    │
+│  1. Login (no town selection needed)                                 │
+│  2. Go to Admin Management                                           │
+│  3. Click "Create Admin"                                             │
+│  4. Fill form: Email, Name, Password                                 │
+│  5. Select Towns from dropdown (multi-select)                        │
+│  6. Save → Admin created + towns assigned                            │
+└──────────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│                            ADMIN                                      │
+│  1. Login with credentials                                           │
+│  2. IF multiple towns → Select town from dropdown                    │
+│  3. Dashboard shows selected town's data only                        │
+│  4. Can switch towns (if assigned to multiple)                       │
+│                                                                      │
+│  FAMILY MANAGEMENT:                                                  │
+│  • Create Family → auto-assigned to current town                     │
+│  • Edit Family                                                       │
+│  • Delete Family                                                     │
+│                                                                      │
+│  PERSON MANAGEMENT:                                                  │
+│  • Add Single Person → select family (from current town)             │
+│  • Import from File → all go to selected family                      │
+│  • Link Person to Family                                             │
+│  • Bulk Link from File                                               │
+│  • Edit Person                                                       │
+│  • Delete Person                                                     │
+│                                                                      │
+│  RELATIONSHIP MANAGEMENT:                                            │
+│  • View Person's Relationships                                       │
+│  • Add Relationship:                                                 │
+│    - Select Person 2 (search/dropdown)                               │
+│    - Select Type from FamilyRelationshipTypes dropdown               │
+│    - Set Start Date                                                  │
+│    - Add Notes (optional)                                            │
+│  • Edit Relationship → Change type/dates from dropdown               │
+│  • Delete Relationship                                               │
+│  • Cross-town relationships allowed                                  │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Focused Sub-Prompts
+
+### Check Auth Schema:
+```
+Read backend/Schema_DATABASE_03.sql and find:
+1. Users/Admins table
+2. Roles table  
+3. AdminTownAssignments table (or junction table linking admins to towns)
+4. Show the CREATE TABLE statements for each
+```
+
+### Check Authorization Code:
+```
+Find how authorization is implemented:
+1. Role-based access control (SuperAdmin vs Admin)
+2. Town-scoping for Admin users
+3. Show the middleware or attribute code
+4. How is current town stored after login?
+```
+
+### Check File Import:
+```
+Find file import functionality:
+1. Which endpoints accept file uploads?
+2. What file formats are supported?
+3. How is bulk person creation handled?
+4. How is bulk family linking handled?
+5. What validation is performed?
+6. How are errors reported back to user?
+```
+
+### Check Relationship Management:
+```
+Read backend/Schema_DATABASE_03.sql and find:
+1. FamilyRelationshipTypes table - list all seeded relationship types
+2. Relationships table - verify FK to FamilyRelationshipTypes
+
+Then find in codebase:
+1. GET /api/relationship-types endpoint (read-only)
+2. POST /api/relationships endpoint (create with typeId from dropdown)
+3. PUT /api/relationships/{id} endpoint (edit type from dropdown)
+4. DELETE /api/relationships/{id} endpoint
+
+Verify:
+- RelationshipTypeId is required (NOT NULL)
+- FK constraint to FamilyRelationshipTypes
+- NO endpoints to create/edit/delete relationship types
+- Frontend dropdown populated from API
+
+Show all related code with file paths.
+```
+
+### Check Relationship UI:
+```
+Find frontend components for relationship management:
+1. Relationship list/view component
+2. Add Relationship form with dropdown
+3. Edit Relationship form with dropdown
+4. Delete Relationship confirmation
+5. How is FamilyRelationshipTypes dropdown populated?
+6. Is dropdown grouped by category?
+
+Show component files and any issues.
+```

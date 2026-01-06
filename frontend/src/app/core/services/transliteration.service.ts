@@ -10,7 +10,11 @@ import {
   VerifyMappingRequest,
   VerifyMappingResult,
   NameMapping,
-  TransliterationLanguage
+  TransliterationLanguage,
+  BulkTransliterationRequest,
+  BulkTransliterationResult,
+  PersonTransliterationResult,
+  TransliterationPreviewResult
 } from '../models/transliteration.models';
 
 /**
@@ -149,6 +153,42 @@ export class TransliterationService {
    */
   getMappingById(id: number): Observable<NameMapping> {
     return this.http.get<NameMapping>(`${this.apiUrl}/${id}`);
+  }
+
+  /**
+   * Generate missing language variants for a specific person
+   */
+  generateForPerson(personId: string): Observable<PersonTransliterationResult> {
+    return this.http.post<PersonTransliterationResult>(
+      `${this.apiUrl}/person/${personId}/generate`,
+      {}
+    );
+  }
+
+  /**
+   * Preview what translations would be generated for a person
+   */
+  previewForPerson(personId: string): Observable<TransliterationPreviewResult> {
+    return this.http.get<TransliterationPreviewResult>(
+      `${this.apiUrl}/person/${personId}/preview`
+    );
+  }
+
+  /**
+   * Bulk generate missing translations for all persons in org
+   */
+  bulkGenerate(request: BulkTransliterationRequest): Observable<BulkTransliterationResult> {
+    this._loading.set(true);
+    this._error.set(null);
+
+    return this.http.post<BulkTransliterationResult>(`${this.apiUrl}/bulk-generate`, request).pipe(
+      tap(() => this._loading.set(false)),
+      catchError(err => {
+        this._error.set(err?.error?.message ?? 'Failed to process bulk generation');
+        this._loading.set(false);
+        return throwError(() => err);
+      })
+    );
   }
 
   /**

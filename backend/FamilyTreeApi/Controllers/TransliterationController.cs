@@ -241,6 +241,111 @@ public class TransliterationController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Generate missing language variants for a specific person's names.
+    /// If person has Arabic name but no English/Nobiin, this will generate them.
+    /// </summary>
+    /// <param name="personId">Person ID</param>
+    /// <returns>Result with generated names</returns>
+    [HttpPost("person/{personId:guid}/generate")]
+    [ProducesResponseType(typeof(PersonTransliterationResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PersonTransliterationResult>> GenerateForPerson(Guid personId)
+    {
+        try
+        {
+            var orgIdClaim = User.FindFirst("orgId")?.Value;
+            Guid? orgId = Guid.TryParse(orgIdClaim, out var parsed) ? parsed : null;
+
+            var result = await _service.GenerateMissingNamesForPersonAsync(personId, orgId);
+            
+            if (!result.Success && result.Message?.Contains("not found") == true)
+            {
+                return NotFound(new { message = result.Message });
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating translations for person {PersonId}", personId);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "Failed to generate translations" });
+        }
+    }
+
+    /// <summary>
+    /// Generate missing language variants for all persons in an org/tree.
+    /// This is a background operation - returns immediately with a job ID.
+    /// </summary>
+    /// <param name="request">Options for bulk generation</param>
+    /// <returns>Job ID and estimated count</returns>
+    [HttpPost("bulk-generate")]
+    [ProducesResponseType(typeof(BulkTransliterationResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<BulkTransliterationResult>> BulkGenerate(
+        [FromBody] BulkTransliterationRequest request)
+    {
+        try
+        {
+            // Get org ID from request or claims
+            if (!request.OrgId.HasValue)
+            {
+                var orgIdClaim = User.FindFirst("orgId")?.Value;
+                if (Guid.TryParse(orgIdClaim, out var orgId))
+                {
+                    request.OrgId = orgId;
+                }
+            }
+
+            if (!request.OrgId.HasValue)
+            {
+                return BadRequest(new { message = "OrgId is required" });
+            }
+
+            var result = await _service.BulkGenerateMissingNamesAsync(request);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error starting bulk translation generation");
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "Failed to start bulk generation" });
+        }
+    }
+
+    /// <summary>
+    /// Preview what translations would be generated for a person without saving.
+    /// </summary>
+    /// <param name="personId">Person ID</param>
+    /// <returns>Preview of translations that would be generated</returns>
+    [HttpGet("person/{personId:guid}/preview")]
+    [ProducesResponseType(typeof(TransliterationPreviewResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TransliterationPreviewResult>> PreviewForPerson(Guid personId)
+    {
+        try
+        {
+            var orgIdClaim = User.FindFirst("orgId")?.Value;
+            Guid? orgId = Guid.TryParse(orgIdClaim, out var parsed) ? parsed : null;
+
+            var result = await _service.PreviewTransliterationsForPersonAsync(personId, orgId);
+            
+            if (!result.Success && result.Message?.Contains("not found") == true)
+            {
+                return NotFound(new { message = result.Message });
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error previewing translations for person {PersonId}", personId);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "Failed to preview translations" });
+        }
+    }
+
     #region Private Helpers
 
     private long? GetCurrentUserId()

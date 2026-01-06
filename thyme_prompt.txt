@@ -1,0 +1,130 @@
+You are a senior frontend engineer specializing in Angular + D3.js data visualizations.
+
+PROJECT CONTEXT
+- Angular application
+- D3.js is used to render a Family Tree (SVG-based nodes, links, labels)
+- Icons must work inside:
+  - D3-generated SVG (<svg>, <g>, <text>)
+  - Standard Angular templates
+- Performance and zoom/pan scalability are critical
+- Angular component icons MUST NOT be used inside D3
+
+GOAL
+Standardize ALL icons in the project using "@fortawesome/fontawesome-free" (CSS + webfonts).
+Do NOT use "@fortawesome/angular-fontawesome".
+
+STRICT RULES
+- Use "@fortawesome/fontawesome-free" only
+- No <fa-icon> components anywhere
+- Icons must work in SVG + HTML
+- Keep DOM manipulation D3-only (no Angular components inside SVG)
+- Icons must scale correctly during D3 zoom & pan
+- Maintain accessibility (aria-hidden, labels where appropriate)
+
+TASKS
+
+1) Install & wire Font Awesome Free
+- Add dependency:
+  npm install @fortawesome/fontawesome-free
+- Import CSS globally using ONE method:
+  a) angular.json → styles[]
+  OR
+  b) src/styles.scss → @import "@fortawesome/fontawesome-free/css/all.min.css";
+- Ensure webfonts load correctly (verify relative paths / assets config)
+
+2) Create global icon theme tokens
+Add CSS variables for icon usage:
+- default size
+- hover scale
+- Nubian theme colors
+- glow / emphasis effects
+
+Example:
+:root {
+  --icon-sm: 0.875rem;
+  --icon-md: 1.25rem;
+  --icon-lg: 2rem;
+  --icon-primary: #C17E3E;
+}
+
+3) D3 SVG icon strategy (MANDATORY)
+Use Font Awesome as a **font** inside SVG.
+
+Define a reusable CSS class:
+.node-icon {
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+  fill: var(--icon-primary);
+  pointer-events: none;
+}
+
+Use Unicode glyphs in D3:
+- male: \uf007
+- female: \uf182
+- child: \uf1ae
+- marriage: \uf004
+- deceased: \uf714
+- private: \uf023
+
+Example D3 code:
+node.append("text")
+  .attr("class", "node-icon")
+  .attr("text-anchor", "middle")
+  .text("\uf007");
+
+Ensure icons scale naturally with SVG transforms.
+
+4) Replace ALL non-FontAwesome icons
+Search and replace:
+- <mat-icon>
+- material-icons class
+- ion-icon
+- bi-*
+- heroicons
+- lucide
+- custom SVG icons (where appropriate)
+
+Replace with:
+<i class="fa-solid fa-..."></i> (HTML)
+or
+Font Awesome Unicode glyphs (SVG / D3)
+
+Document any icons that required semantic substitution.
+
+5) Apply Nobiin font theme (DO NOT MODIFY CONTENT)
+Ensure this font setup remains intact and usable alongside Font Awesome:
+
+@font-face {
+  font-family: 'SophiaNubian';
+  src: url('/assets/fonts/sophia-nubian/SophiaNubian.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+:root { --font-nubian: 'SophiaNubian', system-ui, sans-serif; }
+
+.nubian {
+  font-family: var(--font-nubian);
+}
+
+Do NOT apply SophiaNubian to icons.
+Icons must explicitly use Font Awesome font-family.
+
+6) Output format (STRICT)
+- Show exact code diffs for:
+  - package.json
+  - angular.json OR styles.scss
+  - Any updated component templates
+  - D3 rendering code
+  - Global or component SCSS
+- Provide a Family Tree icon legend table:
+  Meaning | Font Awesome icon | Unicode
+- List any assumptions or substitutions made
+
+QUALITY BAR
+- No unnecessary refactors
+- No Angular FontAwesome usage
+- No performance regressions
+- Clean, readable, production-ready code
+
+Now implement.

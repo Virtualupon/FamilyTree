@@ -44,8 +44,7 @@ public class MappingProfile : Profile
             .ForCtorParam("NeedsReview", opt => opt.MapFrom(src => src.NeedsReview))
             .ForCtorParam("HasConflict", opt => opt.MapFrom(src => src.HasConflict))
             .ForCtorParam("CreatedAt", opt => opt.MapFrom(src => src.CreatedAt))
-            .ForCtorParam("UpdatedAt", opt => opt.MapFrom(src => src.UpdatedAt))
-            .ForCtorParam("Names", opt => opt.MapFrom(src => src.Names));
+            .ForCtorParam("UpdatedAt", opt => opt.MapFrom(src => src.UpdatedAt));
 
         // Person → PersonListItemDto (for list views)
         CreateMap<Person, PersonListItemDto>()
@@ -75,33 +74,9 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.NeedsReview, opt => opt.Ignore())
             .ForMember(dest => dest.CreatedAt, opt => opt.Ignore()) // Set by service
             .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore()) // Set by service
-            .ForMember(dest => dest.Names, opt => opt.Ignore()) // Handled separately
             .ForMember(dest => dest.AsParent, opt => opt.Ignore())
             .ForMember(dest => dest.AsChild, opt => opt.Ignore())
             .ForMember(dest => dest.UnionMemberships, opt => opt.Ignore());
-
-        // ============================================================================
-        // PERSON NAME MAPPINGS
-        // ============================================================================
-
-        // PersonName → PersonNameDto
-        CreateMap<PersonName, PersonNameDto>()
-            .ForCtorParam("Id", opt => opt.MapFrom(src => src.Id))
-            .ForCtorParam("Script", opt => opt.MapFrom(src => src.Script))
-            .ForCtorParam("Given", opt => opt.MapFrom(src => src.Given))
-            .ForCtorParam("Middle", opt => opt.MapFrom(src => src.Middle))
-            .ForCtorParam("Family", opt => opt.MapFrom(src => src.Family))
-            .ForCtorParam("Full", opt => opt.MapFrom(src => src.Full))
-            .ForCtorParam("Transliteration", opt => opt.MapFrom(src => src.Transliteration))
-            .ForCtorParam("Type", opt => opt.MapFrom(src => src.Type));
-
-        // PersonNameDto → PersonName (for creating/updating names)
-        CreateMap<PersonNameDto, PersonName>()
-            .ForMember(dest => dest.Id, opt => opt.Ignore()) // Generated for new, preserved for updates
-            .ForMember(dest => dest.PersonId, opt => opt.Ignore()) // Set by service
-            .ForMember(dest => dest.Person, opt => opt.Ignore())
-            .ForMember(dest => dest.Script, opt => opt.MapFrom(src => src.Script ?? "Latin"))
-            .ForMember(dest => dest.CreatedAt, opt => opt.Ignore()); // Set by service
 
         // ============================================================================
         // PERSON MEDIA MAPPINGS

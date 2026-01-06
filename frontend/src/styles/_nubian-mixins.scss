@@ -1,0 +1,551 @@
+// ============================================
+// NUBIAN THEME MIXINS & UTILITIES
+// ============================================
+
+@use 'sass:math';
+@import 'nubian-variables';
+
+// ============================================
+// RESPONSIVE MIXINS
+// ============================================
+
+@mixin respond-to($breakpoint) {
+  @if $breakpoint == 'xs' {
+    @media (min-width: $breakpoint-xs) { @content; }
+  } @else if $breakpoint == 'sm' {
+    @media (min-width: $breakpoint-sm) { @content; }
+  } @else if $breakpoint == 'md' {
+    @media (min-width: $breakpoint-md) { @content; }
+  } @else if $breakpoint == 'lg' {
+    @media (min-width: $breakpoint-lg) { @content; }
+  } @else if $breakpoint == 'xl' {
+    @media (min-width: $breakpoint-xl) { @content; }
+  } @else if $breakpoint == '2xl' {
+    @media (min-width: $breakpoint-2xl) { @content; }
+  } @else if $breakpoint == '3xl' {
+    @media (min-width: $breakpoint-3xl) { @content; }
+  } @else {
+    @media (min-width: $breakpoint) { @content; }
+  }
+}
+
+@mixin respond-below($breakpoint) {
+  @if $breakpoint == 'sm' {
+    @media (max-width: #{$breakpoint-sm - 1px}) { @content; }
+  } @else if $breakpoint == 'md' {
+    @media (max-width: #{$breakpoint-md - 1px}) { @content; }
+  } @else if $breakpoint == 'lg' {
+    @media (max-width: #{$breakpoint-lg - 1px}) { @content; }
+  } @else if $breakpoint == 'xl' {
+    @media (max-width: #{$breakpoint-xl - 1px}) { @content; }
+  } @else {
+    @media (max-width: #{$breakpoint - 1px}) { @content; }
+  }
+}
+
+@mixin landscape {
+  @media (orientation: landscape) and (max-height: 600px) {
+    @content;
+  }
+}
+
+@mixin retina {
+  @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    @content;
+  }
+}
+
+@mixin dark-mode {
+  @media (prefers-color-scheme: dark) {
+    @content;
+  }
+}
+
+@mixin reduced-motion {
+  @media (prefers-reduced-motion: reduce) {
+    @content;
+  }
+}
+
+// ============================================
+// TYPOGRAPHY MIXINS
+// ============================================
+
+@mixin heading-display {
+  font-family: $font-display;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-tight;
+  letter-spacing: $letter-spacing-wide;
+  color: $nubian-teal;
+}
+
+@mixin heading-serif {
+  font-family: $font-serif;
+  font-weight: $font-weight-semibold;
+  line-height: $line-height-snug;
+  color: $nubian-charcoal;
+}
+
+@mixin body-text {
+  font-family: $font-primary;
+  font-weight: $font-weight-normal;
+  line-height: $line-height-normal;
+  color: $color-on-surface;
+}
+
+@mixin text-arabic {
+  font-family: $font-arabic;
+  direction: rtl;
+}
+
+@mixin text-nubian {
+  font-family: $font-nubian;
+}
+
+@mixin text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin text-clamp($lines: 2) {
+  display: -webkit-box;
+  -webkit-line-clamp: $lines;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+// ============================================
+// BUTTON MIXINS
+// ============================================
+
+@mixin button-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-sm;
+  font-family: $font-primary;
+  font-weight: $font-weight-semibold;
+  text-decoration: none;
+  border: none;
+  border-radius: $button-radius;
+  cursor: pointer;
+  transition: all $transition-base;
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  &:focus-visible {
+    outline: 3px solid rgba($nubian-gold, 0.5);
+    outline-offset: 2px;
+  }
+}
+
+@mixin button-primary {
+  @include button-base;
+  background: $gradient-teal;
+  color: white;
+  box-shadow: $shadow-md;
+  
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: $shadow-teal;
+  }
+  
+  &:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: $shadow-sm;
+  }
+}
+
+@mixin button-secondary {
+  @include button-base;
+  background: white;
+  color: $nubian-teal;
+  border: 2px solid $nubian-teal;
+  
+  &:hover:not(:disabled) {
+    background: $nubian-teal;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: $shadow-teal;
+  }
+}
+
+@mixin button-gold {
+  @include button-base;
+  background: $gradient-gold;
+  color: white;
+  box-shadow: $shadow-md;
+  
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: $shadow-gold;
+  }
+}
+
+@mixin button-ghost {
+  @include button-base;
+  background: transparent;
+  color: $nubian-teal;
+  
+  &:hover:not(:disabled) {
+    background: rgba($nubian-teal, 0.08);
+  }
+}
+
+// ============================================
+// CARD MIXINS
+// ============================================
+
+@mixin card-base {
+  background: white;
+  border-radius: $card-radius;
+  box-shadow: $shadow-md;
+  overflow: hidden;
+  transition: all $transition-base;
+}
+
+@mixin card-elevated {
+  @include card-base;
+  
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: $shadow-xl;
+  }
+}
+
+@mixin card-nubian {
+  @include card-base;
+  border: 1px solid $nubian-beige;
+  background: linear-gradient(to bottom right, white 0%, $nubian-cream 100%);
+}
+
+@mixin card-glass {
+  background: rgba(white, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba($nubian-beige, 0.5);
+  border-radius: $card-radius;
+}
+
+// ============================================
+// INPUT MIXINS
+// ============================================
+
+@mixin input-base {
+  width: 100%;
+  height: $input-height;
+  padding: $spacing-sm $spacing-md;
+  font-family: $font-primary;
+  font-size: $font-size-base;
+  color: $color-on-surface;
+  background: white;
+  border: $input-border-width solid $color-border;
+  border-radius: $input-radius;
+  transition: all $transition-fast;
+  
+  &::placeholder {
+    color: $nubian-gray-light;
+  }
+  
+  &:focus {
+    outline: none;
+    border-color: $nubian-teal;
+    box-shadow: 0 0 0 3px rgba($nubian-teal, 0.15);
+  }
+  
+  &:disabled {
+    background: $nubian-cream;
+    cursor: not-allowed;
+  }
+  
+  &.error {
+    border-color: $color-error;
+    
+    &:focus {
+      box-shadow: 0 0 0 3px rgba($color-error, 0.15);
+    }
+  }
+}
+
+@mixin input-nubian {
+  @include input-base;
+  border-color: $nubian-beige;
+  background: $nubian-cream;
+  
+  &:focus {
+    background: white;
+  }
+}
+
+// ============================================
+// EFFECTS MIXINS
+// ============================================
+
+@mixin glow($color: $nubian-gold) {
+  box-shadow: 0 0 20px rgba($color, 0.3), 0 0 40px rgba($color, 0.2);
+}
+
+@mixin gradient-border($gradient: $gradient-gold, $width: 2px) {
+  position: relative;
+  background: white;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: $width;
+    background: $gradient;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    border-radius: inherit;
+    pointer-events: none;
+  }
+}
+
+@mixin shimmer {
+  background: linear-gradient(
+    90deg,
+    $nubian-cream 25%,
+    $nubian-beige 50%,
+    $nubian-cream 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+// ============================================
+// LAYOUT MIXINS
+// ============================================
+
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+@mixin absolute-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+@mixin absolute-fill {
+  position: absolute;
+  inset: 0;
+}
+
+@mixin container {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 $spacing-md;
+  
+  @include respond-to('md') {
+    padding: 0 $spacing-lg;
+  }
+  
+  @include respond-to('xl') {
+    padding: 0 $spacing-xl;
+  }
+}
+
+// ============================================
+// ANIMATION KEYFRAMES
+// ============================================
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
+// ============================================
+// NUBIAN PATTERN MIXIN
+// ============================================
+
+@mixin nubian-pattern-bg($opacity: 0.05) {
+  position: relative;
+  
+  &::before {
+    content: '';
+    @include absolute-fill;
+    pointer-events: none;
+    opacity: $opacity;
+    background-image: 
+      repeating-linear-gradient(45deg, transparent, transparent 35px, $nubian-gold 35px, $nubian-gold 37px),
+      repeating-linear-gradient(-45deg, transparent, transparent 35px, $nubian-teal 35px, $nubian-teal 37px);
+    background-size: 80px 80px;
+    z-index: 0;
+  }
+  
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+// ============================================
+// SCROLLBAR MIXIN
+// ============================================
+
+@mixin custom-scrollbar($thumb-color: $nubian-gold, $track-color: $nubian-cream) {
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: $track-color;
+    border-radius: $radius-full;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: $thumb-color;
+    border-radius: $radius-full;
+    
+    &:hover {
+      background: darken($thumb-color, 10%);
+    }
+  }
+}
+
+// ============================================
+// SAFE AREA MIXIN
+// ============================================
+
+@mixin safe-area-padding {
+  padding-top: env(safe-area-inset-top, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  padding-left: env(safe-area-inset-left, 0);
+  padding-right: env(safe-area-inset-right, 0);
+}
+
+// ============================================
+// RTL MIXIN
+// ============================================
+
+@mixin rtl {
+  [dir="rtl"] & {
+    @content;
+  }
+}

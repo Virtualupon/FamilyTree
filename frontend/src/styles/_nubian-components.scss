@@ -1,0 +1,1029 @@
+// ============================================
+// NUBIAN COMPONENT STYLES
+// Apply these classes to components for consistent theming
+// ============================================
+
+@import 'nubian-variables';
+@import 'nubian-mixins';
+
+// ============================================
+// AUTH PAGES (Login, Register)
+// ============================================
+
+.nubian-auth {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: $gradient-hero;
+  padding: $spacing-md;
+  position: relative;
+  overflow: hidden;
+  
+  // Animated background pattern
+  &::before {
+    content: '';
+    @include absolute-fill;
+    pointer-events: none;
+    opacity: 0.06;
+    background-image: 
+      repeating-linear-gradient(45deg, transparent, transparent 35px, $nubian-gold 35px, $nubian-gold 37px),
+      repeating-linear-gradient(-45deg, transparent, transparent 35px, $nubian-teal 35px, $nubian-teal 37px);
+    background-size: 80px 80px;
+    animation: float 60s linear infinite;
+    z-index: 0;
+  }
+  
+  > * {
+    position: relative;
+    z-index: 1;
+  }
+  
+  &__language {
+    position: absolute;
+    top: $spacing-lg;
+    right: $spacing-lg;
+    
+    @include rtl {
+      right: auto;
+      left: $spacing-lg;
+    }
+  }
+  
+  &__card {
+    width: 100%;
+    max-width: 440px;
+    background: rgba(white, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: $radius-2xl;
+    box-shadow: $shadow-2xl;
+    overflow: hidden;
+    animation: scaleIn 0.5s $ease-out;
+  }
+  
+  &__header {
+    background: $gradient-teal;
+    padding: $spacing-xl $spacing-lg;
+    text-align: center;
+    
+    h1 {
+      @include heading-display;
+      color: white;
+      font-size: $font-size-2xl;
+      margin: 0 0 $spacing-xs;
+    }
+    
+    p {
+      color: rgba(white, 0.85);
+      margin: 0;
+      font-size: $font-size-base;
+    }
+  }
+  
+  &__logo {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto $spacing-md;
+    background: $gradient-gold;
+    border-radius: 50%;
+    @include flex-center;
+    box-shadow: 0 0 30px rgba($nubian-gold, 0.4);
+    
+    i {
+      font-size: 2.5rem;
+      color: white;
+    }
+  }
+  
+  &__content {
+    padding: $spacing-xl $spacing-lg;
+  }
+  
+  &__form {
+    .mat-mdc-form-field {
+      width: 100%;
+      margin-bottom: $spacing-sm;
+    }
+  }
+  
+  &__submit {
+    @include button-primary;
+    width: 100%;
+    height: 52px;
+    font-size: $font-size-md;
+    margin-top: $spacing-md;
+    
+    mat-spinner {
+      margin-right: $spacing-sm;
+    }
+  }
+  
+  &__footer {
+    text-align: center;
+    padding-top: $spacing-lg;
+    border-top: 1px solid $nubian-beige;
+    margin-top: $spacing-lg;
+    
+    p {
+      color: $nubian-gray;
+      margin: 0;
+    }
+    
+    a {
+      color: $nubian-teal;
+      font-weight: $font-weight-semibold;
+      text-decoration: none;
+      transition: color $transition-fast;
+      
+      &:hover {
+        color: $nubian-gold;
+        text-decoration: underline;
+      }
+    }
+  }
+  
+  &__divider {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+    margin: $spacing-lg 0;
+    color: $nubian-gray-light;
+    font-size: $font-size-sm;
+    
+    &::before,
+    &::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: $nubian-beige;
+    }
+  }
+}
+
+// ============================================
+// LAYOUT - HEADER
+// ============================================
+
+.nubian-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: $header-height;
+  background: rgba(white, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid $nubian-beige;
+  z-index: $z-header;
+  @include flex-between;
+  padding: 0 $spacing-lg;
+  
+  @include respond-below('md') {
+    height: $header-height-mobile;
+    padding: 0 $spacing-md;
+  }
+  
+  &__brand {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+    text-decoration: none;
+    
+    &-logo {
+      width: 40px;
+      height: 40px;
+      background: $gradient-gold;
+      border-radius: 50%;
+      @include flex-center;
+      
+      i {
+        color: white;
+        font-size: 1.25rem;
+      }
+    }
+    
+    &-text {
+      @include heading-display;
+      font-size: $font-size-lg;
+      margin: 0;
+      
+      @include respond-below('md') {
+        display: none;
+      }
+    }
+  }
+  
+  &__nav {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    
+    @include respond-below('md') {
+      display: none;
+    }
+  }
+  
+  &__link {
+    @include button-ghost;
+    padding: $spacing-sm $spacing-md;
+    font-size: $font-size-sm;
+    border-radius: $radius-md;
+    
+    &--active {
+      background: rgba($nubian-teal, 0.1);
+      color: $nubian-teal;
+    }
+  }
+  
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+  }
+  
+  &__icon-btn {
+    width: 40px;
+    height: 40px;
+    @include flex-center;
+    background: transparent;
+    border: none;
+    border-radius: $radius-full;
+    cursor: pointer;
+    color: $nubian-gray;
+    transition: all $transition-fast;
+    
+    &:hover {
+      background: rgba($nubian-teal, 0.08);
+      color: $nubian-teal;
+    }
+  }
+  
+  &__avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: $gradient-teal;
+    @include flex-center;
+    color: white;
+    font-weight: $font-weight-semibold;
+    cursor: pointer;
+    transition: transform $transition-fast;
+    
+    &:hover {
+      transform: scale(1.05);
+    }
+  }
+}
+
+// ============================================
+// LAYOUT - SIDEBAR
+// ============================================
+
+.nubian-sidebar {
+  position: fixed;
+  top: $header-height;
+  left: 0;
+  bottom: 0;
+  width: $sidebar-width;
+  background: white;
+  border-right: 1px solid $nubian-beige;
+  z-index: $z-fixed;
+  overflow-y: auto;
+  @include custom-scrollbar;
+  transition: transform $transition-base, width $transition-base;
+  
+  @include respond-below('lg') {
+    transform: translateX(-100%);
+    
+    &--open {
+      transform: translateX(0);
+      box-shadow: $shadow-2xl;
+    }
+  }
+  
+  &--collapsed {
+    width: $sidebar-width-collapsed;
+    
+    .nubian-sidebar__label {
+      display: none;
+    }
+  }
+  
+  &__section {
+    padding: $spacing-md;
+    
+    &-title {
+      font-size: $font-size-xs;
+      font-weight: $font-weight-semibold;
+      text-transform: uppercase;
+      letter-spacing: $letter-spacing-wider;
+      color: $nubian-gray-light;
+      padding: $spacing-sm $spacing-md;
+      margin-bottom: $spacing-xs;
+    }
+  }
+  
+  &__nav {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  
+  &__item {
+    margin-bottom: 4px;
+  }
+  
+  &__link {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+    padding: $spacing-sm $spacing-md;
+    border-radius: $radius-md;
+    color: $nubian-charcoal;
+    text-decoration: none;
+    font-weight: $font-weight-medium;
+    transition: all $transition-fast;
+    
+    &:hover {
+      background: rgba($nubian-teal, 0.08);
+      color: $nubian-teal;
+    }
+    
+    &--active {
+      background: $gradient-teal;
+      color: white;
+      
+      &:hover {
+        background: $gradient-teal;
+        color: white;
+      }
+    }
+    
+    i {
+      width: 24px;
+      text-align: center;
+      font-size: $font-size-md;
+    }
+  }
+  
+  &__footer {
+    padding: $spacing-md;
+    border-top: 1px solid $nubian-beige;
+    margin-top: auto;
+  }
+}
+
+// ============================================
+// LAYOUT - MAIN CONTENT
+// ============================================
+
+.nubian-main {
+  min-height: 100vh;
+  padding-top: $header-height;
+  background: $color-background;
+  
+  @include respond-below('md') {
+    padding-top: $header-height-mobile;
+  }
+  
+  &--with-sidebar {
+    margin-left: $sidebar-width;
+    
+    @include respond-below('lg') {
+      margin-left: 0;
+    }
+  }
+  
+  &__content {
+    @include container;
+    padding-top: $spacing-xl;
+    padding-bottom: $spacing-2xl;
+  }
+}
+
+// ============================================
+// PAGE HEADER
+// ============================================
+
+.nubian-page-header {
+  margin-bottom: $spacing-xl;
+  
+  &__title {
+    @include heading-display;
+    font-size: $font-size-3xl;
+    margin: 0 0 $spacing-xs;
+  }
+  
+  &__subtitle {
+    color: $nubian-gray;
+    font-size: $font-size-md;
+    margin: 0;
+  }
+  
+  &__breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    font-size: $font-size-sm;
+    color: $nubian-gray;
+    margin-bottom: $spacing-md;
+    
+    a {
+      color: $nubian-teal;
+      text-decoration: none;
+      
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+    
+    span {
+      color: $nubian-gray-light;
+    }
+  }
+  
+  &__actions {
+    display: flex;
+    gap: $spacing-md;
+    margin-top: $spacing-lg;
+    
+    @include respond-below('sm') {
+      flex-direction: column;
+    }
+  }
+}
+
+// ============================================
+// CARDS
+// ============================================
+
+.nubian-card {
+  @include card-nubian;
+  padding: $card-padding;
+  
+  &--elevated {
+    @include card-elevated;
+  }
+  
+  &--glass {
+    @include card-glass;
+  }
+  
+  &__header {
+    @include flex-between;
+    margin-bottom: $spacing-lg;
+    padding-bottom: $spacing-md;
+    border-bottom: 1px solid $nubian-beige;
+  }
+  
+  &__title {
+    @include heading-serif;
+    font-size: $font-size-xl;
+    margin: 0;
+  }
+  
+  &__subtitle {
+    color: $nubian-gray;
+    font-size: $font-size-sm;
+    margin: $spacing-xs 0 0;
+  }
+  
+  &__body {
+    @include body-text;
+  }
+  
+  &__footer {
+    @include flex-between;
+    margin-top: $spacing-lg;
+    padding-top: $spacing-md;
+    border-top: 1px solid $nubian-beige;
+  }
+}
+
+// ============================================
+// STATS CARD
+// ============================================
+
+.nubian-stat {
+  @include card-nubian;
+  padding: $spacing-lg;
+  text-align: center;
+  
+  &__icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto $spacing-md;
+    border-radius: $radius-xl;
+    @include flex-center;
+    
+    &--gold {
+      background: rgba($nubian-gold, 0.15);
+      color: $nubian-gold;
+    }
+    
+    &--teal {
+      background: rgba($nubian-teal, 0.15);
+      color: $nubian-teal;
+    }
+    
+    &--orange {
+      background: rgba($nubian-orange, 0.15);
+      color: $nubian-orange;
+    }
+    
+    &--green {
+      background: rgba($nubian-green, 0.15);
+      color: $nubian-green;
+    }
+    
+    i {
+      font-size: $font-size-xl;
+    }
+  }
+  
+  &__value {
+    @include heading-display;
+    font-size: $font-size-4xl;
+    margin: 0;
+  }
+  
+  &__label {
+    color: $nubian-gray;
+    font-size: $font-size-sm;
+    margin-top: $spacing-xs;
+  }
+  
+  &__change {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xs;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    margin-top: $spacing-sm;
+    padding: $spacing-xs $spacing-sm;
+    border-radius: $radius-full;
+    
+    &--up {
+      color: $nubian-green;
+      background: rgba($nubian-green, 0.1);
+    }
+    
+    &--down {
+      color: $nubian-orange;
+      background: rgba($nubian-orange, 0.1);
+    }
+  }
+}
+
+// ============================================
+// BUTTONS
+// ============================================
+
+.nubian-btn {
+  @include button-base;
+  
+  &--primary {
+    @include button-primary;
+  }
+  
+  &--secondary {
+    @include button-secondary;
+  }
+  
+  &--gold {
+    @include button-gold;
+  }
+  
+  &--ghost {
+    @include button-ghost;
+  }
+  
+  &--sm {
+    height: $button-height-sm;
+    padding: 0 $spacing-md;
+    font-size: $font-size-sm;
+  }
+  
+  &--md {
+    height: $button-height-md;
+    padding: 0 $spacing-lg;
+    font-size: $font-size-base;
+  }
+  
+  &--lg {
+    height: $button-height-lg;
+    padding: 0 $spacing-xl;
+    font-size: $font-size-md;
+  }
+  
+  &--full {
+    width: 100%;
+  }
+  
+  &--icon {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: $radius-full;
+  }
+}
+
+// ============================================
+// FORM ELEMENTS
+// ============================================
+
+.nubian-input {
+  @include input-nubian;
+}
+
+.nubian-select {
+  @include input-nubian;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23C17E3E' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right $spacing-md center;
+  background-size: 16px;
+  padding-right: 48px;
+  
+  @include rtl {
+    background-position: left $spacing-md center;
+    padding-right: $spacing-md;
+    padding-left: 48px;
+  }
+}
+
+.nubian-textarea {
+  @include input-nubian;
+  height: auto;
+  min-height: 120px;
+  resize: vertical;
+}
+
+.nubian-label {
+  display: block;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-semibold;
+  color: $nubian-charcoal;
+  margin-bottom: $spacing-xs;
+}
+
+.nubian-hint {
+  font-size: $font-size-xs;
+  color: $nubian-gray;
+  margin-top: $spacing-xs;
+}
+
+.nubian-error {
+  font-size: $font-size-xs;
+  color: $color-error;
+  margin-top: $spacing-xs;
+}
+
+// ============================================
+// TABLE
+// ============================================
+
+.nubian-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: $radius-lg;
+  overflow: hidden;
+  box-shadow: $shadow-sm;
+  
+  thead {
+    background: $nubian-cream;
+    
+    th {
+      padding: $spacing-md $spacing-lg;
+      text-align: left;
+      font-weight: $font-weight-semibold;
+      color: $nubian-charcoal;
+      font-size: $font-size-sm;
+      border-bottom: 2px solid $nubian-beige;
+      
+      @include rtl {
+        text-align: right;
+      }
+    }
+  }
+  
+  tbody {
+    tr {
+      transition: background $transition-fast;
+      
+      &:hover {
+        background: rgba($nubian-teal, 0.04);
+      }
+      
+      &:not(:last-child) {
+        border-bottom: 1px solid $nubian-beige;
+      }
+    }
+    
+    td {
+      padding: $spacing-md $spacing-lg;
+      color: $color-on-surface;
+      font-size: $font-size-base;
+    }
+  }
+  
+  &--striped {
+    tbody tr:nth-child(even) {
+      background: $nubian-cream;
+    }
+  }
+}
+
+// ============================================
+// BADGES & CHIPS
+// ============================================
+
+.nubian-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: $spacing-xs $spacing-sm;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  border-radius: $radius-full;
+  
+  &--gold {
+    background: rgba($nubian-gold, 0.15);
+    color: $nubian-gold-700;
+  }
+  
+  &--teal {
+    background: rgba($nubian-teal, 0.15);
+    color: $nubian-teal-700;
+  }
+  
+  &--orange {
+    background: rgba($nubian-orange, 0.15);
+    color: $nubian-orange-700;
+  }
+  
+  &--green {
+    background: rgba($nubian-green, 0.15);
+    color: $nubian-green-700;
+  }
+  
+  &--gray {
+    background: rgba($nubian-gray, 0.15);
+    color: $nubian-gray;
+  }
+}
+
+.nubian-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-xs $spacing-md;
+  background: white;
+  border: 1px solid $nubian-beige;
+  border-radius: $radius-full;
+  font-size: $font-size-sm;
+  color: $nubian-charcoal;
+  
+  &--selected {
+    background: $nubian-teal;
+    border-color: $nubian-teal;
+    color: white;
+  }
+  
+  &__remove {
+    width: 16px;
+    height: 16px;
+    @include flex-center;
+    background: rgba(0, 0, 0, 0.1);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    
+    &:hover {
+      background: rgba(0, 0, 0, 0.2);
+    }
+  }
+}
+
+// ============================================
+// AVATARS
+// ============================================
+
+.nubian-avatar {
+  @include flex-center;
+  border-radius: 50%;
+  font-weight: $font-weight-semibold;
+  overflow: hidden;
+  
+  &--xs {
+    width: 24px;
+    height: 24px;
+    font-size: $font-size-xs;
+  }
+  
+  &--sm {
+    width: 32px;
+    height: 32px;
+    font-size: $font-size-sm;
+  }
+  
+  &--md {
+    width: 40px;
+    height: 40px;
+    font-size: $font-size-base;
+  }
+  
+  &--lg {
+    width: 56px;
+    height: 56px;
+    font-size: $font-size-xl;
+  }
+  
+  &--xl {
+    width: 80px;
+    height: 80px;
+    font-size: $font-size-3xl;
+  }
+  
+  &--male {
+    background: linear-gradient(135deg, $nubian-teal, $nubian-teal-400);
+    color: white;
+  }
+  
+  &--female {
+    background: linear-gradient(135deg, $nubian-gold, $nubian-gold-400);
+    color: white;
+  }
+  
+  &--neutral {
+    background: $nubian-gray-light;
+    color: white;
+  }
+  
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+// ============================================
+// LOADING STATES
+// ============================================
+
+.nubian-skeleton {
+  @include shimmer;
+  border-radius: $radius-md;
+  
+  &--text {
+    height: 1em;
+    width: 100%;
+  }
+  
+  &--title {
+    height: 1.5em;
+    width: 60%;
+  }
+  
+  &--avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+  }
+  
+  &--card {
+    height: 200px;
+  }
+}
+
+.nubian-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid $nubian-beige;
+  border-top-color: $nubian-teal;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  
+  &--sm {
+    width: 20px;
+    height: 20px;
+    border-width: 2px;
+  }
+  
+  &--lg {
+    width: 56px;
+    height: 56px;
+    border-width: 4px;
+  }
+}
+
+// ============================================
+// EMPTY STATES
+// ============================================
+
+.nubian-empty {
+  @include flex-center;
+  flex-direction: column;
+  padding: $spacing-3xl $spacing-xl;
+  text-align: center;
+  
+  &__icon {
+    width: 80px;
+    height: 80px;
+    margin-bottom: $spacing-lg;
+    background: rgba($nubian-teal, 0.1);
+    border-radius: 50%;
+    @include flex-center;
+    
+    i {
+      font-size: 2rem;
+      color: $nubian-teal;
+    }
+  }
+  
+  &__title {
+    @include heading-serif;
+    font-size: $font-size-xl;
+    margin: 0 0 $spacing-sm;
+  }
+  
+  &__text {
+    color: $nubian-gray;
+    margin: 0 0 $spacing-lg;
+    max-width: 400px;
+  }
+}
+
+// ============================================
+// DIALOG OVERRIDES
+// ============================================
+
+.nubian-dialog {
+  .mat-mdc-dialog-container {
+    background: $nubian-cream !important;
+    border-radius: $radius-2xl !important;
+  }
+  
+  .mat-mdc-dialog-surface {
+    background: transparent !important;
+  }
+}
+
+// ============================================
+// SNACKBAR OVERRIDES
+// ============================================
+
+.nubian-snackbar {
+  &--success {
+    --mdc-snackbar-container-color: #{$nubian-green};
+    --mat-snack-bar-button-color: white;
+  }
+  
+  &--error {
+    --mdc-snackbar-container-color: #{$color-error};
+    --mat-snack-bar-button-color: white;
+  }
+  
+  &--warning {
+    --mdc-snackbar-container-color: #{$nubian-orange};
+    --mat-snack-bar-button-color: white;
+  }
+  
+  &--info {
+    --mdc-snackbar-container-color: #{$nubian-teal};
+    --mat-snack-bar-button-color: white;
+  }
+}
+
+// ============================================
+// ANIMATIONS
+// ============================================
+
+.nubian-fade-in {
+  animation: fadeIn 0.3s $ease-out;
+}
+
+.nubian-fade-in-up {
+  animation: fadeInUp 0.4s $ease-out;
+}
+
+.nubian-slide-in-left {
+  animation: slideInLeft 0.4s $ease-out;
+}
+
+.nubian-slide-in-right {
+  animation: slideInRight 0.4s $ease-out;
+}
+
+.nubian-scale-in {
+  animation: scaleIn 0.3s $ease-out;
+}
+
+// Stagger animations
+@for $i from 1 through 10 {
+  .nubian-stagger-#{$i} {
+    animation-delay: #{$i * 50}ms;
+    animation-fill-mode: both;
+  }
+}

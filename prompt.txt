@@ -1,0 +1,251 @@
+# Claude Code Prompt: Person Media Files Feature
+
+You are a senior .NET 8 / ASP.NET Core + Angular architect.
+
+I need you to implement "Person Media Files" end-to-end in my existing project, WITHOUT breaking existing code.
+
+## CONTEXT - Existing Patterns to Follow
+
+I have existing services you MUST follow as patterns:
+
+### Existing MediaService.cs Pattern:
+- Uses EntityType/EntityID pattern for polymorphic relations
+- Media entity has: MediaID, MediaType, URL, StorageType, EntityType, EntityID, IsPrimary, Description, Language, CreatedAt, UpdatedAt
+- Repository pattern: IMediaRepository with GetByEntityAndTypeAsync, GetPrimaryAsync, etc.
+- Uses ApplicationDbContext directly for some operations
+- Has Base64 conversion methods: GetMediaAsBase64Async(), Base64ToBytes(), BytesToBase64()
+- Has MIME type utilities: GetMimeTypeFromExtension(), GetExtensionFromMimeType(), IsValidExtension()
+- Uses structured logging with ILogger
+
+### Existing FFmpegService.cs Pattern:
+- Uses IConfiguration for settings
+- Uses temp directory for file operations
+- Has audio format detection from binary headers
+- Clean session-based temp file management with Guid-based session IDs
+- Proper cleanup in finally blocks
+
+### Existing media-handler.service.ts Pattern (Angular):
+```typescript
+export interface MediaFile {
+  binary: string;      // Base64 string
+  fileName: string;
+  mimeType: string;
+  size?: number;
+}
+```
+- blobToBase64(blob: Blob): Promise<string>
+- base64ToBlob(base64: string, contentType: string): Blob
+- isValidFileType(file: File, allowedTypes: string[]): boolean
+- isValidFileSize(file: File, maxSizeInMB: number): boolean
+- getMimeTypeFromExtension(), getExtensionFromMimeType()
+
+## Feature: Media files per Person
+
+Each Person can have multiple media files:
+- pictures (images)
+- audios
+- videos
+
+### Display Requirements (Frontend)
+- Display each media item based on media type:
+  - images render as `<img>`
+  - audio renders with an audio player
+  - video renders with a video player
+- Media list should be grouped or labeled by type (image/audio/video)
+- Show basic metadata (filename, size, uploaded date)
+
+### Upload Requirements (Frontend)
+- Upload is done via a service layer (do NOT put logic inside components)
+- Before sending to backend, file must be converted to Base64
+- Enforce:
+  - size limits per media type (configurable constants)
+  - allowed MIME types per media type
+- If validation fails, return a clear error message to the UI
+
+### Backend Requirements (.NET 8)
+- Backend receives Base64 and metadata
+- Backend converts Base64 back to binary and stores on disk
+- Use clean storage abstraction so we can swap to cloud later
+
+Store in DB:
+- PersonId (FK to Person)
+- MediaType (Image/Audio/Video)
+- FileName
+- MimeType
+- SizeBytes
+- StoragePath (relative path)
+- CreatedAt
+- UpdatedAt (nullable)
+
+When fetching media:
+- Backend loads file from storage
+- Converts binary to Base64
+- Returns Base64 + metadata to frontend
+
+## Architecture Rules (CRITICAL)
+
+1. Do NOT break existing endpoints and code
+2. Follow existing patterns: Controller → Service → Repository (EF Core)
+3. Repository handles DB access only
+4. Service handles business logic + validation + file storage
+5. Use AutoMapper MappingProfile for DTO ↔ Entity mapping
+6. Use dependency injection properly
+7. Keep everything production-ready
+
+## Deliverables
+
+### 1) Database / Entity
+
+Create new entity `PersonMedia`:
+```csharp
+public class PersonMedia
+{
+    public int PersonMediaId { get; set; }
+    public int PersonId { get; set; }
+    public string MediaType { get; set; } // "Image", "Audio", "Video"
+    public string FileName { get; set; }
+    public string MimeType { get; set; }
+    public long SizeBytes { get; set; }
+    public string StoragePath { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    
+    // Navigation
+    public Person Person { get; set; }
+}
+```
+
+Provide EF Core migration guidance.
+
+### 2) Backend Code Structure
+
+**DTOs:**
+- PersonMediaUploadDto (input: Base64Data, FileName, MimeType, MediaType)
+- PersonMediaResponseDto (output: Id, PersonId, MediaType, FileName, MimeType, SizeBytes, Base64Data, CreatedAt)
+- PersonMediaListItemDto (for list without Base64: Id, PersonId, MediaType, FileName, MimeType, SizeBytes, CreatedAt)
+
+**Repository:**
+- IPersonMediaRepository
+- PersonMediaRepository (EF Core)
+
+**Service:**
+- IPersonMediaService
+- PersonMediaService
+  - UploadMediaAsync(int personId, PersonMediaUploadDto dto)
+  - GetMediaByPersonAsync(int personId, string? mediaType = null)
+  - GetMediaByIdAsync(int personMediaId)
+  - DeleteMediaAsync(int personMediaId)
+  - ValidateMimeType(), ValidateFileSize()
+
+**Controller:**
+- PersonMediaController
+  - POST /api/persons/{personId}/media
+  - GET /api/persons/{personId}/media
+  - GET /api/persons/{personId}/media/{mediaId}
+  - DELETE /api/persons/{personId}/media/{mediaId}
+
+### 3) File Storage Abstraction
+
+Create interface:
+```csharp
+public interface IFileStorageService
+{
+    Task<string> SaveFileAsync(byte[] data, string fileName, string subDirectory);
+    Task<byte[]> GetFileAsync(string storagePath);
+    Task DeleteFileAsync(string storagePath);
+    bool FileExists(string storagePath);
+}
+```
+
+Implement LocalFileStorageService:
+- Base path from configuration: FileStorage:BasePath
+- Directory strategy: /media/persons/{personId}/{year}/{month}/{guid}_{filename}
+- Validate path safety and prevent directory traversal attacks
+- Create directories if not exist
+
+### 4) Frontend (Angular)
+
+**Constants file:**
+```typescript
+export const MEDIA_UPLOAD_CONFIG = {
+  image: {
+    maxSizeMB: 10,
+    allowedTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+  },
+  audio: {
+    maxSizeMB: 50,
+    allowedTypes: ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm']
+  },
+  video: {
+    maxSizeMB: 100,
+    allowedTypes: ['video/mp4', 'video/webm', 'video/ogg']
+  }
+};
+```
+
+**PersonMediaService:**
+```typescript
+@Injectable({ providedIn: 'root' })
+export class PersonMediaService {
+  // Use existing MediaHandlerService for Base64 conversion
+  // Add methods:
+  // - validateAndPrepareUpload(file: File, mediaType: string): Promise<MediaUploadPayload>
+  // - uploadMedia(personId: number, payload: MediaUploadPayload): Observable<PersonMediaResponse>
+  // - getMediaByPerson(personId: number, mediaType?: string): Observable<PersonMediaListItem[]>
+  // - getMediaById(mediaId: number): Observable<PersonMediaResponse>
+  // - deleteMedia(mediaId: number): Observable<void>
+  // - createObjectUrl(base64: string, mimeType: string): string
+}
+```
+
+**Component usage example:**
+```typescript
+// Upload
+async onFileSelected(event: Event, mediaType: string) {
+  const file = (event.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+  
+  try {
+    const payload = await this.personMediaService.validateAndPrepareUpload(file, mediaType);
+    this.personMediaService.uploadMedia(this.personId, payload).subscribe({
+      next: (result) => this.loadMedia(),
+      error: (err) => this.showError(err.message)
+    });
+  } catch (validationError) {
+    this.showError(validationError.message);
+  }
+}
+
+// Display
+<div *ngFor="let media of imageMedia">
+  <img [src]="getImageUrl(media)" />
+</div>
+<div *ngFor="let media of audioMedia">
+  <audio controls [src]="getAudioUrl(media)"></audio>
+</div>
+```
+
+### 5) Safety Requirements
+
+- Backend MUST re-validate MIME type and size (don't trust frontend)
+- Limit Base64 payload size in controller (e.g., [RequestSizeLimit])
+- Sanitize file names (remove path characters, special chars)
+- Generate storage filename with GUID prefix to prevent collisions
+- Use async streaming where possible for large files
+- Add appropriate error handling and logging
+
+## Output Format
+
+1. Start with a short implementation plan (≤10 lines)
+2. Provide code blocks per file with clear paths:
+   ```csharp
+   // File: Api/Entities/PersonMedia.cs
+   ```
+3. End with a checklist verifying:
+   - [ ] No breaking changes to existing code
+   - [ ] Validation done on both frontend and backend
+   - [ ] Storage abstraction implemented
+   - [ ] DTO ↔ Entity mapping in AutoMapper MappingProfile
+   - [ ] Proper error handling
+   - [ ] Directory traversal protection
+   - [ ] File name sanitization

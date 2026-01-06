@@ -4,6 +4,12 @@ export interface Person {
   familyId: string | null;
   familyName: string | null;
   primaryName: string | null;
+  /** Name in Arabic script */
+  nameArabic: string | null;
+  /** Name in English/Latin script */
+  nameEnglish: string | null;
+  /** Name in Nobiin (Coptic) script */
+  nameNobiin: string | null;
   sex: Sex;
   gender: string | null;
   birthDate: string | null;
@@ -26,6 +32,7 @@ export interface Person {
   hasConflict: boolean;
   createdAt: string;
   updatedAt: string;
+  /** @deprecated Use nameArabic, nameEnglish, nameNobiin directly */
   names: PersonName[];
 }
 
@@ -34,6 +41,12 @@ export interface PersonListItem {
   familyId: string | null;
   familyName: string | null;
   primaryName: string | null;
+  /** Name in Arabic script */
+  nameArabic?: string | null;
+  /** Name in English/Latin script */
+  nameEnglish?: string | null;
+  /** Name in Nobiin (Coptic) script */
+  nameNobiin?: string | null;
   sex: Sex;
   birthDate: string | null;
   birthPrecision: DatePrecision;
@@ -89,6 +102,12 @@ export enum PrivacyLevel {
 
 export interface CreatePersonRequest {
   primaryName: string;
+  /** Name in Arabic script */
+  nameArabic?: string;
+  /** Name in English/Latin script */
+  nameEnglish?: string;
+  /** Name in Nobiin (Coptic) script */
+  nameNobiin?: string;
   sex: Sex;
   gender?: string;
   familyId?: string;
@@ -105,11 +124,18 @@ export interface CreatePersonRequest {
   nationality?: string;
   ethnicity?: string;
   notes?: string;
+  /** @deprecated Use nameArabic, nameEnglish, nameNobiin directly */
   names?: CreatePersonNameRequest[];
 }
 
 export interface UpdatePersonRequest {
   primaryName?: string;
+  /** Name in Arabic script */
+  nameArabic?: string;
+  /** Name in English/Latin script */
+  nameEnglish?: string;
+  /** Name in Nobiin (Coptic) script */
+  nameNobiin?: string;
   sex?: Sex;
   gender?: string;
   familyId?: string;

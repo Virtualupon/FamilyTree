@@ -19,7 +19,9 @@ import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 
 import { PersonMediaService } from '../../core/services/person-media.service';
 import { PersonService } from '../../core/services/person.service';
+import { PersonSearchService } from '../../core/services/person-search.service';
 import { PersonListItem } from '../../core/models/person.models';
+import { SearchPersonItem, getPrimaryName } from '../../core/models/search.models';
 import {
   PersonMediaListItem,
   PersonMediaGrouped,
@@ -360,7 +362,7 @@ import {
                   <div class="selected-persons-chips">
                     @for (person of selectedPersons(); track person.id) {
                       <div class="person-chip" [class.current]="person.id === personId">
-                        <span>{{ person.primaryName || 'Unknown' }}</span>
+                        <span>{{ getSearchPersonName(person) || 'Unknown' }}</span>
                         @if (person.id === personId) {
                           <span class="current-badge">(current)</span>
                         }
@@ -392,7 +394,7 @@ import {
                           (click)="$event.stopPropagation()">
                         </mat-checkbox>
                         <div class="person-info">
-                          <span class="person-name">{{ person.primaryName || 'Unknown' }}</span>
+                          <span class="person-name">{{ getSearchPersonName(person) || 'Unknown' }}</span>
                           @if (person.birthDate || person.deathDate) {
                             <span class="person-dates">{{ getLifespan(person) }}</span>
                           }
@@ -983,6 +985,7 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
 
   private mediaService = inject(PersonMediaService);
   private personService = inject(PersonService);
+  private searchService = inject(PersonSearchService);
   private snackBar = inject(MatSnackBar);
 
   // State
@@ -1003,10 +1006,10 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
   // Upload dialog state
   showUploadDialog = signal(false);
   selectedFile = signal<File | null>(null);
-  selectedPersons = signal<PersonListItem[]>([]);
+  selectedPersons = signal<SearchPersonItem[]>([]);
   personSearchQuery = '';
   mediaDescription = '';
-  personSearchResults = signal<PersonListItem[]>([]);
+  personSearchResults = signal<SearchPersonItem[]>([]);
   isSearching = signal(false);
   private searchSubject = new Subject<string>();
 
@@ -1109,40 +1112,48 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
     // Pre-select current person
     this.personService.getPerson(this.personId).subscribe({
       next: (person) => {
-        const listItem: PersonListItem = {
+        const searchItem: SearchPersonItem = {
           id: person.id,
+          orgId: '',
           familyId: person.familyId,
           familyName: person.familyName,
           primaryName: person.primaryName,
+          nameArabic: person.nameArabic,
+          nameEnglish: person.nameEnglish,
+          nameNobiin: person.nameNobiin,
           sex: person.sex,
           birthDate: person.birthDate,
-          birthPrecision: person.birthPrecision,
           deathDate: person.deathDate,
-          deathPrecision: person.deathPrecision,
-          birthPlace: person.birthPlace,
-          deathPlace: person.deathPlace,
-          isVerified: person.isVerified,
-          needsReview: person.needsReview,
+          birthPlaceId: null,
+          birthPlaceName: person.birthPlace,
+          isLiving: false,
+          parentsCount: 0,
+          childrenCount: 0,
+          spousesCount: 0,
           mediaCount: 0
         };
-        this.selectedPersons.set([listItem]);
+        this.selectedPersons.set([searchItem]);
       },
       error: () => {
         // Fallback: create minimal person object with just the ID
         this.selectedPersons.set([{
           id: this.personId,
+          orgId: '',
           familyId: null,
           familyName: null,
           primaryName: 'Current Person',
+          nameArabic: null,
+          nameEnglish: 'Current Person',
+          nameNobiin: null,
           sex: 0,
           birthDate: null,
-          birthPrecision: 0,
           deathDate: null,
-          deathPrecision: 0,
-          birthPlace: null,
-          deathPlace: null,
-          isVerified: false,
-          needsReview: false,
+          birthPlaceId: null,
+          birthPlaceName: null,
+          isLiving: false,
+          parentsCount: 0,
+          childrenCount: 0,
+          spousesCount: 0,
           mediaCount: 0
         }]);
       }
@@ -1176,11 +1187,7 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
 
   private searchPersons(query: string) {
     this.isSearching.set(true);
-    this.personService.searchPeople({
-      nameQuery: query,
-      page: 1,
-      pageSize: 10
-    }).subscribe({
+    this.searchService.quickSearch(query, 1, 10).subscribe({
       next: (result) => {
         this.personSearchResults.set(result.items);
         this.isSearching.set(false);
@@ -1197,7 +1204,7 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
     return this.selectedPersons().some(p => p.id === personId);
   }
 
-  togglePersonSelection(person: PersonListItem) {
+  togglePersonSelection(person: SearchPersonItem) {
     // Don't allow deselecting current person
     if (person.id === this.personId) return;
 
@@ -1209,6 +1216,11 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
     } else {
       this.selectedPersons.set([...current, person]);
     }
+  }
+
+  // Helper to get display name
+  getSearchPersonName(person: SearchPersonItem): string {
+    return getPrimaryName(person);
   }
 
   async performUpload() {
@@ -1272,7 +1284,7 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
     return 'fa-file';
   }
 
-  getLifespan(person: PersonListItem): string {
+  getLifespan(person: SearchPersonItem): string {
     const birth = person.birthDate ? new Date(person.birthDate).getFullYear() : '?';
     const death = person.deathDate ? new Date(person.deathDate).getFullYear() : '';
 

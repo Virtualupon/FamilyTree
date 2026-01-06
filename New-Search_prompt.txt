@@ -1,0 +1,196 @@
+# Claude Code Prompt: Migrate Search Components to PersonSearchService
+
+## Task
+Update all components that use `PersonService.searchPeople()` to use the new efficient `PersonSearchService` instead.
+
+## Context
+We've implemented a new high-performance search backend using Dapper + PostgreSQL functions. The frontend needs to be updated to use the new `PersonSearchService` which provides:
+- Multilingual search (Arabic, Latin, Coptic)
+- Faster queries (10x performance improvement)
+- Aggregated data (names, relationship counts) in single queries
+
+## New Files Already Added
+The following files have been added to the project:
+- `src/app/core/models/search.models.ts`
+- `src/app/core/services/person-search.service.ts`
+
+## Components to Update
+
+Update each component according to this mapping:
+
+| Component | File Path | Change |
+|-----------|-----------|--------|
+| people-list | `src/app/features/people/people-list.component.ts` | `personService.searchPeople()` → `searchService.search()` |
+| add-relationship-dialog | `src/app/features/people/add-relationship-dialog.component.ts` | `personService.searchPeople()` → `searchService.searchByTown()` |
+| relationship-editor-dialog | `src/app/features/tree/relationship-editor-dialog.component.ts` | `personService.searchPeople()` → `searchService.quickSearch()` |
+| relationship-finder-dialog | `src/app/features/tree/relationship-finder-dialog.component.ts` | `personService.searchPeople()` → `searchService.quickSearch()` |
+| person-selector | `src/app/features/tree/person-selector.component.ts` | `personService.searchPeople()` → `searchService.quickSearch()` |
+| person-links | `src/app/features/family-trees/person-links.component.ts` | `personService.searchPeople()` → `searchService.quickSearch()` |
+| person-media | `src/app/features/people/person-media.component.ts` | `personService.searchPeople()` → `searchService.quickSearch()` |
+| dashboard | `src/app/features/dashboard/dashboard.component.ts` | `personService.searchPeople()` → `searchService.search()` |
+
+## Migration Pattern
+
+### Step 1: Add imports
+```typescript
+// Add these imports
+import { PersonSearchService } from '../../core/services/person-search.service';
+import { SearchPersonItem, getPrimaryName } from '../../core/models/search.models';
+```
+
+### Step 2: Inject the service
+```typescript
+// Add to component
+private readonly searchService = inject(PersonSearchService);
+```
+
+### Step 3: Update search calls
+
+**Pattern A: Simple text search (quickSearch)**
+```typescript
+// BEFORE
+this.personService.searchPeople({
+  nameQuery: query,
+  page: 1,
+  pageSize: 20
+}).subscribe(result => {
+  this.results = result.items;
+});
+
+// AFTER
+this.searchService.quickSearch(query, 1, 20).subscribe(result => {
+  this.results = result.items;
+});
+```
+
+**Pattern B: Search with filters (search)**
+```typescript
+// BEFORE
+this.personService.searchPeople({
+  nameQuery: query,
+  sex: Sex.Male,
+  page: 1,
+  pageSize: 20
+}).subscribe(result => {
+  this.results = result.items;
+});
+
+// AFTER
+this.searchService.search({
+  query: query,
+  sex: Sex.Male,
+  page: 1,
+  pageSize: 20
+}).subscribe(result => {
+  this.results = result.items;
+});
+```
+
+**Pattern C: Town-based search (searchByTown)**
+```typescript
+// BEFORE
+this.personService.searchPeople({
+  nameQuery: term,
+  townId: townId,
+  page: 1,
+  pageSize: 10
+}).subscribe(result => {
+  this.results = result.items;
+});
+
+// AFTER
+this.searchService.searchByTown(townId, term, 1, 10).subscribe(result => {
+  this.results = result.items;
+});
+```
+
+### Step 4: Update type references
+```typescript
+// BEFORE
+results: PersonListItem[] = [];
+person.primaryName  // direct property access
+
+// AFTER
+results: SearchPersonItem[] = [];
+getPrimaryName(person)  // use helper function for primary name
+```
+
+### Step 5: Handle the new response structure
+
+The new `SearchPersonItem` has a `names` array instead of single `primaryName`:
+```typescript
+interface SearchPersonItem {
+  id: string;
+  sex: Sex;
+  birthDate: string | null;
+  deathDate: string | null;
+  isLiving: boolean;
+  names: SearchPersonName[];  // Array of names with scripts
+  parentCount: number;
+  childCount: number;
+  spouseCount: number;
+  mediaCount: number;
+}
+```
+
+Use the helper function to get the primary name:
+```typescript
+import { getPrimaryName } from '../../core/models/search.models';
+
+// In template or component
+const name = getPrimaryName(person);
+```
+
+## Specific Component Instructions
+
+### 1. people-list.component.ts
+- Change signal type from `PersonListItem[]` to `SearchPersonItem[]`
+- Update template to use `getPrimaryName(person)` instead of `person.primaryName`
+- Add `searchDuration` signal to show search performance
+- Add `detectedScript` signal to show script hint in search box
+
+### 2. add-relationship-dialog.component.ts
+- In the search switchMap, change to `searchService.searchByTown(townId, term, 1, 10)`
+- Update the `displayFn` to use `getPrimaryName(person)`
+- Update type annotations from `PersonListItem` to `SearchPersonItem`
+
+### 3. relationship-editor-dialog.component.ts
+- Change `search()` method to use `searchService.quickSearch(query, 1, 20)`
+- Update results signal type to `SearchPersonItem[]`
+- Update any template references to use `getPrimaryName()`
+
+### 4. relationship-finder-dialog.component.ts
+- Change `search()` method to use `searchService.quickSearch(query, 1, 20)`
+- Can also use `searchService.findRelationshipPath()` for relationship calculations
+- Update type annotations
+
+### 5. person-selector.component.ts
+- Change search call to `searchService.quickSearch(query, 1, 20)`
+- Update type from `PersonListItem` to `SearchPersonItem`
+- Update display logic to use `getPrimaryName()`
+
+### 6. person-links.component.ts
+- Change search call to `searchService.quickSearch()`
+- Update types and display functions
+
+### 7. person-media.component.ts
+- Change search call to `searchService.quickSearch()`
+- Update types
+
+### 8. dashboard.component.ts
+- Change statistics queries to use `searchService.search()`
+- The new service still returns `totalCount` in the response
+
+## Testing Checklist
+After updating each component:
+- [ ] Component compiles without errors
+- [ ] Search returns results
+- [ ] Names display correctly (including Arabic/Coptic)
+- [ ] Pagination works
+- [ ] Filters work (sex, living/deceased)
+- [ ] No console errors
+
+## Notes
+- Keep `PersonService` for CRUD operations (create, update, delete)
+- Only search operations move to `PersonSearchService`
+- The new service automatically handles tree context (admin vs regular user)

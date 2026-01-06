@@ -26,7 +26,6 @@ public class ApplicationDbContext : IdentityDbContext<
     public DbSet<Org> Orgs { get; set; }
     public DbSet<OrgUser> OrgUsers { get; set; }
     public DbSet<Person> People { get; set; }
-    public DbSet<PersonName> PersonNames { get; set; }
     public DbSet<Union> Unions { get; set; }
     public DbSet<UnionMember> UnionMembers { get; set; }
     public DbSet<ParentChild> ParentChildren { get; set; }
@@ -169,30 +168,6 @@ public class ApplicationDbContext : IdentityDbContext<
                 .WithMany()
                 .HasForeignKey(e => e.DeathPlaceId)
                 .OnDelete(DeleteBehavior.SetNull);
-        });
-
-        modelBuilder.Entity<PersonName>(entity =>
-        {
-            entity.ToTable("PersonNames");
-            entity.HasKey(e => e.Id);
-            entity.HasIndex(e => e.PersonId);
-
-            entity.HasIndex(e => e.Full)
-                .HasMethod("gin")
-                .HasOperators("gin_trgm_ops");
-
-            entity.HasIndex(e => e.Given)
-                .HasMethod("gin")
-                .HasOperators("gin_trgm_ops");
-
-            entity.HasIndex(e => e.Family)
-                .HasMethod("gin")
-                .HasOperators("gin_trgm_ops");
-
-            entity.HasOne(e => e.Person)
-                .WithMany(p => p.Names)
-                .HasForeignKey(e => e.PersonId)
-                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<Union>(entity =>

@@ -1,6 +1,6 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatInputModule } from '@angular/material/input';
@@ -255,98 +255,49 @@ export interface PersonFormDialogData {
           <!-- Names Tab -->
           <mat-tab [label]="'personForm.names' | translate">
             <div class="form-tab-content">
-              <div formArrayName="names">
-                @for (name of namesArray.controls; track $index; let i = $index) {
-                  <mat-expansion-panel [formGroupName]="i" class="name-panel">
-                    <mat-expansion-panel-header>
-                      <mat-panel-title>
-                        {{ getNameTypeLabel(name.get('type')?.value) }}
-                      </mat-panel-title>
-                      <mat-panel-description>
-                        {{ name.get('full')?.value || name.get('given')?.value || ('common.unknown' | translate) }}
-                      </mat-panel-description>
-                    </mat-expansion-panel-header>
-                    
-                    <div class="name-form-content">
-                      <div class="form-row">
-                        <mat-form-field appearance="outline" class="flex-1">
-                          <mat-label>{{ 'personForm.nameType' | translate }}</mat-label>
-                          <mat-select formControlName="type">
-                            <mat-option [value]="NameType.Primary">{{ 'personForm.nameTypePrimary' | translate }}</mat-option>
-                            <mat-option [value]="NameType.Birth">{{ 'personForm.nameTypeBirth' | translate }}</mat-option>
-                            <mat-option [value]="NameType.Married">{{ 'personForm.nameTypeMarried' | translate }}</mat-option>
-                            <mat-option [value]="NameType.Maiden">{{ 'personForm.nameTypeMaiden' | translate }}</mat-option>
-                            <mat-option [value]="NameType.Nickname">{{ 'personForm.nameTypeNickname' | translate }}</mat-option>
-                            <mat-option [value]="NameType.Alias">{{ 'personForm.nameTypeAlias' | translate }}</mat-option>
-                          </mat-select>
-                        </mat-form-field>
+              <p class="names-hint">{{ 'personForm.namesHint' | translate }}</p>
 
-                        <mat-form-field appearance="outline" class="flex-1">
-                          <mat-label>{{ 'personForm.script' | translate }}</mat-label>
-                          <mat-select formControlName="script">
-                            <mat-option value="Latin">
-                              <span class="script-option">🇬🇧 {{ 'personForm.scriptLatin' | translate }}</span>
-                            </mat-option>
-                            <mat-option value="Arabic">
-                              <span class="script-option">🇸🇦 {{ 'personForm.scriptArabic' | translate }}</span>
-                            </mat-option>
-                            <mat-option value="Coptic">
-                              <span class="script-option">🇸🇩 {{ 'personForm.scriptNobiin' | translate }}</span>
-                            </mat-option>
-                          </mat-select>
-                        </mat-form-field>
-                      </div>
+              <!-- Arabic Name -->
+              <mat-form-field appearance="outline" class="full-width name-field-arabic">
+                <mat-label>الاسم بالعربية (Arabic Name)</mat-label>
+                <input matInput formControlName="nameArabic" dir="rtl"
+                       (blur)="onArabicNameBlur()">
+                <i class="fa-solid fa-font" matSuffix aria-hidden="true"></i>
+              </mat-form-field>
 
-                      <div class="form-row">
-                        <mat-form-field appearance="outline" class="flex-1">
-                          <mat-label>{{ 'personForm.firstName' | translate }}</mat-label>
-                          <input matInput formControlName="given">
-                        </mat-form-field>
-                        
-                        <mat-form-field appearance="outline" class="flex-1">
-                          <mat-label>{{ 'personForm.middleName' | translate }}</mat-label>
-                          <input matInput formControlName="middle">
-                        </mat-form-field>
-                      </div>
-                      
-                      <mat-form-field appearance="outline" class="full-width">
-                        <mat-label>{{ 'personForm.lastName' | translate }}</mat-label>
-                        <input matInput formControlName="family">
-                      </mat-form-field>
-                      
-                      <mat-form-field appearance="outline" class="full-width">
-                        <mat-label>{{ 'personForm.fullName' | translate }}</mat-label>
-                        <input matInput formControlName="full">
-                      </mat-form-field>
-                      
-                      <div class="name-actions">
-                        <button
-                          mat-stroked-button
-                          color="primary"
-                          type="button"
-                          (click)="transliterateName(i)"
-                          [disabled]="transliterating() === i">
-                          @if (transliterating() === i) {
-                            <mat-spinner diameter="18"></mat-spinner>
-                          } @else {
-                            <i class="fa-solid fa-language" aria-hidden="true"></i>
-                          }
-                          {{ 'personForm.transliterate' | translate }}
-                        </button>
-                        <button mat-button color="warn" type="button" (click)="removeName(i)">
-                          <i class="fa-solid fa-trash" aria-hidden="true"></i>
-                          {{ 'common.delete' | translate }}
-                        </button>
-                      </div>
-                    </div>
-                  </mat-expansion-panel>
-                }
+              <!-- English Name -->
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Name in English</mat-label>
+                <input matInput formControlName="nameEnglish"
+                       (blur)="onEnglishNameBlur()">
+                <i class="fa-solid fa-font" matSuffix aria-hidden="true"></i>
+              </mat-form-field>
+
+              <!-- Nobiin Name -->
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>ⲣⲁⲛ ⲛⲟⲃⲓⲓⲛ (Nobiin Name)</mat-label>
+                <input matInput formControlName="nameNobiin">
+                <i class="fa-solid fa-font" matSuffix aria-hidden="true"></i>
+                <mat-hint>{{ 'personForm.nobiinOptional' | translate }}</mat-hint>
+              </mat-form-field>
+
+              <!-- Transliterate Button -->
+              <div class="transliterate-actions">
+                <button
+                  mat-stroked-button
+                  color="primary"
+                  type="button"
+                  (click)="transliterateAllNames()"
+                  [disabled]="transliterating() !== null || !hasAnyNameToTransliterate()">
+                  @if (transliterating() !== null) {
+                    <mat-spinner diameter="18"></mat-spinner>
+                  } @else {
+                    <i class="fa-solid fa-language" aria-hidden="true"></i>
+                  }
+                  {{ 'personForm.autoFillNames' | translate }}
+                </button>
+                <span class="transliterate-hint">{{ 'personForm.autoFillHint' | translate }}</span>
               </div>
-              
-              <button mat-stroked-button type="button" (click)="addName()" class="add-name-btn">
-                <i class="fa-solid fa-plus" aria-hidden="true"></i>
-                {{ 'personForm.addName' | translate }}
-              </button>
             </div>
           </mat-tab>
         </mat-tab-group>
@@ -489,15 +440,30 @@ export interface PersonFormDialogData {
       margin-top: var(--ft-spacing-sm);
     }
     
-    .add-name-btn {
-      width: 100%;
-      margin-top: var(--ft-spacing-md);
+    .names-hint {
+      color: var(--ft-on-surface-variant);
+      font-size: 0.875rem;
+      margin-bottom: var(--ft-spacing-md);
     }
 
-    .script-option {
+    .name-field-arabic input {
+      font-family: 'Noto Naskh Arabic', 'Arabic Typesetting', serif;
+      font-size: 1.1em;
+    }
+
+    .transliterate-actions {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: var(--ft-spacing-md);
+      margin-top: var(--ft-spacing-md);
+      padding: var(--ft-spacing-md);
+      background: var(--ft-surface-variant);
+      border-radius: 8px;
+    }
+
+    .transliterate-hint {
+      color: var(--ft-on-surface-variant);
+      font-size: 0.75rem;
     }
 
     .family-color {
@@ -535,12 +501,8 @@ export class PersonFormDialogComponent implements OnInit {
 
   form!: FormGroup;
   saving = signal(false);
-  transliterating = signal<number | null>(null);
+  transliterating = signal<'arabic' | 'english' | 'all' | null>(null);
   families = signal<FamilyListItem[]>([]);
-  
-  get namesArray(): FormArray {
-    return this.form.get('names') as FormArray;
-  }
   
   ngOnInit(): void {
     this.initForm();
@@ -564,6 +526,9 @@ export class PersonFormDialogComponent implements OnInit {
   private initForm(): void {
     this.form = this.fb.group({
       primaryName: ['', Validators.required],
+      nameArabic: [''],
+      nameEnglish: [''],
+      nameNobiin: [''],
       sex: [Sex.Unknown],
       isLiving: [true],
       familyId: [null],
@@ -578,8 +543,7 @@ export class PersonFormDialogComponent implements OnInit {
       education: [''],
       religion: [''],
       nationality: [''],
-      notes: [''],
-      names: this.fb.array([])
+      notes: ['']
     });
   }
   
@@ -600,6 +564,9 @@ export class PersonFormDialogComponent implements OnInit {
   private patchForm(person: Person): void {
     this.form.patchValue({
       primaryName: person.primaryName || '',
+      nameArabic: person.nameArabic || '',
+      nameEnglish: person.nameEnglish || '',
+      nameNobiin: person.nameNobiin || '',
       sex: person.sex,
       isLiving: !person.deathDate,
       familyId: person.familyId || null,
@@ -616,45 +583,99 @@ export class PersonFormDialogComponent implements OnInit {
       nationality: person.nationality || '',
       notes: person.notes || ''
     });
-    
-    // Add names
-    if (person.names) {
-      person.names.forEach(name => {
-        this.namesArray.push(this.createNameFormGroup(name));
-      });
+  }
+  
+  hasAnyNameToTransliterate(): boolean {
+    const formValue = this.form.value;
+    return !!(formValue.nameArabic || formValue.nameEnglish);
+  }
+
+  onArabicNameBlur(): void {
+    // Auto-fill English if Arabic was entered and English is empty
+    const arabicName = this.form.get('nameArabic')?.value;
+    const englishName = this.form.get('nameEnglish')?.value;
+
+    if (arabicName && !englishName) {
+      this.transliterateFromArabic();
     }
   }
-  
-  private createNameFormGroup(name?: any): FormGroup {
-    return this.fb.group({
-      type: [name?.type ?? NameType.Primary],
-      given: [name?.given ?? ''],
-      middle: [name?.middle ?? ''],
-      family: [name?.family ?? ''],
-      full: [name?.full ?? ''],
-      script: [name?.script ?? 'Latin'],
-      transliteration: [name?.transliteration ?? '']
+
+  onEnglishNameBlur(): void {
+    // Auto-fill Arabic if English was entered and Arabic is empty
+    const arabicName = this.form.get('nameArabic')?.value;
+    const englishName = this.form.get('nameEnglish')?.value;
+
+    if (englishName && !arabicName) {
+      this.transliterateFromEnglish();
+    }
+  }
+
+  private transliterateFromArabic(): void {
+    const arabicName = this.form.get('nameArabic')?.value;
+    if (!arabicName?.trim()) return;
+
+    this.transliterating.set('arabic');
+
+    this.transliterationService.transliterate({
+      inputName: arabicName,
+      sourceLanguage: 'ar',
+      displayLanguage: this.i18n.currentLang() as 'en' | 'ar' | 'nob'
+    }).subscribe({
+      next: (result) => {
+        this.transliterating.set(null);
+
+        // Fill in English if empty
+        if (!this.form.get('nameEnglish')?.value && result.english?.best) {
+          this.form.patchValue({ nameEnglish: result.english.best });
+        }
+
+        // Fill in Nobiin if empty
+        if (!this.form.get('nameNobiin')?.value && result.nobiin?.value) {
+          this.form.patchValue({ nameNobiin: result.nobiin.value });
+        }
+      },
+      error: () => this.transliterating.set(null)
     });
   }
-  
-  addName(): void {
-    this.namesArray.push(this.createNameFormGroup());
+
+  private transliterateFromEnglish(): void {
+    const englishName = this.form.get('nameEnglish')?.value;
+    if (!englishName?.trim()) return;
+
+    this.transliterating.set('english');
+
+    this.transliterationService.transliterate({
+      inputName: englishName,
+      sourceLanguage: 'en',
+      displayLanguage: this.i18n.currentLang() as 'en' | 'ar' | 'nob'
+    }).subscribe({
+      next: (result) => {
+        this.transliterating.set(null);
+
+        // Fill in Arabic if empty
+        if (!this.form.get('nameArabic')?.value && result.arabic) {
+          this.form.patchValue({ nameArabic: result.arabic });
+        }
+
+        // Fill in Nobiin if empty
+        if (!this.form.get('nameNobiin')?.value && result.nobiin?.value) {
+          this.form.patchValue({ nameNobiin: result.nobiin.value });
+        }
+      },
+      error: () => this.transliterating.set(null)
+    });
   }
-  
-  removeName(index: number): void {
-    this.namesArray.removeAt(index);
-  }
-  
-  getNameTypeLabel(type: NameType): string {
-    const labels: Record<NameType, string> = {
-      [NameType.Primary]: this.i18n.t('personForm.nameTypePrimary'),
-      [NameType.Alias]: this.i18n.t('personForm.nameTypeAlias'),
-      [NameType.Maiden]: this.i18n.t('personForm.nameTypeMaiden'),
-      [NameType.Married]: this.i18n.t('personForm.nameTypeMarried'),
-      [NameType.Nickname]: this.i18n.t('personForm.nameTypeNickname'),
-      [NameType.Birth]: this.i18n.t('personForm.nameTypeBirth')
-    };
-    return labels[type] || type.toString();
+
+  transliterateAllNames(): void {
+    const arabicName = this.form.get('nameArabic')?.value;
+    const englishName = this.form.get('nameEnglish')?.value;
+
+    // Prefer transliterating from Arabic if available
+    if (arabicName?.trim()) {
+      this.transliterateFromArabic();
+    } else if (englishName?.trim()) {
+      this.transliterateFromEnglish();
+    }
   }
   
   onCancel(): void {
@@ -663,12 +684,15 @@ export class PersonFormDialogComponent implements OnInit {
   
   onSave(): void {
     if (this.form.invalid) return;
-    
+
     this.saving.set(true);
     const formValue = this.form.value;
-    
+
     const request: CreatePersonRequest = {
       primaryName: formValue.primaryName,
+      nameArabic: formValue.nameArabic || undefined,
+      nameEnglish: formValue.nameEnglish || undefined,
+      nameNobiin: formValue.nameNobiin || undefined,
       sex: formValue.sex,
       familyId: formValue.familyId || undefined,
       privacyLevel: formValue.privacyLevel,
@@ -682,14 +706,13 @@ export class PersonFormDialogComponent implements OnInit {
       education: formValue.education || undefined,
       religion: formValue.religion || undefined,
       nationality: formValue.nationality || undefined,
-      notes: formValue.notes || undefined,
-      names: formValue.names.length > 0 ? formValue.names : undefined
+      notes: formValue.notes || undefined
     };
-    
+
     const operation = this.data.person
       ? this.personService.updatePerson(this.data.person.id, request)
       : this.personService.createPerson(request);
-    
+
     operation.subscribe({
       next: (person) => {
         this.saving.set(false);
@@ -704,88 +727,6 @@ export class PersonFormDialogComponent implements OnInit {
   
   private formatDateForApi(date: Date): string {
     return date.toISOString().split('T')[0];
-  }
-
-  transliterateName(index: number): void {
-    const nameGroup = this.namesArray.at(index);
-    if (!nameGroup) return;
-
-    const fullName = nameGroup.get('full')?.value;
-    const given = nameGroup.get('given')?.value;
-    const family = nameGroup.get('family')?.value;
-    const script = nameGroup.get('script')?.value || 'Latin';
-    const nameType = nameGroup.get('type')?.value || NameType.Primary;
-
-    // Build the name to transliterate (prefer full name, otherwise combine parts)
-    const nameToTransliterate = fullName || [given, family].filter(Boolean).join(' ');
-
-    if (!nameToTransliterate.trim()) {
-      return; // No name to transliterate
-    }
-
-    // Map script to source language
-    const sourceLanguageMap: Record<string, 'en' | 'ar' | 'nob'> = {
-      'Latin': 'en',
-      'Arabic': 'ar',
-      'Coptic': 'nob'
-    };
-    const sourceLanguage = sourceLanguageMap[script] || 'en';
-
-    this.transliterating.set(index);
-
-    this.transliterationService.transliterate({
-      inputName: nameToTransliterate,
-      sourceLanguage: sourceLanguage,
-      displayLanguage: this.i18n.currentLang() as 'en' | 'ar' | 'nob'
-    }).subscribe({
-      next: (result) => {
-        this.transliterating.set(null);
-
-        // Add transliterated names for other scripts
-        const scriptTargets: Array<{ script: string; value: string }> = [];
-
-        if (script !== 'Arabic' && result.arabic) {
-          scriptTargets.push({ script: 'Arabic', value: result.arabic });
-        }
-        if (script !== 'Latin' && result.english?.best) {
-          scriptTargets.push({ script: 'Latin', value: result.english.best });
-        }
-        if (script !== 'Coptic' && result.nobiin?.value) {
-          scriptTargets.push({ script: 'Coptic', value: result.nobiin.value });
-        }
-
-        // Add new name entries for each transliterated version
-        scriptTargets.forEach(target => {
-          // Check if we already have a name with this script
-          const existingIndex = this.namesArray.controls.findIndex(
-            ctrl => ctrl.get('script')?.value === target.script
-          );
-
-          if (existingIndex === -1) {
-            // Add new name entry
-            this.namesArray.push(this.fb.group({
-              type: [nameType],
-              given: [''],
-              middle: [''],
-              family: [''],
-              full: [target.value],
-              script: [target.script],
-              transliteration: [nameToTransliterate]
-            }));
-          } else {
-            // Update existing entry
-            this.namesArray.at(existingIndex).patchValue({
-              full: target.value,
-              transliteration: nameToTransliterate
-            });
-          }
-        });
-      },
-      error: (error) => {
-        console.error('Transliteration failed:', error);
-        this.transliterating.set(null);
-      }
-    });
   }
 
   getLocalizedFamilyName(family: FamilyListItem): string {

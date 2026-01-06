@@ -14,12 +14,15 @@ import { forkJoin } from 'rxjs';
 
 import type { Person } from '../../core/models/person.models';
 import { Sex, NameType } from '../../core/models/person.models';
+import { getDisplayName, DisplayLanguage } from '../../core/models/search.models';
 import { PersonService } from '../../core/services/person.service';
-import { 
-  RelationshipService, 
-  ParentChildResponse, 
+import { I18nService } from '../../core/i18n';
+import {
+  RelationshipService,
+  ParentChildResponse,
   UnionResponse,
-  SiblingResponse 
+  SiblingResponse,
+  UnionMemberDto
 } from '../../core/services/relationship.service';
 import {
   AddRelationshipDialogComponent,
@@ -68,7 +71,7 @@ import { PersonMediaComponent } from './person-media.component';
               <i class="fa-solid" [ngClass]="getSexIconClass(person()!.sex)" aria-hidden="true"></i>
             </div>
             <div class="info">
-              <h1>{{ person()!.primaryName || 'Unknown' }}</h1>
+              <h1>{{ getPersonDisplayName() }}</h1>
               <p class="lifespan">{{ getLifespan() }}</p>
               @if (person()!.occupation) {
                 <p class="occupation">{{ person()!.occupation }}</p>
@@ -159,17 +162,26 @@ import { PersonMediaComponent } from './person-media.component';
                   </div>
                 }
 
-                <!-- Alternative Names -->
-                @if (person()!.names && person()!.names.length > 0) {
+                <!-- Names in Different Scripts -->
+                @if (hasAnyName()) {
                   <div class="names-section">
                     <h4>Names</h4>
-                    @for (name of person()!.names; track name.id) {
+                    @if (person()!.nameArabic) {
                       <div class="name-item">
-                        <mat-chip>{{ getNameTypeLabel(name.type) }}</mat-chip>
-                        <span>{{ name.full || buildFullName(name) }}</span>
-                        @if (name.transliteration) {
-                          <span class="transliteration">({{ name.transliteration }})</span>
-                        }
+                        <mat-chip>العربية</mat-chip>
+                        <span class="name-arabic">{{ person()!.nameArabic }}</span>
+                      </div>
+                    }
+                    @if (person()!.nameEnglish) {
+                      <div class="name-item">
+                        <mat-chip>English</mat-chip>
+                        <span>{{ person()!.nameEnglish }}</span>
+                      </div>
+                    }
+                    @if (person()!.nameNobiin) {
+                      <div class="name-item">
+                        <mat-chip>ⲛⲟⲃⲓⲓⲛ</mat-chip>
+                        <span>{{ person()!.nameNobiin }}</span>
                       </div>
                     }
                   </div>
@@ -195,7 +207,7 @@ import { PersonMediaComponent } from './person-media.component';
                       @for (parent of parents(); track parent.id) {
                         <mat-list-item class="clickable" (click)="navigateToPerson(parent.parentId)">
                           <i matListItemIcon class="fa-solid" [ngClass]="[getSexIconClass(parent.parentSex), getSexClass(parent.parentSex)]" aria-hidden="true"></i>
-                          <span matListItemTitle>{{ parent.parentName || 'Unknown' }}</span>
+                          <span matListItemTitle>{{ getParentDisplayName(parent) }}</span>
                           <span matListItemLine>
                             {{ getRelationshipTypeLabel(parent.relationshipType) }}
                             @if (parent.isAdopted) { (Adopted) }
@@ -221,7 +233,7 @@ import { PersonMediaComponent } from './person-media.component';
                       @for (sibling of siblings(); track sibling.personId) {
                         <mat-list-item class="clickable" (click)="navigateToPerson(sibling.personId)">
                           <i matListItemIcon class="fa-solid" [ngClass]="[getSexIconClass(sibling.personSex), getSexClass(sibling.personSex)]" aria-hidden="true"></i>
-                          <span matListItemTitle>{{ sibling.personName || 'Unknown' }}</span>
+                          <span matListItemTitle>{{ getSiblingDisplayName(sibling) }}</span>
                           <span matListItemLine>
                             {{ sibling.isFullSibling ? 'Full sibling' : 'Half sibling' }}
                           </span>
@@ -247,7 +259,7 @@ import { PersonMediaComponent } from './person-media.component';
                         @for (member of getOtherMembers(union); track member.id) {
                           <mat-list-item class="clickable" (click)="navigateToPerson(member.personId)">
                             <i matListItemIcon class="fa-solid" [ngClass]="[getSexIconClass(member.personSex), getSexClass(member.personSex)]" aria-hidden="true"></i>
-                            <span matListItemTitle>{{ member.personName || 'Unknown' }}</span>
+                            <span matListItemTitle>{{ getSpouseDisplayName(member) }}</span>
                             <span matListItemLine>
                               {{ getUnionTypeLabel(union.type) }}
                               @if (union.startDate) {
@@ -279,7 +291,7 @@ import { PersonMediaComponent } from './person-media.component';
                       @for (child of children(); track child.id) {
                         <mat-list-item class="clickable" (click)="navigateToPerson(child.childId)">
                           <i matListItemIcon class="fa-solid" [ngClass]="[getSexIconClass(child.childSex), getSexClass(child.childSex)]" aria-hidden="true"></i>
-                          <span matListItemTitle>{{ child.childName || 'Unknown' }}</span>
+                          <span matListItemTitle>{{ getChildDisplayName(child) }}</span>
                           <span matListItemLine>
                             {{ getRelationshipTypeLabel(child.relationshipType) }}
                             @if (child.isAdopted) { (Adopted) }
@@ -450,6 +462,12 @@ import { PersonMediaComponent } from './person-media.component';
       font-style: italic;
     }
 
+    .name-item .name-arabic {
+      font-family: 'Noto Naskh Arabic', 'Arabic Typesetting', serif;
+      font-size: 1.1em;
+      direction: rtl;
+    }
+
     .family-section {
       margin-bottom: 24px;
     }
@@ -501,6 +519,7 @@ export class PersonDetailComponent implements OnInit {
   private relationshipService = inject(RelationshipService);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
+  private i18n = inject(I18nService);
 
   personId = signal<string | null>(null);
   person = signal<Person | null>(null);
@@ -576,6 +595,46 @@ export class PersonDetailComponent implements OnInit {
     return this.personService.getLifespan(p);
   }
 
+  getPersonDisplayName(): string {
+    const p = this.person();
+    if (!p) return 'Unknown';
+    const lang = this.i18n.currentLang() as DisplayLanguage;
+    return getDisplayName(p, lang);
+  }
+
+  hasAnyName(): boolean {
+    const p = this.person();
+    return !!(p?.nameArabic || p?.nameEnglish || p?.nameNobiin);
+  }
+
+  getParentDisplayName(parent: ParentChildResponse): string {
+    const lang = this.i18n.currentLang();
+    if (lang === 'ar') return parent.parentNameArabic || parent.parentNameEnglish || parent.parentName || 'Unknown';
+    if (lang === 'nob') return parent.parentNameNobiin || parent.parentNameEnglish || parent.parentName || 'Unknown';
+    return parent.parentNameEnglish || parent.parentNameArabic || parent.parentName || 'Unknown';
+  }
+
+  getChildDisplayName(child: ParentChildResponse): string {
+    const lang = this.i18n.currentLang();
+    if (lang === 'ar') return child.childNameArabic || child.childNameEnglish || child.childName || 'Unknown';
+    if (lang === 'nob') return child.childNameNobiin || child.childNameEnglish || child.childName || 'Unknown';
+    return child.childNameEnglish || child.childNameArabic || child.childName || 'Unknown';
+  }
+
+  getSiblingDisplayName(sibling: SiblingResponse): string {
+    const lang = this.i18n.currentLang();
+    if (lang === 'ar') return sibling.personNameArabic || sibling.personNameEnglish || sibling.personName || 'Unknown';
+    if (lang === 'nob') return sibling.personNameNobiin || sibling.personNameEnglish || sibling.personName || 'Unknown';
+    return sibling.personNameEnglish || sibling.personNameArabic || sibling.personName || 'Unknown';
+  }
+
+  getSpouseDisplayName(member: UnionMemberDto): string {
+    const lang = this.i18n.currentLang();
+    if (lang === 'ar') return member.personNameArabic || member.personNameEnglish || member.personName || 'Unknown';
+    if (lang === 'nob') return member.personNameNobiin || member.personNameEnglish || member.personName || 'Unknown';
+    return member.personNameEnglish || member.personNameArabic || member.personName || 'Unknown';
+  }
+
   formatDate(dateStr?: string | null): string {
     if (!dateStr) return '';
     return new Date(dateStr).toLocaleDateString();
@@ -646,7 +705,7 @@ export class PersonDetailComponent implements OnInit {
 
   removeParent(parent: ParentChildResponse, event: Event) {
     event.stopPropagation();
-    if (confirm(`Remove ${parent.parentName || 'this person'} as a parent?`)) {
+    if (confirm(`Remove ${this.getParentDisplayName(parent)} as a parent?`)) {
       this.relationshipService.removeParent(this.personId()!, parent.parentId).subscribe({
         next: () => {
           this.loadPerson();
@@ -661,7 +720,7 @@ export class PersonDetailComponent implements OnInit {
 
   removeChild(child: ParentChildResponse, event: Event) {
     event.stopPropagation();
-    if (confirm(`Remove ${child.childName || 'this person'} as a child?`)) {
+    if (confirm(`Remove ${this.getChildDisplayName(child)} as a child?`)) {
       this.relationshipService.removeChild(this.personId()!, child.childId).subscribe({
         next: () => {
           this.loadPerson();

@@ -14,8 +14,10 @@ import { MatBadgeModule } from '@angular/material/badge';
 import { MatDividerModule } from '@angular/material/divider';
 
 import { PersonService } from '../../core/services/person.service';
+import { PersonSearchService } from '../../core/services/person-search.service';
 import { I18nService, TranslatePipe } from '../../core/i18n';
-import { PersonListItem, Sex, PersonSearchRequest } from '../../core/models/person.models';
+import { Sex } from '../../core/models/person.models';
+import { SearchPersonItem, getPrimaryName, SearchScript } from '../../core/models/search.models';
 import { EmptyStateComponent, SkeletonComponent, ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components';
 import { PersonFormDialogComponent } from './person-form-dialog.component';
 
@@ -49,6 +51,9 @@ interface FilterState {
           @if (totalCount() > 0) {
             <span class="people-page__count">{{ 'people.totalCount' | translate: { count: totalCount() } }}</span>
           }
+          @if (searchDuration() > 0) {
+            <span class="people-page__duration">({{ searchDuration() }}ms)</span>
+          }
         </div>
         
         <button 
@@ -71,6 +76,9 @@ interface FilterState {
             [placeholder]="'people.searchPlaceholder' | translate"
             [(ngModel)]="searchQuery"
             (ngModelChange)="onSearchChange($event)">
+          @if (detectedScript() !== 'auto') {
+            <span class="ft-search__script-hint">{{ detectedScript() }}</span>
+          }
           @if (searchQuery) {
             <button class="ft-search__clear" (click)="clearSearch()">
               <i class="fa-solid fa-xmark" aria-hidden="true"></i>
@@ -159,12 +167,22 @@ interface FilterState {
                   [class.ft-avatar--male]="person.sex === Sex.Male"
                   [class.ft-avatar--female]="person.sex === Sex.Female"
                   [class.ft-avatar--unknown]="person.sex === Sex.Unknown">
-                  {{ getInitials(person.primaryName) }}
+                  {{ getInitials(getPersonName(person)) }}
                 </div>
                 
                 <!-- Content -->
                 <div class="ft-person-card__content">
-                  <h3 class="ft-person-card__name">{{ person.primaryName || ('common.unknown' | translate) }}</h3>
+                  <h3 class="ft-person-card__name">{{ getPersonName(person) || ('common.unknown' | translate) }}</h3>
+                  
+                  <!-- Show secondary names if available -->
+                  @if (hasSecondaryNames(person)) {
+                    <div class="ft-person-card__alt-names">
+                      @for (name of getSecondaryNames(person); track $index) {
+                        <span class="ft-person-card__alt-name">{{ name }}</span>
+                      }
+                    </div>
+                  }
+                  
                   <div class="ft-person-card__meta">
                     @if (person.birthDate) {
                       <span class="ft-person-card__meta-item">
@@ -178,10 +196,29 @@ interface FilterState {
                         {{ formatDate(person.deathDate) }}
                       </span>
                     }
-                    @if (person.birthPlace) {
+                    @if (person.birthPlaceName) {
                       <span class="ft-person-card__meta-item">
                         <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
-                        {{ person.birthPlace }}
+                        {{ person.birthPlaceName }}
+                      </span>
+                    }
+                  </div>
+                  
+                  <!-- Relationship counts -->
+                  <div class="ft-person-card__counts">
+                    @if (person.parentsCount > 0) {
+                      <span class="ft-badge ft-badge--info" matTooltip="Parents">
+                        <i class="fa-solid fa-user-tie" aria-hidden="true"></i> {{ person.parentsCount }}
+                      </span>
+                    }
+                    @if (person.childrenCount > 0) {
+                      <span class="ft-badge ft-badge--info" matTooltip="Children">
+                        <i class="fa-solid fa-child" aria-hidden="true"></i> {{ person.childrenCount }}
+                      </span>
+                    }
+                    @if (person.spousesCount > 0) {
+                      <span class="ft-badge ft-badge--info" matTooltip="Spouses">
+                        <i class="fa-solid fa-heart" aria-hidden="true"></i> {{ person.spousesCount }}
                       </span>
                     }
                   </div>
@@ -196,16 +233,8 @@ interface FilterState {
                         {{ person.mediaCount }}
                       </span>
                     }
-                    @if (!person.deathDate) {
+                    @if (person.isLiving) {
                       <span class="ft-badge ft-badge--success">{{ 'people.living' | translate }}</span>
-                    }
-                    @if (person.needsReview) {
-                      <span class="ft-badge ft-badge--warning">Review</span>
-                    }
-                    @if (person.isVerified) {
-                      <span class="ft-badge ft-badge--primary">
-                        <i class="fa-solid fa-circle-check" aria-hidden="true" style="font-size: 12px;"></i>
-                      </span>
                     }
                   </div>
                 </div>
@@ -222,16 +251,16 @@ interface FilterState {
                     </button>
                     <button mat-menu-item (click)="editPerson(person)">
                       <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
-                      <span>{{ 'people.editPerson' | translate }}</span>
+                      <span>{{ 'common.edit' | translate }}</span>
                     </button>
                     <button mat-menu-item (click)="viewInTree(person)">
                       <i class="fa-solid fa-sitemap" aria-hidden="true"></i>
-                      <span>{{ 'nav.familyTree' | translate }}</span>
+                      <span>{{ 'people.viewInTree' | translate }}</span>
                     </button>
                     <mat-divider></mat-divider>
                     <button mat-menu-item class="text-error" (click)="deletePerson(person)">
-                      <i class="fa-solid fa-trash" aria-hidden="true" style="color: var(--ft-error);"></i>
-                      <span>{{ 'people.deletePerson' | translate }}</span>
+                      <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                      <span>{{ 'common.delete' | translate }}</span>
                     </button>
                   </mat-menu>
                 </div>
@@ -242,27 +271,22 @@ interface FilterState {
           <!-- Load More -->
           @if (hasMore()) {
             <div class="people-page__load-more">
-              <button 
-                mat-stroked-button 
-                (click)="loadMore()"
-                [disabled]="loadingMore()">
+              <button mat-stroked-button (click)="loadMore()" [disabled]="loadingMore()">
                 @if (loadingMore()) {
-                  <span class="ft-spinner ft-spinner--sm"></span>
-                } @else {
-                  {{ 'common.next' | translate }}
+                  <i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>
                 }
+                {{ 'common.loadMore' | translate }}
               </button>
             </div>
           }
         }
       </div>
       
-      <!-- FAB Button (Mobile) -->
-      <button
-        mat-fab
-        color="primary"
-        class="ft-btn--fab d-desktop-none"
-        [matTooltip]="'people.addPerson' | translate"
+      <!-- Mobile FAB -->
+      <button 
+        mat-fab 
+        color="primary" 
+        class="people-page__fab d-desktop-none"
         (click)="openPersonForm()">
         <i class="fa-solid fa-plus" aria-hidden="true"></i>
       </button>
@@ -272,93 +296,84 @@ interface FilterState {
     .people-page {
       &__header {
         display: flex;
-        flex-direction: column;
-        gap: var(--ft-spacing-sm);
+        justify-content: space-between;
+        align-items: center;
         margin-bottom: var(--ft-spacing-lg);
-        
-        @media (min-width: 768px) {
-          flex-direction: row;
-          align-items: center;
-          justify-content: space-between;
-        }
       }
       
       &__title-section {
         display: flex;
-        flex-direction: column;
-        gap: var(--ft-spacing-xs);
-        
-        @media (min-width: 768px) {
-          flex-direction: row;
-          align-items: baseline;
-          gap: var(--ft-spacing-md);
-        }
+        align-items: baseline;
+        gap: var(--ft-spacing-sm);
       }
       
       &__count {
-        font-size: 0.875rem;
-        color: var(--ft-on-surface-variant);
+        color: var(--ft-text-secondary);
+        font-size: var(--ft-font-size-sm);
+      }
+      
+      &__duration {
+        color: var(--ft-text-tertiary);
+        font-size: var(--ft-font-size-xs);
       }
       
       &__toolbar {
         display: flex;
-        flex-direction: column;
+        flex-wrap: wrap;
         gap: var(--ft-spacing-md);
         margin-bottom: var(--ft-spacing-lg);
-        
-        @media (min-width: 768px) {
-          flex-direction: row;
-          align-items: center;
-          
-          .ft-search {
-            max-width: 400px;
-          }
-        }
       }
       
       &__content {
-        padding-bottom: calc(var(--ft-spacing-xxl) + 56px); // Space for FAB
-        
-        @media (min-width: 768px) {
-          padding-bottom: var(--ft-spacing-lg);
-        }
+        min-height: 300px;
       }
       
       &__load-more {
         display: flex;
         justify-content: center;
-        padding: var(--ft-spacing-lg) 0;
+        padding: var(--ft-spacing-xl) 0;
+      }
+      
+      &__fab {
+        position: fixed;
+        bottom: calc(var(--ft-spacing-xl) + 56px);
+        right: var(--ft-spacing-lg);
+        z-index: 100;
       }
     }
     
     .people-grid {
       display: grid;
-      grid-template-columns: 1fr;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
       gap: var(--ft-spacing-md);
-      
-      @media (min-width: 576px) {
-        grid-template-columns: repeat(2, 1fr);
-      }
-      
-      @media (min-width: 992px) {
-        grid-template-columns: repeat(3, 1fr);
-      }
-      
-      @media (min-width: 1400px) {
-        grid-template-columns: repeat(4, 1fr);
-      }
     }
     
-    .ft-person-card__badges {
+    .ft-search__script-hint {
+      font-size: var(--ft-font-size-xs);
+      color: var(--ft-primary);
+      background: var(--ft-primary-light);
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-right: var(--ft-spacing-xs);
+    }
+    
+    .ft-person-card__alt-names {
       display: flex;
       flex-wrap: wrap;
       gap: var(--ft-spacing-xs);
-      margin-top: var(--ft-spacing-sm);
+      margin-top: var(--ft-spacing-xs);
     }
     
-    i.fa-solid.ft-chip__icon {
-      font-size: 14px;
-      margin-inline-end: 4px;
+    .ft-person-card__alt-name {
+      font-size: var(--ft-font-size-xs);
+      color: var(--ft-text-secondary);
+      direction: auto;
+    }
+    
+    .ft-person-card__counts {
+      display: flex;
+      gap: var(--ft-spacing-xs);
+      margin-top: var(--ft-spacing-xs);
     }
     
     mat-divider {
@@ -371,6 +386,8 @@ interface FilterState {
   `]
 })
 export class PeopleListComponent implements OnInit, OnDestroy {
+  // Use new efficient search service
+  private readonly searchService = inject(PersonSearchService);
   private readonly personService = inject(PersonService);
   private readonly i18n = inject(I18nService);
   private readonly dialog = inject(MatDialog);
@@ -381,14 +398,16 @@ export class PeopleListComponent implements OnInit, OnDestroy {
   // Expose enum to template
   readonly Sex = Sex;
   
-  // State
-  people = signal<PersonListItem[]>([]);
+  // State - using new SearchPersonItem type
+  people = signal<SearchPersonItem[]>([]);
   loading = signal(true);
   loadingMore = signal(false);
   totalCount = signal(0);
   currentPage = signal(1);
   pageSize = 20;
   searchQuery = '';
+  searchDuration = signal(0);
+  detectedScript = signal<SearchScript>('auto');
   
   filters = signal<FilterState>({
     sex: null,
@@ -412,7 +431,9 @@ export class PeopleListComponent implements OnInit, OnDestroy {
       debounceTime(300),
       distinctUntilChanged(),
       takeUntil(this.destroy$)
-    ).subscribe(() => {
+    ).subscribe((query) => {
+      // Detect script for UI hint
+      this.detectedScript.set(this.searchService.detectScript(query));
       this.currentPage.set(1);
       this.loadPeople();
     });
@@ -433,28 +454,23 @@ export class PeopleListComponent implements OnInit, OnDestroy {
     }
     
     const filters = this.filters();
-    const request: PersonSearchRequest = {
-      page: this.currentPage(),
-      pageSize: this.pageSize,
-      nameQuery: this.searchQuery || undefined,
+    
+    // Use new efficient search service
+    this.searchService.search({
+      query: this.searchQuery || undefined,
       sex: filters.sex ?? undefined,
-    };
-    
-    // Apply status filter
-    if (filters.status === 'living') {
-      // Living = no death date (we'll filter client-side since API might not support this directly)
-    } else if (filters.status === 'deceased') {
-      // Deceased = has death date
-    }
-    
-    this.personService.searchPeople(request).subscribe({
+      isLiving: filters.status === 'living' ? true : filters.status === 'deceased' ? false : undefined,
+      page: this.currentPage(),
+      pageSize: this.pageSize
+    }).subscribe({
       next: (response) => {
         if (append) {
           this.people.update(p => [...p, ...response.items]);
         } else {
           this.people.set(response.items);
         }
-        this.totalCount.set(response.totalCount);
+        this.totalCount.set(response.total);
+        this.searchDuration.set(response.searchDurationMs || 0);
         this.loading.set(false);
         this.loadingMore.set(false);
       },
@@ -473,6 +489,7 @@ export class PeopleListComponent implements OnInit, OnDestroy {
   
   clearSearch(): void {
     this.searchQuery = '';
+    this.detectedScript.set('auto');
     this.searchSubject.next('');
   }
   
@@ -484,6 +501,7 @@ export class PeopleListComponent implements OnInit, OnDestroy {
   
   clearFilters(): void {
     this.searchQuery = '';
+    this.detectedScript.set('auto');
     this.filters.set({ sex: null, status: 'all' });
     this.currentPage.set(1);
     this.loadPeople();
@@ -492,6 +510,40 @@ export class PeopleListComponent implements OnInit, OnDestroy {
   loadMore(): void {
     this.currentPage.update(p => p + 1);
     this.loadPeople(true);
+  }
+  
+  // Helper to get primary name from SearchPersonItem
+  getPersonName(person: SearchPersonItem): string {
+    return getPrimaryName(person);
+  }
+  
+  // Check if person has secondary names to display
+  hasSecondaryNames(person: SearchPersonItem): boolean {
+    const primaryName = getPrimaryName(person);
+    // Check if there are other names different from primary
+    return !!(
+      (person.nameArabic && person.nameArabic !== primaryName) ||
+      (person.nameEnglish && person.nameEnglish !== primaryName) ||
+      (person.nameNobiin && person.nameNobiin !== primaryName)
+    );
+  }
+
+  // Get secondary names (non-primary) as string array
+  getSecondaryNames(person: SearchPersonItem): string[] {
+    const primaryName = getPrimaryName(person);
+    const names: string[] = [];
+
+    if (person.nameArabic && person.nameArabic !== primaryName) {
+      names.push(person.nameArabic);
+    }
+    if (person.nameEnglish && person.nameEnglish !== primaryName) {
+      names.push(person.nameEnglish);
+    }
+    if (person.nameNobiin && person.nameNobiin !== primaryName) {
+      names.push(person.nameNobiin);
+    }
+
+    return names.slice(0, 2);
   }
   
   getInitials(name: string | null): string {
@@ -513,13 +565,13 @@ export class PeopleListComponent implements OnInit, OnDestroy {
     }
   }
   
-  openPersonForm(person?: PersonListItem): void {
+  openPersonForm(person?: SearchPersonItem): void {
     const dialogRef = this.dialog.open(PersonFormDialogComponent, {
       width: '100%',
       maxWidth: '600px',
       maxHeight: '90vh',
       panelClass: 'ft-dialog',
-      data: { person }
+      data: { person: person ? { id: person.id, primaryName: this.getPersonName(person) } : undefined }
     });
     
     dialogRef.afterClosed().subscribe(result => {
@@ -533,24 +585,24 @@ export class PeopleListComponent implements OnInit, OnDestroy {
     });
   }
   
-  viewPerson(person: PersonListItem): void {
+  viewPerson(person: SearchPersonItem): void {
     this.router.navigate(['/people', person.id]);
   }
   
-  editPerson(person: PersonListItem): void {
+  editPerson(person: SearchPersonItem): void {
     this.openPersonForm(person);
   }
   
-  viewInTree(person: PersonListItem): void {
+  viewInTree(person: SearchPersonItem): void {
     this.router.navigate(['/tree'], { queryParams: { personId: person.id } });
   }
 
-  viewPersonMedia(person: PersonListItem, event: Event): void {
-    event.stopPropagation(); // Prevent card click from triggering
+  viewPersonMedia(person: SearchPersonItem, event: Event): void {
+    event.stopPropagation();
     this.router.navigate(['/people', person.id], { queryParams: { tab: 'media' } });
   }
 
-  deletePerson(person: PersonListItem): void {
+  deletePerson(person: SearchPersonItem): void {
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
       width: '400px',
       data: {

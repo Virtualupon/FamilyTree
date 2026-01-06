@@ -26,6 +26,7 @@ import { LoadingComponent, EmptyStateComponent } from '../../shared/components';
 import { PersonSelectorComponent } from './person-selector.component';
 import { D3FamilyTreeComponent } from './d3-family-tree.component';
 import { RelationshipFinderDialogComponent, RelationshipFinderDialogResult } from './relationship-finder-dialog.component';
+import { RelationshipEditorDialogComponent, RelationshipEditorDialogResult, RelationshipEditorDialogData } from './relationship-editor-dialog.component';
 import { RelationshipPathViewComponent } from './relationship-path-view.component';
 
 @Component({
@@ -176,7 +177,8 @@ import { RelationshipPathViewComponent } from './relationship-path-view.componen
             (personSelected)="onD3NodeClick($event)"
             (personDoubleClicked)="onD3NodeDoubleClick($event)"
             (crossTreeLinkClicked)="onCrossTreeLinkClick($event)"
-            (findRelationshipClicked)="onFindRelationship($event)">
+            (findRelationshipClicked)="onFindRelationship($event)"
+            (addRelationshipClicked)="onAddRelationship($event)">
           </app-d3-family-tree>
 
           <!-- Zoom Controls -->
@@ -1074,5 +1076,30 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
         this.onFindRelationship(this.lastFromPerson as TreePersonNode);
       }, 300);
     }
+  }
+
+  // Add/Edit relationship methods
+  onAddRelationship(person: TreePersonNode): void {
+    const dialogData: RelationshipEditorDialogData = {
+      person: person,
+      mode: 'create'
+    };
+
+    const dialogRef = this.dialog.open(RelationshipEditorDialogComponent, {
+      data: dialogData,
+      width: '520px',
+      maxWidth: '95vw'
+    });
+
+    dialogRef.afterClosed().subscribe((result: RelationshipEditorDialogResult | undefined) => {
+      if (result?.success) {
+        // Reload the tree to show the new relationship
+        this.loadTree();
+        
+        // Show success message
+        const message = this.i18n.t('relationshipEditor.relationshipCreated');
+        this.snackBar.open(message, this.i18n.t('common.close'), { duration: 3000 });
+      }
+    });
   }
 }

@@ -196,4 +196,99 @@ public class NameMappingDto
     public DateTime? UpdatedAt { get; set; }
 }
 
+/// <summary>
+/// Request for bulk transliteration generation
+/// </summary>
+public class BulkTransliterationRequest
+{
+    /// <summary>Organization/Tree ID to process</summary>
+    public Guid? OrgId { get; set; }
+    
+    /// <summary>Only process persons missing specific scripts</summary>
+    public List<string>? MissingScripts { get; set; }
+    
+    /// <summary>Maximum persons to process (default 100)</summary>
+    public int MaxPersons { get; set; } = 100;
+    
+    /// <summary>Skip persons that already have all 3 scripts</summary>
+    public bool SkipComplete { get; set; } = true;
+}
+
+/// <summary>
+/// Result of generating translations for a single person
+/// </summary>
+public class PersonTransliterationResult
+{
+    public bool Success { get; set; }
+    public string? Message { get; set; }
+    public Guid PersonId { get; set; }
+    public int NamesGenerated { get; set; }
+    public List<GeneratedNameInfo> GeneratedNames { get; set; } = new();
+    public List<string> Warnings { get; set; } = new();
+}
+
+/// <summary>
+/// Info about a generated name
+/// </summary>
+public class GeneratedNameInfo
+{
+    public Guid NameId { get; set; }
+    public string Script { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string SourceScript { get; set; } = string.Empty;
+    public string SourceName { get; set; } = string.Empty;
+    public double Confidence { get; set; }
+}
+
+/// <summary>
+/// Result of bulk transliteration generation
+/// </summary>
+public class BulkTransliterationResult
+{
+    public bool Success { get; set; }
+    public string? Message { get; set; }
+    public int TotalPersonsProcessed { get; set; }
+    public int TotalNamesGenerated { get; set; }
+    public int PersonsSkipped { get; set; }
+    public int Errors { get; set; }
+    public List<PersonTransliterationResult> Results { get; set; } = new();
+}
+
+/// <summary>
+/// Preview of what translations would be generated
+/// </summary>
+public class TransliterationPreviewResult
+{
+    public bool Success { get; set; }
+    public string? Message { get; set; }
+    public Guid PersonId { get; set; }
+    public List<ExistingNameInfo> ExistingNames { get; set; } = new();
+    public List<ProposedNameInfo> ProposedNames { get; set; } = new();
+    public List<string> MissingScripts { get; set; } = new();
+}
+
+/// <summary>
+/// Info about an existing name
+/// </summary>
+public class ExistingNameInfo
+{
+    public Guid NameId { get; set; }
+    public string Script { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public bool IsPrimary { get; set; }
+}
+
+/// <summary>
+/// Info about a proposed name to generate
+/// </summary>
+public class ProposedNameInfo
+{
+    public string Script { get; set; } = string.Empty;
+    public string ProposedFullName { get; set; } = string.Empty;
+    public string SourceScript { get; set; } = string.Empty;
+    public string SourceName { get; set; } = string.Empty;
+    public double Confidence { get; set; }
+    public bool NeedsReview { get; set; }
+}
+
 #endregion

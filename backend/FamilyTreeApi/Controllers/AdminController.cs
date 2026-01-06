@@ -14,7 +14,8 @@ namespace FamilyTreeApi.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "SuperAdmin")]
+//[Authorize(Roles = "SuperAdmin")]
+[Authorize]
 public class AdminController : ControllerBase
 {
     private readonly IAdminService _adminService;
@@ -88,10 +89,20 @@ public class AdminController : ControllerBase
 
     /// <summary>
     /// Get assignments for a specific admin user
+    /// Admins can only get their own assignments; SuperAdmins can get any user's
     /// </summary>
+    [Authorize(Roles = "SuperAdmin,Admin")]
     [HttpGet("users/{userId}/assignments")]
     public async Task<ActionResult<List<AdminAssignmentResponse>>> GetUserAssignments(long userId)
     {
+        var userContext = BuildUserContext();
+
+        // Admin can only get their own assignments
+        if (!User.IsInRole("SuperAdmin") && userContext.UserId != userId)
+        {
+            return Forbid();
+        }
+
         var result = await _adminService.GetUserAssignmentsAsync(userId);
 
         return HandleResult(result);
@@ -157,10 +168,20 @@ public class AdminController : ControllerBase
 
     /// <summary>
     /// Get town assignments for a specific admin user
+    /// Admins can only get their own assignments; SuperAdmins can get any user's
     /// </summary>
+    [Authorize(Roles = "SuperAdmin,Admin")]
     [HttpGet("users/{userId}/town-assignments")]
     public async Task<ActionResult<List<AdminTownAssignmentResponse>>> GetUserTownAssignments(long userId)
     {
+        var userContext = BuildUserContext();
+
+        // Admin can only get their own assignments
+        if (!User.IsInRole("SuperAdmin") && userContext.UserId != userId)
+        {
+            return Forbid();
+        }
+
         var result = await _adminService.GetUserTownAssignmentsAsync(userId);
 
         return HandleResult(result);

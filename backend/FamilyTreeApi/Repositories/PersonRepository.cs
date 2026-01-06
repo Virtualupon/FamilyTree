@@ -20,7 +20,6 @@ public class PersonRepository : Repository<Person>, IPersonRepository
     {
         return await _dbSet
             .Where(p => p.Id == id && p.OrgId == orgId)
-            .Include(p => p.Names)
             .Include(p => p.BirthPlace)
             .Include(p => p.DeathPlace)
             .FirstOrDefaultAsync(cancellationToken);
@@ -43,12 +42,9 @@ public class PersonRepository : Repository<Person>, IPersonRepository
             var searchTerm = search.NameQuery.Trim().ToLower();
             query = query.Where(p =>
                 (p.PrimaryName != null && p.PrimaryName.ToLower().Contains(searchTerm)) ||
-                p.Names.Any(n =>
-                    (n.Full != null && n.Full.ToLower().Contains(searchTerm)) ||
-                    (n.Given != null && n.Given.ToLower().Contains(searchTerm)) ||
-                    (n.Middle != null && n.Middle.ToLower().Contains(searchTerm)) ||
-                    (n.Transliteration != null && n.Transliteration.ToLower().Contains(searchTerm))
-                )
+                (p.NameArabic != null && p.NameArabic.ToLower().Contains(searchTerm)) ||
+                (p.NameEnglish != null && p.NameEnglish.ToLower().Contains(searchTerm)) ||
+                (p.NameNobiin != null && p.NameNobiin.ToLower().Contains(searchTerm))
             );
         }
 
@@ -116,6 +112,9 @@ public class PersonRepository : Repository<Person>, IPersonRepository
                 (p, mediaGroup) => new PersonListItemDto(
                     p.Id,
                     p.PrimaryName,
+                    p.NameArabic,
+                    p.NameEnglish,
+                    p.NameNobiin,
                     p.Sex,
                     p.BirthDate,
                     p.BirthPrecision,
@@ -201,12 +200,9 @@ public class PersonRepository : Repository<Person>, IPersonRepository
             var searchTerm = search.NameQuery.Trim().ToLower();
             query = query.Where(p =>
                 (p.PrimaryName != null && p.PrimaryName.ToLower().Contains(searchTerm)) ||
-                p.Names.Any(n =>
-                    (n.Full != null && n.Full.ToLower().Contains(searchTerm)) ||
-                    (n.Given != null && n.Given.ToLower().Contains(searchTerm)) ||
-                    (n.Middle != null && n.Middle.ToLower().Contains(searchTerm)) ||
-                    (n.Transliteration != null && n.Transliteration.ToLower().Contains(searchTerm))
-                )
+                (p.NameArabic != null && p.NameArabic.ToLower().Contains(searchTerm)) ||
+                (p.NameEnglish != null && p.NameEnglish.ToLower().Contains(searchTerm)) ||
+                (p.NameNobiin != null && p.NameNobiin.ToLower().Contains(searchTerm))
             );
         }
 
@@ -273,6 +269,9 @@ public class PersonRepository : Repository<Person>, IPersonRepository
                 (p, mediaGroup) => new PersonListItemDto(
                     p.Id,
                     p.PrimaryName,
+                    p.NameArabic,
+                    p.NameEnglish,
+                    p.NameNobiin,
                     p.Sex,
                     p.BirthDate,
                     p.BirthPrecision,

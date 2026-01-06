@@ -38,6 +38,9 @@ public class UnionMemberDto
     public Guid Id { get; set; }
     public Guid PersonId { get; set; }
     public string? PersonName { get; set; }
+    public string? PersonNameArabic { get; set; }
+    public string? PersonNameEnglish { get; set; }
+    public string? PersonNameNobiin { get; set; }
     public Sex? Sex { get; set; }
 }
 
@@ -96,6 +99,9 @@ public record UnionListItemDto(
 public record UnionMemberSummaryDto(
     Guid PersonId,
     string? PersonName,
+    string? PersonNameArabic,
+    string? PersonNameEnglish,
+    string? PersonNameNobiin,
     string Role
 );
 

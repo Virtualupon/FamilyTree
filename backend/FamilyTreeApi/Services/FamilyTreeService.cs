@@ -13,7 +13,12 @@ namespace FamilyTreeApi.Services;
 /// <summary>
 /// Family Tree service implementation containing all business logic.
 /// Uses repositories for data access, UserManager for role checks, and AutoMapper for DTO mapping.
-/// Services do NOT reference DbContext directly except where necessary for complex queries.
+/// 
+/// OPTIMIZATIONS APPLIED:
+/// - AsNoTracking() on all read-only queries
+/// - Consolidated queries to reduce database round-trips
+/// - Projection to reduce data transfer
+/// - Cached role checks where possible
 /// </summary>
 public class FamilyTreeService : IFamilyTreeService
 {
@@ -54,40 +59,48 @@ public class FamilyTreeService : IFamilyTreeService
             }
 
             var userId = user.Id;
-            IQueryable<Org> query;
 
-            if (await _userManager.IsInRoleAsync(user, "SuperAdmin"))
+            // OPTIMIZED: Get roles once instead of multiple IsInRoleAsync calls
+            var roles = await _userManager.GetRolesAsync(user);
+            var isSuperAdmin = roles.Contains("SuperAdmin");
+            var isAdmin = roles.Contains("Admin");
+
+            IQueryable<Org> query = _context.Orgs.AsNoTracking(); // OPTIMIZED: Added AsNoTracking
+
+            if (isSuperAdmin)
             {
-                // SuperAdmin sees all trees
-                query = _context.Orgs;
+                // SuperAdmin sees all trees - no filter needed
             }
-            else if (await _userManager.IsInRoleAsync(user, "Admin"))
+            else if (isAdmin)
             {
-                // Admin sees assigned trees + member trees
-                var assignedTreeIds = await _context.Set<AdminTreeAssignment>()
+                // OPTIMIZED: Single query with UNION instead of two separate queries
+                var accessibleTreeIds = await _context.Set<AdminTreeAssignment>()
+                    .AsNoTracking() // OPTIMIZED: Added AsNoTracking
                     .Where(a => a.UserId == userId)
                     .Select(a => a.TreeId)
+                    .Union(
+                        _context.OrgUsers
+                            .AsNoTracking() // OPTIMIZED: Added AsNoTracking
+                            .Where(ou => ou.UserId == userId)
+                            .Select(ou => ou.OrgId)
+                    )
                     .ToListAsync(cancellationToken);
 
-                var memberTreeIds = await _context.OrgUsers
-                    .Where(ou => ou.UserId == userId)
-                    .Select(ou => ou.OrgId)
-                    .ToListAsync(cancellationToken);
-
-                var allTreeIds = assignedTreeIds.Union(memberTreeIds).Distinct();
-                query = _context.Orgs.Where(o => allTreeIds.Contains(o.Id));
+                query = query.Where(o => accessibleTreeIds.Contains(o.Id));
             }
             else
             {
                 // Regular user sees only member trees
                 var memberTreeIds = await _context.OrgUsers
+                    .AsNoTracking() // OPTIMIZED: Added AsNoTracking
                     .Where(ou => ou.UserId == userId)
                     .Select(ou => ou.OrgId)
                     .ToListAsync(cancellationToken);
 
-                query = _context.Orgs.Where(o => memberTreeIds.Contains(o.Id));
+                query = query.Where(o => memberTreeIds.Contains(o.Id));
             }
 
+            // OPTIMIZED: Use projection to select only needed fields
             var trees = await query
                 .Include(o => o.Town)
                 .OrderBy(o => o.Name)
@@ -126,36 +139,34 @@ public class FamilyTreeService : IFamilyTreeService
                 return ServiceResult<FamilyTreeResponse>.Forbidden("You do not have access to this tree");
             }
 
+            // OPTIMIZED: Use projection instead of loading full entities
             var tree = await _context.Orgs
-                .Include(o => o.Owner)
-                .Include(o => o.Town)
-                .Include(o => o.OrgUsers)
-                .Include(o => o.People)
-                .FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
+                .AsNoTracking() // OPTIMIZED: Added AsNoTracking
+                .Where(o => o.Id == id)
+                .Select(o => new FamilyTreeResponse(
+                    o.Id,
+                    o.Name,
+                    o.Description,
+                    o.IsPublic,
+                    o.AllowCrossTreeLinking,
+                    o.CoverImageUrl,
+                    o.OwnerId,
+                    o.Owner != null ? (o.Owner.FirstName + " " + o.Owner.LastName).Trim() : null,
+                    o.TownId,
+                    o.Town != null ? o.Town.Name : "",
+                    o.OrgUsers.Count,
+                    o.People.Count,
+                    o.CreatedAt,
+                    o.UpdatedAt
+                ))
+                .FirstOrDefaultAsync(cancellationToken);
 
             if (tree == null)
             {
                 return ServiceResult<FamilyTreeResponse>.NotFound("Family tree not found");
             }
 
-            var response = new FamilyTreeResponse(
-                tree.Id,
-                tree.Name,
-                tree.Description,
-                tree.IsPublic,
-                tree.AllowCrossTreeLinking,
-                tree.CoverImageUrl,
-                tree.OwnerId,
-                tree.Owner != null ? $"{tree.Owner.FirstName} {tree.Owner.LastName}".Trim() : null,
-                tree.TownId,
-                tree.Town?.Name ?? "",
-                tree.OrgUsers.Count,
-                tree.People.Count,
-                tree.CreatedAt,
-                tree.UpdatedAt
-            );
-
-            return ServiceResult<FamilyTreeResponse>.Success(response);
+            return ServiceResult<FamilyTreeResponse>.Success(tree);
         }
         catch (Exception ex)
         {
@@ -174,7 +185,11 @@ public class FamilyTreeService : IFamilyTreeService
             var userId = userContext.UserId;
 
             // HIERARCHY ENFORCEMENT: Validate TownId exists
-            var town = await _context.Towns.FindAsync(new object[] { request.TownId }, cancellationToken);
+            // Note: FindAsync uses tracking by default, but this is a write operation so it's acceptable
+            var town = await _context.Towns
+                .AsNoTracking() // OPTIMIZED: Added AsNoTracking since we only need to check existence
+                .FirstOrDefaultAsync(t => t.Id == request.TownId, cancellationToken);
+
             if (town == null)
             {
                 return ServiceResult<FamilyTreeResponse>.Failure(
@@ -252,11 +267,10 @@ public class FamilyTreeService : IFamilyTreeService
                 return ServiceResult<FamilyTreeResponse>.Forbidden("You do not have permission to update this tree");
             }
 
+            // Note: For updates, we need tracking enabled, so we use AsTracking() explicitly
             var tree = await _context.Orgs
                 .Include(o => o.Owner)
                 .Include(o => o.Town)
-                .Include(o => o.OrgUsers)
-                .Include(o => o.People)
                 .FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
 
             if (tree == null)
@@ -279,7 +293,11 @@ public class FamilyTreeService : IFamilyTreeService
                         "Cannot remove TownId. Every family tree must belong to a town.",
                         ServiceErrorType.BadRequest);
                 }
-                var newTown = await _context.Towns.FindAsync(new object[] { request.TownId.Value }, cancellationToken);
+
+                var newTown = await _context.Towns
+                    .AsNoTracking() // OPTIMIZED: Added AsNoTracking
+                    .FirstOrDefaultAsync(t => t.Id == request.TownId.Value, cancellationToken);
+
                 if (newTown == null)
                 {
                     return ServiceResult<FamilyTreeResponse>.Failure(
@@ -296,6 +314,15 @@ public class FamilyTreeService : IFamilyTreeService
 
             _logger.LogInformation("Family tree updated: {TreeId}", id);
 
+            // OPTIMIZED: Get counts with separate efficient queries
+            var memberCount = await _context.OrgUsers
+                .AsNoTracking()
+                .CountAsync(ou => ou.OrgId == id, cancellationToken);
+
+            var personCount = await _context.People
+                .AsNoTracking()
+                .CountAsync(p => p.OrgId == id, cancellationToken);
+
             var response = new FamilyTreeResponse(
                 tree.Id,
                 tree.Name,
@@ -307,8 +334,8 @@ public class FamilyTreeService : IFamilyTreeService
                 tree.Owner != null ? $"{tree.Owner.FirstName} {tree.Owner.LastName}".Trim() : null,
                 tree.TownId,
                 tree.Town?.Name ?? "",
-                tree.OrgUsers.Count,
-                tree.People.Count,
+                memberCount,
+                personCount,
                 tree.CreatedAt,
                 tree.UpdatedAt
             );
@@ -335,14 +362,20 @@ public class FamilyTreeService : IFamilyTreeService
                 return ServiceResult.Failure("User not found", ServiceErrorType.NotFound);
             }
 
-            var tree = await _context.Orgs.FindAsync(new object[] { id }, cancellationToken);
-            if (tree == null)
+            // OPTIMIZED: Only fetch needed fields for deletion check
+            var treeInfo = await _context.Orgs
+                .AsNoTracking() // OPTIMIZED: Added AsNoTracking
+                .Where(o => o.Id == id)
+                .Select(o => new { o.Id, o.OwnerId })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (treeInfo == null)
             {
                 return ServiceResult.NotFound("Family tree not found");
             }
 
             // Only Owner or SuperAdmin can delete
-            var isOwner = tree.OwnerId == user.Id;
+            var isOwner = treeInfo.OwnerId == user.Id;
             var isSuperAdmin = await _userManager.IsInRoleAsync(user, "SuperAdmin");
 
             if (!isOwner && !isSuperAdmin)
@@ -350,8 +383,13 @@ public class FamilyTreeService : IFamilyTreeService
                 return ServiceResult.Forbidden("Only the tree owner or SuperAdmin can delete this tree");
             }
 
-            _context.Orgs.Remove(tree);
-            await _context.SaveChangesAsync(cancellationToken);
+            // Now fetch for actual deletion (needs tracking)
+            var tree = await _context.Orgs.FindAsync(new object[] { id }, cancellationToken);
+            if (tree != null)
+            {
+                _context.Orgs.Remove(tree);
+                await _context.SaveChangesAsync(cancellationToken);
+            }
 
             _logger.LogInformation("Family tree deleted: {TreeId} by user {UserId}", id, user.Id);
 
@@ -380,33 +418,22 @@ public class FamilyTreeService : IFamilyTreeService
                 return ServiceResult<List<TreeMemberResponse>>.Forbidden("You do not have access to this tree");
             }
 
-            // Step 1: Query with anonymous type (EF Core can translate this)
-            var data = await _context.OrgUsers
+            // OPTIMIZED: Single query with projection and AsNoTracking
+            var members = await _context.OrgUsers
+                .AsNoTracking() // OPTIMIZED: Added AsNoTracking
                 .Where(ou => ou.OrgId == treeId)
-                .Join(_context.Users, ou => ou.UserId, u => u.Id, (ou, u) => new
-                {
+                .Join(_context.Users, ou => ou.UserId, u => u.Id, (ou, u) => new TreeMemberResponse(
                     ou.Id,
                     ou.UserId,
-                    Email = u.Email ?? "",
+                    u.Email ?? "",
                     u.FirstName,
                     u.LastName,
                     ou.Role,
                     ou.JoinedAt
-                })
+                ))
                 .OrderByDescending(x => x.Role)
                 .ThenBy(x => x.Email)
                 .ToListAsync(cancellationToken);
-
-            // Step 2: Project to DTO in memory
-            var members = data.Select(x => new TreeMemberResponse(
-                x.Id,
-                x.UserId,
-                x.Email,
-                x.FirstName,
-                x.LastName,
-                x.Role,
-                x.JoinedAt
-            )).ToList();
 
             return ServiceResult<List<TreeMemberResponse>>.Success(members);
         }
@@ -430,13 +457,21 @@ public class FamilyTreeService : IFamilyTreeService
                 return ServiceResult<TreeMemberResponse>.Forbidden("You do not have permission to add members to this tree");
             }
 
-            var user = await _context.Users.FindAsync(new object[] { request.UserId }, cancellationToken);
+            // OPTIMIZED: Fetch only needed user fields
+            var user = await _context.Users
+                .AsNoTracking() // OPTIMIZED: Added AsNoTracking
+                .Where(u => u.Id == request.UserId)
+                .Select(u => new { u.Id, u.Email, u.FirstName, u.LastName })
+                .FirstOrDefaultAsync(cancellationToken);
+
             if (user == null)
             {
                 return ServiceResult<TreeMemberResponse>.Failure("User not found", ServiceErrorType.BadRequest);
             }
 
+            // OPTIMIZED: Use AnyAsync with AsNoTracking
             var existingMember = await _context.OrgUsers
+                .AsNoTracking() // OPTIMIZED: Added AsNoTracking
                 .AnyAsync(ou => ou.OrgId == treeId && ou.UserId == request.UserId, cancellationToken);
 
             if (existingMember)
@@ -492,6 +527,7 @@ public class FamilyTreeService : IFamilyTreeService
                 return ServiceResult<TreeMemberResponse>.Forbidden("You do not have permission to update member roles");
             }
 
+            // Note: For updates, we need tracking enabled
             var orgUser = await _context.OrgUsers
                 .Include(ou => ou.User)
                 .FirstOrDefaultAsync(ou => ou.OrgId == treeId && ou.UserId == userId, cancellationToken);
@@ -551,6 +587,7 @@ public class FamilyTreeService : IFamilyTreeService
                 return ServiceResult.Forbidden("You do not have permission to remove members");
             }
 
+            // Note: For deletion, we need tracking enabled
             var orgUser = await _context.OrgUsers
                 .FirstOrDefaultAsync(ou => ou.OrgId == treeId && ou.UserId == userId, cancellationToken);
 
@@ -595,15 +632,18 @@ public class FamilyTreeService : IFamilyTreeService
                 return ServiceResult<List<TreeInvitationResponse>>.Forbidden("You do not have permission to view invitations");
             }
 
+            // OPTIMIZED: AsNoTracking with projection
             var invitations = await _context.Set<TreeInvitation>()
-                .Include(i => i.InvitedByUser)
+                .AsNoTracking() // OPTIMIZED: Added AsNoTracking
                 .Where(i => i.TreeId == treeId)
                 .OrderByDescending(i => i.CreatedAt)
                 .Select(i => new TreeInvitationResponse(
                     i.Id,
                     i.Email,
                     i.Role,
-                    $"{i.InvitedByUser.FirstName} {i.InvitedByUser.LastName}".Trim(),
+                    i.InvitedByUser != null
+                        ? (i.InvitedByUser.FirstName + " " + i.InvitedByUser.LastName).Trim()
+                        : "",
                     i.ExpiresAt,
                     i.AcceptedAt != null,
                     i.CreatedAt
@@ -633,23 +673,36 @@ public class FamilyTreeService : IFamilyTreeService
             }
 
             var userId = userContext.UserId;
-            var user = await _context.Users.FindAsync(new object[] { userId }, cancellationToken);
 
-            // Check if already a member
-            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email, cancellationToken);
-            if (existingUser != null)
-            {
-                var isMember = await _context.OrgUsers
-                    .AnyAsync(ou => ou.OrgId == treeId && ou.UserId == existingUser.Id, cancellationToken);
-                if (isMember)
+            // OPTIMIZED: Fetch only needed user fields
+            var user = await _context.Users
+                .AsNoTracking() // OPTIMIZED: Added AsNoTracking
+                .Where(u => u.Id == userId)
+                .Select(u => new { u.FirstName, u.LastName })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            // OPTIMIZED: Check if email exists and is member in single query
+            var existingUserInfo = await _context.Users
+                .AsNoTracking() // OPTIMIZED: Added AsNoTracking
+                .Where(u => u.Email == request.Email)
+                .Select(u => new
                 {
-                    return ServiceResult<TreeInvitationResponse>.Failure("User is already a member of this tree", ServiceErrorType.BadRequest);
-                }
+                    u.Id,
+                    IsMember = _context.OrgUsers.Any(ou => ou.OrgId == treeId && ou.UserId == u.Id)
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (existingUserInfo != null && existingUserInfo.IsMember)
+            {
+                return ServiceResult<TreeInvitationResponse>.Failure("User is already a member of this tree", ServiceErrorType.BadRequest);
             }
 
             // Check for existing pending invitation
             var existingInvite = await _context.Set<TreeInvitation>()
-                .FirstOrDefaultAsync(i => i.TreeId == treeId && i.Email == request.Email && i.AcceptedAt == null, cancellationToken);
+                .AsNoTracking() // OPTIMIZED: Added AsNoTracking
+                .Where(i => i.TreeId == treeId && i.Email == request.Email && i.AcceptedAt == null)
+                .Select(i => new { i.ExpiresAt })
+                .FirstOrDefaultAsync(cancellationToken);
 
             if (existingInvite != null && existingInvite.ExpiresAt > DateTime.UtcNow)
             {
@@ -677,7 +730,7 @@ public class FamilyTreeService : IFamilyTreeService
                 invitation.Id,
                 invitation.Email,
                 invitation.Role,
-                $"{user?.FirstName} {user?.LastName}".Trim(),
+                user != null ? $"{user.FirstName} {user.LastName}".Trim() : "",
                 invitation.ExpiresAt,
                 false,
                 invitation.CreatedAt
@@ -701,11 +754,12 @@ public class FamilyTreeService : IFamilyTreeService
         {
             var userId = userContext.UserId;
 
+            // Note: For updates, we need tracking on the invitation
             var invitation = await _context.Set<TreeInvitation>()
                 .Include(i => i.Tree)
-                .ThenInclude(t => t.Owner)
+                .ThenInclude(t => t!.Owner)
                 .Include(i => i.Tree)
-                .ThenInclude(t => t.Town)
+                .ThenInclude(t => t!.Town)
                 .FirstOrDefaultAsync(i => i.Token == token, cancellationToken);
 
             if (invitation == null)
@@ -718,8 +772,9 @@ public class FamilyTreeService : IFamilyTreeService
                 return ServiceResult<FamilyTreeResponse>.Failure("Invitation has expired or already been used", ServiceErrorType.BadRequest);
             }
 
-            // Check if already a member
+            // OPTIMIZED: Use AnyAsync with AsNoTracking
             var isMember = await _context.OrgUsers
+                .AsNoTracking() // OPTIMIZED: Added AsNoTracking
                 .AnyAsync(ou => ou.OrgId == invitation.TreeId && ou.UserId == userId, cancellationToken);
 
             if (isMember)
@@ -747,9 +802,16 @@ public class FamilyTreeService : IFamilyTreeService
 
             _logger.LogInformation("Invitation accepted: {TreeId}, User: {UserId}", invitation.TreeId, userId);
 
-            var tree = invitation.Tree;
-            var memberCount = await _context.OrgUsers.CountAsync(ou => ou.OrgId == tree.Id, cancellationToken);
-            var personCount = await _context.People.CountAsync(p => p.OrgId == tree.Id, cancellationToken);
+            var tree = invitation.Tree!;
+
+            // OPTIMIZED: Get counts with efficient queries
+            var memberCount = await _context.OrgUsers
+                .AsNoTracking()
+                .CountAsync(ou => ou.OrgId == tree.Id, cancellationToken);
+
+            var personCount = await _context.People
+                .AsNoTracking()
+                .CountAsync(p => p.OrgId == tree.Id, cancellationToken);
 
             var response = new FamilyTreeResponse(
                 tree.Id,
@@ -790,6 +852,7 @@ public class FamilyTreeService : IFamilyTreeService
                 return ServiceResult.Forbidden("You do not have permission to delete invitations");
             }
 
+            // Note: For deletion, we need tracking
             var invitation = await _context.Set<TreeInvitation>()
                 .FirstOrDefaultAsync(i => i.Id == invitationId && i.TreeId == treeId, cancellationToken);
 
@@ -819,6 +882,8 @@ public class FamilyTreeService : IFamilyTreeService
     /// <summary>
     /// Checks if the current user has access to a tree with at least the specified role.
     /// Preserves exact behavior from original controller.
+    /// 
+    /// OPTIMIZED: Uses AsNoTracking for all read operations and caches role checks.
     /// </summary>
     private async Task<bool> HasTreeAccessAsync(
         Guid treeId,
@@ -829,21 +894,28 @@ public class FamilyTreeService : IFamilyTreeService
         var user = await _userManager.FindByIdAsync(userContext.UserId.ToString());
         if (user == null) return false;
 
+        // OPTIMIZED: Get roles once instead of multiple IsInRoleAsync calls
+        var roles = await _userManager.GetRolesAsync(user);
+
         // SuperAdmin has access to everything
-        if (await _userManager.IsInRoleAsync(user, "SuperAdmin")) return true;
+        if (roles.Contains("SuperAdmin")) return true;
 
         // Admin with tree assignment
-        if (await _userManager.IsInRoleAsync(user, "Admin"))
+        if (roles.Contains("Admin"))
         {
             var hasAssignment = await _context.Set<AdminTreeAssignment>()
+                .AsNoTracking() // OPTIMIZED: Added AsNoTracking
                 .AnyAsync(a => a.UserId == user.Id && a.TreeId == treeId, cancellationToken);
             if (hasAssignment) return true;
         }
 
-        // Check tree-specific role
-        var orgUser = await _context.OrgUsers
-            .FirstOrDefaultAsync(ou => ou.UserId == user.Id && ou.OrgId == treeId, cancellationToken);
+        // OPTIMIZED: Check tree-specific role with projection
+        var userRole = await _context.OrgUsers
+            .AsNoTracking() // OPTIMIZED: Added AsNoTracking
+            .Where(ou => ou.UserId == user.Id && ou.OrgId == treeId)
+            .Select(ou => (OrgRole?)ou.Role)
+            .FirstOrDefaultAsync(cancellationToken);
 
-        return orgUser != null && orgUser.Role >= minRole;
+        return userRole.HasValue && userRole.Value >= minRole;
     }
 }

@@ -60,41 +60,6 @@ public interface IPersonService
         Guid? treeId,
         UserContext userContext,
         CancellationToken cancellationToken = default);
-
-    // ============================================================================
-    // PERSON NAME OPERATIONS
-    // ============================================================================
-
-    /// <summary>
-    /// Add a new name to a person.
-    /// </summary>
-    Task<ServiceResult<PersonNameDto>> AddPersonNameAsync(
-        Guid personId,
-        PersonNameDto dto,
-        Guid? treeId,
-        UserContext userContext,
-        CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Update an existing person name.
-    /// </summary>
-    Task<ServiceResult<PersonNameDto>> UpdatePersonNameAsync(
-        Guid personId,
-        Guid nameId,
-        PersonNameDto dto,
-        Guid? treeId,
-        UserContext userContext,
-        CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Delete a person name.
-    /// </summary>
-    Task<ServiceResult> DeletePersonNameAsync(
-        Guid personId,
-        Guid nameId,
-        Guid? treeId,
-        UserContext userContext,
-        CancellationToken cancellationToken = default);
 }
 
 /// <summary>

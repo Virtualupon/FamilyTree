@@ -110,19 +110,19 @@ public class AuthService : IAuthService
 
     public async Task<TokenResponse> RefreshTokenAsync(string refreshToken)
     {
-        var users = await _userManager.Users.ToListAsync();
+        // ? FIXED: Single query instead of loading all users
+        var tokenRecord = await _context.Set<ApplicationUserToken>()
+            .FirstOrDefaultAsync(t =>
+                t.LoginProvider == "FamilyTreeApi" &&
+                t.Name == "RefreshToken" &&
+                t.Value == refreshToken);
 
-        ApplicationUser? validUser = null;
-        foreach (var user in users)
+        if (tokenRecord == null)
         {
-            var storedToken = await _userManager.GetAuthenticationTokenAsync(user, "FamilyTreeApi", "RefreshToken");
-            if (storedToken == refreshToken)
-            {
-                validUser = user;
-                break;
-            }
+            throw new UnauthorizedAccessException("Invalid or expired refresh token");
         }
 
+        var validUser = await _userManager.FindByIdAsync(tokenRecord.UserId.ToString());
         if (validUser == null)
         {
             throw new UnauthorizedAccessException("Invalid or expired refresh token");
@@ -146,19 +146,19 @@ public class AuthService : IAuthService
 
     public async Task<bool> RevokeTokenAsync(string refreshToken)
     {
-        var users = await _userManager.Users.ToListAsync();
+        // ? FIXED: Single query instead of loading all users
+        var tokenRecord = await _context.Set<ApplicationUserToken>()
+            .FirstOrDefaultAsync(t =>
+                t.LoginProvider == "FamilyTreeApi" &&
+                t.Name == "RefreshToken" &&
+                t.Value == refreshToken);
 
-        ApplicationUser? validUser = null;
-        foreach (var user in users)
+        if (tokenRecord == null)
         {
-            var storedToken = await _userManager.GetAuthenticationTokenAsync(user, "FamilyTreeApi", "RefreshToken");
-            if (storedToken == refreshToken)
-            {
-                validUser = user;
-                break;
-            }
+            return false;
         }
 
+        var validUser = await _userManager.FindByIdAsync(tokenRecord.UserId.ToString());
         if (validUser == null)
         {
             return false;
@@ -178,8 +178,8 @@ public class AuthService : IAuthService
 
         // Get Identity roles for user
         var userRoles = await _userManager.GetRolesAsync(user);
-        var systemRole = userRoles.Contains("SuperAdmin") ? "SuperAdmin" 
-                       : userRoles.Contains("Admin") ? "Admin" 
+        var systemRole = userRoles.Contains("SuperAdmin") ? "SuperAdmin"
+                       : userRoles.Contains("Admin") ? "Admin"
                        : "User";
 
         var claims = new List<Claim>

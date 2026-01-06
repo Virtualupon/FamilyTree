@@ -25,34 +25,47 @@ import { AuthService } from '../../core/services/auth.service';
     MatSnackBarModule
   ],
   template: `
-    <div class="register-container">
-      <mat-card class="register-card">
-        <mat-card-header>
-          <mat-card-title>Family Tree Platform</mat-card-title>
-          <mat-card-subtitle>Create your account</mat-card-subtitle>
-        </mat-card-header>
+    <div class="nubian-auth">
+      <!-- Animated Background Pattern -->
+      <div class="nubian-auth__pattern"></div>
 
-        <mat-card-content>
-          <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>First Name</mat-label>
-              <input matInput formControlName="firstName" autocomplete="given-name">
-              <mat-error *ngIf="registerForm.get('firstName')?.hasError('required')">
-                First name is required
-              </mat-error>
-            </mat-form-field>
+      <div class="nubian-auth__card">
+        <!-- Header with Logo -->
+        <div class="nubian-auth__header">
+          <div class="nubian-auth__logo">
+            <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+          </div>
+          <h1>Family Tree Platform</h1>
+          <p>Create your account</p>
+        </div>
 
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Last Name</mat-label>
-              <input matInput formControlName="lastName" autocomplete="family-name">
-              <mat-error *ngIf="registerForm.get('lastName')?.hasError('required')">
-                Last name is required
-              </mat-error>
-            </mat-form-field>
+        <!-- Register Form -->
+        <div class="nubian-auth__content">
+          <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="nubian-auth__form">
+            <div class="form-row">
+              <mat-form-field appearance="outline">
+                <mat-label>First Name</mat-label>
+                <input matInput formControlName="firstName" autocomplete="given-name">
+                <i class="fa-solid fa-user" matPrefix aria-hidden="true"></i>
+                <mat-error *ngIf="registerForm.get('firstName')?.hasError('required')">
+                  First name is required
+                </mat-error>
+              </mat-form-field>
 
-            <mat-form-field appearance="outline" class="full-width">
+              <mat-form-field appearance="outline">
+                <mat-label>Last Name</mat-label>
+                <input matInput formControlName="lastName" autocomplete="family-name">
+                <i class="fa-solid fa-user" matPrefix aria-hidden="true"></i>
+                <mat-error *ngIf="registerForm.get('lastName')?.hasError('required')">
+                  Last name is required
+                </mat-error>
+              </mat-form-field>
+            </div>
+
+            <mat-form-field appearance="outline">
               <mat-label>Email</mat-label>
               <input matInput type="email" formControlName="email" autocomplete="email">
+              <i class="fa-solid fa-envelope" matPrefix aria-hidden="true"></i>
               <mat-error *ngIf="registerForm.get('email')?.hasError('required')">
                 Email is required
               </mat-error>
@@ -61,9 +74,10 @@ import { AuthService } from '../../core/services/auth.service';
               </mat-error>
             </mat-form-field>
 
-            <mat-form-field appearance="outline" class="full-width">
+            <mat-form-field appearance="outline">
               <mat-label>Password</mat-label>
               <input matInput type="password" formControlName="password" autocomplete="new-password">
+              <i class="fa-solid fa-lock" matPrefix aria-hidden="true"></i>
               <mat-error *ngIf="registerForm.get('password')?.hasError('required')">
                 Password is required
               </mat-error>
@@ -74,70 +88,234 @@ import { AuthService } from '../../core/services/auth.service';
 
             <button 
               mat-raised-button 
-              color="primary" 
               type="submit" 
-              class="full-width"
+              class="nubian-auth__submit"
               [disabled]="registerForm.invalid || loading">
-              <mat-spinner diameter="20" *ngIf="loading"></mat-spinner>
-              <span *ngIf="!loading">Register</span>
+              @if (loading) {
+                <mat-spinner diameter="20"></mat-spinner>
+              } @else {
+                <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+                <span>Create Account</span>
+              }
             </button>
           </form>
 
-          <div class="login-link">
+          <div class="nubian-auth__footer">
             <p>Already have an account? <a routerLink="/login">Login here</a></p>
           </div>
-        </mat-card-content>
-      </mat-card>
+        </div>
+      </div>
     </div>
   `,
   styles: [`
-    .register-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
+    /* ============================================
+       NUBIAN REGISTER PAGE STYLES
+       ============================================ */
+    
+    .nubian-auth {
       min-height: 100vh;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #FFF9F5 0%, #FFF5EB 50%, #F4E4D7 100%);
+      padding: 1rem;
+      position: relative;
+      overflow: hidden;
+      
+      /* Animated pattern background */
+      &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.06;
+        background-image: 
+          repeating-linear-gradient(45deg, transparent, transparent 35px, #C17E3E 35px, #C17E3E 37px),
+          repeating-linear-gradient(-45deg, transparent, transparent 35px, #187573 35px, #187573 37px);
+        background-size: 80px 80px;
+        animation: floatPattern 60s linear infinite;
+        z-index: 0;
+      }
+      
+      > * {
+        position: relative;
+        z-index: 1;
+      }
+    }
+    
+    @keyframes floatPattern {
+      0% { transform: translate(0, 0) rotate(0deg); }
+      100% { transform: translate(-50px, -50px) rotate(360deg); }
     }
 
-    .register-card {
+    .nubian-auth__card {
       width: 100%;
-      max-width: 400px;
-      margin: 20px;
+      max-width: 480px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border-radius: 24px;
+      box-shadow: 0 20px 40px rgba(45, 45, 45, 0.15);
+      overflow: hidden;
+      animation: scaleIn 0.5s ease-out;
+    }
+    
+    @keyframes scaleIn {
+      from {
+        opacity: 0;
+        transform: scale(0.9);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
     }
 
-    mat-card-header {
-      margin-bottom: 24px;
+    .nubian-auth__header {
+      background: linear-gradient(135deg, #187573, #2B9A97);
+      padding: 2rem 1.5rem;
       text-align: center;
+      
+      h1 {
+        font-family: 'Cinzel', 'Playfair Display', serif;
+        color: white;
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin: 0 0 0.5rem;
+        letter-spacing: 0.5px;
+      }
+      
+      p {
+        color: rgba(255, 255, 255, 0.85);
+        margin: 0;
+        font-size: 1rem;
+      }
     }
 
-    mat-card-title {
-      font-size: 24px;
-      margin-bottom: 8px;
+    .nubian-auth__logo {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 1rem;
+      background: linear-gradient(135deg, #C17E3E, #D4A574);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 30px rgba(193, 126, 62, 0.4);
+      
+      i {
+        font-size: 2.5rem;
+        color: white;
+      }
     }
 
-    .full-width {
+    .nubian-auth__content {
+      padding: 2rem 1.5rem;
+    }
+
+    .nubian-auth__form {
+      mat-form-field {
+        width: 100%;
+        margin-bottom: 0.25rem;
+      }
+      
+      i[matPrefix] {
+        color: #C17E3E;
+        margin-right: 8px;
+      }
+      
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        
+        @media (max-width: 480px) {
+          grid-template-columns: 1fr;
+          gap: 0;
+        }
+      }
+    }
+
+    .nubian-auth__submit {
       width: 100%;
-      margin-bottom: 16px;
+      height: 52px;
+      margin-top: 1rem;
+      background: linear-gradient(135deg, #187573, #2B9A97) !important;
+      color: white !important;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 12px !important;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.3s ease;
+      
+      &:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(24, 117, 115, 0.35);
+      }
+      
+      &:disabled {
+        opacity: 0.7;
+      }
+      
+      mat-spinner {
+        margin-right: 0.5rem;
+      }
     }
 
-    button {
-      margin-top: 8px;
-      height: 48px;
-    }
-
-    .login-link {
+    .nubian-auth__footer {
       text-align: center;
-      margin-top: 16px;
+      padding-top: 1.5rem;
+      border-top: 1px solid #F4E4D7;
+      margin-top: 1.5rem;
+      
+      p {
+        color: #6B6B6B;
+        margin: 0;
+      }
+      
+      a {
+        color: #187573;
+        font-weight: 600;
+        text-decoration: none;
+        transition: color 0.2s;
+        
+        &:hover {
+          color: #C17E3E;
+          text-decoration: underline;
+        }
+      }
     }
-
-    .login-link a {
-      color: #667eea;
-      text-decoration: none;
-      font-weight: 500;
-    }
-
-    .login-link a:hover {
-      text-decoration: underline;
+    
+    /* Responsive adjustments */
+    @media (max-width: 480px) {
+      .nubian-auth__card {
+        border-radius: 16px;
+      }
+      
+      .nubian-auth__header {
+        padding: 1.5rem 1rem;
+        
+        h1 {
+          font-size: 1.5rem;
+        }
+      }
+      
+      .nubian-auth__logo {
+        width: 64px;
+        height: 64px;
+        
+        i {
+          font-size: 2rem;
+        }
+      }
+      
+      .nubian-auth__content {
+        padding: 1.5rem 1rem;
+      }
     }
   `]
 })

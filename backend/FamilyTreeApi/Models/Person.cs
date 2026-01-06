@@ -24,6 +24,24 @@ public class Person
     [MaxLength(200)]
     public string? PrimaryName { get; set; }
 
+    /// <summary>
+    /// Name in Arabic script
+    /// </summary>
+    [MaxLength(300)]
+    public string? NameArabic { get; set; }
+
+    /// <summary>
+    /// Name in English/Latin script
+    /// </summary>
+    [MaxLength(300)]
+    public string? NameEnglish { get; set; }
+
+    /// <summary>
+    /// Name in Nobiin (Coptic) script
+    /// </summary>
+    [MaxLength(300)]
+    public string? NameNobiin { get; set; }
+
     public Sex Sex { get; set; } = Sex.Unknown;
 
     [MaxLength(50)]
@@ -59,7 +77,6 @@ public class Person
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-    public ICollection<PersonName> Names { get; set; } = new List<PersonName>();
     public ICollection<ParentChild> AsParent { get; set; } = new List<ParentChild>();
     public ICollection<ParentChild> AsChild { get; set; } = new List<ParentChild>();
     public ICollection<UnionMember> UnionMemberships { get; set; } = new List<UnionMember>();

@@ -1,0 +1,120 @@
+You are Claude Code acting as a senior localization / i18n engineer. Perform a MAJOR full-codebase localization audit of this repository: Angular frontend + .NET Core backend.
+
+MISSION
+Check the entire frontend and backend so that EVERY user-facing label, name, page text, error message, validation message, toast/snackbar, dialog/modal content, table header, status string, empty state, tooltip, and exported label (PDF/CSV/Excel/email templates) follows the currently selected language. No English-only strings should leak when another language is selected.
+
+PRIMARY RULES
+1) No hardcoded user-facing strings in Angular templates or TS (except translation keys).
+2) All UI strings must be served from the translation system based on the selected language.
+3) Backend must NOT return English display strings that end up rendered in the UI. Backend should return:
+   - translation keys + optional parameters, OR
+   - localized strings based on request culture (Accept-Language / culture cookie / route culture),
+   depending on the chosen architecture.
+4) Validation messages must be localized end-to-end:
+   - Angular form validation messages
+   - Server-side model validation (DataAnnotations / FluentValidation)
+   - Exceptions / problem details
+5) Date/number/currency formatting must follow locale.
+
+DISCOVERY (DO THIS FIRST)
+- Identify Angular version and i18n approach used (Angular built-in i18n, Transloco, ngx-translate, custom).
+- Identify where language selection is stored (localStorage, cookie, URL, profile setting) and how it is applied.
+- Identify .NET Core localization approach (IStringLocalizer, Resource (.resx) files, RequestLocalizationOptions, CultureProviders).
+- Identify supported languages and fallback rules.
+- Identify any shared “enum → label” maps, status dictionaries, or backend-driven dropdown lists.
+
+DELIVERABLES (OUTPUT ALL)
+A) Executive Summary (1 page)
+- Current i18n architecture (Angular + .NET)
+- Gaps that cause language mismatches
+- Top 10 critical issues to fix first
+
+B) Full Repo i18n Audit Report (exhaustive)
+For EACH issue, include:
+- file path + line numbers
+- the exact hardcoded string (or culture leak)
+- where it appears in the UI
+- recommended fix with concrete translation key (namespace/key)
+- parameters needed (e.g., {count}, {name})
+- severity: CRITICAL/HIGH/MED/LOW
+
+Group findings into:
+1) Angular Templates (.html) hardcoded strings
+2) Angular TS strings (components/services/interceptors/guards)
+3) Angular Material strings (mat-paginator, datepicker, snackbars, dialogs)
+4) Routing titles/breadcrumbs/nav items
+5) Form validation messages (client)
+6) .NET API responses that include display text (DTOs, errors, enums)
+7) .NET validation messages (DataAnnotations/FluentValidation)
+8) Exceptions, ProblemDetails, middleware error handling
+9) Export/report/email/SMS templates
+10) Shared constants / enums / status labels across FE/BE
+
+C) Proposed Target Architecture (choose best fit for this codebase)
+Provide TWO options with pros/cons and recommend ONE:
+Option 1: UI-only translations (backend returns keys + params, FE translates)
+Option 2: Dual-layer localization (backend localizes errors/validation via resx; FE localizes UI)
+Include how to handle:
+- enums/status values
+- dropdown lists from API
+- server validation errors mapped to localized messages
+- fallback culture
+
+D) Fix Plan (PR-sized steps, in correct order)
+For each step:
+- name
+- exact files/directories to touch
+- mechanical edits (what to replace with what)
+- test/verification checklist
+
+E) Standards + Guardrails
+1) Translation key naming standard:
+- namespaces by feature/module (e.g. auth.login.title)
+- consistent casing
+- no duplicated keys
+2) Interpolation/plurals/gender rules
+3) Locale formatting rules:
+- dates, currency, numbers, units
+4) Guardrails:
+- lint rules (Angular ESLint) to detect raw strings in templates/TS
+- CI script that scans for unlocalized strings in specific folders
+- unit tests + e2e tests: switch language and assert the UI changes
+- runtime dev warnings: missing translation keys
+
+WHAT TO SEARCH FOR (BE AGGRESSIVE)
+Angular Frontend
+- Any raw text in .html templates (button labels, headings, placeholders, aria-labels)
+- Any string literals in TS used for UI:
+  - snackBar.open("...")
+  - dialog data text
+  - toastr messages
+  - console-to-user errors
+  - form validation messages
+- Router config titles, breadcrumb labels, menu config
+- Angular Material i18n adapters:
+  - MatPaginatorIntl labels
+  - DateAdapter locale
+  - MatDatepicker strings
+- Pipes that format date/number/currency without locale awareness
+- Any “status label” maps like:
+  const STATUS_LABELS = { Pending: "Pending", ... }
+
+.NET Core Backend
+- DTO fields that contain user-visible display strings (Name, StatusName, DisplayName, Message)
+- Enum-to-string conversions, switch statements returning English
+- ProblemDetails / exception middleware returning English messages
+- DataAnnotations error messages hardcoded
+- FluentValidation messages hardcoded
+- Logging is fine, but anything returned to client must be localized or key-based
+- Any templates (emails, PDFs, exports) using hardcoded English
+
+OUTPUT FORMAT REQUIREMENTS
+- Use clear section headers A–E.
+- For report items, output as a table-like list:
+  [Severity] Path:LineRange | Hardcoded: "..." | Where shown | Fix: key=... namespace=... params=...
+- Be exhaustive. If you can’t scan some generated files (dist), say so and focus on source.
+
+START NOW
+1) Scan the repo structure (Angular app folders, .NET solution/projects).
+2) Identify current i18n/localization mechanisms.
+3) Produce the full audit + fix plan + standards + guardrails.

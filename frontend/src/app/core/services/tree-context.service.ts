@@ -6,7 +6,7 @@ import { AdminService } from './admin.service';
 import { FamilyTreeListItem } from '../models/family-tree.models';
 import { TownListItem } from '../models/town.models';
 import { forkJoin, of } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, switchMap, take } from 'rxjs/operators';
 
 /**
  * TreeContext manages the currently selected tree for the user.
@@ -100,15 +100,39 @@ export class TreeContextService {
     // Load trees and towns when auth state changes
     this.authService.currentUser$.subscribe(user => {
       if (user) {
-        this.loadAvailableTrees();
-        this.loadAvailableTowns();
+        // Check if token is expired before making API calls
+        if (this.authService.needsTokenRefresh()) {
+          // Token expired - try to refresh before loading data
+          this.authService.refreshToken().pipe(
+            take(1),
+            catchError(() => {
+              // Refresh failed - clear state and let interceptor handle logout
+              this.clearState();
+              return of(null);
+            })
+          ).subscribe(response => {
+            if (response) {
+              // Token refreshed successfully - now load data
+              this.loadAvailableTrees();
+              this.loadAvailableTowns();
+            }
+          });
+        } else {
+          // Token is valid - load data immediately
+          this.loadAvailableTrees();
+          this.loadAvailableTowns();
+        }
       } else {
-        this.availableTrees.set([]);
-        this.availableTowns.set([]);
-        this.selectedTreeId.set(null);
-        this.selectedTownId.set(null);
+        this.clearState();
       }
     });
+  }
+
+  private clearState(): void {
+    this.availableTrees.set([]);
+    this.availableTowns.set([]);
+    this.selectedTreeId.set(null);
+    this.selectedTownId.set(null);
   }
 
   /**

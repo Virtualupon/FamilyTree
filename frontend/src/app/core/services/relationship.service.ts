@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { I18nService } from '../i18n';
 
 // Import Sex from existing models
 import { Sex, DatePrecision } from '../models/person.models';
@@ -211,6 +212,7 @@ export interface RelationshipResponse {
 })
 export class RelationshipService {
   private http = inject(HttpClient);
+  private i18n = inject(I18nService);
   private apiUrl = environment.apiUrl;
 
   // ========================================================================
@@ -416,36 +418,36 @@ export class RelationshipService {
   // ========================================================================
 
   /**
-   * Get display name for relationship type
+   * Get display name for relationship type (translated)
    */
   getRelationshipTypeName(type: ParentChildRelationshipType): string {
-    const names: Record<ParentChildRelationshipType, string> = {
-      [ParentChildRelationshipType.Biological]: 'Biological',
-      [ParentChildRelationshipType.Adopted]: 'Adopted',
-      [ParentChildRelationshipType.Foster]: 'Foster',
-      [ParentChildRelationshipType.Step]: 'Step',
-      [ParentChildRelationshipType.Guardian]: 'Guardian',
-      [ParentChildRelationshipType.Unknown]: 'Unknown'
+    const keys: Record<ParentChildRelationshipType, string> = {
+      [ParentChildRelationshipType.Biological]: 'personDetail.relationshipTypes.biological',
+      [ParentChildRelationshipType.Adopted]: 'personDetail.relationshipTypes.adopted',
+      [ParentChildRelationshipType.Foster]: 'personDetail.relationshipTypes.foster',
+      [ParentChildRelationshipType.Step]: 'personDetail.relationshipTypes.step',
+      [ParentChildRelationshipType.Guardian]: 'personDetail.relationshipTypes.guardian',
+      [ParentChildRelationshipType.Unknown]: 'personDetail.relationshipTypes.unknown'
     };
-    return names[type] || 'Unknown';
+    return this.i18n.t(keys[type] || 'personDetail.relationshipTypes.unknown');
   }
 
   /**
-   * Get display name for union type
+   * Get display name for union type (translated)
    */
   getUnionTypeName(type: UnionType): string {
-    const names: Record<UnionType, string> = {
-      [UnionType.Marriage]: 'Marriage',
-      [UnionType.CivilUnion]: 'Civil Union',
-      [UnionType.DomesticPartnership]: 'Domestic Partnership',
-      [UnionType.CommonLaw]: 'Common Law',
-      [UnionType.Engagement]: 'Engagement',
-      [UnionType.Divorced]: 'Divorced',
-      [UnionType.Widowed]: 'Widowed',
-      [UnionType.Separated]: 'Separated',
-      [UnionType.Annulled]: 'Annulled',
-      [UnionType.Unknown]: 'Unknown'
+    const keys: Record<UnionType, string> = {
+      [UnionType.Marriage]: 'personDetail.unionTypes.marriage',
+      [UnionType.CivilUnion]: 'personDetail.unionTypes.civilUnion',
+      [UnionType.DomesticPartnership]: 'personDetail.unionTypes.domesticPartnership',
+      [UnionType.CommonLaw]: 'personDetail.unionTypes.commonLaw',
+      [UnionType.Engagement]: 'personDetail.unionTypes.engagement',
+      [UnionType.Divorced]: 'personDetail.unionTypes.divorced',
+      [UnionType.Widowed]: 'personDetail.unionTypes.widowed',
+      [UnionType.Separated]: 'personDetail.unionTypes.separated',
+      [UnionType.Annulled]: 'personDetail.unionTypes.annulled',
+      [UnionType.Unknown]: 'personDetail.unionTypes.unknown'
     };
-    return names[type] || 'Unknown';
+    return this.i18n.t(keys[type] || 'personDetail.unionTypes.unknown');
   }
 }

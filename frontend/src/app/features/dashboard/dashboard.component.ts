@@ -869,9 +869,12 @@ export class DashboardComponent implements OnInit {
     this.router.navigate(['/people', person.id]);
   }
 
-  // Helper to get display name
+  // Helper to get display name in user's preferred language
   getPersonDisplayName(person: SearchPersonItem): string {
-    return getPrimaryName(person);
+    const lang = this.i18n.currentLang();
+    if (lang === 'ar') return person.nameArabic || person.nameEnglish || person.primaryName || 'Unknown';
+    if (lang === 'nob') return person.nameNobiin || person.nameEnglish || person.primaryName || 'Unknown';
+    return person.nameEnglish || person.nameArabic || person.primaryName || 'Unknown';
   }
   
   getInitials(name: string | null): string {

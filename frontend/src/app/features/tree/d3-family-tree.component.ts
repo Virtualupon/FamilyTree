@@ -8,13 +8,15 @@ import {
   OnDestroy,
   SimpleChanges,
   ViewChild,
-  AfterViewInit
+  AfterViewInit,
+  inject
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as d3 from 'd3';
 import { TreePersonNode } from '../../core/models/tree.models';
 import { Sex } from '../../core/models/person.models';
 import { TreeLinksSummary, PersonLinkSummary, PersonLinkType, PersonLinkTypeLabels } from '../../core/models/family-tree.models';
+import { I18nService } from '../../core/i18n';
 
 interface D3Node {
   id: string;
@@ -306,6 +308,8 @@ interface D3Link {
   `]
 })
 export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestroy {
+  private readonly i18n = inject(I18nService);
+
   @ViewChild('container') containerRef!: ElementRef<HTMLDivElement>;
   @ViewChild('svg') svgRef!: ElementRef<SVGSVGElement>;
   @ViewChild('tooltip') tooltipRef!: ElementRef<HTMLDivElement>;
@@ -479,10 +483,21 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
     }
   }
 
+  private getDisplayName(person: TreePersonNode): string {
+    const lang = this.i18n.currentLang();
+    if (lang === 'ar') {
+      return person.nameArabic || person.nameEnglish || person.primaryName || 'Unknown';
+    }
+    if (lang === 'nob') {
+      return person.nameNobiin || person.nameEnglish || person.primaryName || 'Unknown';
+    }
+    return person.nameEnglish || person.nameArabic || person.primaryName || 'Unknown';
+  }
+
   private createD3Node(person: TreePersonNode, x: number, y: number, generation: number): D3Node {
     return {
       id: person.id,
-      name: person.primaryName || 'Unknown',
+      name: this.getDisplayName(person),
       sex: person.sex,
       birthYear: person.birthDate ? new Date(person.birthDate).getFullYear() : undefined,
       deathYear: person.deathDate ? new Date(person.deathDate).getFullYear() : undefined,

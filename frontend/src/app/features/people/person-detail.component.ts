@@ -16,7 +16,7 @@ import type { Person } from '../../core/models/person.models';
 import { Sex, NameType } from '../../core/models/person.models';
 import { getDisplayName, DisplayLanguage } from '../../core/models/search.models';
 import { PersonService } from '../../core/services/person.service';
-import { I18nService } from '../../core/i18n';
+import { I18nService, TranslatePipe } from '../../core/i18n';
 import {
   RelationshipService,
   ParentChildResponse,
@@ -26,9 +26,11 @@ import {
 } from '../../core/services/relationship.service';
 import {
   AddRelationshipDialogComponent,
-  RelationshipDialogType
+  RelationshipDialogType,
+  ParentInfo
 } from './add-relationship-dialog.component';
 import { PersonMediaComponent } from './person-media.component';
+import { PersonFormDialogComponent, PersonFormDialogData } from './person-form-dialog.component';
 
 @Component({
   selector: 'app-person-detail',
@@ -45,22 +47,23 @@ import { PersonMediaComponent } from './person-media.component';
     MatDialogModule,
     MatMenuModule,
     MatSnackBarModule,
-    PersonMediaComponent
+    PersonMediaComponent,
+    TranslatePipe
   ],
   template: `
     <div class="person-detail-container">
       @if (isLoading()) {
         <div class="loading">
           <mat-spinner></mat-spinner>
-          <p>Loading person...</p>
+          <p>{{ 'personDetail.loading' | translate }}</p>
         </div>
       } @else if (error()) {
         <mat-card class="error-card">
           <mat-card-content>
             <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
-            <h3>Error loading person</h3>
+            <h3>{{ 'personDetail.errorLoading' | translate }}</h3>
             <p>{{ error() }}</p>
-            <button mat-raised-button color="primary" (click)="loadPerson()">Retry</button>
+            <button mat-raised-button color="primary" (click)="loadPerson()">{{ 'personDetail.retry' | translate }}</button>
           </mat-card-content>
         </mat-card>
       } @else if (person()) {
@@ -84,15 +87,15 @@ import { PersonMediaComponent } from './person-media.component';
               <mat-menu #actionsMenu="matMenu">
                 <button mat-menu-item (click)="editPerson()">
                   <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
-                  <span>Edit</span>
+                  <span>{{ 'personDetail.actions.edit' | translate }}</span>
                 </button>
                 <button mat-menu-item (click)="viewInTree()">
                   <i class="fa-solid fa-sitemap" aria-hidden="true"></i>
-                  <span>View in Tree</span>
+                  <span>{{ 'personDetail.actions.viewInTree' | translate }}</span>
                 </button>
                 <button mat-menu-item (click)="deletePerson()" class="delete-action">
                   <i class="fa-solid fa-trash" aria-hidden="true"></i>
-                  <span>Delete</span>
+                  <span>{{ 'personDetail.actions.delete' | translate }}</span>
                 </button>
               </mat-menu>
             </div>
@@ -103,13 +106,13 @@ import { PersonMediaComponent } from './person-media.component';
         <mat-tab-group [selectedIndex]="selectedTabIndex()"
                        (selectedIndexChange)="onTabChange($event)">
           <!-- Details Tab -->
-          <mat-tab label="Details">
+          <mat-tab [label]="'personDetail.tabs.details' | translate">
             <mat-card class="tab-content">
               <mat-card-content>
                 <div class="details-grid">
                   @if (person()!.birthDate) {
                     <div class="detail-item">
-                      <span class="label">Birth</span>
+                      <span class="label">{{ 'personDetail.labels.birth' | translate }}</span>
                       <span class="value">
                         {{ formatDate(person()!.birthDate) }}
                         @if (person()!.birthPlace) {
@@ -120,7 +123,7 @@ import { PersonMediaComponent } from './person-media.component';
                   }
                   @if (person()!.deathDate) {
                     <div class="detail-item">
-                      <span class="label">Death</span>
+                      <span class="label">{{ 'personDetail.labels.death' | translate }}</span>
                       <span class="value">
                         {{ formatDate(person()!.deathDate) }}
                         @if (person()!.deathPlace) {
@@ -131,25 +134,25 @@ import { PersonMediaComponent } from './person-media.component';
                   }
                   @if (person()!.gender) {
                     <div class="detail-item">
-                      <span class="label">Gender</span>
+                      <span class="label">{{ 'personDetail.labels.gender' | translate }}</span>
                       <span class="value">{{ person()!.gender }}</span>
                     </div>
                   }
                   @if (person()!.nationality) {
                     <div class="detail-item">
-                      <span class="label">Nationality</span>
+                      <span class="label">{{ 'personDetail.labels.nationality' | translate }}</span>
                       <span class="value">{{ person()!.nationality }}</span>
                     </div>
                   }
                   @if (person()!.religion) {
                     <div class="detail-item">
-                      <span class="label">Religion</span>
+                      <span class="label">{{ 'personDetail.labels.religion' | translate }}</span>
                       <span class="value">{{ person()!.religion }}</span>
                     </div>
                   }
                   @if (person()!.education) {
                     <div class="detail-item">
-                      <span class="label">Education</span>
+                      <span class="label">{{ 'personDetail.labels.education' | translate }}</span>
                       <span class="value">{{ person()!.education }}</span>
                     </div>
                   }
@@ -157,7 +160,7 @@ import { PersonMediaComponent } from './person-media.component';
 
                 @if (person()!.notes) {
                   <div class="notes-section">
-                    <h4>Notes</h4>
+                    <h4>{{ 'personDetail.labels.notes' | translate }}</h4>
                     <p>{{ person()!.notes }}</p>
                   </div>
                 }
@@ -165,7 +168,7 @@ import { PersonMediaComponent } from './person-media.component';
                 <!-- Names in Different Scripts -->
                 @if (hasAnyName()) {
                   <div class="names-section">
-                    <h4>Names</h4>
+                    <h4>{{ 'personDetail.labels.names' | translate }}</h4>
                     @if (person()!.nameArabic) {
                       <div class="name-item">
                         <mat-chip>العربية</mat-chip>
@@ -191,15 +194,15 @@ import { PersonMediaComponent } from './person-media.component';
           </mat-tab>
 
           <!-- Family Tab -->
-          <mat-tab label="Family">
+          <mat-tab [label]="'personDetail.tabs.family' | translate">
             <mat-card class="tab-content">
               <mat-card-content>
                 <!-- Parents Section -->
                 <div class="family-section">
                   <div class="section-header">
-                    <h3>Parents</h3>
+                    <h3>{{ 'personDetail.sections.parents' | translate }}</h3>
                     <button mat-stroked-button (click)="addRelationship('parent')">
-                      <i class="fa-solid fa-plus" aria-hidden="true"></i> Add Parent
+                      <i class="fa-solid fa-plus" aria-hidden="true"></i> {{ 'personDetail.actions.addParent' | translate }}
                     </button>
                   </div>
                   @if (parents().length > 0) {
@@ -210,7 +213,7 @@ import { PersonMediaComponent } from './person-media.component';
                           <span matListItemTitle>{{ getParentDisplayName(parent) }}</span>
                           <span matListItemLine>
                             {{ getRelationshipTypeLabel(parent.relationshipType) }}
-                            @if (parent.isAdopted) { (Adopted) }
+                            @if (parent.isAdopted) { ({{ 'personDetail.relationshipTypes.adopted' | translate }}) }
                           </span>
                           <button mat-icon-button matListItemMeta (click)="removeParent(parent, $event)">
                             <i class="fa-solid fa-xmark" aria-hidden="true"></i>
@@ -219,14 +222,17 @@ import { PersonMediaComponent } from './person-media.component';
                       }
                     </mat-list>
                   } @else {
-                    <p class="no-data">No parents recorded</p>
+                    <p class="no-data">{{ 'personDetail.noData.parents' | translate }}</p>
                   }
                 </div>
 
                 <!-- Siblings Section -->
                 <div class="family-section">
                   <div class="section-header">
-                    <h3>Siblings</h3>
+                    <h3>{{ 'personDetail.sections.siblings' | translate }}</h3>
+                    <button mat-stroked-button (click)="addRelationship('sibling')">
+                      <i class="fa-solid fa-plus" aria-hidden="true"></i> {{ 'personDetail.actions.addSibling' | translate }}
+                    </button>
                   </div>
                   @if (siblings().length > 0) {
                     <mat-list>
@@ -235,22 +241,22 @@ import { PersonMediaComponent } from './person-media.component';
                           <i matListItemIcon class="fa-solid" [ngClass]="[getSexIconClass(sibling.personSex), getSexClass(sibling.personSex)]" aria-hidden="true"></i>
                           <span matListItemTitle>{{ getSiblingDisplayName(sibling) }}</span>
                           <span matListItemLine>
-                            {{ sibling.isFullSibling ? 'Full sibling' : 'Half sibling' }}
+                            {{ sibling.isFullSibling ? ('personDetail.siblingTypes.full' | translate) : ('personDetail.siblingTypes.half' | translate) }}
                           </span>
                         </mat-list-item>
                       }
                     </mat-list>
                   } @else {
-                    <p class="no-data">No siblings found</p>
+                    <p class="no-data">{{ 'personDetail.noData.siblings' | translate }}</p>
                   }
                 </div>
 
                 <!-- Spouses Section -->
                 <div class="family-section">
                   <div class="section-header">
-                    <h3>Spouses/Partners</h3>
+                    <h3>{{ 'personDetail.sections.spouses' | translate }}</h3>
                     <button mat-stroked-button (click)="addRelationship('spouse')">
-                      <i class="fa-solid fa-plus" aria-hidden="true"></i> Add Spouse
+                      <i class="fa-solid fa-plus" aria-hidden="true"></i> {{ 'personDetail.actions.addSpouse' | translate }}
                     </button>
                   </div>
                   @if (unions().length > 0) {
@@ -274,16 +280,16 @@ import { PersonMediaComponent } from './person-media.component';
                       }
                     </mat-list>
                   } @else {
-                    <p class="no-data">No spouses/partners recorded</p>
+                    <p class="no-data">{{ 'personDetail.noData.spouses' | translate }}</p>
                   }
                 </div>
 
                 <!-- Children Section -->
                 <div class="family-section">
                   <div class="section-header">
-                    <h3>Children</h3>
+                    <h3>{{ 'personDetail.sections.children' | translate }}</h3>
                     <button mat-stroked-button (click)="addRelationship('child')">
-                      <i class="fa-solid fa-plus" aria-hidden="true"></i> Add Child
+                      <i class="fa-solid fa-plus" aria-hidden="true"></i> {{ 'personDetail.actions.addChild' | translate }}
                     </button>
                   </div>
                   @if (children().length > 0) {
@@ -294,7 +300,7 @@ import { PersonMediaComponent } from './person-media.component';
                           <span matListItemTitle>{{ getChildDisplayName(child) }}</span>
                           <span matListItemLine>
                             {{ getRelationshipTypeLabel(child.relationshipType) }}
-                            @if (child.isAdopted) { (Adopted) }
+                            @if (child.isAdopted) { ({{ 'personDetail.relationshipTypes.adopted' | translate }}) }
                           </span>
                           <button mat-icon-button matListItemMeta (click)="removeChild(child, $event)">
                             <i class="fa-solid fa-xmark" aria-hidden="true"></i>
@@ -303,7 +309,7 @@ import { PersonMediaComponent } from './person-media.component';
                       }
                     </mat-list>
                   } @else {
-                    <p class="no-data">No children recorded</p>
+                    <p class="no-data">{{ 'personDetail.noData.children' | translate }}</p>
                   }
                 </div>
               </mat-card-content>
@@ -311,7 +317,7 @@ import { PersonMediaComponent } from './person-media.component';
           </mat-tab>
 
           <!-- Media Tab -->
-          <mat-tab label="Media">
+          <mat-tab [label]="'personDetail.tabs.media' | translate">
             <mat-card class="tab-content">
               <mat-card-content>
                 <app-person-media [personId]="personId()!" />
@@ -687,12 +693,28 @@ export class PersonDetailComponent implements OnInit {
   }
 
   addRelationship(type: RelationshipDialogType) {
+    // Build parent info for sibling type
+    let parentsData: ParentInfo[] | undefined;
+    if (type === 'sibling') {
+      parentsData = this.parents().map(p => ({
+        id: p.parentId,
+        name: p.parentName || '',
+        nameArabic: p.parentNameArabic,
+        nameEnglish: p.parentNameEnglish,
+        nameNobiin: p.parentNameNobiin,
+        sex: p.parentSex
+      }));
+    }
+
     const dialogRef = this.dialog.open(AddRelationshipDialogComponent, {
       data: {
         personId: this.personId(),
         personName: this.person()?.primaryName,
-        type
-      }
+        type,
+        parents: parentsData
+      },
+      panelClass: 'add-relationship-dialog',
+      autoFocus: false
     });
 
     dialogRef.afterClosed().subscribe(result => {
@@ -749,8 +771,22 @@ export class PersonDetailComponent implements OnInit {
   }
 
   editPerson() {
-    // TODO: Navigate to edit page or open edit dialog
-    this.snackBar.open('Edit feature coming soon', 'Close', { duration: 3000 });
+    const person = this.person();
+    if (!person) return;
+
+    const dialogRef = this.dialog.open(PersonFormDialogComponent, {
+      width: '600px',
+      maxHeight: '90vh',
+      disableClose: true,
+      data: { person } as PersonFormDialogData
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result) {
+        this.loadPerson();
+        this.snackBar.open('Person updated successfully', 'Close', { duration: 3000 });
+      }
+    });
   }
 
   viewInTree() {

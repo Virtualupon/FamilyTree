@@ -233,7 +233,12 @@ services.AddCors(options =>
 // -------------------------------
 // CONTROLLERS
 // -------------------------------
-services.AddControllers();
+services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    });
 services.AddHttpContextAccessor();
 
 // -------------------------------

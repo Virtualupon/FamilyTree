@@ -51,6 +51,16 @@ export interface SearchPersonItem {
   nameEnglish: string | null;
   /** Name in Nobiin (Coptic) script */
   nameNobiin: string | null;
+  // Father's names
+  fatherId: string | null;
+  fatherNameArabic: string | null;
+  fatherNameEnglish: string | null;
+  fatherNameNobiin: string | null;
+  // Grandfather's names
+  grandfatherId: string | null;
+  grandfatherNameArabic: string | null;
+  grandfatherNameEnglish: string | null;
+  grandfatherNameNobiin: string | null;
   sex: Sex;
   birthDate: string | null;
   deathDate: string | null;

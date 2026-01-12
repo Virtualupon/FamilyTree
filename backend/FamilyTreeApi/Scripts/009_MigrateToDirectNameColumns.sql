@@ -31,37 +31,50 @@ END $$;
 -- STEP 2: Create indexes for name columns (for fast searching)
 -- ============================================================================
 
+-- Check if pg_trgm extension exists, create if not
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
 CREATE INDEX IF NOT EXISTS "IX_People_NameArabic" ON public."People" USING gin ("NameArabic" public.gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS "IX_People_NameEnglish" ON public."People" USING gin ("NameEnglish" public.gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS "IX_People_NameNobiin" ON public."People" USING gin ("NameNobiin" public.gin_trgm_ops);
 
 -- ============================================================================
--- STEP 3: Migrate existing data from PersonNames to direct columns
+-- STEP 3: Migrate existing data from PersonNames to direct columns (if table exists)
 -- ============================================================================
 
--- Migrate Arabic names (Script = 'Arabic')
-UPDATE public."People" p
-SET "NameArabic" = pn."Full"
-FROM public."PersonNames" pn
-WHERE pn."PersonId" = p."Id"
-  AND pn."Script" = 'Arabic'
-  AND p."NameArabic" IS NULL;
+DO $$
+BEGIN
+    -- Only migrate if PersonNames table exists
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'PersonNames') THEN
+        -- Migrate Arabic names (Script = 'Arabic')
+        UPDATE public."People" p
+        SET "NameArabic" = pn."Full"
+        FROM public."PersonNames" pn
+        WHERE pn."PersonId" = p."Id"
+          AND pn."Script" = 'Arabic'
+          AND p."NameArabic" IS NULL;
 
--- Migrate English/Latin names (Script = 'Latin')
-UPDATE public."People" p
-SET "NameEnglish" = pn."Full"
-FROM public."PersonNames" pn
-WHERE pn."PersonId" = p."Id"
-  AND pn."Script" = 'Latin'
-  AND p."NameEnglish" IS NULL;
+        -- Migrate English/Latin names (Script = 'Latin')
+        UPDATE public."People" p
+        SET "NameEnglish" = pn."Full"
+        FROM public."PersonNames" pn
+        WHERE pn."PersonId" = p."Id"
+          AND pn."Script" = 'Latin'
+          AND p."NameEnglish" IS NULL;
 
--- Migrate Nobiin/Coptic names (Script = 'Coptic')
-UPDATE public."People" p
-SET "NameNobiin" = pn."Full"
-FROM public."PersonNames" pn
-WHERE pn."PersonId" = p."Id"
-  AND pn."Script" = 'Coptic'
-  AND p."NameNobiin" IS NULL;
+        -- Migrate Nobiin/Coptic names (Script = 'Coptic')
+        UPDATE public."People" p
+        SET "NameNobiin" = pn."Full"
+        FROM public."PersonNames" pn
+        WHERE pn."PersonId" = p."Id"
+          AND pn."Script" = 'Coptic'
+          AND p."NameNobiin" IS NULL;
+
+        RAISE NOTICE 'Migrated names from PersonNames table';
+    ELSE
+        RAISE NOTICE 'PersonNames table does not exist, skipping migration';
+    END IF;
+END $$;
 
 -- ============================================================================
 -- STEP 4: Create unified search function
@@ -92,6 +105,16 @@ RETURNS TABLE (
     name_arabic VARCHAR(300),
     name_english VARCHAR(300),
     name_nobiin VARCHAR(300),
+    -- Father info
+    father_id UUID,
+    father_name_arabic VARCHAR(300),
+    father_name_english VARCHAR(300),
+    father_name_nobiin VARCHAR(300),
+    -- Grandfather info
+    grandfather_id UUID,
+    grandfather_name_arabic VARCHAR(300),
+    grandfather_name_english VARCHAR(300),
+    grandfather_name_nobiin VARCHAR(300),
     sex INT,
     birth_date TIMESTAMP,
     birth_precision INT,
@@ -177,6 +200,16 @@ BEGIN
         p."NameArabic" AS name_arabic,
         p."NameEnglish" AS name_english,
         p."NameNobiin" AS name_nobiin,
+        -- Father (male parent)
+        father_data.father_id,
+        father_data.father_name_arabic,
+        father_data.father_name_english,
+        father_data.father_name_nobiin,
+        -- Grandfather (father's male parent)
+        grandfather_data.grandfather_id,
+        grandfather_data.grandfather_name_arabic,
+        grandfather_data.grandfather_name_english,
+        grandfather_data.grandfather_name_nobiin,
         p."Sex" AS sex,
         p."BirthDate" AS birth_date,
         p."BirthPrecision" AS birth_precision,
@@ -186,23 +219,25 @@ BEGIN
         dp."Name" AS death_place_name,
         (p."DeathDate" IS NULL) AS is_living,
         p."FamilyId" AS family_id,
-        NULL::VARCHAR(200) AS family_name, -- TODO: Join to Families table when available
+        f."Name" AS family_name,
         p."OrgId" AS org_id,
-        -- Build legacy names JSONB for backward compatibility
+        -- Build names JSONB for backward compatibility
         COALESCE(
-            jsonb_agg(
-                DISTINCT jsonb_build_object(
+            (SELECT jsonb_agg(
+                jsonb_build_object(
                     'id', gen_random_uuid(),
-                    'fullName', COALESCE(p."NameArabic", p."NameEnglish", p."NameNobiin"),
-                    'script', CASE
-                        WHEN p."NameArabic" IS NOT NULL THEN 'Arabic'
-                        WHEN p."NameEnglish" IS NOT NULL THEN 'Latin'
-                        WHEN p."NameNobiin" IS NOT NULL THEN 'Coptic'
-                        ELSE 'Unknown'
-                    END,
+                    'fullName', name_val,
+                    'script', script_val,
                     'nameType', 0
                 )
-            ) FILTER (WHERE p."NameArabic" IS NOT NULL OR p."NameEnglish" IS NOT NULL OR p."NameNobiin" IS NOT NULL),
+            )
+            FROM (
+                SELECT p."NameArabic" AS name_val, 'Arabic' AS script_val WHERE p."NameArabic" IS NOT NULL
+                UNION ALL
+                SELECT p."NameEnglish", 'Latin' WHERE p."NameEnglish" IS NOT NULL
+                UNION ALL
+                SELECT p."NameNobiin", 'Coptic' WHERE p."NameNobiin" IS NOT NULL
+            ) name_rows),
             '[]'::jsonb
         ) AS names,
         (SELECT COUNT(*) FROM public."ParentChildren" pc WHERE pc."ChildId" = p."Id") AS parents_count,
@@ -213,6 +248,35 @@ BEGIN
     LEFT JOIN public."Places" bp ON p."BirthPlaceId" = bp."Id"
     LEFT JOIN public."Places" dp ON p."DeathPlaceId" = dp."Id"
     LEFT JOIN public."Orgs" o ON p."OrgId" = o."Id"
+    LEFT JOIN public."Families" f ON p."FamilyId" = f."Id"
+    -- Father subquery
+    LEFT JOIN LATERAL (
+        SELECT
+            parent."Id" AS father_id,
+            parent."NameArabic" AS father_name_arabic,
+            parent."NameEnglish" AS father_name_english,
+            parent."NameNobiin" AS father_name_nobiin
+        FROM public."ParentChildren" pc
+        JOIN public."People" parent ON pc."ParentId" = parent."Id"
+        WHERE pc."ChildId" = p."Id" AND parent."Sex" = 0  -- 0 = Male
+        LIMIT 1
+    ) father_data ON TRUE
+    -- Grandfather subquery (father's father)
+    LEFT JOIN LATERAL (
+        SELECT
+            grandparent."Id" AS grandfather_id,
+            grandparent."NameArabic" AS grandfather_name_arabic,
+            grandparent."NameEnglish" AS grandfather_name_english,
+            grandparent."NameNobiin" AS grandfather_name_nobiin
+        FROM public."ParentChildren" pc1
+        JOIN public."People" father ON pc1."ParentId" = father."Id"
+        JOIN public."ParentChildren" pc2 ON pc2."ChildId" = father."Id"
+        JOIN public."People" grandparent ON pc2."ParentId" = grandparent."Id"
+        WHERE pc1."ChildId" = p."Id"
+          AND father."Sex" = 0
+          AND grandparent."Sex" = 0
+        LIMIT 1
+    ) grandfather_data ON TRUE
     WHERE
         -- Tree/Town filter
         (p_tree_id IS NULL OR p."OrgId" = p_tree_id)
@@ -244,7 +308,6 @@ BEGIN
                     p."NameNobiin" ILIKE v_search_pattern
             END
         ))
-    GROUP BY p."Id", bp."Name", dp."Name", o."Id"
     ORDER BY p."PrimaryName" NULLS LAST
     OFFSET v_offset
     LIMIT p_page_size;
@@ -472,7 +535,7 @@ BEGIN
         (p."DeathDate" IS NULL) AS is_living,
         p."Notes" AS notes,
         p."FamilyId" AS family_id,
-        NULL::VARCHAR(200) AS family_name,
+        f."Name" AS family_name,
         p."OrgId" AS org_id,
         p."CreatedAt" AS created_at,
         p."UpdatedAt" AS updated_at,
@@ -482,7 +545,7 @@ BEGIN
             (SELECT jsonb_agg(jsonb_build_object(
                 'relationshipId', pc."Id",
                 'personId', parent."Id",
-                'name', parent."PrimaryName",
+                'name', COALESCE(parent."NameArabic", parent."NameEnglish", parent."PrimaryName"),
                 'sex', parent."Sex",
                 'relationshipType', 'parent',
                 'birthYear', EXTRACT(YEAR FROM parent."BirthDate"),
@@ -499,7 +562,7 @@ BEGIN
             (SELECT jsonb_agg(jsonb_build_object(
                 'relationshipId', pc."Id",
                 'personId', child."Id",
-                'name', child."PrimaryName",
+                'name', COALESCE(child."NameArabic", child."NameEnglish", child."PrimaryName"),
                 'sex', child."Sex",
                 'relationshipType', 'child',
                 'birthYear', EXTRACT(YEAR FROM child."BirthDate"),
@@ -516,7 +579,7 @@ BEGIN
             (SELECT jsonb_agg(jsonb_build_object(
                 'unionId', u."Id",
                 'personId', spouse."Id",
-                'name', spouse."PrimaryName",
+                'name', COALESCE(spouse."NameArabic", spouse."NameEnglish", spouse."PrimaryName"),
                 'sex', spouse."Sex",
                 'unionType', u."Type",
                 'startDate', u."StartDate",
@@ -536,7 +599,7 @@ BEGIN
         COALESCE(
             (SELECT jsonb_agg(DISTINCT jsonb_build_object(
                 'personId', sibling."Id",
-                'name', sibling."PrimaryName",
+                'name', COALESCE(sibling."NameArabic", sibling."NameEnglish", sibling."PrimaryName"),
                 'sex', sibling."Sex",
                 'relationshipType', 'sibling',
                 'birthYear', EXTRACT(YEAR FROM sibling."BirthDate"),
@@ -553,6 +616,7 @@ BEGIN
     FROM public."People" p
     LEFT JOIN public."Places" bp ON p."BirthPlaceId" = bp."Id"
     LEFT JOIN public."Places" dp ON p."DeathPlaceId" = dp."Id"
+    LEFT JOIN public."Families" f ON p."FamilyId" = f."Id"
     WHERE p."Id" = p_person_id;
 END;
 $$ LANGUAGE plpgsql;
@@ -578,11 +642,35 @@ RETURNS TABLE (
     relationship_summary TEXT
 ) AS $$
 DECLARE
+    v_path UUID[];
+    v_rel_types TEXT[];
     v_path_nodes JSONB := '[]'::JSONB;
     v_path_rels JSONB := '[]'::JSONB;
     v_found BOOLEAN := FALSE;
     v_length INT := 0;
+    v_i INT;
+    v_person_id UUID;
+    v_person_name TEXT;
+    v_person_sex INT;
 BEGIN
+    -- Handle same person case
+    IF p_person1_id = p_person2_id THEN
+        v_found := TRUE;
+        v_length := 0;
+
+        SELECT COALESCE(p."NameArabic", p."NameEnglish", p."PrimaryName"), p."Sex"
+        INTO v_person_name, v_person_sex
+        FROM public."People" p
+        WHERE p."Id" = p_person1_id;
+
+        v_path_nodes := jsonb_build_array(
+            jsonb_build_object('personId', p_person1_id, 'name', v_person_name, 'sex', v_person_sex)
+        );
+
+        RETURN QUERY SELECT v_found, v_length, v_path_nodes, v_path_rels, 'Same person'::TEXT;
+        RETURN;
+    END IF;
+
     -- Use BFS to find shortest path
     WITH RECURSIVE search AS (
         -- Start from person1
@@ -593,6 +681,7 @@ BEGIN
             0 AS depth
         FROM public."People" p
         WHERE p."Id" = p_person1_id
+          AND (p_tree_id IS NULL OR p."OrgId" = p_tree_id)
 
         UNION ALL
 
@@ -608,57 +697,81 @@ BEGIN
             SELECT pc."ParentId" AS person_id, 'parent'::TEXT AS rel_type
             FROM public."ParentChildren" pc
             WHERE pc."ChildId" = s.current_id
+              AND NOT pc."ParentId" = ANY(s.path)
 
             UNION ALL
 
             -- Children
-            SELECT pc."ChildId", 'child'::TEXT
+            SELECT pc."ChildId" AS person_id, 'child'::TEXT AS rel_type
             FROM public."ParentChildren" pc
             WHERE pc."ParentId" = s.current_id
+              AND NOT pc."ChildId" = ANY(s.path)
 
             UNION ALL
 
             -- Spouses
-            SELECT um2."PersonId", 'spouse'::TEXT
+            SELECT um2."PersonId" AS person_id, 'spouse'::TEXT AS rel_type
             FROM public."UnionMembers" um1
-            JOIN public."UnionMembers" um2 ON um2."UnionId" = um1."UnionId" AND um2."PersonId" != s.current_id
+            JOIN public."UnionMembers" um2 ON um2."UnionId" = um1."UnionId" AND um2."PersonId" != um1."PersonId"
             WHERE um1."PersonId" = s.current_id
-        ) AS connections(person_id, rel_type)
-        JOIN public."People" next_person ON next_person."Id" = connections.person_id
+              AND NOT um2."PersonId" = ANY(s.path)
+        ) AS next_rel
+        JOIN public."People" next_person ON next_person."Id" = next_rel.person_id
         WHERE s.depth < p_max_depth
-          AND NOT next_person."Id" = ANY(s.path)
+          AND (p_tree_id IS NULL OR next_person."OrgId" = p_tree_id)
     )
-    SELECT
-        TRUE,
-        array_length(path, 1) - 1,
-        (SELECT jsonb_agg(jsonb_build_object(
-            'personId', pid,
-            'name', (SELECT "PrimaryName" FROM public."People" WHERE "Id" = pid),
-            'sex', (SELECT "Sex" FROM public."People" WHERE "Id" = pid)
-        ))
-        FROM unnest(path) AS pid),
-        (SELECT jsonb_agg(jsonb_build_object(
-            'fromId', path[i],
-            'toId', path[i+1],
-            'type', rel_types[i]
-        ))
-        FROM generate_series(1, array_length(rel_types, 1)) AS i),
-        array_to_string(rel_types, ' -> ')
-    INTO v_found, v_length, v_path_nodes, v_path_rels, relationship_summary
-    FROM search
-    WHERE current_id = p_person2_id
-    ORDER BY depth
+    SELECT s.path, s.rel_types
+    INTO v_path, v_rel_types
+    FROM search s
+    WHERE s.current_id = p_person2_id
+    ORDER BY s.depth
     LIMIT 1;
 
-    RETURN QUERY SELECT
-        COALESCE(v_found, FALSE),
-        v_length,
-        COALESCE(v_path_nodes, '[]'::JSONB),
-        COALESCE(v_path_rels, '[]'::JSONB),
-        relationship_summary;
+    -- Build result
+    IF v_path IS NOT NULL THEN
+        v_found := TRUE;
+        v_length := array_length(v_path, 1) - 1;
+
+        -- Build path nodes
+        FOR v_i IN 1..array_length(v_path, 1) LOOP
+            v_person_id := v_path[v_i];
+
+            SELECT COALESCE(p."NameArabic", p."NameEnglish", p."PrimaryName"), p."Sex"
+            INTO v_person_name, v_person_sex
+            FROM public."People" p
+            WHERE p."Id" = v_person_id;
+
+            v_path_nodes := v_path_nodes || jsonb_build_object(
+                'personId', v_person_id,
+                'name', v_person_name,
+                'sex', v_person_sex
+            );
+
+            -- Build relationship for this step (except for last node)
+            IF v_i < array_length(v_path, 1) THEN
+                v_path_rels := v_path_rels || jsonb_build_object(
+                    'fromId', v_path[v_i],
+                    'toId', v_path[v_i + 1],
+                    'type', v_rel_types[v_i]
+                );
+            END IF;
+        END LOOP;
+    END IF;
+
+    RETURN QUERY SELECT v_found, v_length, v_path_nodes, v_path_rels,
+        CASE WHEN v_found THEN 'Path found with ' || v_length || ' steps' ELSE 'No path found' END;
 END;
 $$ LANGUAGE plpgsql;
 
 -- ============================================================================
--- Done! The search will now use direct columns instead of PersonNames table
+-- STEP 8: Grant permissions
+-- ============================================================================
+
+GRANT EXECUTE ON FUNCTION search_persons_unified TO PUBLIC;
+GRANT EXECUTE ON FUNCTION get_family_tree_data TO PUBLIC;
+GRANT EXECUTE ON FUNCTION get_person_details TO PUBLIC;
+GRANT EXECUTE ON FUNCTION find_relationship_path TO PUBLIC;
+
+-- ============================================================================
+-- Done!
 -- ============================================================================

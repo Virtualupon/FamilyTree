@@ -1,4 +1,9 @@
 {
+  "app": {
+    "title": "شجرة العائلة",
+    "platform": "منصة",
+    "install": "تثبيت"
+  },
   "common": {
     "save": "حفظ",
     "cancel": "إلغاء",
@@ -393,6 +398,71 @@
       "importFailed": "فشل الاستيراد. يرجى المحاولة مرة أخرى."
     }
   },
+  "personDetail": {
+    "loading": "جاري تحميل الشخص...",
+    "retry": "إعادة المحاولة",
+    "errorLoading": "خطأ في تحميل الشخص",
+    "tabs": {
+      "details": "التفاصيل",
+      "family": "العائلة",
+      "media": "الوسائط"
+    },
+    "sections": {
+      "parents": "الوالدين",
+      "siblings": "الإخوة",
+      "spouses": "الأزواج/الشركاء",
+      "children": "الأبناء"
+    },
+    "actions": {
+      "addParent": "إضافة والد/والدة",
+      "addSibling": "إضافة أخ/أخت",
+      "addSpouse": "إضافة زوج/زوجة",
+      "addChild": "إضافة ابن/ابنة",
+      "edit": "تعديل",
+      "viewInTree": "عرض في الشجرة",
+      "delete": "حذف"
+    },
+    "noData": {
+      "parents": "لا يوجد والدين مسجلين",
+      "siblings": "لا يوجد إخوة",
+      "spouses": "لا يوجد أزواج/شركاء مسجلين",
+      "children": "لا يوجد أبناء مسجلين"
+    },
+    "labels": {
+      "birth": "الميلاد",
+      "death": "الوفاة",
+      "gender": "الجنس",
+      "nationality": "الجنسية",
+      "religion": "الديانة",
+      "education": "التعليم",
+      "notes": "ملاحظات",
+      "names": "الأسماء"
+    },
+    "relationshipTypes": {
+      "biological": "بيولوجي",
+      "adopted": "بالتبني",
+      "foster": "بالكفالة",
+      "step": "زوج الأم/زوجة الأب",
+      "guardian": "ولي الأمر",
+      "unknown": "غير معروف"
+    },
+    "unionTypes": {
+      "marriage": "زواج",
+      "civilUnion": "اتحاد مدني",
+      "domesticPartnership": "شراكة منزلية",
+      "commonLaw": "زواج عرفي",
+      "engagement": "خطوبة",
+      "divorced": "مطلق",
+      "widowed": "أرمل",
+      "separated": "منفصل",
+      "annulled": "ملغي",
+      "unknown": "غير معروف"
+    },
+    "siblingTypes": {
+      "full": "شقيق كامل",
+      "half": "أخ/أخت من أب أو أم"
+    }
+  },
   "trees": {
     "title": "أشجار العائلات",
     "subtitle": "إدارة أشجار العائلات والتعاون",
@@ -432,7 +502,9 @@
     "selectTownFirst": "اختر مدينة للبدء",
     "selectTownHint": "اختر مدينة من القائمة أعلاه لعرض وإدارة عائلاتها",
     "manageFamilies": "إدارة واستكشاف مجموعات العائلات",
-    "viewMembers": "عرض الأعضاء"
+    "viewMembers": "عرض الأعضاء",
+    "confirmTownSelection": "يرجى التحقق من اختيار المدينة",
+    "townSelectionWarning": "تأكد من اختيار المدينة الصحيحة. سيتم ربط جميع الأشخاص في شجرة العائلة هذه بهذه المدينة لأغراض البحث."
   },
   "relationshipEditor": {
     "createTitle": "إضافة علاقة",

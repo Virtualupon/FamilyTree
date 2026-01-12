@@ -52,12 +52,23 @@ public sealed class PersonSearchRepository : IPersonSearchRepository
         await connection.OpenAsync(cancellationToken);
 
         var sql = @"
-            SELECT 
+            SELECT
                 total_count,
                 page,
                 page_size,
                 person_id,
                 primary_name,
+                name_arabic,
+                name_english,
+                name_nobiin,
+                father_id,
+                father_name_arabic,
+                father_name_english,
+                father_name_nobiin,
+                grandfather_id,
+                grandfather_name_arabic,
+                grandfather_name_english,
+                grandfather_name_nobiin,
                 sex,
                 birth_date,
                 birth_precision,
@@ -124,6 +135,18 @@ public sealed class PersonSearchRepository : IPersonSearchRepository
             }
 
             var firstRow = rowList.First();
+
+            // DEBUG: Log raw database row to verify father/grandfather data
+            _logger.LogInformation("===== DEBUG: First row from database =====");
+            _logger.LogInformation("person_id: {PersonId}", (object?)firstRow.person_id);
+            _logger.LogInformation("name_arabic: {NameArabic}", (object?)firstRow.name_arabic);
+            _logger.LogInformation("father_id: {FatherId}", (object?)firstRow.father_id);
+            _logger.LogInformation("father_name_arabic: {FatherNameArabic}", (object?)firstRow.father_name_arabic);
+            _logger.LogInformation("father_name_english: {FatherNameEnglish}", (object?)firstRow.father_name_english);
+            _logger.LogInformation("grandfather_id: {GrandfatherId}", (object?)firstRow.grandfather_id);
+            _logger.LogInformation("grandfather_name_arabic: {GrandfatherNameArabic}", (object?)firstRow.grandfather_name_arabic);
+            _logger.LogInformation("==========================================");
+
             var items = rowList.Select(MapToPersonSearchItem).ToList();
 
             return new PersonSearchResult
@@ -338,9 +361,12 @@ public sealed class PersonSearchRepository : IPersonSearchRepository
         await connection.OpenAsync(cancellationToken);
 
         var sql = @"
-            SELECT 
+            SELECT
                 person_id,
                 primary_name,
+                name_arabic,
+                name_english,
+                name_nobiin,
                 sex,
                 birth_date,
                 death_date,
@@ -459,40 +485,23 @@ public sealed class PersonSearchRepository : IPersonSearchRepository
 
     private PersonSearchItemDto MapToPersonSearchItem(dynamic row)
     {
-        // Try to get direct name columns (new schema)
-        // Fall back to extracting from names JSONB (legacy)
-        string? nameArabic = null;
-        string? nameEnglish = null;
-        string? nameNobiin = null;
-
-        // Check if new columns exist in the result
-        var rowDict = (IDictionary<string, object>)row;
-        if (rowDict.ContainsKey("name_arabic"))
-            nameArabic = rowDict["name_arabic"] as string;
-        if (rowDict.ContainsKey("name_english"))
-            nameEnglish = rowDict["name_english"] as string;
-        if (rowDict.ContainsKey("name_nobiin"))
-            nameNobiin = rowDict["name_nobiin"] as string;
-
-        // Parse legacy names JSONB for backward compatibility
-        string? namesJson = row.names?.ToString();
-        List<PersonNameSearchDto> legacyNames = DeserializeJsonb<List<PersonNameSearchDto>>(namesJson) ?? new List<PersonNameSearchDto>();
-
-        // If direct columns are null, try to extract from legacy names
-        if (string.IsNullOrEmpty(nameArabic))
-            nameArabic = legacyNames.FirstOrDefault(n => n.Script?.ToLowerInvariant() == "arabic")?.FullName;
-        if (string.IsNullOrEmpty(nameEnglish))
-            nameEnglish = legacyNames.FirstOrDefault(n => n.Script?.ToLowerInvariant() is "latin" or "english")?.FullName;
-        if (string.IsNullOrEmpty(nameNobiin))
-            nameNobiin = legacyNames.FirstOrDefault(n => n.Script?.ToLowerInvariant() is "coptic" or "nobiin")?.FullName;
-
         return new PersonSearchItemDto
         {
             Id = (Guid)row.person_id,
             PrimaryName = (string?)row.primary_name,
-            NameArabic = nameArabic,
-            NameEnglish = nameEnglish,
-            NameNobiin = nameNobiin,
+            NameArabic = (string?)row.name_arabic,
+            NameEnglish = (string?)row.name_english,
+            NameNobiin = (string?)row.name_nobiin,
+            // Father info
+            FatherId = (Guid?)row.father_id,
+            FatherNameArabic = (string?)row.father_name_arabic,
+            FatherNameEnglish = (string?)row.father_name_english,
+            FatherNameNobiin = (string?)row.father_name_nobiin,
+            // Grandfather info
+            GrandfatherId = (Guid?)row.grandfather_id,
+            GrandfatherNameArabic = (string?)row.grandfather_name_arabic,
+            GrandfatherNameEnglish = (string?)row.grandfather_name_english,
+            GrandfatherNameNobiin = (string?)row.grandfather_name_nobiin,
             Sex = (int)row.sex,
             BirthDate = (DateTime?)row.birth_date,
             BirthPrecision = (int?)row.birth_precision,
@@ -504,9 +513,7 @@ public sealed class PersonSearchRepository : IPersonSearchRepository
             FamilyId = (Guid?)row.family_id,
             FamilyName = (string?)row.family_name,
             OrgId = (Guid)row.org_id,
-#pragma warning disable CS0618 // Obsolete warning - keeping for backward compatibility
-            Names = legacyNames,
-#pragma warning restore CS0618
+            Names = DeserializeJsonb<List<PersonNameSearchDto>>(row.names?.ToString()) ?? new List<PersonNameSearchDto>(),
             ParentsCount = (int)row.parents_count,
             ChildrenCount = (int)row.children_count,
             SpousesCount = (int)row.spouses_count,
@@ -516,37 +523,13 @@ public sealed class PersonSearchRepository : IPersonSearchRepository
 
     private TreePersonDto MapToTreePerson(dynamic row)
     {
-        // Try to get direct name columns (new schema)
-        string? nameArabic = null;
-        string? nameEnglish = null;
-        string? nameNobiin = null;
-
-        var rowDict = (IDictionary<string, object>)row;
-        if (rowDict.ContainsKey("name_arabic"))
-            nameArabic = rowDict["name_arabic"] as string;
-        if (rowDict.ContainsKey("name_english"))
-            nameEnglish = rowDict["name_english"] as string;
-        if (rowDict.ContainsKey("name_nobiin"))
-            nameNobiin = rowDict["name_nobiin"] as string;
-
-        string? namesJson = row.names?.ToString();
-        List<PersonNameSearchDto> legacyNames = DeserializeJsonb<List<PersonNameSearchDto>>(namesJson) ?? new List<PersonNameSearchDto>();
-
-        // Fall back to extracting from legacy names
-        if (string.IsNullOrEmpty(nameArabic))
-            nameArabic = legacyNames.FirstOrDefault(n => n.Script?.ToLowerInvariant() == "arabic")?.FullName;
-        if (string.IsNullOrEmpty(nameEnglish))
-            nameEnglish = legacyNames.FirstOrDefault(n => n.Script?.ToLowerInvariant() is "latin" or "english")?.FullName;
-        if (string.IsNullOrEmpty(nameNobiin))
-            nameNobiin = legacyNames.FirstOrDefault(n => n.Script?.ToLowerInvariant() is "coptic" or "nobiin")?.FullName;
-
         return new TreePersonDto
         {
             Id = (Guid)row.person_id,
             PrimaryName = (string?)row.primary_name,
-            NameArabic = nameArabic,
-            NameEnglish = nameEnglish,
-            NameNobiin = nameNobiin,
+            NameArabic = (string?)row.name_arabic,
+            NameEnglish = (string?)row.name_english,
+            NameNobiin = (string?)row.name_nobiin,
             Sex = (int)row.sex,
             BirthDate = (DateTime?)row.birth_date,
             DeathDate = (DateTime?)row.death_date,
@@ -557,45 +540,18 @@ public sealed class PersonSearchRepository : IPersonSearchRepository
             RelationshipType = (string?)row.relationship_type,
             ParentId = (Guid?)row.parent_id,
             SpouseUnionId = (Guid?)row.spouse_union_id,
-#pragma warning disable CS0618
-            Names = legacyNames
+#pragma warning disable CS0618 // Obsolete warning - keeping for backward compatibility
+            Names = DeserializeJsonb<List<PersonNameSearchDto>>(row.names?.ToString()) ?? new List<PersonNameSearchDto>()
 #pragma warning restore CS0618
         };
     }
 
     private PersonDetailsResult MapToPersonDetails(dynamic row)
     {
-        // Try to get direct name columns (new schema)
-        string? nameArabic = null;
-        string? nameEnglish = null;
-        string? nameNobiin = null;
-
-        var rowDict = (IDictionary<string, object>)row;
-        if (rowDict.ContainsKey("name_arabic"))
-            nameArabic = rowDict["name_arabic"] as string;
-        if (rowDict.ContainsKey("name_english"))
-            nameEnglish = rowDict["name_english"] as string;
-        if (rowDict.ContainsKey("name_nobiin"))
-            nameNobiin = rowDict["name_nobiin"] as string;
-
-        string? namesJson = row.names?.ToString();
-        List<PersonNameSearchDto> legacyNames = DeserializeJsonb<List<PersonNameSearchDto>>(namesJson) ?? new List<PersonNameSearchDto>();
-
-        // Fall back to extracting from legacy names
-        if (string.IsNullOrEmpty(nameArabic))
-            nameArabic = legacyNames.FirstOrDefault(n => n.Script?.ToLowerInvariant() == "arabic")?.FullName;
-        if (string.IsNullOrEmpty(nameEnglish))
-            nameEnglish = legacyNames.FirstOrDefault(n => n.Script?.ToLowerInvariant() is "latin" or "english")?.FullName;
-        if (string.IsNullOrEmpty(nameNobiin))
-            nameNobiin = legacyNames.FirstOrDefault(n => n.Script?.ToLowerInvariant() is "coptic" or "nobiin")?.FullName;
-
         return new PersonDetailsResult
         {
             Id = (Guid)row.person_id,
             PrimaryName = (string?)row.primary_name,
-            NameArabic = nameArabic,
-            NameEnglish = nameEnglish,
-            NameNobiin = nameNobiin,
             Sex = (int)row.sex,
             BirthDate = (DateTime?)row.birth_date,
             BirthPrecision = (int?)row.birth_precision,
@@ -612,9 +568,7 @@ public sealed class PersonSearchRepository : IPersonSearchRepository
             OrgId = (Guid)row.org_id,
             CreatedAt = (DateTime)row.created_at,
             UpdatedAt = (DateTime?)row.updated_at,
-#pragma warning disable CS0618
-            Names = legacyNames,
-#pragma warning restore CS0618
+            Names = DeserializeJsonb<List<PersonNameSearchDto>>(row.names?.ToString()) ?? new List<PersonNameSearchDto>(),
             Parents = DeserializeJsonb<List<RelatedPersonDto>>(row.parents?.ToString()) ?? new List<RelatedPersonDto>(),
             Children = DeserializeJsonb<List<RelatedPersonDto>>(row.children?.ToString()) ?? new List<RelatedPersonDto>(),
             Spouses = DeserializeJsonb<List<SpouseDto>>(row.spouses?.ToString()) ?? new List<SpouseDto>(),

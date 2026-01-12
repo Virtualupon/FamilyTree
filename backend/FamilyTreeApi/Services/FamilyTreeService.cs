@@ -268,9 +268,10 @@ public class FamilyTreeService : IFamilyTreeService
             }
 
             // Note: For updates, we need tracking enabled, so we use AsTracking() explicitly
+            // Don't include Town to avoid tracking conflicts when TownId changes
             var tree = await _context.Orgs
+                .AsTracking()
                 .Include(o => o.Owner)
-                .Include(o => o.Town)
                 .FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
 
             if (tree == null)
@@ -294,18 +295,20 @@ public class FamilyTreeService : IFamilyTreeService
                         ServiceErrorType.BadRequest);
                 }
 
-                var newTown = await _context.Towns
-                    .AsNoTracking() // OPTIMIZED: Added AsNoTracking
-                    .FirstOrDefaultAsync(t => t.Id == request.TownId.Value, cancellationToken);
+                // Only validate that the town exists, don't load/attach it
+                var townExists = await _context.Towns
+                    .AsNoTracking()
+                    .AnyAsync(t => t.Id == request.TownId.Value, cancellationToken);
 
-                if (newTown == null)
+                if (!townExists)
                 {
                     return ServiceResult<FamilyTreeResponse>.Failure(
                         "Invalid TownId. The specified town does not exist.",
                         ServiceErrorType.BadRequest);
                 }
+
+                // Only set the foreign key, don't assign navigation property to avoid tracking conflicts
                 tree.TownId = request.TownId.Value;
-                tree.Town = newTown;
             }
 
             tree.UpdatedAt = DateTime.UtcNow;
@@ -314,7 +317,7 @@ public class FamilyTreeService : IFamilyTreeService
 
             _logger.LogInformation("Family tree updated: {TreeId}", id);
 
-            // OPTIMIZED: Get counts with separate efficient queries
+            // OPTIMIZED: Get counts and town name with separate efficient queries
             var memberCount = await _context.OrgUsers
                 .AsNoTracking()
                 .CountAsync(ou => ou.OrgId == id, cancellationToken);
@@ -322,6 +325,13 @@ public class FamilyTreeService : IFamilyTreeService
             var personCount = await _context.People
                 .AsNoTracking()
                 .CountAsync(p => p.OrgId == id, cancellationToken);
+
+            // Get the current Town name (may have changed)
+            var townName = await _context.Towns
+                .AsNoTracking()
+                .Where(t => t.Id == tree.TownId)
+                .Select(t => t.Name)
+                .FirstOrDefaultAsync(cancellationToken) ?? "";
 
             var response = new FamilyTreeResponse(
                 tree.Id,
@@ -333,7 +343,7 @@ public class FamilyTreeService : IFamilyTreeService
                 tree.OwnerId,
                 tree.Owner != null ? $"{tree.Owner.FirstName} {tree.Owner.LastName}".Trim() : null,
                 tree.TownId,
-                tree.Town?.Name ?? "",
+                townName,
                 memberCount,
                 personCount,
                 tree.CreatedAt,
@@ -419,20 +429,22 @@ public class FamilyTreeService : IFamilyTreeService
             }
 
             // OPTIMIZED: Single query with projection and AsNoTracking
+            // Note: Order before projection to avoid EF Core translation issues
             var members = await _context.OrgUsers
-                .AsNoTracking() // OPTIMIZED: Added AsNoTracking
+                .AsNoTracking()
                 .Where(ou => ou.OrgId == treeId)
-                .Join(_context.Users, ou => ou.UserId, u => u.Id, (ou, u) => new TreeMemberResponse(
-                    ou.Id,
-                    ou.UserId,
-                    u.Email ?? "",
-                    u.FirstName,
-                    u.LastName,
-                    ou.Role,
-                    ou.JoinedAt
+                .Join(_context.Users, ou => ou.UserId, u => u.Id, (ou, u) => new { OrgUser = ou, User = u })
+                .OrderByDescending(x => x.OrgUser.Role)
+                .ThenBy(x => x.User.Email)
+                .Select(x => new TreeMemberResponse(
+                    x.OrgUser.Id,
+                    x.OrgUser.UserId,
+                    x.User.Email ?? "",
+                    x.User.FirstName,
+                    x.User.LastName,
+                    x.OrgUser.Role,
+                    x.OrgUser.JoinedAt
                 ))
-                .OrderByDescending(x => x.Role)
-                .ThenBy(x => x.Email)
                 .ToListAsync(cancellationToken);
 
             return ServiceResult<List<TreeMemberResponse>>.Success(members);

@@ -136,9 +136,9 @@ import { RelationshipPathViewComponent } from './relationship-path-view.componen
           class="person-selector-btn__avatar"
           [class.person-selector-btn__avatar--male]="selectedPerson()!.sex === Sex.Male"
           [class.person-selector-btn__avatar--female]="selectedPerson()!.sex === Sex.Female">
-          {{ getInitials(selectedPerson()!.primaryName) }}
+          {{ getInitials(getDisplayName(selectedPerson()!)) }}
         </div>
-        <span class="person-selector-btn__name">{{ selectedPerson()!.primaryName }}</span>
+        <span class="person-selector-btn__name">{{ getDisplayName(selectedPerson()!) }}</span>
       </ng-container>
     } @else {
       <ng-container>
@@ -225,11 +225,11 @@ import { RelationshipPathViewComponent } from './relationship-path-view.componen
           (click)="onNodeClick(node)">
           
           <div class="tree-node__avatar">
-            {{ getInitials(node.primaryName) }}
+            {{ getInitials(getDisplayName(node)) }}
           </div>
-          
+
           <div class="tree-node__info">
-            <div class="tree-node__name">{{ node.primaryName || ('common.unknown' | translate) }}</div>
+            <div class="tree-node__name">{{ getDisplayName(node) || ('common.unknown' | translate) }}</div>
             <div class="tree-node__dates">
               @if (node.birthDate) {
                 {{ formatYear(node.birthDate) }}
@@ -259,9 +259,9 @@ import { RelationshipPathViewComponent } from './relationship-path-view.componen
                   [class.tree-node__spouse--female]="partner.sex === Sex.Female"
                   (click)="onNodeClick(partner); $event.stopPropagation()">
                   <div class="tree-node__spouse-avatar">
-                    {{ getInitials(partner.primaryName) }}
+                    {{ getInitials(getDisplayName(partner)) }}
                   </div>
-                  <span class="tree-node__spouse-name">{{ partner.primaryName }}</span>
+                  <span class="tree-node__spouse-name">{{ getDisplayName(partner) }}</span>
                 </div>
               }
             }
@@ -873,7 +873,18 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
   }
-  
+
+  getDisplayName(person: { primaryName?: string | null; nameArabic?: string | null; nameEnglish?: string | null; nameNobiin?: string | null }): string {
+    const lang = this.i18n.currentLang();
+    if (lang === 'ar') {
+      return person.nameArabic || person.nameEnglish || person.primaryName || 'Unknown';
+    }
+    if (lang === 'nob') {
+      return person.nameNobiin || person.nameEnglish || person.primaryName || 'Unknown';
+    }
+    return person.nameEnglish || person.nameArabic || person.primaryName || 'Unknown';
+  }
+
   formatYear(dateStr: string | undefined): string {
     if (!dateStr) return '';
     try {

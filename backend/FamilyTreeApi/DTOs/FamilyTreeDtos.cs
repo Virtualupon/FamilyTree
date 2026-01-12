@@ -48,14 +48,19 @@ public record CreateFamilyTreeRequest(
     bool AllowCrossTreeLinking = true
 );
 
-public record UpdateFamilyTreeRequest(
-    string? Name = null,
-    string? Description = null,
-    bool? IsPublic = null,
-    bool? AllowCrossTreeLinking = null,
-    string? CoverImageUrl = null,
-    Guid? TownId = null
-);
+/// <summary>
+/// Request to update a family tree.
+/// Using class instead of record for proper JSON deserialization with System.Text.Json.
+/// </summary>
+public class UpdateFamilyTreeRequest
+{
+    public string? Name { get; set; }
+    public string? Description { get; set; }
+    public bool? IsPublic { get; set; }
+    public bool? AllowCrossTreeLinking { get; set; }
+    public string? CoverImageUrl { get; set; }
+    public Guid? TownId { get; set; }
+}
 
 // ============================================================================
 // TREE MEMBER DTOs
@@ -267,22 +272,6 @@ public record CreateUserRequest(
     string SystemRole = "User" // "User", "Admin", "SuperAdmin"
 );
 
-// ============================================================================
-// PERSON MEDIA DTOs
-// ============================================================================
-
-//public record PersonMediaResponse(
-//    Guid Id,
-//    Guid PersonId,
-//    Guid MediaId,
-//    string? MediaUrl,
-//    string? MediaTitle,
-//    string? MediaCategory,
-//    bool IsPrimary,
-//    int SortOrder,
-//    string? Notes,
-//    DateTime CreatedAt
-//);
 
 public record AddPersonMediaRequest(
     Guid MediaId,

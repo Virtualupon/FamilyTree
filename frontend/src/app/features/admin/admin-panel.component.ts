@@ -8,7 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatDialogModule } from '@angular/material/dialog';
+import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -26,7 +26,8 @@ import {
 } from '../../core/models/family-tree.models';
 import { TownListItem } from '../../core/models/town.models';
 import { NameMapping, BulkTransliterationResult, getConfidenceLevel } from '../../core/models/transliteration.models';
-import { I18nService } from '../../core/i18n/i18n.service';
+import { I18nService, TranslatePipe } from '../../core/i18n';
+import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult } from './assign-town-dialog.component';
 
 @Component({
   selector: 'app-admin-panel',
@@ -44,7 +45,8 @@ import { I18nService } from '../../core/i18n/i18n.service';
     MatDialogModule,
     MatProgressSpinnerModule,
     MatChipsModule,
-    MatTooltipModule
+    MatTooltipModule,
+    TranslatePipe
   ],
   template: `
     <div class="admin-panel">
@@ -77,7 +79,7 @@ import { I18nService } from '../../core/i18n/i18n.service';
             </div>
             <div class="stat-card__content">
               <span class="stat-card__value">{{ stats()?.totalTrees || 0 }}</span>
-              <span class="stat-card__label">Family Trees</span>
+              <span class="stat-card__label">{{ 'trees.title' | translate }}</span>
             </div>
           </mat-card-content>
         </mat-card>
@@ -184,7 +186,7 @@ import { I18nService } from '../../core/i18n/i18n.service';
                     <th mat-header-cell *matHeaderCellDef>Actions</th>
                     <td mat-cell *matCellDef="let user">
                       @if (user.systemRole === 'Admin') {
-                        <button mat-stroked-button color="primary" (click)="showTownAssignModal(user)">
+                        <button mat-stroked-button color="primary" (click)="openAssignTownDialog(user)">
                           <i class="fa-solid fa-city" aria-hidden="true"></i>
                           Assign Towns
                         </button>
@@ -217,7 +219,7 @@ import { I18nService } from '../../core/i18n/i18n.service';
               <div class="tab-header">
                 <h3>Admin Town Assignments</h3>
                 <p class="tab-description">Assign admins to towns. Admins can manage all trees within their assigned towns.</p>
-                <button mat-flat-button color="primary" (click)="showNewTownAssignmentModal = true">
+                <button mat-flat-button color="primary" (click)="openAssignTownDialog()">
                   <i class="fa-solid fa-plus" aria-hidden="true"></i>
                   Assign Town
                 </button>
@@ -387,7 +389,7 @@ import { I18nService } from '../../core/i18n/i18n.service';
                     </mat-form-field>
 
                     <mat-form-field appearance="outline">
-                      <mat-label>Family Tree</mat-label>
+                      <mat-label>{{ 'nav.familyTree' | translate }}</mat-label>
                       <mat-select [(ngModel)]="bulkTranslitOptions.orgId">
                         <mat-option value="">All Trees (My Org)</mat-option>
                         @for (tree of allTrees(); track tree.id) {
@@ -561,61 +563,6 @@ import { I18nService } from '../../core/i18n/i18n.service';
         </div>
       }
 
-      <!-- Town Assignment Modal -->
-      @if (showNewTownAssignmentModal) {
-        <div class="modal-backdrop" (click)="showNewTownAssignmentModal = false">
-          <mat-card class="modal-card" (click)="$event.stopPropagation()">
-            <mat-card-header>
-              <mat-card-title>Assign Admin to Town</mat-card-title>
-            </mat-card-header>
-            <mat-card-content>
-              <p class="modal-hint">
-                Assigning an admin to a town gives them access to all trees within that town.
-              </p>
-
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Select Admin</mat-label>
-                <mat-select [(ngModel)]="newTownAssignment.userId">
-                  @for (user of adminUsers(); track user.userId) {
-                    <mat-option [value]="user.userId">
-                      {{ user.firstName }} {{ user.lastName }} ({{ user.email }})
-                    </mat-option>
-                  }
-                </mat-select>
-                <i matPrefix class="fa-solid fa-user input-prefix-icon" aria-hidden="true"></i>
-              </mat-form-field>
-
-              <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Select Town</mat-label>
-                <mat-select [(ngModel)]="newTownAssignment.townId">
-                  @for (town of allTowns(); track town.id) {
-                    <mat-option [value]="town.id">
-                      <span class="town-option">
-                        <span class="town-option-name">{{ getLocalizedTownName(town) }}</span>
-                        @if (town.country) {
-                          <span class="town-option-country">({{ town.country }})</span>
-                        }
-                        <span class="town-option-trees">{{ town.treeCount || 0 }} trees</span>
-                      </span>
-                    </mat-option>
-                  }
-                  @if (allTowns().length === 0) {
-                    <mat-option disabled>No towns available</mat-option>
-                  }
-                </mat-select>
-                <i matPrefix class="fa-solid fa-city input-prefix-icon" aria-hidden="true"></i>
-                <mat-hint>Towns are geographic locations (cities/villages)</mat-hint>
-              </mat-form-field>
-            </mat-card-content>
-            <mat-card-actions align="end">
-              <button mat-button (click)="showNewTownAssignmentModal = false">Cancel</button>
-              <button mat-flat-button color="primary" (click)="createTownAssignment()">
-                Assign Town
-              </button>
-            </mat-card-actions>
-          </mat-card>
-        </div>
-      }
     </div>
   `,
   styles: [`
@@ -931,13 +878,15 @@ import { I18nService } from '../../core/i18n/i18n.service';
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 1000;
+      z-index: 999;  /* Below CDK overlay (1100) so mat-select dropdowns appear above */
     }
 
     .modal-card {
       width: 100%;
       max-width: 480px;
       margin: 16px;
+      z-index: 1000;  /* Above backdrop but below CDK overlay */
+      position: relative;
     }
 
     .full-width {
@@ -1104,9 +1053,6 @@ export class AdminPanelComponent implements OnInit {
   allTowns = signal<TownListItem[]>([]);
   stats = signal<PlatformStats | null>(null);
 
-  showNewTownAssignmentModal = false;
-  newTownAssignment = { userId: 0, townId: '' };
-
   showCreateUserModal = false;
   creatingUser = signal(false);
   createUserError = '';
@@ -1138,7 +1084,8 @@ export class AdminPanelComponent implements OnInit {
     private treeService: FamilyTreeService,
     private townService: TownService,
     private transliterationService: TransliterationService,
-    private i18n: I18nService
+    private i18n: I18nService,
+    private dialog: MatDialog
   ) {}
 
   ngOnInit() {
@@ -1173,8 +1120,13 @@ export class AdminPanelComponent implements OnInit {
     });
 
     this.townService.getAllTowns().subscribe({
-      next: (towns) => this.allTowns.set(towns),
-      error: () => {}
+      next: (towns) => {
+        console.log('Towns loaded:', towns.length);
+        this.allTowns.set(towns);
+      },
+      error: (err) => {
+        console.error('Failed to load towns:', err);
+      }
     });
   }
 
@@ -1196,24 +1148,39 @@ export class AdminPanelComponent implements OnInit {
   }
 
   // Town Assignment Methods
-  showTownAssignModal(user: AdminUser) {
-    this.newTownAssignment = { userId: user.userId, townId: '' };
-    this.showNewTownAssignmentModal = true;
-  }
+  openAssignTownDialog(user?: AdminUser) {
+    // Load towns fresh when dialog opens
+    this.townService.getAllTowns().subscribe({
+      next: (towns) => {
+        this.allTowns.set(towns);
 
-  createTownAssignment() {
-    if (!this.newTownAssignment.userId || !this.newTownAssignment.townId) return;
+        const dialogRef = this.dialog.open(AssignTownDialogComponent, {
+          width: '480px',
+          autoFocus: 'first-tabbable',
+          disableClose: true,
+          data: {
+            user,
+            users: user ? undefined : this.adminUsers(),
+            towns
+          } as AssignTownDialogData
+        });
 
-    this.adminService.createTownAssignment({
-      userId: this.newTownAssignment.userId,
-      townId: this.newTownAssignment.townId
-    }).subscribe({
-      next: () => {
-        this.showNewTownAssignmentModal = false;
-        this.newTownAssignment = { userId: 0, townId: '' };
-        this.loadData();
+        dialogRef.afterClosed().subscribe((result: AssignTownDialogResult | undefined) => {
+          if (result) {
+            this.adminService.createTownAssignment({
+              userId: result.userId,
+              townId: result.townId
+            }).subscribe({
+              next: () => this.loadData(),
+              error: (err) => alert(err.error?.message || 'Failed to assign town')
+            });
+          }
+        });
       },
-      error: (err) => alert(err.error?.message || 'Failed to create town assignment')
+      error: (err) => {
+        console.error('Failed to load towns:', err);
+        alert('Failed to load towns. Please try again.');
+      }
     });
   }
 

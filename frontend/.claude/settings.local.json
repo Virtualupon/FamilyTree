@@ -3,7 +3,16 @@
     "allow": [
       "Bash(ng build:*)",
       "Bash(dotnet build:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(curl:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(tasklist:*)",
+      "Bash(python -m json.tool:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm start)",
+      "Bash(timeout:*)",
+      "Bash(npx ng serve:*)"
     ]
   }
 }

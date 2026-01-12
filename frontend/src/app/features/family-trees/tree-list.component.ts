@@ -424,13 +424,52 @@ import { GedcomImportDialogComponent } from './gedcom-import-dialog.component';
 
               <div class="form-group">
                 <label class="form-label required">{{ 'trees.town' | translate }}</label>
-                <select [(ngModel)]="newTree.townId" name="townId" class="form-input" required>
+                <select [(ngModel)]="newTree.townId" name="townId" class="form-input" required (change)="onCreateTreeTownChange()">
                   <option [ngValue]="''" disabled>{{ 'trees.selectTown' | translate }}</option>
                   @for (town of towns(); track town.id) {
                     <option [ngValue]="town.id">{{ getLocalizedTownName(town) }}{{ town.country ? ' (' + town.country + ')' : '' }}</option>
                   }
                 </select>
                 <p class="form-hint">{{ 'trees.townHintRequired' | translate }}</p>
+
+                @if (newTree.townId && getSelectedCreateTown()) {
+                  <div class="town-confirmation">
+                    <div class="town-confirmation-header">
+                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                      </svg>
+                      <span>{{ 'trees.confirmTownSelection' | translate }}</span>
+                    </div>
+                    <div class="town-confirmation-details">
+                      <div class="town-name-row">
+                        <span class="label">English:</span>
+                        <strong>{{ getSelectedCreateTown()?.nameEn || getSelectedCreateTown()?.name || '-' }}</strong>
+                      </div>
+                      <div class="town-name-row">
+                        <span class="label">العربية:</span>
+                        <strong dir="rtl">{{ getSelectedCreateTown()?.nameAr || '-' }}</strong>
+                      </div>
+                      @if (getSelectedCreateTown()?.nameLocal) {
+                        <div class="town-name-row">
+                          <span class="label">Local:</span>
+                          <strong>{{ getSelectedCreateTown()?.nameLocal }}</strong>
+                        </div>
+                      }
+                      @if (getSelectedCreateTown()?.country) {
+                        <div class="town-name-row">
+                          <span class="label">Country:</span>
+                          <strong>{{ getSelectedCreateTown()?.country }}</strong>
+                        </div>
+                      }
+                    </div>
+                    <p class="town-confirmation-warning">
+                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                      </svg>
+                      {{ 'trees.townSelectionWarning' | translate }}
+                    </p>
+                  </div>
+                }
               </div>
 
               <div class="form-group">
@@ -1336,6 +1375,77 @@ import { GedcomImportDialogComponent } from './gedcom-import-dialog.component';
       margin: 6px 0 0 0;
     }
 
+    .town-confirmation {
+      margin-top: 12px;
+      padding: 16px;
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      border-radius: 8px;
+    }
+
+    .town-confirmation-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #166534;
+      font-weight: 600;
+      margin-bottom: 12px;
+
+      svg {
+        width: 20px;
+        height: 20px;
+      }
+    }
+
+    .town-confirmation-details {
+      background: white;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .town-name-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      border-bottom: 1px solid #e5e7eb;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .label {
+        color: #6b7280;
+        font-size: 13px;
+        min-width: 70px;
+      }
+
+      strong {
+        color: #1a1a2e;
+        font-size: 14px;
+      }
+    }
+
+    .town-confirmation-warning {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin: 0;
+      padding: 10px;
+      background: #fef3c7;
+      border-radius: 6px;
+      color: #92400e;
+      font-size: 13px;
+
+      svg {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+    }
+
     .checkbox-label {
       display: flex;
       align-items: center;
@@ -1433,7 +1543,16 @@ export class TreeListComponent implements OnInit {
   searchQuery = '';
   selectedTownId: string | null = null;
 
-  showCreateModal = false;
+  private _showCreateModal = false;
+  get showCreateModal() { return this._showCreateModal; }
+  set showCreateModal(value: boolean) {
+    this._showCreateModal = value;
+    // Auto-select the currently selected town when opening the modal
+    if (value && this.selectedTownId && !this.newTree.townId) {
+      this.newTree.townId = this.selectedTownId;
+    }
+  }
+
   showImportModal = false;
   creating = signal(false);
   createError = signal<string | null>(null);
@@ -1728,6 +1847,18 @@ export class TreeListComponent implements OnInit {
   canManage(role: OrgRole | null): boolean {
     if (role === null) return false;
     return role >= OrgRole.Admin;
+  }
+
+  // Get the selected town for the create tree modal
+  getSelectedCreateTown(): TownListItem | null {
+    if (!this.newTree.townId) return null;
+    return this.towns().find(t => t.id === this.newTree.townId) || null;
+  }
+
+  // Called when town selection changes in create modal
+  onCreateTreeTownChange(): void {
+    // Clear any previous error when town is changed
+    this.createError.set(null);
   }
 
   onImportComplete(): void {

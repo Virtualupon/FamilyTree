@@ -4,6 +4,12 @@ import { UnionType } from './union.models';
 export interface TreePersonNode {
   id: string;
   primaryName: string;
+  /** Name in Arabic script */
+  nameArabic?: string | null;
+  /** Name in English/Latin script */
+  nameEnglish?: string | null;
+  /** Name in Nobiin (Coptic) script */
+  nameNobiin?: string | null;
   sex: Sex;
   birthDate?: string;
   birthPlace?: string;

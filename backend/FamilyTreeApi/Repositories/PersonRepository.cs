@@ -19,6 +19,7 @@ public class PersonRepository : Repository<Person>, IPersonRepository
     public async Task<Person?> GetByIdWithDetailsAsync(Guid id, Guid orgId, CancellationToken cancellationToken = default)
     {
         return await _dbSet
+            .AsTracking() // Required for updates since global NoTracking is enabled
             .Where(p => p.Id == id && p.OrgId == orgId)
             .Include(p => p.BirthPlace)
             .Include(p => p.DeathPlace)

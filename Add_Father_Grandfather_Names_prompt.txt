@@ -1,0 +1,361 @@
+Add Father + Grandfather Names to People List Display
+
+## Overview
+Update the people list to show names in the format: "Name + Father's Name + Grandfather's Name" (when available).
+This requires changes to PostgreSQL function, backend DTOs, and frontend.
+
+---
+
+## 1. POSTGRESQL FUNCTION - Scripts/InitSearchFunctions.sql
+
+Update the `search_persons_unified` function to include father and grandfather names.
+
+### Step 1: Update RETURNS TABLE (around line 28)
+
+Find the RETURNS TABLE section and add new columns:
+
+```sql
+RETURNS TABLE (
+    total_count bigint,
+    page integer,
+    page_size integer,
+    person_id uuid,
+    primary_name text,
+    name_arabic text,           -- ADD THIS
+    name_english text,          -- ADD THIS
+    name_nobiin text,           -- ADD THIS
+    -- Father info
+    father_id uuid,             -- ADD THIS
+    father_name_arabic text,    -- ADD THIS
+    father_name_english text,   -- ADD THIS
+    father_name_nobiin text,    -- ADD THIS
+    -- Grandfather info
+    grandfather_id uuid,        -- ADD THIS
+    grandfather_name_arabic text,   -- ADD THIS
+    grandfather_name_english text,  -- ADD THIS
+    grandfather_name_nobiin text,   -- ADD THIS
+    sex integer,
+    birth_date timestamp without time zone,
+    birth_precision integer,
+    death_date timestamp without time zone,
+    death_precision integer,
+    birth_place_name text,
+    death_place_name text,
+    is_living boolean,
+    family_id uuid,
+    family_name text,
+    org_id uuid,
+    names jsonb,
+    parents_count integer,
+    children_count integer,
+    spouses_count integer,
+    media_count integer
+)
+```
+
+### Step 2: Update the SELECT clause (around line 167)
+
+Find the SELECT section and add the new columns with subqueries for father/grandfather:
+
+```sql
+    SELECT 
+        v_total AS total_count,
+        p_page AS page,
+        p_page_size AS page_size,
+        p."Id" AS person_id,
+        p."PrimaryName" AS primary_name,
+        p."NameArabic" AS name_arabic,
+        p."NameEnglish" AS name_english,
+        p."NameNobiin" AS name_nobiin,
+        -- Father (male parent)
+        father_data.father_id,
+        father_data.father_name_arabic,
+        father_data.father_name_english,
+        father_data.father_name_nobiin,
+        -- Grandfather (father's male parent)
+        grandfather_data.grandfather_id,
+        grandfather_data.grandfather_name_arabic,
+        grandfather_data.grandfather_name_english,
+        grandfather_data.grandfather_name_nobiin,
+        p."Sex" AS sex,
+        p."BirthDate" AS birth_date,
+        p."BirthPrecision" AS birth_precision,
+        p."DeathDate" AS death_date,
+        p."DeathPrecision" AS death_precision,
+        bp."Name" AS birth_place_name,
+        dp."Name" AS death_place_name,
+        (p."DeathDate" IS NULL) AS is_living,
+        p."FamilyId" AS family_id,
+        f."Name" AS family_name,
+        p."OrgId" AS org_id,
+        -- ... rest of columns stay the same
+```
+
+### Step 3: Add LEFT JOINs for father and grandfather (after the existing JOINs)
+
+Add these after the existing LEFT JOINs (around line 213):
+
+```sql
+    FROM filtered_people fp
+    JOIN "People" p ON fp."Id" = p."Id"
+    LEFT JOIN "Places" bp ON p."BirthPlaceId" = bp."Id"
+    LEFT JOIN "Places" dp ON p."DeathPlaceId" = dp."Id"
+    LEFT JOIN "Families" f ON p."FamilyId" = f."Id"
+    -- Father subquery
+    LEFT JOIN LATERAL (
+        SELECT 
+            parent."Id" AS father_id,
+            parent."NameArabic" AS father_name_arabic,
+            parent."NameEnglish" AS father_name_english,
+            parent."NameNobiin" AS father_name_nobiin
+        FROM "ParentChildren" pc
+        JOIN "People" parent ON pc."ParentId" = parent."Id"
+        WHERE pc."ChildId" = p."Id" AND parent."Sex" = 0  -- 0 = Male
+        LIMIT 1
+    ) father_data ON TRUE
+    -- Grandfather subquery (father's father)
+    LEFT JOIN LATERAL (
+        SELECT 
+            grandparent."Id" AS grandfather_id,
+            grandparent."NameArabic" AS grandfather_name_arabic,
+            grandparent."NameEnglish" AS grandfather_name_english,
+            grandparent."NameNobiin" AS grandfather_name_nobiin
+        FROM "ParentChildren" pc1
+        JOIN "People" father ON pc1."ParentId" = father."Id"
+        JOIN "ParentChildren" pc2 ON pc2."ChildId" = father."Id"
+        JOIN "People" grandparent ON pc2."ParentId" = grandparent."Id"
+        WHERE pc1."ChildId" = p."Id" 
+          AND father."Sex" = 0 
+          AND grandparent."Sex" = 0
+        LIMIT 1
+    ) grandfather_data ON TRUE
+    ORDER BY p."UpdatedAt" DESC, p."CreatedAt" DESC;
+```
+
+### Step 4: Run the updated SQL
+
+After modifying the file, execute it against your database:
+```bash
+psql -U your_user -d your_database -f Scripts/InitSearchFunctions.sql
+```
+
+Or run through your application's migration mechanism.
+
+---
+
+## 2. BACKEND DTO - DTOs/Search/PersonSearchDtos.cs
+
+Update `PersonSearchItemDto` (around line 108) to add the new fields:
+
+```csharp
+public record PersonSearchItemDto
+{
+    public Guid Id { get; init; }
+    public string? PrimaryName { get; init; }
+    public string? NameArabic { get; init; }
+    public string? NameEnglish { get; init; }
+    public string? NameNobiin { get; init; }
+    // Father's names
+    public Guid? FatherId { get; init; }
+    public string? FatherNameArabic { get; init; }
+    public string? FatherNameEnglish { get; init; }
+    public string? FatherNameNobiin { get; init; }
+    // Grandfather's names
+    public Guid? GrandfatherId { get; init; }
+    public string? GrandfatherNameArabic { get; init; }
+    public string? GrandfatherNameEnglish { get; init; }
+    public string? GrandfatherNameNobiin { get; init; }
+    public int Sex { get; init; }
+    // ... rest of fields remain the same
+}
+```
+
+---
+
+## 3. BACKEND REPOSITORY - Repositories/PersonSearchRepository.cs
+
+Update `MapToPersonSearchItem` method (around line 463) to map the new fields:
+
+```csharp
+private PersonSearchItemDto MapToPersonSearchItem(dynamic row)
+{
+    return new PersonSearchItemDto
+    {
+        Id = (Guid)row.person_id,
+        PrimaryName = (string?)row.primary_name,
+        NameArabic = (string?)row.name_arabic,
+        NameEnglish = (string?)row.name_english,
+        NameNobiin = (string?)row.name_nobiin,
+        // Father info
+        FatherId = (Guid?)row.father_id,
+        FatherNameArabic = (string?)row.father_name_arabic,
+        FatherNameEnglish = (string?)row.father_name_english,
+        FatherNameNobiin = (string?)row.father_name_nobiin,
+        // Grandfather info
+        GrandfatherId = (Guid?)row.grandfather_id,
+        GrandfatherNameArabic = (string?)row.grandfather_name_arabic,
+        GrandfatherNameEnglish = (string?)row.grandfather_name_english,
+        GrandfatherNameNobiin = (string?)row.grandfather_name_nobiin,
+        Sex = (int)row.sex,
+        BirthDate = (DateTime?)row.birth_date,
+        BirthPrecision = (int?)row.birth_precision,
+        DeathDate = (DateTime?)row.death_date,
+        DeathPrecision = (int?)row.death_precision,
+        BirthPlaceName = (string?)row.birth_place_name,
+        DeathPlaceName = (string?)row.death_place_name,
+        IsLiving = (bool)row.is_living,
+        FamilyId = (Guid?)row.family_id,
+        FamilyName = (string?)row.family_name,
+        OrgId = (Guid)row.org_id,
+        Names = DeserializeJsonb<List<PersonNameSearchDto>>(row.names?.ToString()) ?? new List<PersonNameSearchDto>(),
+        ParentsCount = (int)row.parents_count,
+        ChildrenCount = (int)row.children_count,
+        SpousesCount = (int)row.spouses_count,
+        MediaCount = (int)row.media_count
+    };
+}
+```
+
+---
+
+## 4. FRONTEND MODEL - src/app/core/models/search.models.ts
+
+Update `SearchPersonItem` interface (around line 55) to add the new fields:
+
+```typescript
+export interface SearchPersonItem {
+  id: string;
+  orgId: string;
+  familyId: string | null;
+  familyName: string | null;
+  primaryName: string | null;
+  nameArabic: string | null;
+  nameEnglish: string | null;
+  nameNobiin: string | null;
+  // Father's names
+  fatherId: string | null;
+  fatherNameArabic: string | null;
+  fatherNameEnglish: string | null;
+  fatherNameNobiin: string | null;
+  // Grandfather's names
+  grandfatherId: string | null;
+  grandfatherNameArabic: string | null;
+  grandfatherNameEnglish: string | null;
+  grandfatherNameNobiin: string | null;
+  sex: Sex;
+  birthDate: string | null;
+  // ... rest remains the same
+}
+```
+
+---
+
+## 5. FRONTEND COMPONENT - src/app/features/people/people-list.component.ts
+
+### Step 1: Update `getPersonName` method (around line 516)
+
+Replace the method to include father and grandfather names:
+
+```typescript
+// Helper to get full lineage name (Person + Father + Grandfather)
+getPersonName(person: SearchPersonItem): string {
+  const lang = this.i18n.currentLang();
+  
+  // Get person's name based on language
+  let personName = '';
+  if (lang === 'ar' && person.nameArabic) {
+    personName = person.nameArabic;
+  } else if (lang === 'nob' && person.nameNobiin) {
+    personName = person.nameNobiin;
+  } else {
+    personName = person.nameEnglish || person.nameArabic || person.primaryName || '';
+  }
+  
+  // Get father's name based on language
+  let fatherName = '';
+  if (person.fatherId) {
+    if (lang === 'ar' && person.fatherNameArabic) {
+      fatherName = person.fatherNameArabic;
+    } else if (lang === 'nob' && person.fatherNameNobiin) {
+      fatherName = person.fatherNameNobiin;
+    } else {
+      fatherName = person.fatherNameEnglish || person.fatherNameArabic || '';
+    }
+  }
+  
+  // Get grandfather's name based on language
+  let grandfatherName = '';
+  if (person.grandfatherId) {
+    if (lang === 'ar' && person.grandfatherNameArabic) {
+      grandfatherName = person.grandfatherNameArabic;
+    } else if (lang === 'nob' && person.grandfatherNameNobiin) {
+      grandfatherName = person.grandfatherNameNobiin;
+    } else {
+      grandfatherName = person.grandfatherNameEnglish || person.grandfatherNameArabic || '';
+    }
+  }
+  
+  // Build full name: "Name Father Grandfather"
+  const parts = [personName, fatherName, grandfatherName].filter(p => p);
+  return parts.join(' ') || 'Unknown';
+}
+```
+
+### Step 2 (Optional): Add a method to get just the person's name for initials
+
+```typescript
+// Get just the person's own name (for initials, etc.)
+getPersonOwnName(person: SearchPersonItem): string {
+  const lang = this.i18n.currentLang();
+  if (lang === 'ar' && person.nameArabic) {
+    return person.nameArabic;
+  }
+  if (lang === 'nob' && person.nameNobiin) {
+    return person.nameNobiin;
+  }
+  return person.nameEnglish || person.nameArabic || person.primaryName || 'Unknown';
+}
+```
+
+Then update the `getInitials` call in the template to use `getPersonOwnName`:
+```html
+{{ getInitials(getPersonOwnName(person)) }}
+```
+
+---
+
+## After Applying All Changes
+
+### 1. Update PostgreSQL function:
+```bash
+# Connect to your database and run the updated SQL
+psql -U postgres -d familytree -f backend/FamilyTreeApi/Scripts/InitSearchFunctions.sql
+```
+
+### 2. Rebuild and restart backend:
+```bash
+cd backend/FamilyTreeApi
+dotnet build
+dotnet run
+```
+
+### 3. Frontend should hot-reload. If not:
+```bash
+cd frontend
+ng serve
+```
+
+---
+
+## Example Output
+
+For a person named "محمد" whose father is "أحمد" and grandfather is "خليل":
+
+| Language | Display |
+|----------|---------|
+| Arabic | محمد أحمد خليل |
+| English | Mohammed Ahmed Khalil |
+
+If father or grandfather is not recorded, those parts are omitted:
+- With father only: "محمد أحمد"
+- No lineage: "محمد"

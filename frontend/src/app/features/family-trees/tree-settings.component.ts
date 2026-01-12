@@ -391,19 +391,27 @@ export class TreeSettingsComponent implements OnInit {
   }
 
   saveSettings() {
+    console.log('saveSettings called');
+    console.log('treeId:', this.treeId);
+    console.log('editTree:', JSON.stringify(this.editTree, null, 2));
+
     this.saving.set(true);
     this.saveError.set(null);
     this.saveSuccess.set(false);
 
     this.treeService.updateTree(this.treeId, this.editTree).subscribe({
       next: (tree) => {
+        console.log('Save successful:', tree);
         this.tree.set(tree);
         this.saving.set(false);
         this.saveSuccess.set(true);
         setTimeout(() => this.saveSuccess.set(false), 3000);
       },
       error: (err) => {
-        this.saveError.set(err.error?.message || 'Failed to save');
+        console.error('Save failed:', err);
+        console.error('Error status:', err.status);
+        console.error('Error body:', err.error);
+        this.saveError.set(err.error?.message || `Failed to save (${err.status})`);
         this.saving.set(false);
       }
     });

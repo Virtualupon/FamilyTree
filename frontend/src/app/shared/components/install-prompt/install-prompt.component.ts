@@ -1,6 +1,7 @@
 import { Component, signal, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
+import { TranslatePipe } from '../../../core/i18n';
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -17,7 +18,7 @@ const DISMISS_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 @Component({
   selector: 'app-install-prompt',
   standalone: true,
-  imports: [CommonModule, MatButtonModule],
+  imports: [CommonModule, MatButtonModule, TranslatePipe],
   template: `
     @if (showPrompt()) {
       <div class="install-prompt" [class.install-prompt--visible]="isVisible()">
@@ -26,7 +27,7 @@ const DISMISS_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
             <i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i>
           </div>
           <div class="install-prompt__text">
-            <h3 class="install-prompt__title">Install Family Tree</h3>
+            <h3 class="install-prompt__title">{{ 'app.install' | translate }} {{ 'app.title' | translate }}</h3>
             <p class="install-prompt__message">
               Add to your home screen for quick access and offline support
             </p>

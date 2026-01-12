@@ -1,4 +1,9 @@
 {
+  "app": {
+    "title": "ⲁⲥⲥⲓ ⲱⲓⲥⲥⲓ",
+    "platform": "Platform",
+    "install": "Install"
+  },
   "common": {
     "save": "ⲕⲁⲙ",
     "cancel": "ⲃⲁⲧⲧⲓⲗ",
@@ -393,6 +398,71 @@
       "importFailed": "ⲇⲓⲣⲣ ⲅⲁⲗⲁⲧ. ⲁⲅⲅⲓ."
     }
   },
+  "personDetail": {
+    "loading": "ⲓⲇⲇⲓ ⲕⲁⲱⲓ...",
+    "retry": "ⲁⲅⲅⲓ",
+    "errorLoading": "ⲓⲇⲇⲓ ⲕⲁⲱⲓ ⲅⲁⲗⲁⲧ",
+    "tabs": {
+      "details": "ⲧⲁⲫⲥⲓⲗ",
+      "family": "ⲛⲟ̄ⲅ",
+      "media": "ⲙⲓⲇⲓⲁ"
+    },
+    "sections": {
+      "parents": "ⲁⲃⲃⲁ ⲁⲛⲛⲁ",
+      "siblings": "ⲁⲛⲇⲓ ⲁⲅⲅⲓ",
+      "spouses": "ⲧⲁⲱⲓ",
+      "children": "ⲁⲅⲅⲓ"
+    },
+    "actions": {
+      "addParent": "ⲁⲃⲃⲁ/ⲁⲛⲛⲁ ⲇⲓⲣⲣ",
+      "addSibling": "ⲁⲛⲇⲓ ⲇⲓⲣⲣ",
+      "addSpouse": "ⲧⲁⲱⲓ ⲇⲓⲣⲣ",
+      "addChild": "ⲁⲅⲅⲓ ⲇⲓⲣⲣ",
+      "edit": "ⲥⲁⲃⲃⲓⲗ",
+      "viewInTree": "ⲧⲟ̄ⲃⲓ ⲅⲓⲣⲣ",
+      "delete": "ⲇⲁⲗⲓⲧ"
+    },
+    "noData": {
+      "parents": "ⲁⲃⲃⲁ ⲁⲛⲛⲁ ⲙⲁⲫⲓ",
+      "siblings": "ⲁⲛⲇⲓ ⲁⲅⲅⲓ ⲙⲁⲫⲓ",
+      "spouses": "ⲧⲁⲱⲓ ⲙⲁⲫⲓ",
+      "children": "ⲁⲅⲅⲓ ⲙⲁⲫⲓ"
+    },
+    "labels": {
+      "birth": "ⲱⲓⲗⲁⲇⲁ",
+      "death": "ⲱⲁⲫⲁⲧ",
+      "gender": "ⲅⲓⲛⲥ",
+      "nationality": "ⲅⲓⲛⲥⲓⲁ",
+      "religion": "ⲇⲓⲛ",
+      "education": "ⲧⲁⲗⲓⲙ",
+      "notes": "ⲙⲁⲗⲁⲏⲁⲍⲁⲧ",
+      "names": "ⲓⲥⲙ"
+    },
+    "relationshipTypes": {
+      "biological": "Biological",
+      "adopted": "Adopted",
+      "foster": "Foster",
+      "step": "Step",
+      "guardian": "Guardian",
+      "unknown": "ⲙⲁⲗⲩⲙ"
+    },
+    "unionTypes": {
+      "marriage": "ⲅⲁⲱⲁⲍ",
+      "civilUnion": "Civil Union",
+      "domesticPartnership": "Domestic Partnership",
+      "commonLaw": "Common Law",
+      "engagement": "ⲕⲟⲧⲟⲃⲁ",
+      "divorced": "ⲧⲁⲗⲁⲕ",
+      "widowed": "ⲁⲣⲙⲁⲗ",
+      "separated": "ⲙⲟⲛⲫⲁⲥⲗ",
+      "annulled": "Annulled",
+      "unknown": "ⲙⲁⲗⲩⲙ"
+    },
+    "siblingTypes": {
+      "full": "ⲁⲛⲇⲓ ⲕⲁⲙⲓⲗ",
+      "half": "ⲁⲛⲇⲓ ⲛⲟⲥⲥ"
+    }
+  },
   "trees": {
     "title": "ⲛⲟ̄ⲅ ⲧⲟ̄ⲃⲓ",
     "subtitle": "ⲛⲟ̄ⲅ ⲧⲟ̄ⲃⲓ ⲥⲁⲃⲃⲓⲗ",
@@ -432,7 +502,9 @@
     "selectTownFirst": "ⲕⲟ̄ⲣⲁ ⲥⲟⲗⲗ ⲁⲱⲱⲁⲗ",
     "selectTownHint": "ⲕⲟ̄ⲣⲁ ⲥⲟⲗⲗ ⲛⲟ̄ⲅ ⲅⲓⲣⲣ ⲥⲁⲃⲃⲓⲗ",
     "manageFamilies": "ⲛⲟ̄ⲅ ⲕⲟⲗⲗⲟ ⲥⲁⲃⲃⲓⲗ ⲕⲁⲱⲓ",
-    "viewMembers": "ⲓⲇⲇⲓ ⲅⲓⲣⲣ"
+    "viewMembers": "ⲓⲇⲇⲓ ⲅⲓⲣⲣ",
+    "confirmTownSelection": "ⲕⲟ̄ⲣⲁ ⲥⲟⲗⲗ ⲧⲁⲕⲕⲓⲇ",
+    "townSelectionWarning": "ⲕⲟ̄ⲣⲁ ⲥⲟⲗⲗ ⲙⲁⲗⲗⲓ ⲧⲁⲕⲕⲓⲇ. ⲛⲟ̄ⲅ ⲓⲇⲇⲓ ⲕⲟⲗⲗⲟ ⲕⲟ̄ⲣⲁ ⲛⲟ̄ⲅ ⲱⲁⲥⲗⲓ."
   },
   "relationshipEditor": {
     "createTitle": "ⲱⲁⲥⲗⲁ ⲇⲓⲣⲣ",

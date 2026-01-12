@@ -55,85 +55,92 @@ public record PersonResponseDto(
     DateTime UpdatedAt
 );
 
-public record CreatePersonDto(
-    Guid? TreeId = null,  // Optional: for SuperAdmin/Admin to specify which tree
-    string? PrimaryName = null,
-    string? NameArabic = null,
-    string? NameEnglish = null,
-    string? NameNobiin = null,
-    Sex? Sex = null,
-    string? Gender = null,
-    DateTime? BirthDate = null,
-    DatePrecision BirthPrecision = DatePrecision.Exact,
-    Guid? BirthPlaceId = null,
-    DateTime? DeathDate = null,
-    DatePrecision DeathPrecision = DatePrecision.Exact,
-    Guid? DeathPlaceId = null,
-    PrivacyLevel PrivacyLevel = PrivacyLevel.FamilyOnly,
-    string? Occupation = null,
-    string? Education = null,
-    string? Religion = null,
-    string? Nationality = null,
-    string? Ethnicity = null,
-    string? Notes = null
-);
+public class CreatePersonDto
+{
+    /// <summary>Optional: for SuperAdmin/Admin to specify which tree</summary>
+    public Guid? TreeId { get; set; }
+    public string? PrimaryName { get; set; }
+    public string? NameArabic { get; set; }
+    public string? NameEnglish { get; set; }
+    public string? NameNobiin { get; set; }
+    public Sex? Sex { get; set; }
+    public string? Gender { get; set; }
+    public DateTime? BirthDate { get; set; }
+    public DatePrecision BirthPrecision { get; set; } = DatePrecision.Exact;
+    public Guid? BirthPlaceId { get; set; }
+    public DateTime? DeathDate { get; set; }
+    public DatePrecision DeathPrecision { get; set; } = DatePrecision.Exact;
+    public Guid? DeathPlaceId { get; set; }
+    public PrivacyLevel PrivacyLevel { get; set; } = PrivacyLevel.FamilyOnly;
+    public string? Occupation { get; set; }
+    public string? Education { get; set; }
+    public string? Religion { get; set; }
+    public string? Nationality { get; set; }
+    public string? Ethnicity { get; set; }
+    public string? Notes { get; set; }
+}
 
-public record UpdatePersonDto(
-    string? PrimaryName = null,
-    string? NameArabic = null,
-    string? NameEnglish = null,
-    string? NameNobiin = null,
-    Sex? Sex = null,
-    string? Gender = null,
-    DateTime? BirthDate = null,
-    DatePrecision? BirthPrecision = null,
-    Guid? BirthPlaceId = null,
-    DateTime? DeathDate = null,
-    DatePrecision? DeathPrecision = null,
-    Guid? DeathPlaceId = null,
-    PrivacyLevel? PrivacyLevel = null,
-    string? Occupation = null,
-    string? Education = null,
-    string? Religion = null,
-    string? Nationality = null,
-    string? Ethnicity = null,
-    string? Notes = null,
-    bool? IsVerified = null,
-    bool? NeedsReview = null
-);
+public class UpdatePersonDto
+{
+    public string? PrimaryName { get; set; }
+    public string? NameArabic { get; set; }
+    public string? NameEnglish { get; set; }
+    public string? NameNobiin { get; set; }
+    public Sex? Sex { get; set; }
+    public string? Gender { get; set; }
+    public DateTime? BirthDate { get; set; }
+    public DatePrecision? BirthPrecision { get; set; }
+    public Guid? BirthPlaceId { get; set; }
+    public DateTime? DeathDate { get; set; }
+    public DatePrecision? DeathPrecision { get; set; }
+    public Guid? DeathPlaceId { get; set; }
+    public PrivacyLevel? PrivacyLevel { get; set; }
+    public string? Occupation { get; set; }
+    public string? Education { get; set; }
+    public string? Religion { get; set; }
+    public string? Nationality { get; set; }
+    public string? Ethnicity { get; set; }
+    public string? Notes { get; set; }
+    public bool? IsVerified { get; set; }
+    public bool? NeedsReview { get; set; }
+}
 
 /// <summary>
 /// Legacy DTO for backward compatibility. Use direct name columns instead.
 /// </summary>
 [Obsolete("Use NameArabic, NameEnglish, NameNobiin columns directly on Person")]
-public record PersonNameDto(
-    Guid? Id,
-    string? Script,
-    string? Given,
-    string? Middle,
-    string? Family,
-    string? Full,
-    string? Transliteration,
-    NameType Type = NameType.Primary
-);
+public class PersonNameDto
+{
+    public Guid? Id { get; set; }
+    public string? Script { get; set; }
+    public string? Given { get; set; }
+    public string? Middle { get; set; }
+    public string? Family { get; set; }
+    public string? Full { get; set; }
+    public string? Transliteration { get; set; }
+    public NameType Type { get; set; } = NameType.Primary;
+}
 
-public record PersonSearchDto(
-    Guid? TreeId = null,  // Optional: for SuperAdmin/Admin to specify which tree
-    Guid? TownId = null,  // Optional: filter by town (searches across all trees in the town)
-    string? NameQuery = null,
-    Sex? Sex = null,
-    DateTime? BirthDateFrom = null,
-    DateTime? BirthDateTo = null,
-    DateTime? DeathDateFrom = null,
-    DateTime? DeathDateTo = null,
-    Guid? BirthPlaceId = null,
-    Guid? DeathPlaceId = null,
-    PrivacyLevel? PrivacyLevel = null,
-    bool? IsVerified = null,
-    bool? NeedsReview = null,
-    int Page = 1,
-    int PageSize = 20
-);
+public class PersonSearchDto
+{
+    /// <summary>Optional: for SuperAdmin/Admin to specify which tree</summary>
+    public Guid? TreeId { get; set; }
+    /// <summary>Optional: filter by town (searches across all trees in the town)</summary>
+    public Guid? TownId { get; set; }
+    public string? NameQuery { get; set; }
+    public Sex? Sex { get; set; }
+    public DateTime? BirthDateFrom { get; set; }
+    public DateTime? BirthDateTo { get; set; }
+    public DateTime? DeathDateFrom { get; set; }
+    public DateTime? DeathDateTo { get; set; }
+    public Guid? BirthPlaceId { get; set; }
+    public Guid? DeathPlaceId { get; set; }
+    public PrivacyLevel? PrivacyLevel { get; set; }
+    public bool? IsVerified { get; set; }
+    public bool? NeedsReview { get; set; }
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 20;
+}
 
 // ============================================================================
 // GENERIC PAGED RESULT

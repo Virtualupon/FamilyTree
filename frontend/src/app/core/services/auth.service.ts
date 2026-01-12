@@ -12,10 +12,13 @@ export class AuthService {
   private readonly apiUrl = `${environment.apiUrl}/auth`;
   private readonly accessTokenKey = 'access_token';
   private readonly refreshTokenKey = 'refresh_token';
-  
+
+  // Buffer time before expiry to trigger refresh (5 minutes)
+  private readonly TOKEN_EXPIRY_BUFFER_MS = 5 * 60 * 1000;
+
   private currentUserSubject = new BehaviorSubject<User | null>(this.loadUserFromStorage());
   public currentUser$ = this.currentUserSubject.asObservable();
-  
+
   public isAuthenticated = signal<boolean>(this.hasValidToken());
 
   constructor(
@@ -150,6 +153,66 @@ export class AuthService {
   }
 
   private hasValidToken(): boolean {
-    return !!this.getAccessToken();
+    const token = this.getAccessToken();
+    if (!token) return false;
+    return !this.isTokenExpired(token);
+  }
+
+  /**
+   * Check if a JWT token is expired (with buffer time)
+   */
+  isTokenExpired(token: string): boolean {
+    const expiry = this.getTokenExpiry(token);
+    if (!expiry) return true;
+
+    // Check if token expires within buffer time
+    return Date.now() >= expiry - this.TOKEN_EXPIRY_BUFFER_MS;
+  }
+
+  /**
+   * Get token expiration time in milliseconds
+   */
+  getTokenExpiry(token: string): number | null {
+    try {
+      const payload = this.decodeToken(token);
+      if (!payload || !payload['exp']) return null;
+      // JWT exp is in seconds, convert to milliseconds
+      return (payload['exp'] as number) * 1000;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Decode JWT payload (without verification - just for reading claims)
+   */
+  private decodeToken(token: string): Record<string, unknown> | null {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+
+      const payload = parts[1];
+      // Handle URL-safe base64
+      const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+
+      return JSON.parse(jsonPayload);
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Check if current access token needs refresh
+   */
+  needsTokenRefresh(): boolean {
+    const token = this.getAccessToken();
+    if (!token) return false;
+    return this.isTokenExpired(token);
   }
 }

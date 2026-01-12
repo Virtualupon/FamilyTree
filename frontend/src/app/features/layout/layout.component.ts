@@ -61,7 +61,7 @@ interface NavItem {
           <!-- Logo -->
           <a routerLink="/dashboard" class="layout__logo">
             <i class="fa-solid fa-people-roof layout__logo-icon" aria-hidden="true"></i>
-            <span class="layout__logo-text d-mobile-none">Family Tree</span>
+            <span class="layout__logo-text d-mobile-none">{{ 'app.title' | translate }}</span>
           </a>
 
           <!-- Offline Indicator -->

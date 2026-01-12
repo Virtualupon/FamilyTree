@@ -54,7 +54,7 @@ import { I18nService, Language } from '../../core/i18n';
           <div class="nubian-auth__logo">
             <i class="fa-solid fa-tree" aria-hidden="true"></i>
           </div>
-          <h1>Family Tree Platform</h1>
+          <h1>{{ 'app.title' | translate }} {{ 'app.platform' | translate }}</h1>
           <p>{{ 'auth.loginSubtitle' | translate }}</p>
         </div>
 

@@ -1,4 +1,9 @@
 {
+  "app": {
+    "title": "Family Tree",
+    "platform": "Platform",
+    "install": "Install"
+  },
   "common": {
     "save": "Save",
     "saving": "Saving...",
@@ -452,6 +457,71 @@
       "importFailed": "Import failed. Please try again."
     }
   },
+  "personDetail": {
+    "loading": "Loading person...",
+    "retry": "Retry",
+    "errorLoading": "Error loading person",
+    "tabs": {
+      "details": "Details",
+      "family": "Family",
+      "media": "Media"
+    },
+    "sections": {
+      "parents": "Parents",
+      "siblings": "Siblings",
+      "spouses": "Spouses/Partners",
+      "children": "Children"
+    },
+    "actions": {
+      "addParent": "Add Parent",
+      "addSibling": "Add Sibling",
+      "addSpouse": "Add Spouse",
+      "addChild": "Add Child",
+      "edit": "Edit",
+      "viewInTree": "View in Tree",
+      "delete": "Delete"
+    },
+    "noData": {
+      "parents": "No parents recorded",
+      "siblings": "No siblings found",
+      "spouses": "No spouses/partners recorded",
+      "children": "No children recorded"
+    },
+    "labels": {
+      "birth": "Birth",
+      "death": "Death",
+      "gender": "Gender",
+      "nationality": "Nationality",
+      "religion": "Religion",
+      "education": "Education",
+      "notes": "Notes",
+      "names": "Names"
+    },
+    "relationshipTypes": {
+      "biological": "Biological",
+      "adopted": "Adopted",
+      "foster": "Foster",
+      "step": "Step",
+      "guardian": "Guardian",
+      "unknown": "Unknown"
+    },
+    "unionTypes": {
+      "marriage": "Marriage",
+      "civilUnion": "Civil Union",
+      "domesticPartnership": "Domestic Partnership",
+      "commonLaw": "Common Law",
+      "engagement": "Engagement",
+      "divorced": "Divorced",
+      "widowed": "Widowed",
+      "separated": "Separated",
+      "annulled": "Annulled",
+      "unknown": "Unknown"
+    },
+    "siblingTypes": {
+      "full": "Full sibling",
+      "half": "Half sibling"
+    }
+  },
   "trees": {
     "title": "Family Trees",
     "subtitle": "Manage your family trees and collaborations",
@@ -491,7 +561,9 @@
     "selectTownFirst": "Select a Town to Get Started",
     "selectTownHint": "Choose a town from the dropdown above to view and manage its families",
     "manageFamilies": "Manage and explore family groups",
-    "viewMembers": "View Members"
+    "viewMembers": "View Members",
+    "confirmTownSelection": "Please verify your town selection",
+    "townSelectionWarning": "Make sure you selected the correct town. All people in this family tree will be associated with this town for search purposes."
   },
   "towns": {
     "title": "Towns & Cities",

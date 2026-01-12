@@ -1,6 +1,7 @@
 // File: Services/UnionService.cs
 using AutoMapper;
 using Microsoft.Extensions.Logging;
+using FamilyTreeApi.Data;
 using FamilyTreeApi.DTOs;
 using FamilyTreeApi.Models;
 using FamilyTreeApi.Models.Enums;
@@ -13,6 +14,7 @@ namespace FamilyTreeApi.Services;
 /// </summary>
 public class UnionService : IUnionService
 {
+    private readonly ApplicationDbContext _context;
     private readonly IUnionRepository _unionRepository;
     private readonly IPersonRepository _personRepository;
     private readonly IOrgRepository _orgRepository;
@@ -20,12 +22,14 @@ public class UnionService : IUnionService
     private readonly ILogger<UnionService> _logger;
 
     public UnionService(
+        ApplicationDbContext context,
         IUnionRepository unionRepository,
         IPersonRepository personRepository,
         IOrgRepository orgRepository,
         IMapper mapper,
         ILogger<UnionService> logger)
     {
+        _context = context;
         _unionRepository = unionRepository;
         _personRepository = personRepository;
         _orgRepository = orgRepository;
@@ -139,10 +143,10 @@ public class UnionService : IUnionService
                         Role = "Partner",
                         CreatedAt = DateTime.UtcNow
                     };
-                    union.Members.Add(member);
+                    _context.UnionMembers.Add(member);  // Add directly to DbSet to avoid tracking issues
                 }
             }
-            await _unionRepository.SaveChangesAsync(cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
         var createdUnion = await _unionRepository.GetByIdWithDetailsAsync(union.Id, orgId.Value, cancellationToken);
@@ -267,8 +271,8 @@ public class UnionService : IUnionService
             CreatedAt = DateTime.UtcNow
         };
 
-        union.Members.Add(member);
-        await _unionRepository.SaveChangesAsync(cancellationToken);
+        _context.UnionMembers.Add(member);  // Add directly to DbSet to avoid tracking issues
+        await _context.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Member {PersonId} added to union {UnionId}", dto.PersonId, unionId);
 

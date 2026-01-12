@@ -31,12 +31,22 @@ import { TownService } from '../../core/services/town.service';
 import { TownListItem } from '../../core/models/town.models';
 import { I18nService } from '../../core/i18n/i18n.service';
 
-export type RelationshipDialogType = 'parent' | 'child' | 'spouse';
+export type RelationshipDialogType = 'parent' | 'child' | 'spouse' | 'sibling';
+
+export interface ParentInfo {
+  id: string;
+  name: string;
+  nameArabic?: string | null;
+  nameEnglish?: string | null;
+  nameNobiin?: string | null;
+  sex?: Sex | null;
+}
 
 export interface RelationshipDialogData {
   personId: string;
   personName?: string | null;
   type: RelationshipDialogType;
+  parents?: ParentInfo[];  // Required for sibling type
 }
 
 @Component({
@@ -65,6 +75,7 @@ export interface RelationshipDialogData {
         @case ('parent') { Add Parent }
         @case ('child') { Add Child }
         @case ('spouse') { Add Spouse/Partner }
+        @case ('sibling') { Add Sibling }
       }
     </h2>
 
@@ -143,6 +154,36 @@ export interface RelationshipDialogData {
         }
       </div>
 
+      <!-- Parent Selection for Sibling type -->
+      @if (data.type === 'sibling' && data.parents && data.parents.length > 0) {
+        <div class="parent-selection-section">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Select Shared Parent</mat-label>
+            <mat-select (selectionChange)="onParentSelected($event.value)" [value]="selectedParentId()">
+              @for (parent of data.parents; track parent.id) {
+                <mat-option [value]="parent.id">
+                  <div class="parent-option">
+                    <i class="fa-solid" [ngClass]="[getSexIcon(parent.sex), getSexClass(parent.sex)]" aria-hidden="true"></i>
+                    <span>{{ getParentDisplayName(parent) }}</span>
+                  </div>
+                </mat-option>
+              }
+            </mat-select>
+            <i class="fa-solid fa-users" matPrefix aria-hidden="true" style="margin-right: 8px;"></i>
+          </mat-form-field>
+          <p class="parent-hint">
+            The sibling will be added as a child of the selected parent.
+          </p>
+        </div>
+      }
+
+      @if (data.type === 'sibling' && (!data.parents || data.parents.length === 0)) {
+        <div class="no-parents-warning">
+          <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+          <p>This person has no parents recorded. Please add a parent first before adding siblings.</p>
+        </div>
+      }
+
       <!-- Family Relationship Label (Trilingual) -->
       <div class="relationship-label-section">
         <mat-form-field appearance="outline" class="full-width">
@@ -193,8 +234,8 @@ export interface RelationshipDialogData {
         }
       </div>
 
-      <!-- Parent/Child specific options -->
-      @if (data.type === 'parent' || data.type === 'child') {
+      <!-- Parent/Child/Sibling specific options -->
+      @if (data.type === 'parent' || data.type === 'child' || data.type === 'sibling') {
         <div class="relationship-options">
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Relationship Nature</mat-label>
@@ -259,9 +300,9 @@ export interface RelationshipDialogData {
 
     <mat-dialog-actions align="end">
       <button mat-button mat-dialog-close>Cancel</button>
-      <button mat-raised-button 
-              color="primary" 
-              [disabled]="!selectedPerson() || isSaving()"
+      <button mat-raised-button
+              color="primary"
+              [disabled]="!canSave()"
               (click)="save()">
         @if (isSaving()) {
           <mat-spinner diameter="20"></mat-spinner>
@@ -412,6 +453,58 @@ export interface RelationshipDialogData {
     .trilingual-label .nubian-text {
       color: #7b1fa2;
     }
+
+    /* Ensure dialog content doesn't clip dropdowns */
+    .add-relationship-dialog .mat-mdc-dialog-content {
+      overflow: visible;
+    }
+
+    /* Ensure select panels appear above dialog */
+    .cdk-overlay-container {
+      z-index: 1100 !important;
+    }
+
+    .mat-mdc-select-panel {
+      z-index: 1100 !important;
+    }
+
+    .parent-selection-section {
+      margin-bottom: 16px;
+    }
+
+    .parent-hint {
+      font-size: 12px;
+      color: rgba(0, 0, 0, 0.54);
+      margin-top: -12px;
+      margin-bottom: 16px;
+    }
+
+    .parent-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .no-parents-warning {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 16px;
+      background: #fff3e0;
+      border-radius: 4px;
+      border: 1px solid #ffb74d;
+      margin-bottom: 16px;
+    }
+
+    .no-parents-warning i {
+      color: #f57c00;
+      font-size: 20px;
+    }
+
+    .no-parents-warning p {
+      margin: 0;
+      color: #e65100;
+    }
   `]
 })
 export class AddRelationshipDialogComponent implements OnInit {
@@ -444,6 +537,7 @@ export class AddRelationshipDialogComponent implements OnInit {
   // State signals
   searchResults = signal<SearchPersonItem[]>([]);
   selectedPerson = signal<SearchPersonItem | null>(null);
+  selectedParentId = signal<string | null>(null);
   isSearching = signal(false);
   isSaving = signal(false);
   error = signal<string | null>(null);
@@ -601,19 +695,43 @@ export class AddRelationshipDialogComponent implements OnInit {
     this.relTypeSearchTerm.set('');
   }
 
+  onParentSelected(parentId: string) {
+    this.selectedParentId.set(parentId);
+  }
+
+  getParentDisplayName(parent: ParentInfo): string {
+    const lang = this.i18n.currentLang();
+    if (lang === 'ar') return parent.nameArabic || parent.nameEnglish || parent.name || 'Unknown';
+    if (lang === 'nob') return parent.nameNobiin || parent.nameEnglish || parent.name || 'Unknown';
+    return parent.nameEnglish || parent.nameArabic || parent.name || 'Unknown';
+  }
+
+  canSave(): boolean {
+    if (this.isSaving()) return false;
+    if (!this.selectedPerson()) return false;
+
+    // For sibling type, also require a parent selection
+    if (this.data.type === 'sibling') {
+      if (!this.data.parents || this.data.parents.length === 0) return false;
+      if (!this.selectedParentId()) return false;
+    }
+
+    return true;
+  }
+
   formatYear(dateStr?: string | null): string {
     if (!dateStr) return '?';
     const date = new Date(dateStr);
     return date.getFullYear().toString();
   }
 
-  getSexClass(sex: Sex | null): string {
+  getSexClass(sex: Sex | null | undefined): string {
     if (sex === Sex.Male) return 'male';
     if (sex === Sex.Female) return 'female';
     return '';
   }
 
-  getSexIcon(sex: Sex | null): string {
+  getSexIcon(sex: Sex | null | undefined): string {
     if (sex === Sex.Male) return 'fa-mars';
     if (sex === Sex.Female) return 'fa-venus';
     return 'fa-user';
@@ -624,6 +742,7 @@ export class AddRelationshipDialogComponent implements OnInit {
       case 'parent': return 'Parent';
       case 'child': return 'Child';
       case 'spouse': return 'Spouse';
+      case 'sibling': return 'Sibling';
       default: return 'Relationship';
     }
   }
@@ -673,6 +792,27 @@ export class AddRelationshipDialogComponent implements OnInit {
           notes: this.notesControl.value || undefined
         };
         request$ = this.relationshipService.createUnion(unionRequest);
+        break;
+
+      case 'sibling':
+        // Adding a sibling means adding them as a child of the shared parent
+        const parentId = this.selectedParentId();
+        if (!parentId) {
+          this.error.set('Please select a shared parent');
+          this.isSaving.set(false);
+          return;
+        }
+        // Create parent-child relationship between selected parent and the new sibling
+        request$ = this.relationshipService.addChild(
+          parentId,
+          selected.id,
+          {
+            relationshipType: this.relationshipTypeControl.value ?? ParentChildRelationshipType.Biological,
+            isBiological: this.relationshipTypeControl.value === ParentChildRelationshipType.Biological,
+            isAdopted: this.relationshipTypeControl.value === ParentChildRelationshipType.Adopted,
+            notes: this.notesControl.value || undefined
+          }
+        );
         break;
 
       default:

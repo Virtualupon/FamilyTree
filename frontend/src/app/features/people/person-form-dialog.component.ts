@@ -25,7 +25,8 @@ import {
   NameType,
   DatePrecision,
   PrivacyLevel,
-  CreatePersonRequest
+  CreatePersonRequest,
+  UpdatePersonRequest
 } from '../../core/models/person.models';
 
 export interface PersonFormDialogData {
@@ -688,7 +689,24 @@ export class PersonFormDialogComponent implements OnInit {
     this.saving.set(true);
     const formValue = this.form.value;
 
-    const request: CreatePersonRequest = {
+    const operation = this.data.person
+      ? this.personService.updatePerson(this.data.person.id, this.buildUpdateRequest(formValue))
+      : this.personService.createPerson(this.buildCreateRequest(formValue));
+
+    operation.subscribe({
+      next: (person) => {
+        this.saving.set(false);
+        this.dialogRef.close(person);
+      },
+      error: (error) => {
+        console.error('Failed to save person:', error);
+        this.saving.set(false);
+      }
+    });
+  }
+
+  private buildCreateRequest(formValue: any): CreatePersonRequest {
+    return {
       primaryName: formValue.primaryName,
       nameArabic: formValue.nameArabic || undefined,
       nameEnglish: formValue.nameEnglish || undefined,
@@ -708,21 +726,29 @@ export class PersonFormDialogComponent implements OnInit {
       nationality: formValue.nationality || undefined,
       notes: formValue.notes || undefined
     };
+  }
 
-    const operation = this.data.person
-      ? this.personService.updatePerson(this.data.person.id, request)
-      : this.personService.createPerson(request);
-
-    operation.subscribe({
-      next: (person) => {
-        this.saving.set(false);
-        this.dialogRef.close(person);
-      },
-      error: (error) => {
-        console.error('Failed to save person:', error);
-        this.saving.set(false);
-      }
-    });
+  private buildUpdateRequest(formValue: any): UpdatePersonRequest {
+    return {
+      primaryName: formValue.primaryName,
+      nameArabic: formValue.nameArabic || undefined,
+      nameEnglish: formValue.nameEnglish || undefined,
+      nameNobiin: formValue.nameNobiin || undefined,
+      sex: formValue.sex,
+      familyId: formValue.familyId || undefined,
+      privacyLevel: formValue.privacyLevel,
+      birthDate: formValue.birthDate ? this.formatDateForApi(formValue.birthDate) : undefined,
+      birthPrecision: formValue.birthPrecision,
+      deathDate: !formValue.isLiving && formValue.deathDate
+        ? this.formatDateForApi(formValue.deathDate)
+        : undefined,
+      deathPrecision: formValue.deathPrecision,
+      occupation: formValue.occupation || undefined,
+      education: formValue.education || undefined,
+      religion: formValue.religion || undefined,
+      nationality: formValue.nationality || undefined,
+      notes: formValue.notes || undefined
+    };
   }
   
   private formatDateForApi(date: Date): string {

@@ -167,13 +167,13 @@ interface FilterState {
                   [class.ft-avatar--male]="person.sex === Sex.Male"
                   [class.ft-avatar--female]="person.sex === Sex.Female"
                   [class.ft-avatar--unknown]="person.sex === Sex.Unknown">
-                  {{ getInitials(getPersonName(person)) }}
+                  {{ getInitials(getPersonOwnName(person)) }}
                 </div>
                 
                 <!-- Content -->
                 <div class="ft-person-card__content">
                   <h3 class="ft-person-card__name">{{ getPersonName(person) || ('common.unknown' | translate) }}</h3>
-                  
+
                   <!-- Show secondary names if available -->
                   @if (hasSecondaryNames(person)) {
                     <div class="ft-person-card__alt-names">
@@ -512,38 +512,79 @@ export class PeopleListComponent implements OnInit, OnDestroy {
     this.loadPeople(true);
   }
   
-  // Helper to get primary name from SearchPersonItem
+  // Helper to get full lineage name (Person + Father + Grandfather)
   getPersonName(person: SearchPersonItem): string {
-    return getPrimaryName(person);
+    const lang = this.i18n.currentLang();
+
+    // Get person's name based on language
+    let personName = '';
+    if (lang === 'ar' && person.nameArabic) {
+      personName = person.nameArabic;
+    } else if (lang === 'nob' && person.nameNobiin) {
+      personName = person.nameNobiin;
+    } else {
+      personName = person.nameEnglish || person.nameArabic || person.primaryName || '';
+    }
+
+    // Get father's name based on language
+    let fatherName = '';
+    if (lang === 'ar' && person.fatherNameArabic) {
+      fatherName = person.fatherNameArabic;
+    } else if (lang === 'nob' && person.fatherNameNobiin) {
+      fatherName = person.fatherNameNobiin;
+    } else {
+      fatherName = person.fatherNameEnglish || person.fatherNameArabic || '';
+    }
+
+    // Get grandfather's name based on language
+    let grandfatherName = '';
+    if (lang === 'ar' && person.grandfatherNameArabic) {
+      grandfatherName = person.grandfatherNameArabic;
+    } else if (lang === 'nob' && person.grandfatherNameNobiin) {
+      grandfatherName = person.grandfatherNameNobiin;
+    } else {
+      grandfatherName = person.grandfatherNameEnglish || person.grandfatherNameArabic || '';
+    }
+
+    // Build full name: "Name Father Grandfather"
+    const parts = [personName, fatherName, grandfatherName].filter(p => p);
+    return parts.join(' ') || 'Unknown';
+  }
+
+  // Get just the person's own name (for initials, etc.)
+  getPersonOwnName(person: SearchPersonItem): string {
+    const lang = this.i18n.currentLang();
+    if (lang === 'ar' && person.nameArabic) {
+      return person.nameArabic;
+    }
+    if (lang === 'nob' && person.nameNobiin) {
+      return person.nameNobiin;
+    }
+    return person.nameEnglish || person.nameArabic || person.primaryName || 'Unknown';
   }
   
   // Check if person has secondary names to display
   hasSecondaryNames(person: SearchPersonItem): boolean {
-    const primaryName = getPrimaryName(person);
-    // Check if there are other names different from primary
-    return !!(
-      (person.nameArabic && person.nameArabic !== primaryName) ||
-      (person.nameEnglish && person.nameEnglish !== primaryName) ||
-      (person.nameNobiin && person.nameNobiin !== primaryName)
-    );
+    return this.getSecondaryNames(person).length > 0;
   }
 
-  // Get secondary names (non-primary) as string array
+  // Get secondary names (names NOT in user's current display language)
   getSecondaryNames(person: SearchPersonItem): string[] {
-    const primaryName = getPrimaryName(person);
+    const lang = this.i18n.currentLang();
     const names: string[] = [];
 
-    if (person.nameArabic && person.nameArabic !== primaryName) {
+    // Add names that are NOT the primary display language
+    if (lang !== 'ar' && person.nameArabic) {
       names.push(person.nameArabic);
     }
-    if (person.nameEnglish && person.nameEnglish !== primaryName) {
+    if (lang !== 'en' && person.nameEnglish) {
       names.push(person.nameEnglish);
     }
-    if (person.nameNobiin && person.nameNobiin !== primaryName) {
+    if (lang !== 'nob' && person.nameNobiin) {
       names.push(person.nameNobiin);
     }
 
-    return names.slice(0, 2);
+    return names;
   }
   
   getInitials(name: string | null): string {

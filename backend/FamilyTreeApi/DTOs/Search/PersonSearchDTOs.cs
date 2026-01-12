@@ -109,16 +109,19 @@ public record PersonSearchItemDto
 {
     public Guid Id { get; init; }
     public string? PrimaryName { get; init; }
-
-    /// <summary>Name in Arabic script</summary>
     public string? NameArabic { get; init; }
-
-    /// <summary>Name in English/Latin script</summary>
     public string? NameEnglish { get; init; }
-
-    /// <summary>Name in Nobiin (Coptic) script</summary>
     public string? NameNobiin { get; init; }
-
+    // Father's names
+    public Guid? FatherId { get; init; }
+    public string? FatherNameArabic { get; init; }
+    public string? FatherNameEnglish { get; init; }
+    public string? FatherNameNobiin { get; init; }
+    // Grandfather's names
+    public Guid? GrandfatherId { get; init; }
+    public string? GrandfatherNameArabic { get; init; }
+    public string? GrandfatherNameEnglish { get; init; }
+    public string? GrandfatherNameNobiin { get; init; }
     public int Sex { get; init; }
     public DateTime? BirthDate { get; init; }
     public int? BirthPrecision { get; init; }
@@ -130,11 +133,7 @@ public record PersonSearchItemDto
     public Guid? FamilyId { get; init; }
     public string? FamilyName { get; init; }
     public Guid OrgId { get; init; }
-
-    /// <summary>Legacy names collection - kept for backward compatibility</summary>
-    [Obsolete("Use NameArabic, NameEnglish, NameNobiin directly")]
     public List<PersonNameSearchDto> Names { get; init; } = new();
-
     public int ParentsCount { get; init; }
     public int ChildrenCount { get; init; }
     public int SpousesCount { get; init; }
@@ -259,16 +258,6 @@ public record PersonDetailsResult
 {
     public Guid Id { get; init; }
     public string? PrimaryName { get; init; }
-
-    /// <summary>Name in Arabic script</summary>
-    public string? NameArabic { get; init; }
-
-    /// <summary>Name in English/Latin script</summary>
-    public string? NameEnglish { get; init; }
-
-    /// <summary>Name in Nobiin (Coptic) script</summary>
-    public string? NameNobiin { get; init; }
-
     public int Sex { get; init; }
     public DateTime? BirthDate { get; init; }
     public int? BirthPrecision { get; init; }
@@ -286,10 +275,7 @@ public record PersonDetailsResult
     public DateTime CreatedAt { get; init; }
     public DateTime? UpdatedAt { get; init; }
 
-    /// <summary>Legacy names collection - kept for backward compatibility</summary>
-    [Obsolete("Use NameArabic, NameEnglish, NameNobiin directly")]
     public List<PersonNameSearchDto> Names { get; init; } = new();
-
     public List<RelatedPersonDto> Parents { get; init; } = new();
     public List<RelatedPersonDto> Children { get; init; } = new();
     public List<SpouseDto> Spouses { get; init; } = new();

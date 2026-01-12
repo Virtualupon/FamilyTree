@@ -1501,3 +1501,15 @@ $breakpoints: (
     --mdc-snackbar-supporting-text-color: white;
   }
 }
+
+// =============================================================================
+// FIX: Material dropdown panels appearing behind custom modals
+// =============================================================================
+// Keep CDK overlay styles minimal - only set z-index where needed.
+// Avoid overriding pointer-events as it can break overlay behavior.
+// =============================================================================
+
+// The CDK overlay container should appear above custom modals (z-index: 1000)
+.cdk-overlay-container {
+  z-index: 1050 !important;
+}

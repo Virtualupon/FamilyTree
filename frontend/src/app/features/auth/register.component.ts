@@ -8,6 +8,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../../core/services/auth.service';
 
 @Component({
@@ -22,7 +23,8 @@ import { AuthService } from '../../core/services/auth.service';
     MatInputModule,
     MatButtonModule,
     MatProgressSpinnerModule,
-    MatSnackBarModule
+    MatSnackBarModule,
+    TranslateModule
   ],
   template: `
     <div class="nubian-auth">
@@ -35,7 +37,7 @@ import { AuthService } from '../../core/services/auth.service';
           <div class="nubian-auth__logo">
             <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
           </div>
-          <h1>Family Tree Platform</h1>
+          <h1>{{ 'app.title' | translate }} {{ 'app.platform' | translate }}</h1>
           <p>Create your account</p>
         </div>
 

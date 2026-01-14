@@ -26,7 +26,7 @@ import { LoadingComponent, EmptyStateComponent } from '../../shared/components';
 import { PersonSelectorComponent } from './person-selector.component';
 import { D3FamilyTreeComponent } from './d3-family-tree.component';
 import { RelationshipFinderDialogComponent, RelationshipFinderDialogResult } from './relationship-finder-dialog.component';
-import { RelationshipEditorDialogComponent, RelationshipEditorDialogResult, RelationshipEditorDialogData } from './relationship-editor-dialog.component';
+import { AddRelationshipDialogComponent, RelationshipDialogData, RelationshipDialogType } from '../people/add-relationship-dialog.component';
 import { RelationshipPathViewComponent } from './relationship-path-view.component';
 
 @Component({
@@ -696,6 +696,9 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
           familyId: person.familyId,
           familyName: person.familyName,
           primaryName: person.primaryName,
+          nameArabic: person.nameArabic,
+          nameEnglish: person.nameEnglish,
+          nameNobiin: person.nameNobiin,
           sex: person.sex,
           birthDate: person.birthDate,
           birthPrecision: person.birthPrecision,
@@ -843,6 +846,9 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
       familyId: null,
       familyName: null,
       primaryName: node.primaryName,
+      nameArabic: node.nameArabic,
+      nameEnglish: node.nameEnglish,
+      nameNobiin: node.nameNobiin,
       sex: node.sex,
       birthDate: node.birthDate || null,
       birthPrecision: 0,
@@ -876,13 +882,14 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
 
   getDisplayName(person: { primaryName?: string | null; nameArabic?: string | null; nameEnglish?: string | null; nameNobiin?: string | null }): string {
     const lang = this.i18n.currentLang();
+    const unknown = this.i18n.t('common.unknown');
     if (lang === 'ar') {
-      return person.nameArabic || person.nameEnglish || person.primaryName || 'Unknown';
+      return person.nameArabic || person.nameEnglish || person.primaryName || unknown;
     }
     if (lang === 'nob') {
-      return person.nameNobiin || person.nameEnglish || person.primaryName || 'Unknown';
+      return person.nameNobiin || person.nameEnglish || person.primaryName || unknown;
     }
-    return person.nameEnglish || person.nameArabic || person.primaryName || 'Unknown';
+    return person.nameEnglish || person.nameArabic || person.primaryName || unknown;
   }
 
   formatYear(dateStr: string | undefined): string {
@@ -967,6 +974,9 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
       familyId: null,
       familyName: null,
       primaryName: node.primaryName,
+      nameArabic: node.nameArabic,
+      nameEnglish: node.nameEnglish,
+      nameNobiin: node.nameNobiin,
       sex: node.sex,
       birthDate: node.birthDate || null,
       birthPrecision: 0,
@@ -995,6 +1005,9 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
       familyId: null,
       familyName: null,
       primaryName: node.primaryName,
+      nameArabic: node.nameArabic,
+      nameEnglish: node.nameEnglish,
+      nameNobiin: node.nameNobiin,
       sex: node.sex,
       birthDate: node.birthDate || null,
       birthPrecision: 0,
@@ -1090,25 +1103,26 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   // Add/Edit relationship methods
-  onAddRelationship(person: TreePersonNode): void {
-    const dialogData: RelationshipEditorDialogData = {
-      person: person,
-      mode: 'create'
+  onAddRelationship(person: TreePersonNode, relationshipType: RelationshipDialogType = 'parent'): void {
+    const dialogData: RelationshipDialogData = {
+      personId: person.id,
+      personName: person.primaryName || person.nameEnglish || person.nameArabic,
+      type: relationshipType
     };
 
-    const dialogRef = this.dialog.open(RelationshipEditorDialogComponent, {
+    const dialogRef = this.dialog.open(AddRelationshipDialogComponent, {
       data: dialogData,
       width: '520px',
       maxWidth: '95vw'
     });
 
-    dialogRef.afterClosed().subscribe((result: RelationshipEditorDialogResult | undefined) => {
+    dialogRef.afterClosed().subscribe((result: { success: boolean } | undefined) => {
       if (result?.success) {
         // Reload the tree to show the new relationship
         this.loadTree();
-        
+
         // Show success message
-        const message = this.i18n.t('relationshipEditor.relationshipCreated');
+        const message = this.i18n.t('relationship.relationshipCreated');
         this.snackBar.open(message, this.i18n.t('common.close'), { duration: 3000 });
       }
     });

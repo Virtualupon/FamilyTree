@@ -26,6 +26,9 @@ public record PersonSearchRequest
     /// <summary>Filter by town</summary>
     public Guid? TownId { get; init; }
 
+    /// <summary>Filter by nationality (country code, e.g., "EG", "US")</summary>
+    public string? Nationality { get; init; }
+
     /// <summary>Filter by family</summary>
     public Guid? FamilyId { get; init; }
 
@@ -129,6 +132,7 @@ public record PersonSearchItemDto
     public int? DeathPrecision { get; init; }
     public string? BirthPlaceName { get; init; }
     public string? DeathPlaceName { get; init; }
+    public string? Nationality { get; init; }
     public bool IsLiving { get; init; }
     public Guid? FamilyId { get; init; }
     public string? FamilyName { get; init; }
@@ -138,6 +142,8 @@ public record PersonSearchItemDto
     public int ChildrenCount { get; init; }
     public int SpousesCount { get; init; }
     public int MediaCount { get; init; }
+    public Guid? AvatarMediaId { get; init; }
+    public string? AvatarUrl { get; init; }
 
     // Computed properties
     public int? BirthYear => BirthDate?.Year;

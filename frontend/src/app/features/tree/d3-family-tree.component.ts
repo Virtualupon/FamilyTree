@@ -9,7 +9,8 @@ import {
   SimpleChanges,
   ViewChild,
   AfterViewInit,
-  inject
+  inject,
+  effect
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as d3 from 'd3';
@@ -338,6 +339,17 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
   private readonly horizontalSpacing = 40;
   private readonly verticalSpacing = 100;
 
+  constructor() {
+    // Watch for language changes and re-render the tree
+    effect(() => {
+      const lang = this.i18n.currentLang();
+      // Only re-render if SVG is initialized and we have data
+      if (this.svg && this.treeData) {
+        this.renderTree();
+      }
+    });
+  }
+
   ngAfterViewInit(): void {
     this.initSvg();
     if (this.treeData) {
@@ -485,13 +497,14 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
 
   private getDisplayName(person: TreePersonNode): string {
     const lang = this.i18n.currentLang();
+    const unknown = this.i18n.t('common.unknown');
     if (lang === 'ar') {
-      return person.nameArabic || person.nameEnglish || person.primaryName || 'Unknown';
+      return person.nameArabic || person.nameEnglish || person.primaryName || unknown;
     }
     if (lang === 'nob') {
-      return person.nameNobiin || person.nameEnglish || person.primaryName || 'Unknown';
+      return person.nameNobiin || person.nameEnglish || person.primaryName || unknown;
     }
-    return person.nameEnglish || person.nameArabic || person.primaryName || 'Unknown';
+    return person.nameEnglish || person.nameArabic || person.primaryName || unknown;
   }
 
   private createD3Node(person: TreePersonNode, x: number, y: number, generation: number): D3Node {
@@ -1108,7 +1121,7 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
   }
 
   private getInitials(name: string): string {
-    if (!name || name === 'Unknown') return '?';
+    if (!name || name === this.i18n.t('common.unknown')) return '?';
     const parts = name.trim().split(/\s+/);
     if (parts.length === 1) {
       return parts[0].charAt(0).toUpperCase();

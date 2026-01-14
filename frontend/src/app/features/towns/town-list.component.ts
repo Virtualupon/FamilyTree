@@ -375,7 +375,7 @@ export class TownListComponent implements OnInit {
         this.loading.set(false);
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'Failed to load towns');
+        this.error.set(err.error?.message || this.i18n.t('towns.failedLoad'));
         this.loading.set(false);
       }
     });
@@ -417,7 +417,7 @@ export class TownListComponent implements OnInit {
         this.creating.set(false);
       },
       error: (err) => {
-        this.createError.set(err.error?.message || 'Failed to create town');
+        this.createError.set(err.error?.message || this.i18n.t('towns.failedCreate'));
         this.creating.set(false);
       }
     });
@@ -463,7 +463,7 @@ export class TownListComponent implements OnInit {
         this.loadCountries();
       },
       error: (err) => {
-        this.importError.set(err.error?.message || 'Failed to import towns');
+        this.importError.set(err.error?.message || this.i18n.t('towns.failedImport'));
         this.importing.set(false);
       }
     });

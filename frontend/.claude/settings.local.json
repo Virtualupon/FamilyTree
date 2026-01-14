@@ -12,7 +12,8 @@
       "Bash(npx tsc:*)",
       "Bash(npm start)",
       "Bash(timeout:*)",
-      "Bash(npx ng serve:*)"
+      "Bash(npx ng serve:*)",
+      "Bash(npx ng build:*)"
     ]
   }
 }

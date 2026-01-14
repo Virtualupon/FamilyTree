@@ -10,6 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../../core/services/auth.service';
+import { I18nService } from '../../core/i18n';
 
 @Component({
   selector: 'app-register',
@@ -38,7 +39,7 @@ import { AuthService } from '../../core/services/auth.service';
             <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
           </div>
           <h1>{{ 'app.title' | translate }} {{ 'app.platform' | translate }}</h1>
-          <p>Create your account</p>
+          <p>{{ 'auth.createAccount' | translate }}</p>
         </div>
 
         <!-- Register Form -->
@@ -46,64 +47,64 @@ import { AuthService } from '../../core/services/auth.service';
           <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="nubian-auth__form">
             <div class="form-row">
               <mat-form-field appearance="outline">
-                <mat-label>First Name</mat-label>
+                <mat-label>{{ 'auth.firstName' | translate }}</mat-label>
                 <input matInput formControlName="firstName" autocomplete="given-name">
                 <i class="fa-solid fa-user" matPrefix aria-hidden="true"></i>
                 <mat-error *ngIf="registerForm.get('firstName')?.hasError('required')">
-                  First name is required
+                  {{ 'validation.firstNameRequired' | translate }}
                 </mat-error>
               </mat-form-field>
 
               <mat-form-field appearance="outline">
-                <mat-label>Last Name</mat-label>
+                <mat-label>{{ 'auth.lastName' | translate }}</mat-label>
                 <input matInput formControlName="lastName" autocomplete="family-name">
                 <i class="fa-solid fa-user" matPrefix aria-hidden="true"></i>
                 <mat-error *ngIf="registerForm.get('lastName')?.hasError('required')">
-                  Last name is required
+                  {{ 'validation.lastNameRequired' | translate }}
                 </mat-error>
               </mat-form-field>
             </div>
 
             <mat-form-field appearance="outline">
-              <mat-label>Email</mat-label>
+              <mat-label>{{ 'auth.email' | translate }}</mat-label>
               <input matInput type="email" formControlName="email" autocomplete="email">
               <i class="fa-solid fa-envelope" matPrefix aria-hidden="true"></i>
               <mat-error *ngIf="registerForm.get('email')?.hasError('required')">
-                Email is required
+                {{ 'validation.emailRequired' | translate }}
               </mat-error>
               <mat-error *ngIf="registerForm.get('email')?.hasError('email')">
-                Invalid email format
+                {{ 'validation.invalidEmail' | translate }}
               </mat-error>
             </mat-form-field>
 
             <mat-form-field appearance="outline">
-              <mat-label>Password</mat-label>
+              <mat-label>{{ 'auth.password' | translate }}</mat-label>
               <input matInput type="password" formControlName="password" autocomplete="new-password">
               <i class="fa-solid fa-lock" matPrefix aria-hidden="true"></i>
               <mat-error *ngIf="registerForm.get('password')?.hasError('required')">
-                Password is required
+                {{ 'validation.passwordRequired' | translate }}
               </mat-error>
               <mat-error *ngIf="registerForm.get('password')?.hasError('minlength')">
-                Password must be at least 6 characters
+                {{ 'validation.passwordMinLength' | translate }}
               </mat-error>
             </mat-form-field>
 
-            <button 
-              mat-raised-button 
-              type="submit" 
+            <button
+              mat-raised-button
+              type="submit"
               class="nubian-auth__submit"
               [disabled]="registerForm.invalid || loading">
               @if (loading) {
                 <mat-spinner diameter="20"></mat-spinner>
               } @else {
                 <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
-                <span>Create Account</span>
+                <span>{{ 'auth.createAccountButton' | translate }}</span>
               }
             </button>
           </form>
 
           <div class="nubian-auth__footer">
-            <p>Already have an account? <a routerLink="/login">Login here</a></p>
+            <p>{{ 'auth.alreadyHaveAccount' | translate }} <a routerLink="/login">{{ 'auth.loginHere' | translate }}</a></p>
           </div>
         </div>
       </div>
@@ -329,7 +330,8 @@ export class RegisterComponent {
     private fb: FormBuilder,
     private authService: AuthService,
     private router: Router,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private i18n: I18nService
   ) {
     this.registerForm = this.fb.group({
       firstName: ['', Validators.required],
@@ -345,14 +347,14 @@ export class RegisterComponent {
     this.loading = true;
     this.authService.register(this.registerForm.value).subscribe({
       next: () => {
-        this.snackBar.open('Registration successful!', 'Close', {
+        this.snackBar.open(this.i18n.t('auth.registerSuccess'), this.i18n.t('common.close'), {
           duration: 3000
         });
         this.router.navigate(['/']);
       },
       error: (error) => {
         this.loading = false;
-        this.snackBar.open(error.error?.message || 'Registration failed', 'Close', {
+        this.snackBar.open(error.error?.message || this.i18n.t('auth.registerFailed'), this.i18n.t('common.close'), {
           duration: 3000,
           panelClass: ['error-snackbar']
         });

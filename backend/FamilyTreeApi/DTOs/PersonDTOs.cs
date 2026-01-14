@@ -21,7 +21,9 @@ public record PersonListItemDto(
     string? DeathPlace,
     bool IsVerified,
     bool NeedsReview,
-    int MediaCount = 0
+    int MediaCount = 0,
+    Guid? AvatarMediaId = null,
+    string? AvatarUrl = null
 );
 
 public record PersonResponseDto(
@@ -52,7 +54,9 @@ public record PersonResponseDto(
     bool NeedsReview,
     bool HasConflict,
     DateTime CreatedAt,
-    DateTime UpdatedAt
+    DateTime UpdatedAt,
+    Guid? AvatarMediaId = null,
+    string? AvatarUrl = null
 );
 
 public class CreatePersonDto

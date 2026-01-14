@@ -23,6 +23,7 @@ public class PersonRepository : Repository<Person>, IPersonRepository
             .Where(p => p.Id == id && p.OrgId == orgId)
             .Include(p => p.BirthPlace)
             .Include(p => p.DeathPlace)
+            .Include(p => p.Avatar)
             .FirstOrDefaultAsync(cancellationToken);
     }
 
@@ -35,6 +36,7 @@ public class PersonRepository : Repository<Person>, IPersonRepository
             .Where(p => p.OrgId == orgId)
             .Include(p => p.BirthPlace)
             .Include(p => p.DeathPlace)
+            .Include(p => p.Avatar)
             .AsQueryable();
 
         // Apply filters
@@ -125,7 +127,9 @@ public class PersonRepository : Repository<Person>, IPersonRepository
                     p.DeathPlace != null ? p.DeathPlace.Name : null,
                     p.IsVerified,
                     p.NeedsReview,
-                    mediaGroup.Count()
+                    mediaGroup.Count(),
+                    p.AvatarMediaId,
+                    p.Avatar != null ? p.Avatar.Url : null
                 ))
             .ToListAsync(cancellationToken);
 
@@ -193,6 +197,7 @@ public class PersonRepository : Repository<Person>, IPersonRepository
             .Where(p => treeIds.Contains(p.OrgId))
             .Include(p => p.BirthPlace)
             .Include(p => p.DeathPlace)
+            .Include(p => p.Avatar)
             .AsQueryable();
 
         // Apply filters
@@ -282,7 +287,9 @@ public class PersonRepository : Repository<Person>, IPersonRepository
                     p.DeathPlace != null ? p.DeathPlace.Name : null,
                     p.IsVerified,
                     p.NeedsReview,
-                    mediaGroup.Count()
+                    mediaGroup.Count(),
+                    p.AvatarMediaId,
+                    p.Avatar != null ? p.Avatar.Url : null
                 ))
             .ToListAsync(cancellationToken);
 
@@ -299,5 +306,12 @@ public class PersonRepository : Repository<Person>, IPersonRepository
         _context.UnionMembers.RemoveRange(unionMemberships);
         _context.PersonTags.RemoveRange(personTags);
         return Task.CompletedTask;
+    }
+
+    public async Task<Person?> GetWithAvatarAsync(Guid personId, CancellationToken cancellationToken = default)
+    {
+        return await _context.People
+            .Include(p => p.Avatar)
+            .FirstOrDefaultAsync(p => p.Id == personId, cancellationToken);
     }
 }

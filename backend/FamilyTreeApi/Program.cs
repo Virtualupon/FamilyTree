@@ -261,6 +261,7 @@ services.AddScoped<IFamilyRelationshipTypeService, FamilyRelationshipTypeService
 services.AddScoped<IFamilyService, FamilyService>();  // Family groups (Town->Org->Family->Person)
 services.AddScoped<IFileStorageService, LocalFileStorageService>();
 services.AddScoped<INameTransliterationService, NameTransliterationService>();
+services.AddScoped<ICountryService, CountryService>();
 
 // -------------------------------
 // REPOSITORIES

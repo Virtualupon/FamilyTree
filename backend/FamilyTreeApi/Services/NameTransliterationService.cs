@@ -53,11 +53,27 @@ public sealed class NameTransliterationService : INameTransliterationService
         if (existingMappings.Any())
         {
             var cached = existingMappings.First();
-            _logger.LogInformation(
-                "Found cached mapping for '{Input}' (ID: {Id})",
-                request.InputName, cached.Id);
 
-            return BuildResultFromMapping(cached, request.DisplayLanguage, fromCache: true);
+            // Only use cache if mapping is COMPLETE (has Arabic, English, AND Nobiin)
+            bool isComplete = !string.IsNullOrWhiteSpace(cached.Arabic) &&
+                              !string.IsNullOrWhiteSpace(cached.English) &&
+                              !string.IsNullOrWhiteSpace(cached.Nobiin);
+
+            if (isComplete)
+            {
+                _logger.LogInformation(
+                    "Found complete cached mapping for '{Input}' (ID: {Id})",
+                    request.InputName, cached.Id);
+
+                return BuildResultFromMapping(cached, request.DisplayLanguage, fromCache: true);
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "Found INCOMPLETE cached mapping for '{Input}' (ID: {Id}) - will call AI to complete",
+                    request.InputName, cached.Id);
+                // Fall through to AI call below
+            }
         }
 
         // 2. Build prompt with context
@@ -424,19 +440,80 @@ public sealed class NameTransliterationService : INameTransliterationService
 
     private async Task<NameMapping> SaveMappingAsync(FamilyTreeApi.DTOs.TransliterationResult result, FamilyTreeApi.DTOs.TransliterationRequest request)
     {
+        // Check if there's an existing incomplete mapping we should update
+        var normalizedArabic = result.Arabic != null ? NormalizeName(result.Arabic) : null;
+        var normalizedEnglish = result.English?.Best != null ? NormalizeName(result.English.Best) : null;
+        var normalizedNobiin = result.Nobiin?.Value != null ? NormalizeName(result.Nobiin.Value) : null;
+
+        NameMapping? existingMapping = null;
+
+        // Look for existing mapping by any of the values
+        if (normalizedArabic != null)
+        {
+            existingMapping = await _context.NameMappings
+                .FirstOrDefaultAsync(m => m.ArabicNormalized == normalizedArabic);
+        }
+
+        if (existingMapping == null && normalizedEnglish != null)
+        {
+            existingMapping = await _context.NameMappings
+                .FirstOrDefaultAsync(m => m.EnglishNormalized == normalizedEnglish);
+        }
+
+        if (existingMapping != null)
+        {
+            // Update existing mapping with new/complete translations
+            _logger.LogInformation(
+                "Updating existing mapping ID {Id} with complete translations",
+                existingMapping.Id);
+
+            // Only update if currently empty
+            if (string.IsNullOrWhiteSpace(existingMapping.Arabic) && !string.IsNullOrWhiteSpace(result.Arabic))
+            {
+                existingMapping.Arabic = result.Arabic;
+                existingMapping.ArabicNormalized = normalizedArabic;
+            }
+
+            if (string.IsNullOrWhiteSpace(existingMapping.English) && !string.IsNullOrWhiteSpace(result.English?.Best))
+            {
+                existingMapping.English = result.English.Best;
+                existingMapping.EnglishNormalized = normalizedEnglish;
+            }
+
+            if (string.IsNullOrWhiteSpace(existingMapping.Nobiin) && !string.IsNullOrWhiteSpace(result.Nobiin?.Value))
+            {
+                existingMapping.Nobiin = result.Nobiin.Value;
+                existingMapping.NobiinNormalized = normalizedNobiin;
+            }
+
+            if (string.IsNullOrWhiteSpace(existingMapping.Ipa) && !string.IsNullOrWhiteSpace(result.Nobiin?.Ipa))
+            {
+                existingMapping.Ipa = result.Nobiin.Ipa;
+            }
+
+            existingMapping.Source = result.English?.Source ?? existingMapping.Source;
+            existingMapping.Confidence = result.English?.Confidence ?? existingMapping.Confidence;
+            existingMapping.NeedsReview = result.Metadata?.NeedsReview ?? false;
+            existingMapping.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            return existingMapping;
+        }
+
+        // Create new mapping
         var mapping = new NameMapping
         {
             Arabic = result.Arabic,
-            ArabicNormalized = result.Arabic != null ? NormalizeName(result.Arabic) : null,
-            English = result.English.Best,
-            EnglishNormalized = NormalizeName(result.English.Best),
-            Nobiin = result.Nobiin.Value,
-            NobiinNormalized = result.Nobiin.Value != null ? NormalizeName(result.Nobiin.Value) : null,
-            Ipa = result.Nobiin.Ipa,
+            ArabicNormalized = normalizedArabic,
+            English = result.English?.Best,
+            EnglishNormalized = normalizedEnglish,
+            Nobiin = result.Nobiin?.Value,
+            NobiinNormalized = normalizedNobiin,
+            Ipa = result.Nobiin?.Ipa,
             IsVerified = false,
-            Source = result.English.Source,
-            Confidence = result.English.Confidence,
-            NeedsReview = result.Metadata.NeedsReview,
+            Source = result.English?.Source,
+            Confidence = result.English?.Confidence,
+            NeedsReview = result.Metadata?.NeedsReview ?? false,
             CreatedAt = DateTime.UtcNow,
             OrgId = request.OrgId
         };
@@ -455,6 +532,59 @@ public sealed class NameTransliterationService : INameTransliterationService
             .Replace("'", "")
             .Replace("\"", "")
             .Trim();
+    }
+
+    private async Task<NameMapping?> LookupCacheBySourceColumn(string sourceValue, string sourceColumn)
+    {
+        // Normalize for comparison
+        var normalized = NormalizeName(sourceValue);
+
+        return sourceColumn switch
+        {
+            "Arabic" => await _context.NameMappings
+                .Where(m => m.ArabicNormalized == normalized)
+                .OrderByDescending(m => m.IsVerified)
+                .ThenByDescending(m => m.Confidence ?? 0)
+                .FirstOrDefaultAsync(),
+
+            "English" => await _context.NameMappings
+                .Where(m => m.EnglishNormalized == normalized)
+                .OrderByDescending(m => m.IsVerified)
+                .ThenByDescending(m => m.Confidence ?? 0)
+                .FirstOrDefaultAsync(),
+
+            "Nobiin" => await _context.NameMappings
+                .Where(m => m.NobiinNormalized == normalized)
+                .OrderByDescending(m => m.IsVerified)
+                .ThenByDescending(m => m.Confidence ?? 0)
+                .FirstOrDefaultAsync(),
+
+            _ => null
+        };
+    }
+
+    /// <summary>
+    /// Detects which language column should be used based on script content.
+    /// Returns "Arabic", "English", or "Nobiin" for column mapping.
+    /// </summary>
+    private static string DetectLanguageColumnFromContent(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+            return "English"; // Default
+
+        foreach (var ch in content)
+        {
+            // Arabic: U+0600 to U+06FF
+            if (ch >= '\u0600' && ch <= '\u06FF')
+                return "Arabic";
+
+            // Coptic/Nobiin: U+2C80 to U+2CFF
+            if (ch >= '\u2C80' && ch <= '\u2CFF')
+                return "Nobiin";
+        }
+
+        // Default to English/Latin
+        return "English";
     }
 
     private static FamilyTreeApi.DTOs.NameMappingDto MapToDto(NameMapping mapping)
@@ -703,100 +833,181 @@ Produce safe, production-grade output for genealogy records.";
                 return result;
             }
 
-            // Check which scripts are missing (using direct columns)
-            var hasArabic = !string.IsNullOrWhiteSpace(person.NameArabic);
-            var hasEnglish = !string.IsNullOrWhiteSpace(person.NameEnglish);
-            var hasNobiin = !string.IsNullOrWhiteSpace(person.NameNobiin);
+            // Check which columns need filling
+            bool needsArabic = string.IsNullOrWhiteSpace(person.NameArabic);
+            bool needsEnglish = string.IsNullOrWhiteSpace(person.NameEnglish);
+            bool needsNobiin = string.IsNullOrWhiteSpace(person.NameNobiin);
 
-            // Find source name to transliterate from
-            var sourceName = person.NameArabic ?? person.NameEnglish ?? person.NameNobiin ?? person.PrimaryName;
-            if (string.IsNullOrWhiteSpace(sourceName))
+            // If all columns are filled, nothing to do
+            if (!needsArabic && !needsEnglish && !needsNobiin)
             {
-                result.Message = "Person has no names to transliterate";
                 result.Success = true;
-                return result;
-            }
-
-            if (hasArabic && hasEnglish && hasNobiin)
-            {
                 result.Message = "Person already has names in all scripts";
+                return result;
+            }
+
+            // Step 1: Find source value and detect its language/script
+            string? sourceValue = null;
+            string sourceColumn = "";
+
+            if (!string.IsNullOrWhiteSpace(person.NameArabic))
+            {
+                sourceValue = person.NameArabic;
+                sourceColumn = "Arabic";
+            }
+            else if (!string.IsNullOrWhiteSpace(person.NameEnglish))
+            {
+                sourceValue = person.NameEnglish;
+                sourceColumn = "English";
+            }
+            else if (!string.IsNullOrWhiteSpace(person.NameNobiin))
+            {
+                sourceValue = person.NameNobiin;
+                sourceColumn = "Nobiin";
+            }
+            else if (!string.IsNullOrWhiteSpace(person.PrimaryName))
+            {
+                sourceValue = person.PrimaryName;
+                sourceColumn = DetectLanguageColumnFromContent(person.PrimaryName);
+            }
+
+            if (string.IsNullOrWhiteSpace(sourceValue))
+            {
+                result.Message = "Person has no names to transliterate from";
                 result.Success = true;
                 return result;
             }
 
-            // Detect source language from content
-            var sourceLanguage = DetectSourceLanguageFromContent(sourceName);
-            var sourceScript = sourceLanguage switch
+            _logger.LogInformation(
+                "Translating for person {PersonId}: source='{Source}' from column {Column}, needs: Arabic={NeedsAr}, English={NeedsEn}, Nobiin={NeedsNob}",
+                personId, sourceValue, sourceColumn, needsArabic, needsEnglish, needsNobiin);
+
+            // Step 2: Lookup cache by source column
+            NameMapping? cached = await LookupCacheBySourceColumn(sourceValue, sourceColumn);
+
+            // Step 3: Check if cache is COMPLETE (all 3 columns have values)
+            bool cacheIsComplete = cached != null &&
+                !string.IsNullOrWhiteSpace(cached.Arabic) &&
+                !string.IsNullOrWhiteSpace(cached.English) &&
+                !string.IsNullOrWhiteSpace(cached.Nobiin);
+
+            string? arabic = null;
+            string? english = null;
+            string? nobiin = null;
+
+            if (cacheIsComplete)
             {
-                "ar" => "Arabic",
-                "nob" => "Coptic",
-                _ => "Latin"
-            };
+                // Use cache values
+                _logger.LogInformation(
+                    "Found COMPLETE cache for '{Source}' (ID: {Id}): Arabic='{Ar}', English='{En}', Nobiin='{Nob}'",
+                    sourceValue, cached!.Id, cached.Arabic, cached.English, cached.Nobiin);
 
-            // Transliterate
-            var translitRequest = new FamilyTreeApi.DTOs.TransliterationRequest
+                arabic = cached.Arabic;
+                english = cached.English;
+                nobiin = cached.Nobiin;
+            }
+            else
             {
-                InputName = sourceName,
-                SourceLanguage = sourceLanguage,
-                DisplayLanguage = "en",
-                OrgId = person.OrgId,
-                PersonId = personId
-            };
+                // Cache incomplete or not found - call AI
+                if (cached != null)
+                {
+                    _logger.LogInformation(
+                        "Found INCOMPLETE cache for '{Source}' (ID: {Id}) - calling AI",
+                        sourceValue, cached.Id);
+                }
+                else
+                {
+                    _logger.LogInformation(
+                        "No cache found for '{Source}' - calling AI",
+                        sourceValue);
+                }
 
-            var translitResult = await TransliterateNameAsync(translitRequest);
+                var translitRequest = new FamilyTreeApi.DTOs.TransliterationRequest
+                {
+                    InputName = sourceValue,
+                    SourceLanguage = sourceColumn switch
+                    {
+                        "Arabic" => "ar",
+                        "English" => "en",
+                        "Nobiin" => "nob",
+                        _ => DetectSourceLanguageFromContent(sourceValue)
+                    },
+                    DisplayLanguage = "en",
+                    OrgId = person.OrgId,
+                    PersonId = personId
+                };
 
+                var translitResult = await TransliterateNameAsync(translitRequest);
+
+                arabic = translitResult.Arabic;
+                english = translitResult.English?.Best;
+                nobiin = translitResult.Nobiin?.Value;
+
+                // Add any warnings
+                if (translitResult.Metadata?.Warnings?.Any() == true)
+                {
+                    result.Warnings.AddRange(translitResult.Metadata.Warnings);
+                }
+            }
+
+            // Step 4: Fill NULL columns
             var namesGenerated = 0;
 
-            // Set Arabic name if missing and we have a result
-            if (!hasArabic && !string.IsNullOrWhiteSpace(translitResult.Arabic) && sourceLanguage != "ar")
+            if (needsArabic && !string.IsNullOrWhiteSpace(arabic))
             {
-                person.NameArabic = translitResult.Arabic;
+                person.NameArabic = arabic;
                 namesGenerated++;
                 result.GeneratedNames.Add(new FamilyTreeApi.DTOs.GeneratedNameInfo
                 {
                     Script = "Arabic",
-                    FullName = translitResult.Arabic,
-                    SourceScript = sourceScript,
-                    SourceName = sourceName,
-                    Confidence = translitResult.English?.Confidence ?? 0
+                    FullName = arabic,
+                    SourceScript = sourceColumn,
+                    SourceName = sourceValue,
+                    Confidence = 1.0
                 });
             }
 
-            // Set English name if missing and we have a result
-            if (!hasEnglish && !string.IsNullOrWhiteSpace(translitResult.English?.Best) && sourceLanguage != "en")
+            if (needsEnglish && !string.IsNullOrWhiteSpace(english))
             {
-                person.NameEnglish = translitResult.English.Best;
+                person.NameEnglish = english;
                 namesGenerated++;
                 result.GeneratedNames.Add(new FamilyTreeApi.DTOs.GeneratedNameInfo
                 {
                     Script = "Latin",
-                    FullName = translitResult.English.Best,
-                    SourceScript = sourceScript,
-                    SourceName = sourceName,
-                    Confidence = translitResult.English.Confidence
+                    FullName = english,
+                    SourceScript = sourceColumn,
+                    SourceName = sourceValue,
+                    Confidence = 1.0
                 });
             }
 
-            // Set Nobiin name if missing and we have a result
-            if (!hasNobiin && !string.IsNullOrWhiteSpace(translitResult.Nobiin?.Value) && sourceLanguage != "nob")
+            if (needsNobiin && !string.IsNullOrWhiteSpace(nobiin))
             {
-                person.NameNobiin = translitResult.Nobiin.Value;
+                person.NameNobiin = nobiin;
                 namesGenerated++;
                 result.GeneratedNames.Add(new FamilyTreeApi.DTOs.GeneratedNameInfo
                 {
                     Script = "Coptic/Nobiin",
-                    FullName = translitResult.Nobiin.Value,
-                    SourceScript = sourceScript,
-                    SourceName = sourceName,
-                    Confidence = 1.0 // Nobiin is deterministic
+                    FullName = nobiin,
+                    SourceScript = sourceColumn,
+                    SourceName = sourceValue,
+                    Confidence = 1.0
                 });
             }
 
-            // Save changes
+            // Step 5: Save changes
             if (namesGenerated > 0)
             {
                 person.UpdatedAt = DateTime.UtcNow;
+
+                // Force EF to detect changes - THIS IS THE FIX!
+                _context.People.Update(person);
+
                 await _context.SaveChangesAsync();
+
+                _logger.LogInformation(
+                    "Saved changes for person {PersonId}: English='{En}', Nobiin='{Nob}'",
+                    personId, person.NameEnglish, person.NameNobiin);
             }
 
             result.NamesGenerated = namesGenerated;
@@ -804,11 +1015,6 @@ Produce safe, production-grade output for genealogy records.";
             result.Message = namesGenerated > 0
                 ? $"Generated {namesGenerated} name(s)"
                 : "No new names could be generated";
-
-            if (translitResult.Metadata?.Warnings?.Any() == true)
-            {
-                result.Warnings.AddRange(translitResult.Metadata.Warnings);
-            }
 
             _logger.LogInformation(
                 "Generated {Count} names for person {PersonId}",

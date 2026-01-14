@@ -29,7 +29,7 @@ const DISMISS_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
           <div class="install-prompt__text">
             <h3 class="install-prompt__title">{{ 'app.install' | translate }} {{ 'app.title' | translate }}</h3>
             <p class="install-prompt__message">
-              Add to your home screen for quick access and offline support
+              {{ 'install.message' | translate }}
             </p>
           </div>
         </div>
@@ -38,7 +38,7 @@ const DISMISS_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
             mat-button
             class="install-prompt__btn install-prompt__btn--dismiss"
             (click)="dismiss()">
-            Not now
+            {{ 'install.notNow' | translate }}
           </button>
           <button
             mat-flat-button
@@ -46,13 +46,13 @@ const DISMISS_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
             class="install-prompt__btn install-prompt__btn--install"
             (click)="install()">
             <i class="fa-solid fa-download" aria-hidden="true"></i>
-            Install
+            {{ 'install.installButton' | translate }}
           </button>
         </div>
         <button
           class="install-prompt__close"
           (click)="dismiss()"
-          aria-label="Close">
+          [attr.aria-label]="'common.close' | translate">
           <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
       </div>

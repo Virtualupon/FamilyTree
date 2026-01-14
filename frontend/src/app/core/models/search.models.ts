@@ -66,6 +66,7 @@ export interface SearchPersonItem {
   deathDate: string | null;
   birthPlaceId: string | null;
   birthPlaceName: string | null;
+  nationality: string | null;
   isLiving: boolean;
   /** @deprecated Use nameArabic, nameEnglish, nameNobiin directly */
   names?: SearchPersonName[];

@@ -20,6 +20,7 @@ import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { PersonMediaService } from '../../core/services/person-media.service';
 import { PersonService } from '../../core/services/person.service';
 import { PersonSearchService } from '../../core/services/person-search.service';
+import { I18nService, TranslatePipe } from '../../core/i18n';
 import { PersonListItem } from '../../core/models/person.models';
 import { SearchPersonItem, getPrimaryName } from '../../core/models/search.models';
 import {
@@ -49,16 +50,17 @@ import {
     MatFormFieldModule,
     MatInputModule,
     MatCheckboxModule,
-    MatDialogModule
+    MatDialogModule,
+    TranslatePipe
   ],
   template: `
     <div class="person-media-container">
       <!-- Header with upload button -->
       <div class="media-header">
-        <h3>Media Files</h3>
+        <h3>{{ 'media.title' | translate }}</h3>
         <button mat-raised-button color="primary" (click)="triggerUpload()">
           <i class="fa-solid fa-image" aria-hidden="true"></i>
-          Upload Media
+          {{ 'media.uploadMedia' | translate }}
         </button>
         <!-- Hidden file input - accepts all media types -->
         <input
@@ -73,29 +75,29 @@ import {
       <!-- Upload progress -->
       @if (isUploading()) {
         <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-        <p class="upload-status">Uploading {{ uploadingFileName() }}...</p>
+        <p class="upload-status">{{ 'media.uploading' | translate }} {{ uploadingFileName() }}...</p>
       }
 
       <!-- Loading state -->
       @if (isLoading()) {
         <div class="loading">
           <mat-spinner diameter="40"></mat-spinner>
-          <p>Loading media...</p>
+          <p>{{ 'media.loading' | translate }}</p>
         </div>
       } @else if (error()) {
         <mat-card class="error-card">
           <mat-card-content>
             <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
             <p>{{ error() }}</p>
-            <button mat-button color="primary" (click)="loadMedia()">Retry</button>
+            <button mat-button color="primary" (click)="loadMedia()">{{ 'common.retry' | translate }}</button>
           </mat-card-content>
         </mat-card>
       } @else if (hasNoMedia()) {
         <mat-card class="empty-state">
           <mat-card-content>
             <i class="fa-solid fa-images" aria-hidden="true"></i>
-            <h4>No media files</h4>
-            <p>Upload images, audio, or video files for this person.</p>
+            <h4>{{ 'media.noFiles' | translate }}</h4>
+            <p>{{ 'media.uploadHint' | translate }}</p>
           </mat-card-content>
         </mat-card>
       } @else {
@@ -106,7 +108,7 @@ import {
             <mat-tab>
               <ng-template mat-tab-label>
                 <i class="fa-solid fa-image" aria-hidden="true"></i>
-                <span class="tab-label">Images ({{ mediaGrouped()!.images.length }})</span>
+                <span class="tab-label">{{ 'media.image' | translate }} ({{ mediaGrouped()!.images.length }})</span>
               </ng-template>
               <div class="media-grid images-grid">
                 @for (media of mediaGrouped()!.images; track media.mediaId) {
@@ -120,7 +122,7 @@ import {
                     } @else {
                       <div class="image-placeholder" (click)="loadFullMedia(media)">
                         <i class="fa-solid fa-image" aria-hidden="true"></i>
-                        <span>Click to load</span>
+                        <span>{{ 'media.clickToLoad' | translate }}</span>
                       </div>
                     }
                     <mat-card-content>
@@ -138,14 +140,14 @@ import {
                       @if (media.linkedPersons && media.linkedPersons.length > 1) {
                         <div class="linked-persons">
                           <i class="fa-solid fa-users linked-icon" aria-hidden="true"></i>
-                          <span class="linked-count">{{ media.linkedPersons.length }} people</span>
+                          <span class="linked-count">{{ media.linkedPersons.length }} {{ 'common.people' | translate }}</span>
                           <div class="linked-list">
                             @for (person of media.linkedPersons; track person.personId) {
                               <a [routerLink]="['/persons', person.personId]" class="linked-person"
                                  [class.primary]="person.isPrimary">
-                                {{ person.personName || 'Unknown' }}
+                                {{ person.personName || ('common.unknown' | translate) }}
                                 @if (person.isPrimary) {
-                                  <i class="fa-solid fa-star primary-badge" matTooltip="Primary" aria-hidden="true"></i>
+                                  <i class="fa-solid fa-star primary-badge" [matTooltip]="'media.primary' | translate" aria-hidden="true"></i>
                                 }
                               </a>
                             }
@@ -154,10 +156,10 @@ import {
                       }
                     </mat-card-content>
                     <mat-card-actions>
-                      <button mat-icon-button (click)="downloadMedia(media)" matTooltip="Download">
+                      <button mat-icon-button (click)="downloadMedia(media)" [matTooltip]="'media.download' | translate">
                         <i class="fa-solid fa-download" aria-hidden="true"></i>
                       </button>
-                      <button mat-icon-button color="warn" (click)="deleteMedia(media)" matTooltip="Delete">
+                      <button mat-icon-button color="warn" (click)="deleteMedia(media)" [matTooltip]="'common.delete' | translate">
                         <i class="fa-solid fa-trash" aria-hidden="true"></i>
                       </button>
                     </mat-card-actions>
@@ -172,7 +174,7 @@ import {
             <mat-tab>
               <ng-template mat-tab-label>
                 <i class="fa-solid fa-music" aria-hidden="true"></i>
-                <span class="tab-label">Audio ({{ mediaGrouped()!.audio.length }})</span>
+                <span class="tab-label">{{ 'media.audio' | translate }} ({{ mediaGrouped()!.audio.length }})</span>
               </ng-template>
               <div class="media-list audio-list">
                 @for (media of mediaGrouped()!.audio; track media.mediaId) {
@@ -195,15 +197,15 @@ import {
                           @if (media.linkedPersons && media.linkedPersons.length > 1) {
                             <div class="linked-persons inline">
                               <i class="fa-solid fa-users linked-icon small" aria-hidden="true"></i>
-                              <span class="linked-count">Shared with {{ media.linkedPersons.length }} people</span>
+                              <span class="linked-count">{{ 'media.sharedWith' | translate }} {{ media.linkedPersons.length }} {{ 'common.people' | translate }}</span>
                             </div>
                           }
                         </div>
                         <div class="audio-actions">
-                          <button mat-icon-button (click)="downloadMedia(media)" matTooltip="Download">
+                          <button mat-icon-button (click)="downloadMedia(media)" [matTooltip]="'media.download' | translate">
                             <i class="fa-solid fa-download" aria-hidden="true"></i>
                           </button>
-                          <button mat-icon-button color="warn" (click)="deleteMedia(media)" matTooltip="Delete">
+                          <button mat-icon-button color="warn" (click)="deleteMedia(media)" [matTooltip]="'common.delete' | translate">
                             <i class="fa-solid fa-trash" aria-hidden="true"></i>
                           </button>
                         </div>
@@ -211,12 +213,12 @@ import {
                       @if (loadedAudio()[media.mediaId]) {
                         <audio controls class="audio-player">
                           <source [src]="loadedAudio()[media.mediaId]" [type]="media.mimeType" />
-                          Your browser does not support the audio element.
+                          {{ 'media.browserNoAudio' | translate }}
                         </audio>
                       } @else {
                         <button mat-stroked-button (click)="loadFullMedia(media)">
                           <i class="fa-solid fa-play" aria-hidden="true"></i>
-                          Load Audio
+                          {{ 'media.loadAudio' | translate }}
                         </button>
                       }
                     </mat-card-content>
@@ -231,7 +233,7 @@ import {
             <mat-tab>
               <ng-template mat-tab-label>
                 <i class="fa-solid fa-video" aria-hidden="true"></i>
-                <span class="tab-label">Videos ({{ mediaGrouped()!.videos.length }})</span>
+                <span class="tab-label">{{ 'media.video' | translate }} ({{ mediaGrouped()!.videos.length }})</span>
               </ng-template>
               <div class="media-list video-list">
                 @for (media of mediaGrouped()!.videos; track media.mediaId) {
@@ -254,15 +256,15 @@ import {
                           @if (media.linkedPersons && media.linkedPersons.length > 1) {
                             <div class="linked-persons inline">
                               <i class="fa-solid fa-users linked-icon small" aria-hidden="true"></i>
-                              <span class="linked-count">Shared with {{ media.linkedPersons.length }} people</span>
+                              <span class="linked-count">{{ 'media.sharedWith' | translate }} {{ media.linkedPersons.length }} {{ 'common.people' | translate }}</span>
                             </div>
                           }
                         </div>
                         <div class="video-actions">
-                          <button mat-icon-button (click)="downloadMedia(media)" matTooltip="Download">
+                          <button mat-icon-button (click)="downloadMedia(media)" [matTooltip]="'media.download' | translate">
                             <i class="fa-solid fa-download" aria-hidden="true"></i>
                           </button>
-                          <button mat-icon-button color="warn" (click)="deleteMedia(media)" matTooltip="Delete">
+                          <button mat-icon-button color="warn" (click)="deleteMedia(media)" [matTooltip]="'common.delete' | translate">
                             <i class="fa-solid fa-trash" aria-hidden="true"></i>
                           </button>
                         </div>
@@ -270,12 +272,12 @@ import {
                       @if (loadedVideos()[media.mediaId]) {
                         <video controls class="video-player">
                           <source [src]="loadedVideos()[media.mediaId]" [type]="media.mimeType" />
-                          Your browser does not support the video element.
+                          {{ 'media.browserNoVideo' | translate }}
                         </video>
                       } @else {
                         <button mat-stroked-button (click)="loadFullMedia(media)">
                           <i class="fa-solid fa-play" aria-hidden="true"></i>
-                          Load Video
+                          {{ 'media.loadVideo' | translate }}
                         </button>
                       }
                     </mat-card-content>
@@ -302,7 +304,7 @@ import {
         <div class="upload-dialog-overlay" (click)="closeUploadDialog()">
           <div class="upload-dialog" (click)="$event.stopPropagation()">
             <div class="upload-dialog-header">
-              <h3>Upload Media</h3>
+              <h3>{{ 'media.uploadMedia' | translate }}</h3>
               <button mat-icon-button (click)="closeUploadDialog()">
                 <i class="fa-solid fa-xmark" aria-hidden="true"></i>
               </button>
@@ -324,18 +326,18 @@ import {
               } @else {
                 <div class="drop-zone" (click)="triggerFileInput()">
                   <i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i>
-                  <p>Click to select a file</p>
-                  <span class="drop-hint">Images, audio, or video</span>
+                  <p>{{ 'media.clickToSelect' | translate }}</p>
+                  <span class="drop-hint">{{ 'media.fileTypes' | translate }}</span>
                 </div>
               }
 
               <!-- Description field -->
               @if (selectedFile()) {
                 <mat-form-field appearance="outline" class="description-field">
-                  <mat-label>Description (optional)</mat-label>
+                  <mat-label>{{ 'media.descriptionOptional' | translate }}</mat-label>
                   <textarea matInput
                             [(ngModel)]="mediaDescription"
-                            placeholder="Add a description for this media..."
+                            [placeholder]="'media.descriptionPlaceholder' | translate"
                             rows="3"
                             maxlength="500"></textarea>
                   <mat-hint align="end">{{ mediaDescription.length }}/500</mat-hint>
@@ -344,16 +346,16 @@ import {
 
               <!-- Person selection section -->
               <div class="person-selection-section">
-                <h4>Tag People in This Media</h4>
-                <p class="selection-hint">This media will be linked to the selected people.</p>
+                <h4>{{ 'media.tagPeople' | translate }}</h4>
+                <p class="selection-hint">{{ 'media.tagPeopleHint' | translate }}</p>
 
                 <!-- Search input -->
                 <mat-form-field appearance="outline" class="search-field">
-                  <mat-label>Search people to tag</mat-label>
+                  <mat-label>{{ 'media.searchPeopleToTag' | translate }}</mat-label>
                   <input matInput
                          [(ngModel)]="personSearchQuery"
                          (ngModelChange)="onSearchQueryChange($event)"
-                         placeholder="Type a name to search...">
+                         [placeholder]="'media.searchNamePlaceholder' | translate">
                   <i class="fa-solid fa-magnifying-glass" matSuffix aria-hidden="true"></i>
                 </mat-form-field>
 
@@ -362,9 +364,9 @@ import {
                   <div class="selected-persons-chips">
                     @for (person of selectedPersons(); track person.id) {
                       <div class="person-chip" [class.current]="person.id === personId">
-                        <span>{{ getSearchPersonName(person) || 'Unknown' }}</span>
+                        <span>{{ getSearchPersonName(person) || ('common.unknown' | translate) }}</span>
                         @if (person.id === personId) {
-                          <span class="current-badge">(current)</span>
+                          <span class="current-badge">({{ 'media.current' | translate }})</span>
                         }
                         @if (person.id !== personId) {
                           <button mat-icon-button class="remove-btn" (click)="togglePersonSelection(person)">
@@ -380,7 +382,7 @@ import {
                 @if (isSearching()) {
                   <div class="search-loading">
                     <mat-spinner diameter="24"></mat-spinner>
-                    <span>Searching...</span>
+                    <span>{{ 'common.searching' | translate }}</span>
                   </div>
                 } @else if (personSearchResults().length > 0) {
                   <div class="search-results">
@@ -394,13 +396,13 @@ import {
                           (click)="$event.stopPropagation()">
                         </mat-checkbox>
                         <div class="person-info">
-                          <span class="person-name">{{ getSearchPersonName(person) || 'Unknown' }}</span>
+                          <span class="person-name">{{ getSearchPersonName(person) || ('common.unknown' | translate) }}</span>
                           @if (person.birthDate || person.deathDate) {
                             <span class="person-dates">{{ getLifespan(person) }}</span>
                           }
                         </div>
                         @if (person.id === personId) {
-                          <span class="current-label">Current person</span>
+                          <span class="current-label">{{ 'media.currentPerson' | translate }}</span>
                         }
                       </div>
                     }
@@ -408,14 +410,14 @@ import {
                 } @else if (personSearchQuery && personSearchQuery.length >= 2) {
                   <div class="no-results">
                     <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-                    <span>No people found matching "{{ personSearchQuery }}"</span>
+                    <span>{{ 'media.noPeopleMatching' | translate:{ query: personSearchQuery } }}</span>
                   </div>
                 }
               </div>
             </div>
 
             <div class="upload-dialog-actions">
-              <button mat-button (click)="closeUploadDialog()">Cancel</button>
+              <button mat-button (click)="closeUploadDialog()">{{ 'common.cancel' | translate }}</button>
               <button mat-raised-button color="primary"
                       [disabled]="!selectedFile() || selectedPersons().length === 0 || isUploading()"
                       (click)="performUpload()">
@@ -424,7 +426,7 @@ import {
                 } @else {
                   <i class="fa-solid fa-upload" aria-hidden="true"></i>
                 }
-                Upload
+                {{ 'media.upload' | translate }}
               </button>
             </div>
           </div>
@@ -987,6 +989,7 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
   private personService = inject(PersonService);
   private searchService = inject(PersonSearchService);
   private snackBar = inject(MatSnackBar);
+  private i18n = inject(I18nService);
 
   // State
   isLoading = signal(true);
@@ -1066,7 +1069,7 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         console.error('Error loading media:', err);
-        this.error.set(err.error?.message || 'Failed to load media');
+        this.error.set(err.error?.message || this.i18n.t('media.failedLoadMedia'));
         this.isLoading.set(false);
       }
     });
@@ -1090,7 +1093,7 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
     // Validate file type
     const mediaKind = this.mediaService.detectMediaKind(file.type);
     if (!mediaKind) {
-      this.snackBar.open(`Unsupported file type: ${file.type}`, 'Close', { duration: 5000 });
+      this.snackBar.open(this.i18n.t('media.unsupportedFileType', { type: file.type }), this.i18n.t('common.close'), { duration: 5000 });
       input.value = '';
       return;
     }
@@ -1134,6 +1137,7 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
           deathDate: person.deathDate,
           birthPlaceId: null,
           birthPlaceName: person.birthPlace,
+          nationality: null,
           isLiving: false,
           parentsCount: 0,
           childrenCount: 0,
@@ -1144,14 +1148,15 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
       },
       error: () => {
         // Fallback: create minimal person object with just the ID
+        const currentPersonLabel = this.i18n.t('media.currentPerson');
         this.selectedPersons.set([{
           id: this.personId,
           orgId: '',
           familyId: null,
           familyName: null,
-          primaryName: 'Current Person',
+          primaryName: currentPersonLabel,
           nameArabic: null,
-          nameEnglish: 'Current Person',
+          nameEnglish: currentPersonLabel,
           nameNobiin: null,
           fatherId: null,
           fatherNameArabic: null,
@@ -1166,6 +1171,7 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
           deathDate: null,
           birthPlaceId: null,
           birthPlaceName: null,
+          nationality: null,
           isLiving: false,
           parentsCount: 0,
           childrenCount: 0,
@@ -1260,27 +1266,26 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
       // Upload
       this.mediaService.uploadMedia(payload).subscribe({
         next: () => {
-          const mediaKind = this.mediaService.detectMediaKind(file.type);
           const linkedCount = personIds.length;
           const message = linkedCount > 1
-            ? `${mediaKind || 'Media'} uploaded and linked to ${linkedCount} people`
-            : `${mediaKind || 'Media'} uploaded successfully`;
-          this.snackBar.open(message, 'Close', { duration: 3000 });
+            ? this.i18n.t('media.uploadedLinked', { count: linkedCount })
+            : this.i18n.t('media.uploadedSuccess');
+          this.snackBar.open(message, this.i18n.t('common.close'), { duration: 3000 });
           this.isUploading.set(false);
           this.closeUploadDialog();
           this.loadMedia(); // Refresh list
         },
         error: (err) => {
           console.error('Upload error:', err);
-          this.snackBar.open(err.error?.message || 'Upload failed', 'Close', { duration: 5000 });
+          this.snackBar.open(err.error?.message || this.i18n.t('media.uploadFailed'), this.i18n.t('common.close'), { duration: 5000 });
           this.isUploading.set(false);
         }
       });
     } catch (err) {
       if (err instanceof MediaValidationError) {
-        this.snackBar.open(err.message, 'Close', { duration: 5000 });
+        this.snackBar.open(err.message, this.i18n.t('common.close'), { duration: 5000 });
       } else {
-        this.snackBar.open('Failed to process file', 'Close', { duration: 5000 });
+        this.snackBar.open(this.i18n.t('media.failedProcessFile'), this.i18n.t('common.close'), { duration: 5000 });
       }
       this.isUploading.set(false);
     }
@@ -1325,7 +1330,7 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         console.error('Error loading media:', err);
-        this.snackBar.open('Failed to load media', 'Close', { duration: 3000 });
+        this.snackBar.open(this.i18n.t('media.failedLoadMedia'), this.i18n.t('common.close'), { duration: 3000 });
       }
     });
   }
@@ -1357,30 +1362,30 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         console.error('Download error:', err);
-        this.snackBar.open('Failed to download media', 'Close', { duration: 3000 });
+        this.snackBar.open(this.i18n.t('media.failedDownloadMedia'), this.i18n.t('common.close'), { duration: 3000 });
       }
     });
   }
 
   deleteMedia(media: PersonMediaListItem) {
     const linkedCount = media.linkedPersons?.length || 0;
-    let confirmMessage = `Delete "${media.fileName}"?`;
+    let confirmMessage = this.i18n.t('media.confirmDelete', { name: media.fileName });
 
     if (linkedCount > 1) {
-      confirmMessage += ` This media is linked to ${linkedCount} people and will be removed for all of them.`;
+      confirmMessage += ' ' + this.i18n.t('media.linkedMultiplePeople', { count: linkedCount });
     }
-    confirmMessage += ' This cannot be undone.';
+    confirmMessage += ' ' + this.i18n.t('media.cannotBeUndone');
 
     if (!confirm(confirmMessage)) return;
 
     this.mediaService.deleteMedia(media.mediaId).subscribe({
       next: () => {
-        this.snackBar.open('Media deleted', 'Close', { duration: 3000 });
+        this.snackBar.open(this.i18n.t('media.deleted'), this.i18n.t('common.close'), { duration: 3000 });
         this.loadMedia(); // Refresh list
       },
       error: (err) => {
         console.error('Delete error:', err);
-        this.snackBar.open(err.error?.message || 'Failed to delete media', 'Close', { duration: 3000 });
+        this.snackBar.open(err.error?.message || this.i18n.t('media.failedDeleteMedia'), this.i18n.t('common.close'), { duration: 3000 });
       }
     });
   }

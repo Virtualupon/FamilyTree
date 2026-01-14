@@ -1,6 +1,7 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatTableModule } from '@angular/material/table';
@@ -35,6 +36,7 @@ import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult
   imports: [
     CommonModule,
     FormsModule,
+    RouterLink,
     MatCardModule,
     MatTabsModule,
     MatTableModule,
@@ -53,9 +55,9 @@ import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult
       <div class="admin-panel__header">
         <h1 class="admin-panel__title">
           <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
-          Admin Panel
+          {{ 'admin.title' | translate }}
         </h1>
-        <p class="admin-panel__subtitle">Manage users, roles, and platform settings</p>
+        <p class="admin-panel__subtitle">{{ 'admin.subtitle' | translate }}</p>
       </div>
 
       <!-- Stats Cards -->
@@ -67,7 +69,7 @@ import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult
             </div>
             <div class="stat-card__content">
               <span class="stat-card__value">{{ stats()?.totalUsers || 0 }}</span>
-              <span class="stat-card__label">Total Users</span>
+              <span class="stat-card__label">{{ 'admin.totalUsers' | translate }}</span>
             </div>
           </mat-card-content>
         </mat-card>
@@ -91,7 +93,7 @@ import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult
             </div>
             <div class="stat-card__content">
               <span class="stat-card__value">{{ stats()?.totalPeople || 0 }}</span>
-              <span class="stat-card__label">People</span>
+              <span class="stat-card__label">{{ 'admin.totalPeople' | translate }}</span>
             </div>
           </mat-card-content>
         </mat-card>
@@ -103,10 +105,23 @@ import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult
             </div>
             <div class="stat-card__content">
               <span class="stat-card__value">{{ stats()?.totalRelationships || 0 }}</span>
-              <span class="stat-card__label">Relationships</span>
+              <span class="stat-card__label">{{ 'admin.totalRelationships' | translate }}</span>
             </div>
           </mat-card-content>
         </mat-card>
+      </div>
+
+      <!-- Quick Links -->
+      <div class="quick-links">
+        <a routerLink="/admin/countries" class="quick-link">
+          <mat-card>
+            <mat-card-content>
+              <i class="fa-solid fa-globe" aria-hidden="true"></i>
+              <span>{{ 'admin.countries.title' | translate }}</span>
+              <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+            </mat-card-content>
+          </mat-card>
+        </a>
       </div>
 
       <!-- Tabs -->
@@ -116,15 +131,15 @@ import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult
           <mat-tab>
             <ng-template mat-tab-label>
               <i class="fa-solid fa-users" aria-hidden="true"></i>
-              <span>Users</span>
+              <span>{{ 'admin.users' | translate }}</span>
             </ng-template>
 
             <div class="tab-content">
               <div class="tab-header">
-                <h3>System Users</h3>
+                <h3>{{ 'admin.systemUsers' | translate }}</h3>
                 <button mat-flat-button color="primary" (click)="showCreateUserModal = true">
                   <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
-                  Create User
+                  {{ 'admin.createUser' | translate }}
                 </button>
               </div>
               @if (loading()) {
@@ -135,7 +150,7 @@ import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult
                 <table mat-table [dataSource]="users()" class="users-table">
                   <!-- User Column -->
                   <ng-container matColumnDef="user">
-                    <th mat-header-cell *matHeaderCellDef>User</th>
+                    <th mat-header-cell *matHeaderCellDef>{{ 'admin.user' | translate }}</th>
                     <td mat-cell *matCellDef="let user">
                       <div class="user-cell">
                         <div class="user-avatar">
@@ -151,15 +166,15 @@ import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult
 
                   <!-- Role Column -->
                   <ng-container matColumnDef="role">
-                    <th mat-header-cell *matHeaderCellDef>System Role</th>
+                    <th mat-header-cell *matHeaderCellDef>{{ 'admin.systemRole' | translate }}</th>
                     <td mat-cell *matCellDef="let user">
                       <mat-form-field appearance="outline" class="role-select">
-                        <mat-select 
+                        <mat-select
                           [value]="user.systemRole"
                           (selectionChange)="updateUserRole(user, $event.value)">
-                          <mat-option value="User">User</mat-option>
-                          <mat-option value="Admin">Admin</mat-option>
-                          <mat-option value="SuperAdmin">SuperAdmin</mat-option>
+                          <mat-option value="User">{{ 'roles.user' | translate }}</mat-option>
+                          <mat-option value="Admin">{{ 'roles.admin' | translate }}</mat-option>
+                          <mat-option value="SuperAdmin">{{ 'roles.superAdmin' | translate }}</mat-option>
                         </mat-select>
                       </mat-form-field>
                     </td>
@@ -167,7 +182,7 @@ import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult
 
                   <!-- Trees Column -->
                   <ng-container matColumnDef="trees">
-                    <th mat-header-cell *matHeaderCellDef>Trees</th>
+                    <th mat-header-cell *matHeaderCellDef>{{ 'trees.title' | translate }}</th>
                     <td mat-cell *matCellDef="let user">
                       <span class="tree-count">{{ user.treeCount || 0 }}</span>
                     </td>
@@ -175,7 +190,7 @@ import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult
 
                   <!-- Created Column -->
                   <ng-container matColumnDef="created">
-                    <th mat-header-cell *matHeaderCellDef>Created</th>
+                    <th mat-header-cell *matHeaderCellDef>{{ 'admin.created' | translate }}</th>
                     <td mat-cell *matCellDef="let user">
                       {{ user.createdAt | date:'mediumDate' }}
                     </td>
@@ -183,12 +198,12 @@ import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult
 
                   <!-- Actions Column -->
                   <ng-container matColumnDef="actions">
-                    <th mat-header-cell *matHeaderCellDef>Actions</th>
+                    <th mat-header-cell *matHeaderCellDef>{{ 'common.actions' | translate }}</th>
                     <td mat-cell *matCellDef="let user">
                       @if (user.systemRole === 'Admin') {
                         <button mat-stroked-button color="primary" (click)="openAssignTownDialog(user)">
                           <i class="fa-solid fa-city" aria-hidden="true"></i>
-                          Assign Towns
+                          {{ 'admin.assignTowns' | translate }}
                         </button>
                       }
                     </td>
@@ -201,7 +216,7 @@ import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult
                 @if (users().length === 0) {
                   <div class="empty-state">
                     <i class="fa-solid fa-users" aria-hidden="true"></i>
-                    <p>No users found</p>
+                    <p>{{ 'admin.noUsersFound' | translate }}</p>
                   </div>
                 }
               }
@@ -212,22 +227,22 @@ import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult
           <mat-tab>
             <ng-template mat-tab-label>
               <i class="fa-solid fa-city" aria-hidden="true"></i>
-              <span>Town Assignments</span>
+              <span>{{ 'admin.townAssignments' | translate }}</span>
             </ng-template>
 
             <div class="tab-content">
               <div class="tab-header">
-                <h3>Admin Town Assignments</h3>
-                <p class="tab-description">Assign admins to towns. Admins can manage all trees within their assigned towns.</p>
+                <h3>{{ 'admin.adminTownAssignments' | translate }}</h3>
+                <p class="tab-description">{{ 'admin.townAssignmentsDesc' | translate }}</p>
                 <button mat-flat-button color="primary" (click)="openAssignTownDialog()">
                   <i class="fa-solid fa-plus" aria-hidden="true"></i>
-                  Assign Town
+                  {{ 'admin.assignTown' | translate }}
                 </button>
               </div>
 
               <table mat-table [dataSource]="townAssignments()" class="assignments-table">
                 <ng-container matColumnDef="admin">
-                  <th mat-header-cell *matHeaderCellDef>Admin</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'roles.admin' | translate }}</th>
                   <td mat-cell *matCellDef="let a">
                     <div class="user-cell">
                       <div class="user-avatar user-avatar--small">
@@ -242,7 +257,7 @@ import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult
                 </ng-container>
 
                 <ng-container matColumnDef="town">
-                  <th mat-header-cell *matHeaderCellDef>Town</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'admin.town' | translate }}</th>
                   <td mat-cell *matCellDef="let a">
                     <mat-chip-set>
                       <mat-chip class="town-chip">
@@ -254,24 +269,24 @@ import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult
                 </ng-container>
 
                 <ng-container matColumnDef="trees">
-                  <th mat-header-cell *matHeaderCellDef>Trees</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'trees.title' | translate }}</th>
                   <td mat-cell *matCellDef="let a">
-                    <span class="tree-count">{{ a.treeCount }} trees</span>
+                    <span class="tree-count">{{ a.treeCount }} {{ 'trees.title' | translate | lowercase }}</span>
                   </td>
                 </ng-container>
 
                 <ng-container matColumnDef="assignedBy">
-                  <th mat-header-cell *matHeaderCellDef>Assigned By</th>
-                  <td mat-cell *matCellDef="let a">{{ a.assignedByName || 'System' }}</td>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'admin.assignedBy' | translate }}</th>
+                  <td mat-cell *matCellDef="let a">{{ a.assignedByName || ('admin.system' | translate) }}</td>
                 </ng-container>
 
                 <ng-container matColumnDef="date">
-                  <th mat-header-cell *matHeaderCellDef>Date</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'admin.date' | translate }}</th>
                   <td mat-cell *matCellDef="let a">{{ a.assignedAt | date:'mediumDate' }}</td>
                 </ng-container>
 
                 <ng-container matColumnDef="actions">
-                  <th mat-header-cell *matHeaderCellDef>Actions</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'common.actions' | translate }}</th>
                   <td mat-cell *matCellDef="let a">
                     <button mat-icon-button color="warn" (click)="removeTownAssignment(a)">
                       <i class="fa-solid fa-trash" aria-hidden="true"></i>
@@ -286,8 +301,8 @@ import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult
               @if (townAssignments().length === 0) {
                 <div class="empty-state">
                   <i class="fa-solid fa-city" aria-hidden="true"></i>
-                  <p>No town assignments yet</p>
-                  <span class="empty-hint">Assign admins to towns to give them access to all trees within those towns</span>
+                  <p>{{ 'admin.noTownAssignments' | translate }}</p>
+                  <span class="empty-hint">{{ 'admin.noTownAssignmentsHint' | translate }}</span>
                 </div>
               }
             </div>
@@ -298,13 +313,13 @@ import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult
           <mat-tab>
             <ng-template mat-tab-label>
               <i class="fa-solid fa-tree" aria-hidden="true"></i>
-              <span>All Trees</span>
+              <span>{{ 'admin.allTrees' | translate }}</span>
             </ng-template>
 
             <div class="tab-content">
               <table mat-table [dataSource]="allTrees()" class="trees-table">
                 <ng-container matColumnDef="name">
-                  <th mat-header-cell *matHeaderCellDef>Name</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'common.name' | translate }}</th>
                   <td mat-cell *matCellDef="let tree">
                     <div class="tree-cell">
                       <i class="fa-solid fa-sitemap tree-icon" aria-hidden="true"></i>
@@ -319,29 +334,29 @@ import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult
                 </ng-container>
 
                 <ng-container matColumnDef="people">
-                  <th mat-header-cell *matHeaderCellDef>People</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'admin.totalPeople' | translate }}</th>
                   <td mat-cell *matCellDef="let tree">{{ tree.personCount }}</td>
                 </ng-container>
 
                 <ng-container matColumnDef="public">
-                  <th mat-header-cell *matHeaderCellDef>Visibility</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'admin.visibility' | translate }}</th>
                   <td mat-cell *matCellDef="let tree">
                     @if (tree.isPublic) {
                       <mat-chip class="visibility-chip visibility-chip--public">
                         <i class="fa-solid fa-globe" aria-hidden="true"></i>
-                        Public
+                        {{ 'common.public' | translate }}
                       </mat-chip>
                     } @else {
                       <mat-chip class="visibility-chip visibility-chip--private">
                         <i class="fa-solid fa-lock" aria-hidden="true"></i>
-                        Private
+                        {{ 'admin.private' | translate }}
                       </mat-chip>
                     }
                   </td>
                 </ng-container>
 
                 <ng-container matColumnDef="created">
-                  <th mat-header-cell *matHeaderCellDef>Created</th>
+                  <th mat-header-cell *matHeaderCellDef>{{ 'admin.created' | translate }}</th>
                   <td mat-cell *matCellDef="let tree">{{ tree.createdAt | date:'mediumDate' }}</td>
                 </ng-container>
 
@@ -352,7 +367,7 @@ import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult
               @if (allTrees().length === 0) {
                 <div class="empty-state">
                   <i class="fa-solid fa-tree" aria-hidden="true"></i>
-                  <p>No family trees yet</p>
+                  <p>{{ 'admin.noTreesYet' | translate }}</p>
                 </div>
               }
             </div>
@@ -362,14 +377,14 @@ import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult
           <mat-tab>
             <ng-template mat-tab-label>
               <i class="fa-solid fa-language" aria-hidden="true"></i>
-              <span>Transliteration</span>
+              <span>{{ 'admin.transliteration' | translate }}</span>
             </ng-template>
 
             <div class="tab-content transliteration-tab">
               <div class="transliteration-header">
-                <h3>Generate Missing Translations</h3>
+                <h3>{{ 'admin.generateMissingTranslations' | translate }}</h3>
                 <p class="transliteration-desc">
-                  Automatically generate Arabic, English, and Nobiin name variants for persons who are missing them.
+                  {{ 'admin.transliterationDesc' | translate }}
                 </p>
               </div>
 
@@ -378,20 +393,20 @@ import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult
                 <mat-card-header>
                   <mat-card-title>
                     <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
-                    Bulk Generate
+                    {{ 'admin.bulkGenerate' | translate }}
                   </mat-card-title>
                 </mat-card-header>
                 <mat-card-content>
                   <div class="bulk-options">
                     <mat-form-field appearance="outline">
-                      <mat-label>Max Persons to Process</mat-label>
+                      <mat-label>{{ 'admin.maxPersonsToProcess' | translate }}</mat-label>
                       <input matInput type="number" [(ngModel)]="bulkTranslitOptions.maxPersons" min="1" max="500">
                     </mat-form-field>
 
                     <mat-form-field appearance="outline">
                       <mat-label>{{ 'nav.familyTree' | translate }}</mat-label>
                       <mat-select [(ngModel)]="bulkTranslitOptions.orgId">
-                        <mat-option value="">All Trees (My Org)</mat-option>
+                        <mat-option value="">{{ 'admin.allTreesMyOrg' | translate }}</mat-option>
                         @for (tree of allTrees(); track tree.id) {
                           <mat-option [value]="tree.id">{{ tree.name }}</mat-option>
                         }
@@ -406,25 +421,25 @@ import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult
                         <span>{{ bulkTranslitResult()!.message }}</span>
                       </div>
                       <div class="translit-result__stats">
-                        <span><strong>{{ bulkTranslitResult()!.totalPersonsProcessed }}</strong> persons processed</span>
-                        <span><strong>{{ bulkTranslitResult()!.totalNamesGenerated }}</strong> names generated</span>
+                        <span><strong>{{ bulkTranslitResult()!.totalPersonsProcessed }}</strong> {{ 'admin.personsProcessed' | translate }}</span>
+                        <span><strong>{{ bulkTranslitResult()!.totalNamesGenerated }}</strong> {{ 'admin.namesGenerated' | translate }}</span>
                         @if (bulkTranslitResult()!.errors > 0) {
-                          <span class="error-count"><strong>{{ bulkTranslitResult()!.errors }}</strong> errors</span>
+                          <span class="error-count"><strong>{{ bulkTranslitResult()!.errors }}</strong> {{ 'admin.errors' | translate }}</span>
                         }
                       </div>
                     </div>
                   }
                 </mat-card-content>
                 <mat-card-actions align="end">
-                  <button mat-flat-button color="primary" 
-                          [disabled]="bulkTranslitLoading()" 
+                  <button mat-flat-button color="primary"
+                          [disabled]="bulkTranslitLoading()"
                           (click)="runBulkTransliteration()">
                     @if (bulkTranslitLoading()) {
                       <mat-spinner diameter="20"></mat-spinner>
-                      Processing...
+                      {{ 'admin.processing' | translate }}
                     } @else {
                       <i class="fa-solid fa-play" aria-hidden="true"></i>
-                      Generate Missing Names
+                      {{ 'admin.generateMissingNames' | translate }}
                     }
                   </button>
                 </mat-card-actions>
@@ -435,29 +450,29 @@ import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult
                 <mat-card-header>
                   <mat-card-title>
                     <i class="fa-solid fa-flag" aria-hidden="true"></i>
-                    Mappings Needing Review ({{ mappingsNeedingReview().length }})
+                    {{ 'admin.mappingsNeedingReview' | translate }} ({{ mappingsNeedingReview().length }})
                   </mat-card-title>
                 </mat-card-header>
                 <mat-card-content>
                   @if (mappingsNeedingReview().length > 0) {
                     <table mat-table [dataSource]="mappingsNeedingReview()" class="mappings-table">
                       <ng-container matColumnDef="arabic">
-                        <th mat-header-cell *matHeaderCellDef>Arabic</th>
+                        <th mat-header-cell *matHeaderCellDef>{{ 'admin.arabic' | translate }}</th>
                         <td mat-cell *matCellDef="let m" class="rtl-cell">{{ m.arabic || '—' }}</td>
                       </ng-container>
 
                       <ng-container matColumnDef="english">
-                        <th mat-header-cell *matHeaderCellDef>English</th>
+                        <th mat-header-cell *matHeaderCellDef>{{ 'admin.english' | translate }}</th>
                         <td mat-cell *matCellDef="let m">{{ m.english || '—' }}</td>
                       </ng-container>
 
                       <ng-container matColumnDef="nobiin">
-                        <th mat-header-cell *matHeaderCellDef>Nobiin</th>
+                        <th mat-header-cell *matHeaderCellDef>{{ 'admin.nobiin' | translate }}</th>
                         <td mat-cell *matCellDef="let m" class="nobiin-cell">{{ m.nobiin || '—' }}</td>
                       </ng-container>
 
                       <ng-container matColumnDef="confidence">
-                        <th mat-header-cell *matHeaderCellDef>Confidence</th>
+                        <th mat-header-cell *matHeaderCellDef>{{ 'admin.confidence' | translate }}</th>
                         <td mat-cell *matCellDef="let m">
                           <mat-chip [class]="'confidence-' + getConfidenceLevel(m.confidence)">
                             {{ (m.confidence * 100).toFixed(0) }}%
@@ -466,9 +481,9 @@ import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult
                       </ng-container>
 
                       <ng-container matColumnDef="actions">
-                        <th mat-header-cell *matHeaderCellDef>Actions</th>
+                        <th mat-header-cell *matHeaderCellDef>{{ 'common.actions' | translate }}</th>
                         <td mat-cell *matCellDef="let m">
-                          <button mat-icon-button color="primary" (click)="verifyMapping(m)" matTooltip="Verify">
+                          <button mat-icon-button color="primary" (click)="verifyMapping(m)" [matTooltip]="'admin.verify' | translate">
                             <i class="fa-solid fa-check" aria-hidden="true"></i>
                           </button>
                         </td>
@@ -480,14 +495,14 @@ import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult
                   } @else {
                     <div class="empty-state empty-state--small">
                       <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
-                      <p>All mappings are verified!</p>
+                      <p>{{ 'admin.allMappingsVerified' | translate }}</p>
                     </div>
                   }
                 </mat-card-content>
                 <mat-card-actions align="end">
                   <button mat-button (click)="loadMappingsNeedingReview()">
                     <i class="fa-solid fa-refresh" aria-hidden="true"></i>
-                    Refresh
+                    {{ 'admin.refresh' | translate }}
                   </button>
                 </mat-card-actions>
               </mat-card>
@@ -501,17 +516,17 @@ import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult
         <div class="modal-backdrop" (click)="showCreateUserModal = false">
           <mat-card class="modal-card" (click)="$event.stopPropagation()">
             <mat-card-header>
-              <mat-card-title>Create New User</mat-card-title>
+              <mat-card-title>{{ 'admin.createNewUser' | translate }}</mat-card-title>
             </mat-card-header>
             <mat-card-content>
               <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Email</mat-label>
-                <input matInput type="email" [(ngModel)]="newUser.email" placeholder="user@example.com">
+                <mat-label>{{ 'common.email' | translate }}</mat-label>
+                <input matInput type="email" [(ngModel)]="newUser.email" [placeholder]="'admin.emailPlaceholder' | translate">
                 <i matPrefix class="fa-solid fa-envelope input-prefix-icon" aria-hidden="true"></i>
               </mat-form-field>
 
               <mat-form-field appearance="outline" class="full-width">
-                <mat-label>Password</mat-label>
+                <mat-label>{{ 'auth.password' | translate }}</mat-label>
                 <input matInput [type]="hidePassword ? 'password' : 'text'" [(ngModel)]="newUser.password">
                 <i matPrefix class="fa-solid fa-lock input-prefix-icon" aria-hidden="true"></i>
                 <button mat-icon-button matSuffix (click)="hidePassword = !hidePassword" type="button">
@@ -521,23 +536,23 @@ import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult
 
               <div class="form-row">
                 <mat-form-field appearance="outline" class="half-width">
-                  <mat-label>First Name</mat-label>
+                  <mat-label>{{ 'common.firstName' | translate }}</mat-label>
                   <input matInput [(ngModel)]="newUser.firstName">
                   <i matPrefix class="fa-solid fa-user input-prefix-icon" aria-hidden="true"></i>
                 </mat-form-field>
 
                 <mat-form-field appearance="outline" class="half-width">
-                  <mat-label>Last Name</mat-label>
+                  <mat-label>{{ 'common.lastName' | translate }}</mat-label>
                   <input matInput [(ngModel)]="newUser.lastName">
                 </mat-form-field>
               </div>
 
               <mat-form-field appearance="outline" class="full-width">
-                <mat-label>System Role</mat-label>
+                <mat-label>{{ 'admin.systemRole' | translate }}</mat-label>
                 <mat-select [(ngModel)]="newUser.systemRole">
-                  <mat-option value="User">User</mat-option>
-                  <mat-option value="Admin">Admin</mat-option>
-                  <mat-option value="SuperAdmin">SuperAdmin</mat-option>
+                  <mat-option value="User">{{ 'admin.roles.user' | translate }}</mat-option>
+                  <mat-option value="Admin">{{ 'admin.roles.admin' | translate }}</mat-option>
+                  <mat-option value="SuperAdmin">{{ 'admin.roles.superAdmin' | translate }}</mat-option>
                 </mat-select>
                 <i matPrefix class="fa-solid fa-user-shield input-prefix-icon" aria-hidden="true"></i>
               </mat-form-field>
@@ -550,12 +565,12 @@ import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult
               }
             </mat-card-content>
             <mat-card-actions align="end">
-              <button mat-button (click)="closeCreateUserModal()">Cancel</button>
+              <button mat-button (click)="closeCreateUserModal()">{{ 'common.cancel' | translate }}</button>
               <button mat-flat-button color="primary" (click)="createUser()" [disabled]="creatingUser()">
                 @if (creatingUser()) {
                   <mat-spinner diameter="20"></mat-spinner>
                 } @else {
-                  Create User
+                  {{ 'admin.createUser' | translate }}
                 }
               </button>
             </mat-card-actions>
@@ -650,6 +665,52 @@ import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult
       &--trees .stat-card__icon { background: linear-gradient(135deg, #2D7A3E 0%, #3FA055 100%); } // Nubian green
       &--people .stat-card__icon { background: linear-gradient(135deg, #C17E3E 0%, #D4A574 100%); } // Nubian gold
       &--relations .stat-card__icon { background: linear-gradient(135deg, #E85D35 0%, #FF7A52 100%); } // Nubian orange
+    }
+
+    .quick-links {
+      margin-top: 24px;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+
+      .quick-link {
+        text-decoration: none;
+        color: inherit;
+        flex: 1;
+        min-width: 200px;
+        max-width: 300px;
+
+        mat-card {
+          transition: transform 0.2s, box-shadow 0.2s;
+          cursor: pointer;
+
+          &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          }
+
+          mat-card-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px !important;
+
+            i.fa-globe {
+              font-size: 1.5rem;
+              color: var(--ft-primary);
+            }
+
+            span {
+              flex: 1;
+              font-weight: 500;
+            }
+
+            i.fa-chevron-right {
+              color: var(--ft-on-surface-variant);
+            }
+          }
+        }
+      }
     }
 
     .tab-content {
@@ -1143,7 +1204,7 @@ export class AdminPanelComponent implements OnInit {
   updateUserRole(user: AdminUser, newRole: string) {
     this.adminService.updateUserRole(user.userId, { systemRole: newRole }).subscribe({
       next: () => this.loadData(),
-      error: (err) => alert(err.error?.message || 'Failed to update role')
+      error: (err) => alert(err.error?.message || this.i18n.t('admin.errors.updateRoleFailed'))
     });
   }
 
@@ -1172,30 +1233,30 @@ export class AdminPanelComponent implements OnInit {
               townId: result.townId
             }).subscribe({
               next: () => this.loadData(),
-              error: (err) => alert(err.error?.message || 'Failed to assign town')
+              error: (err) => alert(err.error?.message || this.i18n.t('admin.errors.assignTownFailed'))
             });
           }
         });
       },
       error: (err) => {
         console.error('Failed to load towns:', err);
-        alert('Failed to load towns. Please try again.');
+        alert(this.i18n.t('admin.errors.loadTownsFailed'));
       }
     });
   }
 
   removeTownAssignment(assignment: AdminTownAssignment) {
-    if (!confirm(`Remove ${assignment.userName} from ${assignment.townName}?`)) return;
+    if (!confirm(this.i18n.t('admin.confirmRemoveTownAssignment', { user: assignment.userName || '', town: assignment.townName || '' }))) return;
 
     this.adminService.deleteTownAssignment(assignment.id).subscribe({
       next: () => this.loadData(),
-      error: (err) => alert(err.error?.message || 'Failed to remove town assignment')
+      error: (err) => alert(err.error?.message || this.i18n.t('admin.errors.removeTownAssignmentFailed'))
     });
   }
 
   createUser() {
     if (!this.newUser.email || !this.newUser.password) {
-      this.createUserError = 'Email and password are required';
+      this.createUserError = this.i18n.t('admin.errors.emailPasswordRequired');
       return;
     }
 
@@ -1210,7 +1271,7 @@ export class AdminPanelComponent implements OnInit {
       },
       error: (err) => {
         this.creatingUser.set(false);
-        this.createUserError = err.error?.message || 'Failed to create user';
+        this.createUserError = err.error?.message || this.i18n.t('admin.errors.createUserFailed');
       }
     });
   }
@@ -1285,7 +1346,7 @@ export class AdminPanelComponent implements OnInit {
         this.bulkTranslitLoading.set(false);
         this.bulkTranslitResult.set({
           success: false,
-          message: err.error?.message || 'Failed to run bulk transliteration',
+          message: err.error?.message || this.i18n.t('admin.failedBulkTransliteration'),
           totalPersonsProcessed: 0,
           totalNamesGenerated: 0,
           personsSkipped: 0,
@@ -1302,11 +1363,11 @@ export class AdminPanelComponent implements OnInit {
     }).subscribe({
       next: () => {
         // Remove from list
-        this.mappingsNeedingReview.update(list => 
+        this.mappingsNeedingReview.update(list =>
           list.filter(m => m.id !== mapping.id)
         );
       },
-      error: (err) => alert(err.error?.message || 'Failed to verify mapping')
+      error: (err) => alert(err.error?.message || this.i18n.t('admin.errors.verifyMappingFailed'))
     });
   }
 

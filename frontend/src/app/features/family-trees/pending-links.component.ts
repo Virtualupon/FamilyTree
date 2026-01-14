@@ -1,20 +1,20 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PersonLinkService } from '../../core/services/person-link.service';
-import { 
-  PersonLink, 
-  PersonLinkType,
-  PersonLinkTypeLabels
+import {
+  PersonLink,
+  PersonLinkType
 } from '../../core/models/family-tree.models';
+import { I18nService, TranslatePipe } from '../../core/i18n';
 
 @Component({
   selector: 'app-pending-links',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TranslatePipe],
   template: `
     <div class="container mx-auto p-6">
-      <h1 class="text-2xl font-bold mb-6">Pending Link Requests</h1>
+      <h1 class="text-2xl font-bold mb-6">{{ 'links.pendingRequests' | translate }}</h1>
 
       @if (loading()) {
         <div class="flex justify-center py-12">
@@ -34,19 +34,19 @@ import {
                         {{ getLinkTypeLabel(link.linkType) }}
                       </span>
                       <span class="text-sm text-gray-500">
-                        {{ link.confidence }}% confidence
+                        {{ 'links.confidence' | translate: { value: link.confidence } }}
                       </span>
                     </div>
-                    
+
                     <div class="grid grid-cols-2 gap-4 mb-3">
                       <div>
-                        <div class="text-xs text-gray-500 uppercase">Source</div>
-                        <div class="font-medium">{{ link.sourcePersonName || 'Unknown' }}</div>
+                        <div class="text-xs text-gray-500 uppercase">{{ 'links.source' | translate }}</div>
+                        <div class="font-medium">{{ link.sourcePersonName || ('common.unknown' | translate) }}</div>
                         <div class="text-sm text-gray-500">{{ link.sourceTreeName }}</div>
                       </div>
                       <div>
-                        <div class="text-xs text-gray-500 uppercase">Target</div>
-                        <div class="font-medium">{{ link.targetPersonName || 'Unknown' }}</div>
+                        <div class="text-xs text-gray-500 uppercase">{{ 'links.target' | translate }}</div>
+                        <div class="font-medium">{{ link.targetPersonName || ('common.unknown' | translate) }}</div>
                         <div class="text-sm text-gray-500">{{ link.targetTreeName }}</div>
                       </div>
                     </div>
@@ -58,20 +58,20 @@ import {
                     }
 
                     <div class="text-xs text-gray-400">
-                      Requested by {{ link.createdByName }} on {{ link.createdAt | date:'short' }}
+                      {{ 'links.requestedBy' | translate: { name: link.createdByName || '', date: (link.createdAt | date:'short') || '' } }}
                     </div>
                   </div>
 
                   <div class="flex gap-2 ml-4">
-                    <button 
+                    <button
                       (click)="approveLink(link)"
                       class="bg-green-600 text-white px-3 py-1.5 rounded text-sm hover:bg-green-700">
-                      Approve
+                      {{ 'links.approve' | translate }}
                     </button>
-                    <button 
+                    <button
                       (click)="rejectLink(link)"
                       class="bg-red-600 text-white px-3 py-1.5 rounded text-sm hover:bg-red-700">
-                      Reject
+                      {{ 'links.reject' | translate }}
                     </button>
                   </div>
                 </div>
@@ -84,11 +84,11 @@ import {
       @if (!loading() && links().length === 0) {
         <div class="bg-white rounded-lg shadow p-8 text-center">
           <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
-          <h3 class="text-lg font-medium text-gray-900 mb-2">No pending requests</h3>
-          <p class="text-gray-500">All cross-tree link requests have been reviewed.</p>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">{{ 'links.noPendingRequests' | translate }}</h3>
+          <p class="text-gray-500">{{ 'links.allReviewed' | translate }}</p>
         </div>
       }
 
@@ -98,31 +98,31 @@ import {
           <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4" (click)="$event.stopPropagation()">
             <div class="p-6">
               <h2 class="text-xl font-semibold mb-4">
-                {{ isApproving ? 'Approve' : 'Reject' }} Link Request
+                {{ isApproving ? ('links.approveLinkRequest' | translate) : ('links.rejectLinkRequest' | translate) }}
               </h2>
-              
+
               <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
-                <textarea 
+                <label class="block text-sm font-medium text-gray-700 mb-1">{{ 'common.notesOptional' | translate }}</label>
+                <textarea
                   [(ngModel)]="reviewNotes"
                   rows="3"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  placeholder="Add a note about your decision..."></textarea>
+                  [placeholder]="'links.decisionNotesPlaceholder' | translate"></textarea>
               </div>
 
               <div class="flex gap-3">
-                <button 
+                <button
                   type="button"
                   (click)="showReviewModal = false"
                   class="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                  Cancel
+                  {{ 'common.cancel' | translate }}
                 </button>
-                <button 
+                <button
                   (click)="submitReview()"
                   [disabled]="submitting()"
                   [class]="isApproving ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'"
                   class="flex-1 text-white px-4 py-2 rounded-lg disabled:opacity-50">
-                  {{ submitting() ? 'Submitting...' : (isApproving ? 'Approve' : 'Reject') }}
+                  {{ submitting() ? ('common.submitting' | translate) : (isApproving ? ('links.approve' | translate) : ('links.reject' | translate)) }}
                 </button>
               </div>
             </div>
@@ -133,6 +133,9 @@ import {
   `
 })
 export class PendingLinksComponent implements OnInit {
+  private readonly i18n = inject(I18nService);
+  private readonly linkService = inject(PersonLinkService);
+
   links = signal<PersonLink[]>([]);
   loading = signal(true);
 
@@ -141,8 +144,6 @@ export class PendingLinksComponent implements OnInit {
   isApproving = true;
   reviewNotes = '';
   submitting = signal(false);
-
-  constructor(private linkService: PersonLinkService) {}
 
   ngOnInit() {
     this.loadLinks();
@@ -190,13 +191,18 @@ export class PendingLinksComponent implements OnInit {
         this.loadLinks();
       },
       error: (err) => {
-        alert(err.error?.message || 'Failed to submit review');
+        alert(err.error?.message || this.i18n.t('links.failedSubmitReview'));
         this.submitting.set(false);
       }
     });
   }
 
   getLinkTypeLabel(type: PersonLinkType): string {
-    return PersonLinkTypeLabels[type];
+    const typeKeys: Record<PersonLinkType, string> = {
+      [PersonLinkType.SamePerson]: 'crossTree.samePerson',
+      [PersonLinkType.Ancestor]: 'crossTree.ancestor',
+      [PersonLinkType.Related]: 'crossTree.related'
+    };
+    return this.i18n.t(typeKeys[type] || 'common.unknown');
   }
 }

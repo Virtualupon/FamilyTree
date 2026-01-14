@@ -1828,7 +1828,7 @@ export class TreeListComponent implements OnInit {
 
   getRoleLabel(role: OrgRole | null): string {
     if (role === null) return '';
-    return OrgRoleLabels[role] || 'Unknown';
+    return OrgRoleLabels[role] || this.i18n.t('common.unknown');
   }
 
   getLocalizedTownName(town: TownListItem): string {

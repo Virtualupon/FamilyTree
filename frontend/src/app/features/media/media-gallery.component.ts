@@ -1,10 +1,11 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { TranslatePipe } from '../../core/i18n';
 
 @Component({
   selector: 'app-media-gallery',
   standalone: true,
-  imports: [CommonModule],
-  template: `<h1>Media Gallery - Coming Soon</h1>`
+  imports: [CommonModule, TranslatePipe],
+  template: `<h1>{{ 'media.galleryComingSoon' | translate }}</h1>`
 })
 export class MediaGalleryComponent {}

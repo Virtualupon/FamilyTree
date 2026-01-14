@@ -14,11 +14,16 @@ public class GedcomService : IGedcomService
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<GedcomService> _logger;
+    private readonly INameTransliterationService _transliterationService;
 
-    public GedcomService(ApplicationDbContext context, ILogger<GedcomService> logger)
+    public GedcomService(
+        ApplicationDbContext context,
+        ILogger<GedcomService> logger,
+        INameTransliterationService transliterationService)
     {
         _context = context;
         _logger = logger;
+        _transliterationService = transliterationService;
     }
 
     public async Task<(List<GedcomIndividual> Individuals, List<GedcomFamily> Families, List<string> Warnings)> ParseAsync(
@@ -205,6 +210,40 @@ public class GedcomService : IGedcomService
             }
 
             await _context.SaveChangesAsync();
+
+            // Generate translations for all imported persons
+            _logger.LogInformation(
+                "Starting name transliteration for {Count} imported persons in tree {TreeId}",
+                individualsImported, tree.Id);
+
+            try
+            {
+                var translitRequest = new BulkTransliterationRequest
+                {
+                    OrgId = tree.Id,
+                    MaxPersons = individualsImported + 10, // Ensure we cover all
+                    SkipComplete = true
+                };
+
+                var translitResult = await _transliterationService.BulkGenerateMissingNamesAsync(translitRequest);
+
+                _logger.LogInformation(
+                    "Transliteration complete: {Generated} names generated for {Processed} persons, {Errors} errors",
+                    translitResult.TotalNamesGenerated,
+                    translitResult.TotalPersonsProcessed,
+                    translitResult.Errors);
+
+                if (translitResult.Errors > 0)
+                {
+                    warnings.Add($"Some names could not be transliterated: {translitResult.Errors} errors");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to transliterate names after GEDCOM import");
+                warnings.Add($"Name transliteration partially failed: {ex.Message}");
+                // Don't fail the entire import for transliteration issues
+            }
 
             stopwatch.Stop();
             return new GedcomImportResult(
@@ -471,6 +510,10 @@ public class GedcomService : IGedcomService
     private Person CreatePersonFromGedcom(GedcomIndividual indi, Guid orgId, GedcomImportOptions options)
     {
         var fullName = indi.FullName ?? $"{indi.GivenName} {indi.Surname}".Trim();
+
+        // Detect script of the name
+        var script = DetectScriptFromContent(fullName);
+
         var person = new Person
         {
             Id = Guid.NewGuid(),
@@ -490,11 +533,29 @@ public class GedcomService : IGedcomService
             Notes = options.ImportNotes ? indi.Notes : null,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
-            // Set name directly on person (GEDCOM names are typically Latin/English)
-            NameEnglish = fullName
+            // Set the correct column based on detected script
+            NameArabic = script == "Arabic" ? fullName : null,
+            NameEnglish = script == "English" ? fullName : null,
+            NameNobiin = script == "Nobiin" ? fullName : null
         };
 
         return person;
+    }
+
+    private static string DetectScriptFromContent(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+            return "English";
+
+        foreach (var ch in content)
+        {
+            if (ch >= '\u0600' && ch <= '\u06FF')
+                return "Arabic";
+            if (ch >= '\u2C80' && ch <= '\u2CFF')
+                return "Nobiin";
+        }
+
+        return "English";
     }
 
     private async Task<(bool UnionCreated, int RelationshipsCreated)> CreateFamilyRelationships(

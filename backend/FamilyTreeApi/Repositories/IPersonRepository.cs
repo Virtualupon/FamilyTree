@@ -64,4 +64,9 @@ public interface IPersonRepository : IRepository<Person>
         List<UnionMember> unionMemberships,
         List<PersonTag> personTags,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get a person by ID with their avatar (profile picture) loaded.
+    /// </summary>
+    Task<Person?> GetWithAvatarAsync(Guid personId, CancellationToken cancellationToken = default);
 }

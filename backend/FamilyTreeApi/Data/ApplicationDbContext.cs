@@ -54,6 +54,9 @@ public class ApplicationDbContext : IdentityDbContext<
     // Name transliteration mappings
     public DbSet<NameMapping> NameMappings { get; set; }
 
+    // Countries lookup table
+    public DbSet<Country> Countries { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -168,6 +171,13 @@ public class ApplicationDbContext : IdentityDbContext<
                 .WithMany()
                 .HasForeignKey(e => e.DeathPlaceId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.Avatar)
+                .WithMany()
+                .HasForeignKey(e => e.AvatarMediaId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(e => e.AvatarMediaId);
         });
 
         modelBuilder.Entity<Union>(entity =>
@@ -526,6 +536,16 @@ public class ApplicationDbContext : IdentityDbContext<
                 .WithMany()
                 .HasForeignKey(e => e.OrgId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // Countries - Lookup table for nationalities
+        modelBuilder.Entity<Country>(entity =>
+        {
+            entity.ToTable("Countries");
+            entity.HasKey(e => e.Code);
+            entity.HasIndex(e => e.NameEn);
+            entity.HasIndex(e => e.IsActive);
+            entity.HasIndex(e => e.Region);
         });
     }
 }

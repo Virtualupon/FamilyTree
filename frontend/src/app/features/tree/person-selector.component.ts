@@ -11,7 +11,7 @@ import { MatRippleModule } from '@angular/material/core';
 import { PersonSearchService } from '../../core/services/person-search.service';
 import { I18nService, TranslatePipe } from '../../core/i18n';
 import { Sex } from '../../core/models/person.models';
-import { SearchPersonItem, getPrimaryName } from '../../core/models/search.models';
+import { SearchPersonItem } from '../../core/models/search.models';
 import { SkeletonComponent } from '../../shared/components';
 
 @Component({
@@ -385,9 +385,20 @@ export class PersonSelectorComponent implements OnInit, OnDestroy {
     this.bottomSheetRef.dismiss(person);
   }
 
-  // Helper to get display name
+  // Helper to get display name based on current language
   getPersonDisplayName(person: SearchPersonItem): string {
-    return getPrimaryName(person);
+    if (!person) return '';
+
+    const lang = this.i18n.currentLang();
+
+    switch (lang) {
+      case 'ar':
+        return person.nameArabic || person.nameEnglish || person.primaryName || '';
+      case 'nob':
+        return person.nameNobiin || person.nameEnglish || person.primaryName || '';
+      default: // 'en'
+        return person.nameEnglish || person.nameArabic || person.primaryName || '';
+    }
   }
   
   close(): void {

@@ -60,6 +60,41 @@ public interface IPersonService
         Guid? treeId,
         UserContext userContext,
         CancellationToken cancellationToken = default);
+
+    // ============================================================================
+    // AVATAR OPERATIONS
+    // ============================================================================
+
+    /// <summary>
+    /// Upload a profile picture/avatar for a person.
+    /// </summary>
+    Task<ServiceResult<AvatarDto>> UploadAvatarAsync(
+        Guid personId,
+        UploadAvatarDto dto,
+        UserContext userContext,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get avatar info for a person (without image data).
+    /// </summary>
+    Task<ServiceResult<AvatarDto?>> GetAvatarAsync(
+        Guid personId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get avatar with Base64 image data for a person.
+    /// </summary>
+    Task<ServiceResult<AvatarWithDataDto?>> GetAvatarWithDataAsync(
+        Guid personId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Delete avatar for a person.
+    /// </summary>
+    Task<ServiceResult> DeleteAvatarAsync(
+        Guid personId,
+        UserContext userContext,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>

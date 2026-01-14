@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { NetworkService } from '../../core/services/network.service';
 import { Router } from '@angular/router';
+import { TranslatePipe } from '../../core/i18n';
 
 @Component({
   selector: 'app-offline',
   standalone: true,
-  imports: [CommonModule, MatButtonModule],
+  imports: [CommonModule, MatButtonModule, TranslatePipe],
   template: `
     <div class="offline-page">
       <div class="offline-page__container">
@@ -16,11 +17,10 @@ import { Router } from '@angular/router';
           <div class="offline-page__icon-slash"></div>
         </div>
 
-        <h1 class="offline-page__title">You're Offline</h1>
+        <h1 class="offline-page__title">{{ 'offline.title' | translate }}</h1>
 
         <p class="offline-page__message">
-          It looks like you've lost your internet connection.
-          Please check your network settings and try again.
+          {{ 'offline.message' | translate }}
         </p>
 
         <div class="offline-page__actions">
@@ -30,7 +30,7 @@ import { Router } from '@angular/router';
             class="offline-page__btn"
             (click)="tryAgain()">
             <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
-            Try Again
+            {{ 'offline.tryAgain' | translate }}
           </button>
 
           @if (networkService.isOnline()) {
@@ -39,17 +39,17 @@ import { Router } from '@angular/router';
               class="offline-page__btn offline-page__btn--secondary"
               (click)="goHome()">
               <i class="fa-solid fa-house" aria-hidden="true"></i>
-              Go Home
+              {{ 'offline.goHome' | translate }}
             </button>
           }
         </div>
 
         <div class="offline-page__tips">
-          <h3>While you're offline:</h3>
+          <h3>{{ 'offline.tipsTitle' | translate }}</h3>
           <ul>
-            <li>Check your WiFi or mobile data connection</li>
-            <li>Try moving closer to your router</li>
-            <li>Restart your device if the problem persists</li>
+            <li>{{ 'offline.tip1' | translate }}</li>
+            <li>{{ 'offline.tip2' | translate }}</li>
+            <li>{{ 'offline.tip3' | translate }}</li>
           </ul>
         </div>
       </div>

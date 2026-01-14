@@ -13,12 +13,12 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { debounceTime, distinctUntilChanged, switchMap, catchError } from 'rxjs/operators';
-import { Observable, of, Subject } from 'rxjs';
+import { debounceTime } from 'rxjs/operators';
+import { Observable } from 'rxjs';
 
 import { Sex } from '../../core/models/person.models';
-import { PersonSearchService } from '../../core/services/person-search.service';
-import { SearchPersonItem, getPrimaryName } from '../../core/models/search.models';
+import { SearchPersonItem } from '../../core/models/search.models';
+import { PersonSearchComponent } from '../../shared/components/person-search/person-search.component';
 import {
   RelationshipService,
   ParentChildRelationshipType,
@@ -27,9 +27,7 @@ import {
 } from '../../core/services/relationship.service';
 import { FamilyRelationshipTypeService } from '../../core/services/family-relationship-type.service';
 import { FamilyRelationshipType } from '../../core/models/family-relationship-type.models';
-import { TownService } from '../../core/services/town.service';
-import { TownListItem } from '../../core/models/town.models';
-import { I18nService } from '../../core/i18n/i18n.service';
+import { I18nService, TranslatePipe } from '../../core/i18n';
 
 export type RelationshipDialogType = 'parent' | 'child' | 'spouse' | 'sibling';
 
@@ -67,98 +65,33 @@ export interface RelationshipDialogData {
     MatCheckboxModule,
     MatProgressSpinnerModule,
     MatChipsModule,
-    MatTooltipModule
+    MatTooltipModule,
+    TranslatePipe,
+    PersonSearchComponent
   ],
   template: `
     <h2 mat-dialog-title>
       @switch (data.type) {
-        @case ('parent') { Add Parent }
-        @case ('child') { Add Child }
-        @case ('spouse') { Add Spouse/Partner }
-        @case ('sibling') { Add Sibling }
+        @case ('parent') { {{ 'relationships.addParent' | translate }} }
+        @case ('child') { {{ 'relationships.addChild' | translate }} }
+        @case ('spouse') { {{ 'relationships.addSpouse' | translate }} }
+        @case ('sibling') { {{ 'relationships.addSibling' | translate }} }
       }
     </h2>
 
     <mat-dialog-content>
-      <!-- Town Selection -->
-      <div class="town-section">
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Select Town First</mat-label>
-          <mat-select (selectionChange)="onTownSelected($event.value)">
-            @for (town of availableTowns(); track town.id) {
-              <mat-option [value]="town.id">
-                {{ getLocalizedTownName(town) }}
-              </mat-option>
-            }
-            @if (townsLoading()) {
-              <mat-option disabled>Loading towns...</mat-option>
-            }
-          </mat-select>
-          <i class="fa-solid fa-city" matPrefix aria-hidden="true" style="margin-right: 8px;"></i>
-        </mat-form-field>
-        @if (!selectedTownId()) {
-          <p class="town-hint">Please select a town to search for people within that area.</p>
-        }
-      </div>
-
-      <!-- Person Search -->
-      <div class="search-section">
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Search for a person</mat-label>
-          <input matInput
-                 [formControl]="searchControl"
-                 [matAutocomplete]="auto"
-                 [disabled]="!selectedTownId()"
-                 placeholder="Type name to search...">
-          <i class="fa-solid fa-magnifying-glass" matSuffix aria-hidden="true"></i>
-          <mat-autocomplete #auto="matAutocomplete" 
-                           [displayWith]="displayPerson"
-                           (optionSelected)="onPersonSelected($event.option.value)">
-            @for (person of searchResults(); track person.id) {
-              <mat-option [value]="person">
-                <div class="person-option">
-                  <span class="name">{{ displayPerson(person) }}</span>
-                  @if (person.birthDate || person.deathDate) {
-                    <span class="dates">
-                      ({{ formatYear(person.birthDate) }} - {{ formatYear(person.deathDate) }})
-                    </span>
-                  }
-                  @if (person.sex !== null && person.sex !== undefined) {
-                    <i class="fa-solid sex-icon" [class]="getSexClass(person.sex)" [ngClass]="getSexIcon(person.sex)" aria-hidden="true"></i>
-                  }
-                </div>
-              </mat-option>
-            }
-            @if (isSearching()) {
-              <mat-option disabled>
-                <mat-spinner diameter="20"></mat-spinner>
-                Searching...
-              </mat-option>
-            }
-            @if (!isSearching() && searchResults().length === 0 && searchControl.value) {
-              <mat-option disabled>No results found</mat-option>
-            }
-          </mat-autocomplete>
-        </mat-form-field>
-
-        @if (selectedPerson()) {
-          <div class="selected-person">
-            <mat-chip-row (removed)="clearSelection()">
-              <i class="fa-solid fa-user" matChipAvatar aria-hidden="true"></i>
-              {{ displayPerson(selectedPerson()!) }}
-              <button matChipRemove>
-                <i class="fa-solid fa-ban" aria-hidden="true"></i>
-              </button>
-            </mat-chip-row>
-          </div>
-        }
-      </div>
+      <!-- Person Search with optional Town/Nationality filters -->
+      <app-person-search
+        [excludePersonId]="data.personId"
+        [placeholder]="'relationships.typeNameSearch' | translate"
+        (personSelected)="onPersonSelectedFromSearch($event)">
+      </app-person-search>
 
       <!-- Parent Selection for Sibling type -->
       @if (data.type === 'sibling' && data.parents && data.parents.length > 0) {
         <div class="parent-selection-section">
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Select Shared Parent</mat-label>
+            <mat-label>{{ 'relationships.selectSharedParent' | translate }}</mat-label>
             <mat-select (selectionChange)="onParentSelected($event.value)" [value]="selectedParentId()">
               @for (parent of data.parents; track parent.id) {
                 <mat-option [value]="parent.id">
@@ -172,7 +105,7 @@ export interface RelationshipDialogData {
             <i class="fa-solid fa-users" matPrefix aria-hidden="true" style="margin-right: 8px;"></i>
           </mat-form-field>
           <p class="parent-hint">
-            The sibling will be added as a child of the selected parent.
+            {{ 'relationships.siblingParentHint' | translate }}
           </p>
         </div>
       }
@@ -180,18 +113,18 @@ export interface RelationshipDialogData {
       @if (data.type === 'sibling' && (!data.parents || data.parents.length === 0)) {
         <div class="no-parents-warning">
           <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
-          <p>This person has no parents recorded. Please add a parent first before adding siblings.</p>
+          <p>{{ 'relationships.noParentsWarning' | translate }}</p>
         </div>
       }
 
       <!-- Family Relationship Label (Trilingual) -->
       <div class="relationship-label-section">
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Family Relationship ({{ data.type === 'spouse' ? 'e.g., Husband, Wife' : data.type === 'parent' ? 'e.g., Father, Mother' : 'e.g., Son, Daughter' }})</mat-label>
+          <mat-label>{{ 'relationships.familyRelationship' | translate }} ({{ getRelationshipExamples() }})</mat-label>
           <input matInput
                  [formControl]="familyRelTypeSearchControl"
                  [matAutocomplete]="relTypeAuto"
-                 placeholder="Type to search in English, Arabic, or Nubian...">
+                 [placeholder]="'relationships.typeSearchMultiLang' | translate">
           <i class="fa-solid fa-language" matSuffix aria-hidden="true"></i>
           <mat-autocomplete #relTypeAuto="matAutocomplete"
                            [displayWith]="displayRelType.bind(this)"
@@ -201,19 +134,19 @@ export interface RelationshipDialogData {
                 <div class="rel-type-option">
                   <span class="english">{{ type.nameEnglish }}</span>
                   <span class="arabic">{{ type.nameArabic }}</span>
-                  <span class="nubian" [matTooltip]="'Nubian: ' + type.nameNubian">{{ type.nameNubian }}</span>
+                  <span class="nubian" [matTooltip]="('relationships.nubian' | translate) + ': ' + type.nameNubian">{{ type.nameNubian }}</span>
                 </div>
               </mat-option>
             }
             @if (familyRelTypesLoading()) {
               <mat-option disabled>
                 <mat-spinner diameter="20"></mat-spinner>
-                Loading...
+                {{ 'common.loading' | translate }}
               </mat-option>
             }
           </mat-autocomplete>
           @if (selectedRelType()) {
-            <button mat-icon-button matSuffix (click)="clearRelTypeSelection($event)" matTooltip="Clear selection">
+            <button mat-icon-button matSuffix (click)="clearRelTypeSelection($event)" [matTooltip]="'common.clearSelection' | translate">
               <i class="fa-solid fa-xmark" aria-hidden="true"></i>
             </button>
           }
@@ -238,14 +171,14 @@ export interface RelationshipDialogData {
       @if (data.type === 'parent' || data.type === 'child' || data.type === 'sibling') {
         <div class="relationship-options">
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Relationship Nature</mat-label>
+            <mat-label>{{ 'relationships.relationshipNature' | translate }}</mat-label>
             <mat-select [formControl]="relationshipTypeControl">
-              <mat-option [value]="ParentChildRelationshipType.Biological">Biological</mat-option>
-              <mat-option [value]="ParentChildRelationshipType.Adopted">Adopted</mat-option>
-              <mat-option [value]="ParentChildRelationshipType.Foster">Foster</mat-option>
-              <mat-option [value]="ParentChildRelationshipType.Step">Step</mat-option>
-              <mat-option [value]="ParentChildRelationshipType.Guardian">Guardian</mat-option>
-              <mat-option [value]="ParentChildRelationshipType.Unknown">Unknown</mat-option>
+              <mat-option [value]="ParentChildRelationshipType.Biological">{{ 'relationships.biological' | translate }}</mat-option>
+              <mat-option [value]="ParentChildRelationshipType.Adopted">{{ 'relationships.adopted' | translate }}</mat-option>
+              <mat-option [value]="ParentChildRelationshipType.Foster">{{ 'relationships.foster' | translate }}</mat-option>
+              <mat-option [value]="ParentChildRelationshipType.Step">{{ 'relationships.step' | translate }}</mat-option>
+              <mat-option [value]="ParentChildRelationshipType.Guardian">{{ 'relationships.guardian' | translate }}</mat-option>
+              <mat-option [value]="ParentChildRelationshipType.Unknown">{{ 'common.unknown' | translate }}</mat-option>
             </mat-select>
           </mat-form-field>
         </div>
@@ -255,27 +188,27 @@ export interface RelationshipDialogData {
       @if (data.type === 'spouse') {
         <div class="union-options">
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Union Type</mat-label>
+            <mat-label>{{ 'relationships.unionType' | translate }}</mat-label>
             <mat-select [formControl]="unionTypeControl">
-              <mat-option [value]="UnionType.Marriage">Marriage</mat-option>
-              <mat-option [value]="UnionType.CivilUnion">Civil Union</mat-option>
-              <mat-option [value]="UnionType.DomesticPartnership">Domestic Partnership</mat-option>
-              <mat-option [value]="UnionType.CommonLaw">Common Law</mat-option>
-              <mat-option [value]="UnionType.Engagement">Engagement</mat-option>
-              <mat-option [value]="UnionType.Unknown">Unknown</mat-option>
+              <mat-option [value]="UnionType.Marriage">{{ 'unions.marriage' | translate }}</mat-option>
+              <mat-option [value]="UnionType.CivilUnion">{{ 'unions.civilUnion' | translate }}</mat-option>
+              <mat-option [value]="UnionType.DomesticPartnership">{{ 'unions.domesticPartnership' | translate }}</mat-option>
+              <mat-option [value]="UnionType.CommonLaw">{{ 'unions.commonLaw' | translate }}</mat-option>
+              <mat-option [value]="UnionType.Engagement">{{ 'unions.engagement' | translate }}</mat-option>
+              <mat-option [value]="UnionType.Unknown">{{ 'common.unknown' | translate }}</mat-option>
             </mat-select>
           </mat-form-field>
 
           <div class="date-row">
             <mat-form-field appearance="outline">
-              <mat-label>Start Date</mat-label>
+              <mat-label>{{ 'relationships.startDate' | translate }}</mat-label>
               <input matInput [matDatepicker]="startPicker" [formControl]="startDateControl">
               <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
               <mat-datepicker #startPicker></mat-datepicker>
             </mat-form-field>
 
             <mat-form-field appearance="outline">
-              <mat-label>End Date (if applicable)</mat-label>
+              <mat-label>{{ 'relationships.endDate' | translate }}</mat-label>
               <input matInput [matDatepicker]="endPicker" [formControl]="endDateControl">
               <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
               <mat-datepicker #endPicker></mat-datepicker>
@@ -286,7 +219,7 @@ export interface RelationshipDialogData {
 
       <!-- Notes -->
       <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Notes (optional)</mat-label>
+        <mat-label>{{ 'common.notesOptional' | translate }}</mat-label>
         <textarea matInput [formControl]="notesControl" rows="2"></textarea>
       </mat-form-field>
 
@@ -299,7 +232,7 @@ export interface RelationshipDialogData {
     </mat-dialog-content>
 
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Cancel</button>
+      <button mat-button mat-dialog-close>{{ 'common.cancel' | translate }}</button>
       <button mat-raised-button
               color="primary"
               [disabled]="!canSave()"
@@ -307,7 +240,7 @@ export interface RelationshipDialogData {
         @if (isSaving()) {
           <mat-spinner diameter="20"></mat-spinner>
         } @else {
-          Add {{ getRelationshipLabel() }}
+          {{ 'common.add' | translate }} {{ getRelationshipLabel() }}
         }
       </button>
     </mat-dialog-actions>
@@ -508,12 +441,9 @@ export interface RelationshipDialogData {
   `]
 })
 export class AddRelationshipDialogComponent implements OnInit {
-  private searchService = inject(PersonSearchService);
   private relationshipService = inject(RelationshipService);
   private familyRelTypeService = inject(FamilyRelationshipTypeService);
-  private townService = inject(TownService);
   private i18n = inject(I18nService);
-  private fb = inject(FormBuilder);
 
   // Expose enums to template
   ParentChildRelationshipType = ParentChildRelationshipType;
@@ -521,7 +451,6 @@ export class AddRelationshipDialogComponent implements OnInit {
   Sex = Sex;
 
   // Form controls
-  searchControl = new FormControl('');
   relationshipTypeControl = new FormControl(ParentChildRelationshipType.Biological);
   unionTypeControl = new FormControl(UnionType.Marriage);
   startDateControl = new FormControl<Date | null>(null);
@@ -529,16 +458,9 @@ export class AddRelationshipDialogComponent implements OnInit {
   notesControl = new FormControl('');
   familyRelTypeSearchControl = new FormControl('');
 
-  // Town state
-  availableTowns = signal<TownListItem[]>([]);
-  selectedTownId = signal<string | null>(null);
-  townsLoading = signal(false);
-
   // State signals
-  searchResults = signal<SearchPersonItem[]>([]);
   selectedPerson = signal<SearchPersonItem | null>(null);
   selectedParentId = signal<string | null>(null);
-  isSearching = signal(false);
   isSaving = signal(false);
   error = signal<string | null>(null);
 
@@ -564,51 +486,13 @@ export class AddRelationshipDialogComponent implements OnInit {
     );
   });
 
-  private searchSubject = new Subject<string>();
-
   constructor(
     public dialogRef: MatDialogRef<AddRelationshipDialogComponent>,
     @Inject(MAT_DIALOG_DATA) public data: RelationshipDialogData
   ) {}
 
   ngOnInit() {
-    // Load towns and family relationship types
-    this.loadTowns();
     this.loadFamilyRelTypes();
-
-    // Setup search debounce for person search
-    this.searchSubject.pipe(
-      debounceTime(300),
-      distinctUntilChanged(),
-      switchMap(term => {
-        const townId = this.selectedTownId();
-        if (!term || term.length < 2 || !townId) {
-          this.searchResults.set([]);
-          return of(null);
-        }
-        this.isSearching.set(true);
-        return this.searchService.searchByTown(townId, term, 1, 10).pipe(
-          catchError((err: any) => {
-            console.error('Search error:', err);
-            return of({ items: [], totalCount: 0, page: 1, pageSize: 10, totalPages: 0, searchDurationMs: 0 });
-          })
-        );
-      })
-    ).subscribe(result => {
-      this.isSearching.set(false);
-      if (result) {
-        // Filter out the current person from results
-        const filtered = result.items.filter(p => p.id !== this.data.personId);
-        this.searchResults.set(filtered);
-      }
-    });
-
-    // Connect input to search subject for person search
-    this.searchControl.valueChanges.subscribe(value => {
-      if (typeof value === 'string') {
-        this.searchSubject.next(value);
-      }
-    });
 
     // Setup family relationship type search
     this.familyRelTypeSearchControl.valueChanges.pipe(
@@ -634,48 +518,13 @@ export class AddRelationshipDialogComponent implements OnInit {
     });
   }
 
-  private loadTowns() {
-    this.townsLoading.set(true);
-    this.townService.getAllTowns().subscribe({
-      next: (towns) => {
-        this.availableTowns.set(towns);
-        this.townsLoading.set(false);
-      },
-      error: (err) => {
-        console.error('Failed to load towns:', err);
-        this.townsLoading.set(false);
-      }
-    });
-  }
-
-  onTownSelected(townId: string) {
-    this.selectedTownId.set(townId);
-    // Clear previous search results when town changes
-    this.searchResults.set([]);
-    this.selectedPerson.set(null);
-    this.searchControl.setValue('');
-  }
-
-  getLocalizedTownName(town: TownListItem): string {
-    const lang = this.i18n.currentLang();
-    if (lang === 'ar') return town.nameAr || town.nameEn || 'Unknown';
-    if (lang === 'nob') return town.nameLocal || town.nameEn || 'Unknown';
-    return town.nameEn || 'Unknown';
-  }
-
-  displayPerson(person: SearchPersonItem): string {
-    return person ? getPrimaryName(person) : '';
+  onPersonSelectedFromSearch(person: SearchPersonItem | null): void {
+    this.selectedPerson.set(person);
   }
 
   displayRelType(relType: FamilyRelationshipType | null): string {
     if (!relType) return '';
     return `${relType.nameEnglish} (${relType.nameArabic})`;
-  }
-
-  onPersonSelected(person: SearchPersonItem) {
-    this.selectedPerson.set(person);
-    this.searchControl.setValue('');
-    this.searchResults.set([]);
   }
 
   onRelTypeSelected(relType: FamilyRelationshipType) {
@@ -701,9 +550,10 @@ export class AddRelationshipDialogComponent implements OnInit {
 
   getParentDisplayName(parent: ParentInfo): string {
     const lang = this.i18n.currentLang();
-    if (lang === 'ar') return parent.nameArabic || parent.nameEnglish || parent.name || 'Unknown';
-    if (lang === 'nob') return parent.nameNobiin || parent.nameEnglish || parent.name || 'Unknown';
-    return parent.nameEnglish || parent.nameArabic || parent.name || 'Unknown';
+    const unknown = this.i18n.t('common.unknown');
+    if (lang === 'ar') return parent.nameArabic || parent.nameEnglish || parent.name || unknown;
+    if (lang === 'nob') return parent.nameNobiin || parent.nameEnglish || parent.name || unknown;
+    return parent.nameEnglish || parent.nameArabic || parent.name || unknown;
   }
 
   canSave(): boolean {
@@ -739,11 +589,19 @@ export class AddRelationshipDialogComponent implements OnInit {
 
   getRelationshipLabel(): string {
     switch (this.data.type) {
-      case 'parent': return 'Parent';
-      case 'child': return 'Child';
-      case 'spouse': return 'Spouse';
-      case 'sibling': return 'Sibling';
-      default: return 'Relationship';
+      case 'parent': return this.i18n.t('relationships.parent');
+      case 'child': return this.i18n.t('relationships.child');
+      case 'spouse': return this.i18n.t('relationships.spouse');
+      case 'sibling': return this.i18n.t('relationships.sibling');
+      default: return this.i18n.t('relationships.relationship');
+    }
+  }
+
+  getRelationshipExamples(): string {
+    switch (this.data.type) {
+      case 'spouse': return this.i18n.t('relationships.exampleSpouse');
+      case 'parent': return this.i18n.t('relationships.exampleParent');
+      default: return this.i18n.t('relationships.exampleChild');
     }
   }
 
@@ -798,7 +656,7 @@ export class AddRelationshipDialogComponent implements OnInit {
         // Adding a sibling means adding them as a child of the shared parent
         const parentId = this.selectedParentId();
         if (!parentId) {
-          this.error.set('Please select a shared parent');
+          this.error.set(this.i18n.t('relationships.selectSharedParentError'));
           this.isSaving.set(false);
           return;
         }
@@ -816,7 +674,7 @@ export class AddRelationshipDialogComponent implements OnInit {
         break;
 
       default:
-        this.error.set('Unknown relationship type');
+        this.error.set(this.i18n.t('relationships.unknownType'));
         this.isSaving.set(false);
         return;
     }
@@ -828,7 +686,7 @@ export class AddRelationshipDialogComponent implements OnInit {
       },
       error: (err: any) => {
         this.isSaving.set(false);
-        const message = err.error?.message || err.message || 'Failed to add relationship';
+        const message = err.error?.message || err.message || this.i18n.t('relationships.failedAdd');
         this.error.set(message);
       }
     });

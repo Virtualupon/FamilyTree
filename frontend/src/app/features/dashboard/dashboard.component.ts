@@ -196,7 +196,7 @@ interface StatCard {
             <i class="fa-solid fa-lightbulb" aria-hidden="true"></i>
             <div>
               <h3>{{ 'dashboard.welcome' | translate }}</h3>
-              <p>Start by adding family members and building your family tree.</p>
+              <p>{{ 'dashboard.featuresBannerMessage' | translate }}</p>
             </div>
           </div>
           <button mat-flat-button color="primary" routerLink="/people">
@@ -764,9 +764,9 @@ export class DashboardComponent implements OnInit {
   
   getGreeting(): string {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
-    return 'Good Evening';
+    if (hour < 12) return this.i18n.t('dashboard.goodMorning');
+    if (hour < 17) return this.i18n.t('dashboard.goodAfternoon');
+    return this.i18n.t('dashboard.goodEvening');
   }
   
   loadRecentPeople(): void {
@@ -872,9 +872,10 @@ export class DashboardComponent implements OnInit {
   // Helper to get display name in user's preferred language
   getPersonDisplayName(person: SearchPersonItem): string {
     const lang = this.i18n.currentLang();
-    if (lang === 'ar') return person.nameArabic || person.nameEnglish || person.primaryName || 'Unknown';
-    if (lang === 'nob') return person.nameNobiin || person.nameEnglish || person.primaryName || 'Unknown';
-    return person.nameEnglish || person.nameArabic || person.primaryName || 'Unknown';
+    const unknown = this.i18n.t('common.unknown');
+    if (lang === 'ar') return person.nameArabic || person.nameEnglish || person.primaryName || unknown;
+    if (lang === 'nob') return person.nameNobiin || person.nameEnglish || person.primaryName || unknown;
+    return person.nameEnglish || person.nameArabic || person.primaryName || unknown;
   }
   
   getInitials(name: string | null): string {

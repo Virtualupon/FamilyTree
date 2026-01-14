@@ -13,12 +13,12 @@ import {
 } from '../../core/models/family-tree.models';
 import { TownListItem } from '../../core/models/town.models';
 import { OrgRole, OrgRoleLabels } from '../../core/models/auth.models';
-import { I18nService } from '../../core/i18n/i18n.service';
+import { I18nService, TranslatePipe } from '../../core/i18n';
 
 @Component({
   selector: 'app-tree-settings',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
+  imports: [CommonModule, RouterModule, FormsModule, TranslatePipe],
   template: `
     <div class="container mx-auto p-6 max-w-4xl">
       <!-- Back Link -->
@@ -26,7 +26,7 @@ import { I18nService } from '../../core/i18n/i18n.service';
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
         </svg>
-        Back to Trees
+        {{ 'treeSettings.backToTrees' | translate }}
       </a>
 
       @if (loading()) {
@@ -36,31 +36,31 @@ import { I18nService } from '../../core/i18n/i18n.service';
       }
 
       @if (tree()) {
-        <h1 class="text-2xl font-bold mb-6">{{ tree()!.name }} - Settings</h1>
+        <h1 class="text-2xl font-bold mb-6">{{ tree()!.name }} - {{ 'treeSettings.title' | translate }}</h1>
 
         <!-- Tabs -->
         <div class="border-b border-gray-200 mb-6">
           <nav class="flex gap-4">
-            <button 
+            <button
               (click)="activeTab = 'general'"
               [class.border-blue-600]="activeTab === 'general'"
               [class.text-blue-600]="activeTab === 'general'"
               class="pb-3 px-1 border-b-2 border-transparent hover:border-gray-300 font-medium">
-              General
+              {{ 'treeSettings.tabs.general' | translate }}
             </button>
-            <button 
+            <button
               (click)="activeTab = 'members'"
               [class.border-blue-600]="activeTab === 'members'"
               [class.text-blue-600]="activeTab === 'members'"
               class="pb-3 px-1 border-b-2 border-transparent hover:border-gray-300 font-medium">
-              Members ({{ members().length }})
+              {{ 'treeSettings.tabs.members' | translate }} ({{ members().length }})
             </button>
-            <button 
+            <button
               (click)="activeTab = 'invitations'"
               [class.border-blue-600]="activeTab === 'invitations'"
               [class.text-blue-600]="activeTab === 'invitations'"
               class="pb-3 px-1 border-b-2 border-transparent hover:border-gray-300 font-medium">
-              Invitations
+              {{ 'treeSettings.tabs.invitations' | translate }}
             </button>
           </nav>
         </div>
@@ -68,12 +68,12 @@ import { I18nService } from '../../core/i18n/i18n.service';
         <!-- General Tab -->
         @if (activeTab === 'general') {
           <div class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-lg font-semibold mb-4">Tree Settings</h2>
-            
+            <h2 class="text-lg font-semibold mb-4">{{ 'treeSettings.treeSettings' | translate }}</h2>
+
             <form (ngSubmit)="saveSettings()">
               <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                <input 
+                <label class="block text-sm font-medium text-gray-700 mb-1">{{ 'treeSettings.name' | translate }}</label>
+                <input
                   type="text"
                   [(ngModel)]="editTree.name"
                   name="name"
@@ -81,8 +81,8 @@ import { I18nService } from '../../core/i18n/i18n.service';
               </div>
 
               <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <textarea 
+                <label class="block text-sm font-medium text-gray-700 mb-1">{{ 'treeSettings.description' | translate }}</label>
+                <textarea
                   [(ngModel)]="editTree.description"
                   name="description"
                   rows="3"
@@ -90,17 +90,17 @@ import { I18nService } from '../../core/i18n/i18n.service';
               </div>
 
               <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Town/City</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1">{{ 'treeSettings.townCity' | translate }}</label>
                 <select
                   [(ngModel)]="editTree.townId"
                   name="townId"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                  <option [ngValue]="undefined">-- No town selected --</option>
+                  <option [ngValue]="undefined">-- {{ 'treeSettings.noTownSelected' | translate }} --</option>
                   @for (town of towns(); track town.id) {
                     <option [ngValue]="town.id">{{ getLocalizedTownName(town) }}{{ town.country ? ' (' + town.country + ')' : '' }}</option>
                   }
                 </select>
-                <p class="text-xs text-gray-500 mt-1">Associate this tree with a town or city</p>
+                <p class="text-xs text-gray-500 mt-1">{{ 'treeSettings.townHint' | translate }}</p>
               </div>
 
               <div class="mb-4">
@@ -110,18 +110,18 @@ import { I18nService } from '../../core/i18n/i18n.service';
                     [(ngModel)]="editTree.isPublic"
                     name="isPublic"
                     class="rounded border-gray-300 text-blue-600">
-                  <span class="text-sm text-gray-700">Public tree (anyone can view)</span>
+                  <span class="text-sm text-gray-700">{{ 'treeSettings.publicTree' | translate }}</span>
                 </label>
               </div>
 
               <div class="mb-6">
                 <label class="flex items-center gap-2">
-                  <input 
+                  <input
                     type="checkbox"
                     [(ngModel)]="editTree.allowCrossTreeLinking"
                     name="allowCrossTreeLinking"
                     class="rounded border-gray-300 text-blue-600">
-                  <span class="text-sm text-gray-700">Allow cross-tree linking</span>
+                  <span class="text-sm text-gray-700">{{ 'treeSettings.allowCrossTreeLinking' | translate }}</span>
                 </label>
               </div>
 
@@ -129,25 +129,25 @@ import { I18nService } from '../../core/i18n/i18n.service';
                 <div class="bg-red-50 text-red-700 px-3 py-2 rounded mb-4 text-sm">{{ saveError() }}</div>
               }
               @if (saveSuccess()) {
-                <div class="bg-green-50 text-green-700 px-3 py-2 rounded mb-4 text-sm">Settings saved!</div>
+                <div class="bg-green-50 text-green-700 px-3 py-2 rounded mb-4 text-sm">{{ 'treeSettings.settingsSaved' | translate }}</div>
               }
 
-              <button 
+              <button
                 type="submit"
                 [disabled]="saving()"
                 class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50">
-                {{ saving() ? 'Saving...' : 'Save Changes' }}
+                {{ saving() ? ('common.saving' | translate) : ('treeSettings.saveChanges' | translate) }}
               </button>
             </form>
 
             <!-- Danger Zone -->
             <div class="mt-8 pt-6 border-t border-red-200">
-              <h3 class="text-lg font-semibold text-red-600 mb-2">Danger Zone</h3>
-              <p class="text-sm text-gray-600 mb-4">Deleting a tree is permanent and cannot be undone.</p>
-              <button 
+              <h3 class="text-lg font-semibold text-red-600 mb-2">{{ 'treeSettings.dangerZone' | translate }}</h3>
+              <p class="text-sm text-gray-600 mb-4">{{ 'treeSettings.deleteWarning' | translate }}</p>
+              <button
                 (click)="confirmDelete()"
                 class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">
-                Delete Tree
+                {{ 'treeSettings.deleteTree' | translate }}
               </button>
             </div>
           </div>
@@ -157,9 +157,9 @@ import { I18nService } from '../../core/i18n/i18n.service';
         @if (activeTab === 'members') {
           <div class="bg-white rounded-lg shadow">
             <div class="p-4 border-b flex justify-between items-center">
-              <h2 class="text-lg font-semibold">Members</h2>
+              <h2 class="text-lg font-semibold">{{ 'treeSettings.members' | translate }}</h2>
             </div>
-            
+
             <div class="divide-y">
               @for (member of members(); track member.id) {
                 <div class="p-4 flex items-center justify-between">
@@ -173,7 +173,7 @@ import { I18nService } from '../../core/i18n/i18n.service';
                     <div class="text-sm text-gray-500">{{ member.email }}</div>
                   </div>
                   <div class="flex items-center gap-3">
-                    <select 
+                    <select
                       [ngModel]="member.role"
                       (ngModelChange)="updateMemberRole(member, $event)"
                       [disabled]="member.role === OrgRole.Owner"
@@ -183,10 +183,10 @@ import { I18nService } from '../../core/i18n/i18n.service';
                       }
                     </select>
                     @if (member.role !== OrgRole.Owner) {
-                      <button 
+                      <button
                         (click)="removeMember(member)"
                         class="text-red-600 hover:text-red-800 text-sm">
-                        Remove
+                        {{ 'common.remove' | translate }}
                       </button>
                     }
                   </div>
@@ -195,7 +195,7 @@ import { I18nService } from '../../core/i18n/i18n.service';
             </div>
 
             @if (members().length === 0) {
-              <div class="p-8 text-center text-gray-500">No members yet</div>
+              <div class="p-8 text-center text-gray-500">{{ 'treeSettings.noMembers' | translate }}</div>
             }
           </div>
         }
@@ -204,33 +204,33 @@ import { I18nService } from '../../core/i18n/i18n.service';
         @if (activeTab === 'invitations') {
           <div class="bg-white rounded-lg shadow">
             <div class="p-4 border-b flex justify-between items-center">
-              <h2 class="text-lg font-semibold">Invitations</h2>
-              <button 
+              <h2 class="text-lg font-semibold">{{ 'treeSettings.invitations' | translate }}</h2>
+              <button
                 (click)="showInviteModal = true"
                 class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700">
-                Invite Member
+                {{ 'treeSettings.inviteMember' | translate }}
               </button>
             </div>
-            
+
             <div class="divide-y">
               @for (invite of invitations(); track invite.id) {
                 <div class="p-4 flex items-center justify-between">
                   <div>
                     <div class="font-medium">{{ invite.email }}</div>
                     <div class="text-sm text-gray-500">
-                      Role: {{ getRoleLabel(invite.role) }} · 
-                      Expires: {{ invite.expiresAt | date:'short' }}
+                      {{ 'treeSettings.role' | translate }}: {{ getRoleLabel(invite.role) }} ·
+                      {{ 'treeSettings.expires' | translate }}: {{ invite.expiresAt | date:'short' }}
                     </div>
                   </div>
                   <div class="flex items-center gap-3">
                     @if (invite.isAccepted) {
-                      <span class="text-green-600 text-sm">Accepted</span>
+                      <span class="text-green-600 text-sm">{{ 'treeSettings.accepted' | translate }}</span>
                     } @else {
-                      <span class="text-yellow-600 text-sm">Pending</span>
-                      <button 
+                      <span class="text-yellow-600 text-sm">{{ 'treeSettings.pending' | translate }}</span>
+                      <button
                         (click)="deleteInvitation(invite)"
                         class="text-red-600 hover:text-red-800 text-sm">
-                        Revoke
+                        {{ 'treeSettings.revoke' | translate }}
                       </button>
                     }
                   </div>
@@ -239,7 +239,7 @@ import { I18nService } from '../../core/i18n/i18n.service';
             </div>
 
             @if (invitations().length === 0) {
-              <div class="p-8 text-center text-gray-500">No pending invitations</div>
+              <div class="p-8 text-center text-gray-500">{{ 'treeSettings.noInvitations' | translate }}</div>
             }
           </div>
         }
@@ -250,12 +250,12 @@ import { I18nService } from '../../core/i18n/i18n.service';
         <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" (click)="showInviteModal = false">
           <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4" (click)="$event.stopPropagation()">
             <div class="p-6">
-              <h2 class="text-xl font-semibold mb-4">Invite Member</h2>
-              
+              <h2 class="text-xl font-semibold mb-4">{{ 'treeSettings.inviteMember' | translate }}</h2>
+
               <form (ngSubmit)="sendInvitation()">
                 <div class="mb-4">
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                  <input 
+                  <label class="block text-sm font-medium text-gray-700 mb-1">{{ 'treeSettings.emailAddress' | translate }}</label>
+                  <input
                     type="email"
                     [(ngModel)]="newInvite.email"
                     name="email"
@@ -264,8 +264,8 @@ import { I18nService } from '../../core/i18n/i18n.service';
                 </div>
 
                 <div class="mb-4">
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
-                  <select 
+                  <label class="block text-sm font-medium text-gray-700 mb-1">{{ 'treeSettings.role' | translate }}</label>
+                  <select
                     [(ngModel)]="newInvite.role"
                     name="role"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg">
@@ -280,17 +280,17 @@ import { I18nService } from '../../core/i18n/i18n.service';
                 }
 
                 <div class="flex gap-3">
-                  <button 
+                  <button
                     type="button"
                     (click)="showInviteModal = false"
                     class="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                    Cancel
+                    {{ 'common.cancel' | translate }}
                   </button>
-                  <button 
+                  <button
                     type="submit"
                     [disabled]="inviting()"
                     class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50">
-                    {{ inviting() ? 'Sending...' : 'Send Invitation' }}
+                    {{ inviting() ? ('treeSettings.sending' | translate) : ('treeSettings.sendInvitation' | translate) }}
                   </button>
                 </div>
               </form>
@@ -411,7 +411,7 @@ export class TreeSettingsComponent implements OnInit {
         console.error('Save failed:', err);
         console.error('Error status:', err.status);
         console.error('Error body:', err.error);
-        this.saveError.set(err.error?.message || `Failed to save (${err.status})`);
+        this.saveError.set(err.error?.message || this.i18n.t('treeSettings.errors.saveFailed'));
         this.saving.set(false);
       }
     });
@@ -420,16 +420,16 @@ export class TreeSettingsComponent implements OnInit {
   updateMemberRole(member: TreeMember, newRole: OrgRole) {
     this.treeService.updateMemberRole(this.treeId, member.userId, { role: newRole }).subscribe({
       next: () => this.loadMembers(),
-      error: (err) => alert(err.error?.message || 'Failed to update role')
+      error: (err) => alert(err.error?.message || this.i18n.t('treeSettings.errors.updateRoleFailed'))
     });
   }
 
   removeMember(member: TreeMember) {
-    if (!confirm(`Remove ${member.email} from this tree?`)) return;
-    
+    if (!confirm(this.i18n.t('treeActions.confirmRemoveMember', { email: member.email }))) return;
+
     this.treeService.removeMember(this.treeId, member.userId).subscribe({
       next: () => this.loadMembers(),
-      error: (err) => alert(err.error?.message || 'Failed to remove member')
+      error: (err) => alert(err.error?.message || this.i18n.t('treeActions.failedRemoveMember'))
     });
   }
 
@@ -447,14 +447,14 @@ export class TreeSettingsComponent implements OnInit {
         this.inviting.set(false);
       },
       error: (err) => {
-        this.inviteError.set(err.error?.message || 'Failed to send invitation');
+        this.inviteError.set(err.error?.message || this.i18n.t('treeActions.failedSendInvitation'));
         this.inviting.set(false);
       }
     });
   }
 
   deleteInvitation(invite: TreeInvitation) {
-    if (!confirm(`Revoke invitation for ${invite.email}?`)) return;
+    if (!confirm(this.i18n.t('treeActions.confirmRevokeInvitation', { email: invite.email }))) return;
 
     this.treeService.deleteInvitation(this.treeId, invite.id).subscribe({
       next: () => this.loadInvitations()
@@ -462,18 +462,18 @@ export class TreeSettingsComponent implements OnInit {
   }
 
   confirmDelete() {
-    const name = this.tree()?.name;
-    if (!confirm(`Are you sure you want to delete "${name}"? This cannot be undone.`)) return;
-    if (!confirm(`Really delete "${name}" and all its data?`)) return;
+    const name = this.tree()?.name || '';
+    if (!confirm(this.i18n.t('treeActions.confirmDelete', { name }))) return;
+    if (!confirm(this.i18n.t('treeSettings.confirmDeleteFinal', { name }))) return;
 
     this.treeService.deleteTree(this.treeId).subscribe({
       next: () => this.router.navigate(['/trees']),
-      error: (err) => alert(err.error?.message || 'Failed to delete tree')
+      error: (err) => alert(err.error?.message || this.i18n.t('treeActions.failedDelete'))
     });
   }
 
   getRoleLabel(role: OrgRole): string {
-    return OrgRoleLabels[role] || 'Unknown';
+    return OrgRoleLabels[role] || this.i18n.t('common.unknown');
   }
 
   getLocalizedTownName(town: TownListItem): string {

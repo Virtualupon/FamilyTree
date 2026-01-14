@@ -7,6 +7,9 @@ public class TreePersonNode
 {
     public Guid Id { get; set; }
     public string PrimaryName { get; set; } = string.Empty;
+    public string? NameArabic { get; set; }
+    public string? NameEnglish { get; set; }
+    public string? NameNobiin { get; set; }
     public Sex Sex { get; set; }
     public DateTime? BirthDate { get; set; }
     public string? BirthPlace { get; set; }

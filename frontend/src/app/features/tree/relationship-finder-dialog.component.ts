@@ -420,7 +420,7 @@ export class RelationshipFinderDialogComponent implements OnInit, OnDestroy {
     if ('names' in person && person.names) {
       return getPrimaryName(person as SearchPersonItem);
     }
-    return 'Unknown';
+    return this.i18n.t('common.unknown');
   }
 
   get fromPersonSex(): Sex {
@@ -484,7 +484,7 @@ export class RelationshipFinderDialogComponent implements OnInit, OnDestroy {
 
   // Helper to get display name from SearchPersonItem
   getPersonDisplayName(person: SearchPersonItem | null): string {
-    return person ? getPrimaryName(person) : 'Unknown';
+    return person ? getPrimaryName(person) : this.i18n.t('common.unknown');
   }
 
   selectToPerson(person: SearchPersonItem): void {

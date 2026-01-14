@@ -11,7 +11,10 @@ import type {
   UpdatePersonRequest,
   PersonName,
   PersonSearchRequest,
-  PagedResult
+  PagedResult,
+  Avatar,
+  AvatarWithData,
+  UploadAvatarRequest
 } from '../models/person.models';
 
 import { Sex, DatePrecision, PrivacyLevel, NameType } from '../models/person.models';
@@ -167,6 +170,71 @@ export class PersonService {
     let params = new HttpParams();
     if (treeId) params = params.set('treeId', treeId);
     return this.http.delete<void>(`${this.apiUrl}/${personId}/names/${nameId}`, { params });
+  }
+
+  // ========================================================================
+  // AVATAR METHODS
+  // ========================================================================
+
+  /**
+   * Upload an avatar/profile picture for a person
+   */
+  uploadAvatar(personId: string, file: File): Observable<Avatar> {
+    return new Observable(observer => {
+      this.fileToBase64(file).then(base64Data => {
+        const request: UploadAvatarRequest = {
+          base64Data,
+          fileName: file.name,
+          mimeType: file.type
+        };
+        this.http.post<Avatar>(`${this.apiUrl}/${personId}/avatar`, request)
+          .subscribe({
+            next: (result) => {
+              observer.next(result);
+              observer.complete();
+            },
+            error: (err) => observer.error(err)
+          });
+      }).catch(err => observer.error(err));
+    });
+  }
+
+  /**
+   * Get avatar info for a person
+   */
+  getAvatar(personId: string): Observable<Avatar | null> {
+    return this.http.get<Avatar | null>(`${this.apiUrl}/${personId}/avatar`);
+  }
+
+  /**
+   * Get avatar with Base64 image data for a person
+   */
+  getAvatarWithData(personId: string): Observable<AvatarWithData | null> {
+    return this.http.get<AvatarWithData | null>(`${this.apiUrl}/${personId}/avatar/data`);
+  }
+
+  /**
+   * Delete avatar for a person
+   */
+  deleteAvatar(personId: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${personId}/avatar`);
+  }
+
+  /**
+   * Convert File to Base64 string (strips data URL prefix)
+   */
+  private fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Remove data URL prefix (e.g., "data:image/png;base64,")
+        const base64 = result.includes(',') ? result.split(',')[1] : result;
+        resolve(base64);
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsDataURL(file);
+    });
   }
 
   // ========================================================================

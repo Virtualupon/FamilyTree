@@ -11,8 +11,10 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 
 import { PersonService } from '../../core/services/person.service';
+import { CountriesService, Country } from '../../core/services/countries.service';
 import { TransliterationService } from '../../core/services/transliteration.service';
 import { FamilyService } from '../../core/services/family.service';
 import { TreeContextService } from '../../core/services/tree-context.service';
@@ -49,6 +51,7 @@ export interface PersonFormDialogData {
     MatExpansionModule,
     MatTabsModule,
     MatProgressSpinnerModule,
+    MatAutocompleteModule,
     TranslatePipe
   ],
   template: `
@@ -89,10 +92,6 @@ export interface PersonFormDialogData {
                   <mat-option [value]="Sex.Female">
                     <i class="fa-solid fa-venus" aria-hidden="true"></i>
                     {{ 'people.female' | translate }}
-                  </mat-option>
-                  <mat-option [value]="Sex.Unknown">
-                    <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
-                    {{ 'people.unknown' | translate }}
                   </mat-option>
                 </mat-select>
               </mat-form-field>
@@ -242,8 +241,25 @@ export interface PersonFormDialogData {
               
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>{{ 'personForm.nationality' | translate }}</mat-label>
-                <input matInput formControlName="nationality">
-                <i class="fa-solid fa-flag" matSuffix aria-hidden="true"></i>
+                @if (getSelectedCountryFlag()) {
+                  <span matPrefix class="selected-flag">{{ getSelectedCountryFlag() }}</span>
+                }
+                <input matInput
+                       formControlName="nationality"
+                       [matAutocomplete]="countryAuto"
+                       (input)="onNationalityInput($event)">
+                <mat-autocomplete #countryAuto="matAutocomplete"
+                                  [displayWith]="displayCountry"
+                                  autoActiveFirstOption>
+                  @for (country of filteredCountries(); track country.code) {
+                    <mat-option [value]="country">
+                      <span class="country-option">
+                        <span class="country-flag">{{ getCountryFlag(country.code) }}</span>
+                        <span class="country-name">{{ getCountryDisplayName(country) }}</span>
+                      </span>
+                    </mat-option>
+                  }
+                </mat-autocomplete>
               </mat-form-field>
               
               <mat-form-field appearance="outline" class="full-width">
@@ -482,6 +498,26 @@ export interface PersonFormDialogData {
     mat-spinner {
       display: inline-block;
     }
+
+    .country-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .country-flag {
+        font-size: 1.2em;
+        line-height: 1;
+      }
+
+      .country-name {
+        flex: 1;
+      }
+    }
+
+    .selected-flag {
+      font-size: 1.2em;
+      margin-right: 8px;
+    }
   `]
 })
 export class PersonFormDialogComponent implements OnInit {
@@ -490,6 +526,7 @@ export class PersonFormDialogComponent implements OnInit {
   private readonly transliterationService = inject(TransliterationService);
   private readonly familyService = inject(FamilyService);
   private readonly treeContext = inject(TreeContextService);
+  private readonly countriesService = inject(CountriesService);
   private readonly i18n = inject(I18nService);
   private readonly dialogRef = inject(MatDialogRef<PersonFormDialogComponent>);
   readonly data = inject<PersonFormDialogData>(MAT_DIALOG_DATA);
@@ -504,14 +541,27 @@ export class PersonFormDialogComponent implements OnInit {
   saving = signal(false);
   transliterating = signal<'arabic' | 'english' | 'all' | null>(null);
   families = signal<FamilyListItem[]>([]);
+  countries = signal<Country[]>([]);
+  filteredCountries = signal<Country[]>([]);
   
   ngOnInit(): void {
     this.initForm();
     this.loadFamilies();
+    this.loadCountries();
 
     if (this.data.person) {
       this.loadPersonDetails();
     }
+  }
+
+  private loadCountries(): void {
+    this.countriesService.getCountries().subscribe({
+      next: (countries) => {
+        this.countries.set(countries);
+        this.filteredCountries.set(countries);
+      },
+      error: (err) => console.error('Failed to load countries:', err)
+    });
   }
 
   private loadFamilies(): void {
@@ -530,7 +580,7 @@ export class PersonFormDialogComponent implements OnInit {
       nameArabic: [''],
       nameEnglish: [''],
       nameNobiin: [''],
-      sex: [Sex.Unknown],
+      sex: [Sex.Male],
       isLiving: [true],
       familyId: [null],
       privacyLevel: [PrivacyLevel.Family],
@@ -723,7 +773,7 @@ export class PersonFormDialogComponent implements OnInit {
       occupation: formValue.occupation || undefined,
       education: formValue.education || undefined,
       religion: formValue.religion || undefined,
-      nationality: formValue.nationality || undefined,
+      nationality: this.extractNationalityCode(formValue.nationality),
       notes: formValue.notes || undefined
     };
   }
@@ -746,9 +796,20 @@ export class PersonFormDialogComponent implements OnInit {
       occupation: formValue.occupation || undefined,
       education: formValue.education || undefined,
       religion: formValue.religion || undefined,
-      nationality: formValue.nationality || undefined,
+      nationality: this.extractNationalityCode(formValue.nationality),
       notes: formValue.notes || undefined
     };
+  }
+
+  private extractNationalityCode(value: Country | string | null | undefined): string | undefined {
+    if (!value) return undefined;
+    if (typeof value === 'object' && value.code) {
+      return value.code;
+    }
+    if (typeof value === 'string') {
+      return value || undefined;
+    }
+    return undefined;
   }
   
   private formatDateForApi(date: Date): string {
@@ -766,5 +827,42 @@ export class PersonFormDialogComponent implements OnInit {
       default:
         return family.nameEn || family.name;
     }
+  }
+
+  // Country autocomplete methods
+  onNationalityInput(event: Event): void {
+    const input = (event.target as HTMLInputElement).value;
+    const filtered = this.countriesService.filterCountries(input, this.countries());
+    this.filteredCountries.set(filtered);
+  }
+
+  displayCountry = (value: Country | string | null): string => {
+    if (!value) return '';
+    if (typeof value === 'string') {
+      // If it's a code, find the country
+      const found = this.countries().find(c => c.code === value);
+      return found ? this.getCountryDisplayName(found) : value;
+    }
+    return this.getCountryDisplayName(value);
+  };
+
+  getCountryDisplayName(country: Country): string {
+    return this.countriesService.getCountryDisplayName(country);
+  }
+
+  getCountryFlag(countryCode: string): string {
+    return this.countriesService.getCountryFlag(countryCode);
+  }
+
+  getSelectedCountryFlag(): string {
+    const value = this.form.get('nationality')?.value;
+    if (!value) return '';
+    if (typeof value === 'object' && value.code) {
+      return this.getCountryFlag(value.code);
+    }
+    if (typeof value === 'string' && value.length === 2) {
+      return this.getCountryFlag(value);
+    }
+    return '';
   }
 }

@@ -39,6 +39,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/admin/admin-panel.component').then(m => m.AdminPanelComponent)
       },
       {
+        path: 'admin/countries',
+        canActivate: [superAdminGuard],
+        loadComponent: () => import('./features/admin/countries/countries-list.component').then(m => m.CountriesListComponent)
+      },
+      {
         path: 'people',
         loadChildren: () => import('./features/people/people.routes').then(m => m.PEOPLE_ROUTES)
       },

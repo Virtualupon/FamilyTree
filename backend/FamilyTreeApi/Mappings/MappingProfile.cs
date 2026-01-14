@@ -44,7 +44,9 @@ public class MappingProfile : Profile
             .ForCtorParam("NeedsReview", opt => opt.MapFrom(src => src.NeedsReview))
             .ForCtorParam("HasConflict", opt => opt.MapFrom(src => src.HasConflict))
             .ForCtorParam("CreatedAt", opt => opt.MapFrom(src => src.CreatedAt))
-            .ForCtorParam("UpdatedAt", opt => opt.MapFrom(src => src.UpdatedAt));
+            .ForCtorParam("UpdatedAt", opt => opt.MapFrom(src => src.UpdatedAt))
+            .ForCtorParam("AvatarMediaId", opt => opt.MapFrom(src => src.AvatarMediaId))
+            .ForCtorParam("AvatarUrl", opt => opt.MapFrom(src => src.Avatar != null ? src.Avatar.Url : null));
 
         // Person → PersonListItemDto (for list views)
         CreateMap<Person, PersonListItemDto>()

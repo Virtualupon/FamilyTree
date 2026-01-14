@@ -610,6 +610,9 @@ public class TreeViewService : ITreeViewService
         {
             Id = person.Id,
             PrimaryName = person.PrimaryName ?? "Unknown",
+            NameArabic = person.NameArabic,
+            NameEnglish = person.NameEnglish,
+            NameNobiin = person.NameNobiin,
             Sex = person.Sex,
             BirthDate = person.BirthDate,
             BirthPlace = person.BirthPlace?.Name,
@@ -934,6 +937,9 @@ public class TreeViewService : ITreeViewService
         {
             Id = person.Id,
             PrimaryName = person.PrimaryName ?? "Unknown",
+            NameArabic = person.NameArabic,
+            NameEnglish = person.NameEnglish,
+            NameNobiin = person.NameNobiin,
             Sex = person.Sex,
             BirthDate = person.BirthDate,
             BirthPlace = person.BirthPlace?.Name,

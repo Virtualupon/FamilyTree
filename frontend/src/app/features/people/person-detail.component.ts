@@ -31,6 +31,7 @@ import {
 } from './add-relationship-dialog.component';
 import { PersonMediaComponent } from './person-media.component';
 import { PersonFormDialogComponent, PersonFormDialogData } from './person-form-dialog.component';
+import { PersonAvatarComponent } from '../../shared/components/person-avatar/person-avatar.component';
 
 @Component({
   selector: 'app-person-detail',
@@ -48,6 +49,7 @@ import { PersonFormDialogComponent, PersonFormDialogData } from './person-form-d
     MatMenuModule,
     MatSnackBarModule,
     PersonMediaComponent,
+    PersonAvatarComponent,
     TranslatePipe
   ],
   template: `
@@ -70,9 +72,12 @@ import { PersonFormDialogComponent, PersonFormDialogData } from './person-form-d
         <!-- Header Card -->
         <mat-card class="header-card">
           <div class="person-header">
-            <div class="avatar" [class]="getSexClass(person()!.sex)">
-              <i class="fa-solid" [ngClass]="getSexIconClass(person()!.sex)" aria-hidden="true"></i>
-            </div>
+            <app-person-avatar
+              [person]="person()!"
+              size="large"
+              [editable]="true"
+              (avatarChanged)="loadPerson()">
+            </app-person-avatar>
             <div class="info">
               <h1>{{ getPersonDisplayName() }}</h1>
               <p class="lifespan">{{ getLifespan() }}</p>
@@ -171,19 +176,19 @@ import { PersonFormDialogComponent, PersonFormDialogData } from './person-form-d
                     <h4>{{ 'personDetail.labels.names' | translate }}</h4>
                     @if (person()!.nameArabic) {
                       <div class="name-item">
-                        <mat-chip>العربية</mat-chip>
+                        <mat-chip>{{ 'languages.arabic' | translate }}</mat-chip>
                         <span class="name-arabic">{{ person()!.nameArabic }}</span>
                       </div>
                     }
                     @if (person()!.nameEnglish) {
                       <div class="name-item">
-                        <mat-chip>English</mat-chip>
+                        <mat-chip>{{ 'languages.english' | translate }}</mat-chip>
                         <span>{{ person()!.nameEnglish }}</span>
                       </div>
                     }
                     @if (person()!.nameNobiin) {
                       <div class="name-item">
-                        <mat-chip>ⲛⲟⲃⲓⲓⲛ</mat-chip>
+                        <mat-chip>{{ 'languages.nobiin' | translate }}</mat-chip>
                         <span>{{ person()!.nameNobiin }}</span>
                       </div>
                     }
@@ -589,7 +594,7 @@ export class PersonDetailComponent implements OnInit {
       },
       error: (err: any) => {
         console.error('Error loading person:', err);
-        this.error.set(err.error?.message || 'Failed to load person');
+        this.error.set(err.error?.message || this.i18n.t('personDetail.errors.loadFailed'));
         this.isLoading.set(false);
       }
     });
@@ -603,7 +608,7 @@ export class PersonDetailComponent implements OnInit {
 
   getPersonDisplayName(): string {
     const p = this.person();
-    if (!p) return 'Unknown';
+    if (!p) return this.i18n.t('common.unknown');
     const lang = this.i18n.currentLang() as DisplayLanguage;
     return getDisplayName(p, lang);
   }
@@ -615,30 +620,34 @@ export class PersonDetailComponent implements OnInit {
 
   getParentDisplayName(parent: ParentChildResponse): string {
     const lang = this.i18n.currentLang();
-    if (lang === 'ar') return parent.parentNameArabic || parent.parentNameEnglish || parent.parentName || 'Unknown';
-    if (lang === 'nob') return parent.parentNameNobiin || parent.parentNameEnglish || parent.parentName || 'Unknown';
-    return parent.parentNameEnglish || parent.parentNameArabic || parent.parentName || 'Unknown';
+    const unknown = this.i18n.t('common.unknown');
+    if (lang === 'ar') return parent.parentNameArabic || parent.parentNameEnglish || parent.parentName || unknown;
+    if (lang === 'nob') return parent.parentNameNobiin || parent.parentNameEnglish || parent.parentName || unknown;
+    return parent.parentNameEnglish || parent.parentNameArabic || parent.parentName || unknown;
   }
 
   getChildDisplayName(child: ParentChildResponse): string {
     const lang = this.i18n.currentLang();
-    if (lang === 'ar') return child.childNameArabic || child.childNameEnglish || child.childName || 'Unknown';
-    if (lang === 'nob') return child.childNameNobiin || child.childNameEnglish || child.childName || 'Unknown';
-    return child.childNameEnglish || child.childNameArabic || child.childName || 'Unknown';
+    const unknown = this.i18n.t('common.unknown');
+    if (lang === 'ar') return child.childNameArabic || child.childNameEnglish || child.childName || unknown;
+    if (lang === 'nob') return child.childNameNobiin || child.childNameEnglish || child.childName || unknown;
+    return child.childNameEnglish || child.childNameArabic || child.childName || unknown;
   }
 
   getSiblingDisplayName(sibling: SiblingResponse): string {
     const lang = this.i18n.currentLang();
-    if (lang === 'ar') return sibling.personNameArabic || sibling.personNameEnglish || sibling.personName || 'Unknown';
-    if (lang === 'nob') return sibling.personNameNobiin || sibling.personNameEnglish || sibling.personName || 'Unknown';
-    return sibling.personNameEnglish || sibling.personNameArabic || sibling.personName || 'Unknown';
+    const unknown = this.i18n.t('common.unknown');
+    if (lang === 'ar') return sibling.personNameArabic || sibling.personNameEnglish || sibling.personName || unknown;
+    if (lang === 'nob') return sibling.personNameNobiin || sibling.personNameEnglish || sibling.personName || unknown;
+    return sibling.personNameEnglish || sibling.personNameArabic || sibling.personName || unknown;
   }
 
   getSpouseDisplayName(member: UnionMemberDto): string {
     const lang = this.i18n.currentLang();
-    if (lang === 'ar') return member.personNameArabic || member.personNameEnglish || member.personName || 'Unknown';
-    if (lang === 'nob') return member.personNameNobiin || member.personNameEnglish || member.personName || 'Unknown';
-    return member.personNameEnglish || member.personNameArabic || member.personName || 'Unknown';
+    const unknown = this.i18n.t('common.unknown');
+    if (lang === 'ar') return member.personNameArabic || member.personNameEnglish || member.personName || unknown;
+    if (lang === 'nob') return member.personNameNobiin || member.personNameEnglish || member.personName || unknown;
+    return member.personNameEnglish || member.personNameArabic || member.personName || unknown;
   }
 
   formatDate(dateStr?: string | null): string {
@@ -720,21 +729,21 @@ export class PersonDetailComponent implements OnInit {
     dialogRef.afterClosed().subscribe(result => {
       if (result?.success) {
         this.loadPerson(); // Reload to show new relationship
-        this.snackBar.open('Relationship added successfully', 'Close', { duration: 3000 });
+        this.snackBar.open(this.i18n.t('personDetail.messages.relationshipAdded'), this.i18n.t('common.close'), { duration: 3000 });
       }
     });
   }
 
   removeParent(parent: ParentChildResponse, event: Event) {
     event.stopPropagation();
-    if (confirm(`Remove ${this.getParentDisplayName(parent)} as a parent?`)) {
+    if (confirm(this.i18n.t('personActions.confirmRemoveParent', { name: this.getParentDisplayName(parent) }))) {
       this.relationshipService.removeParent(this.personId()!, parent.parentId).subscribe({
         next: () => {
           this.loadPerson();
-          this.snackBar.open('Parent removed', 'Close', { duration: 3000 });
+          this.snackBar.open(this.i18n.t('personDetail.messages.parentRemoved'), this.i18n.t('common.close'), { duration: 3000 });
         },
         error: (err: any) => {
-          this.snackBar.open(err.error?.message || 'Failed to remove parent', 'Close', { duration: 3000 });
+          this.snackBar.open(err.error?.message || this.i18n.t('personDetail.errors.removeParentFailed'), this.i18n.t('common.close'), { duration: 3000 });
         }
       });
     }
@@ -742,14 +751,14 @@ export class PersonDetailComponent implements OnInit {
 
   removeChild(child: ParentChildResponse, event: Event) {
     event.stopPropagation();
-    if (confirm(`Remove ${this.getChildDisplayName(child)} as a child?`)) {
+    if (confirm(this.i18n.t('personActions.confirmRemoveChild', { name: this.getChildDisplayName(child) }))) {
       this.relationshipService.removeChild(this.personId()!, child.childId).subscribe({
         next: () => {
           this.loadPerson();
-          this.snackBar.open('Child removed', 'Close', { duration: 3000 });
+          this.snackBar.open(this.i18n.t('personDetail.messages.childRemoved'), this.i18n.t('common.close'), { duration: 3000 });
         },
         error: (err: any) => {
-          this.snackBar.open(err.error?.message || 'Failed to remove child', 'Close', { duration: 3000 });
+          this.snackBar.open(err.error?.message || this.i18n.t('personDetail.errors.removeChildFailed'), this.i18n.t('common.close'), { duration: 3000 });
         }
       });
     }
@@ -757,14 +766,14 @@ export class PersonDetailComponent implements OnInit {
 
   removeUnion(union: UnionResponse, event: Event) {
     event.stopPropagation();
-    if (confirm('Remove this spouse/partner relationship?')) {
+    if (confirm(this.i18n.t('personActions.confirmRemoveSpouse'))) {
       this.relationshipService.deleteUnion(union.id).subscribe({
         next: () => {
           this.loadPerson();
-          this.snackBar.open('Relationship removed', 'Close', { duration: 3000 });
+          this.snackBar.open(this.i18n.t('personDetail.messages.relationshipRemoved'), this.i18n.t('common.close'), { duration: 3000 });
         },
         error: (err: any) => {
-          this.snackBar.open(err.error?.message || 'Failed to remove relationship', 'Close', { duration: 3000 });
+          this.snackBar.open(err.error?.message || this.i18n.t('personDetail.errors.removeRelationshipFailed'), this.i18n.t('common.close'), { duration: 3000 });
         }
       });
     }
@@ -784,7 +793,7 @@ export class PersonDetailComponent implements OnInit {
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
         this.loadPerson();
-        this.snackBar.open('Person updated successfully', 'Close', { duration: 3000 });
+        this.snackBar.open(this.i18n.t('personActions.updatedSuccess'), this.i18n.t('common.close'), { duration: 3000 });
       }
     });
   }
@@ -794,14 +803,14 @@ export class PersonDetailComponent implements OnInit {
   }
 
   deletePerson() {
-    if (confirm('Are you sure you want to delete this person? This cannot be undone.')) {
+    if (confirm(this.i18n.t('personActions.confirmDelete'))) {
       this.personService.deletePerson(this.personId()!).subscribe({
         next: () => {
-          this.snackBar.open('Person deleted', 'Close', { duration: 3000 });
+          this.snackBar.open(this.i18n.t('personActions.deleted'), this.i18n.t('common.close'), { duration: 3000 });
           this.router.navigate(['/people']);
         },
         error: (err: any) => {
-          this.snackBar.open(err.error?.message || 'Failed to delete person', 'Close', { duration: 3000 });
+          this.snackBar.open(err.error?.message || this.i18n.t('personActions.failedDelete'), this.i18n.t('common.close'), { duration: 3000 });
         }
       });
     }

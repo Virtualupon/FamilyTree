@@ -67,6 +67,12 @@ public class Person
 
     public string? Notes { get; set; }
 
+    /// <summary>
+    /// Reference to the profile picture/avatar media file.
+    /// </summary>
+    public Guid? AvatarMediaId { get; set; }
+    public Media? Avatar { get; set; }
+
     [Column(TypeName = "tsvector")]
     public NpgsqlTsVector? SearchVector { get; set; }
 

@@ -8,7 +8,7 @@ import { MatSelectModule, MatSelect } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { TownListItem } from '../../core/models/town.models';
 import { AdminUser } from '../../core/models/family-tree.models';
-import { I18nService } from '../../core/i18n/i18n.service';
+import { I18nService, TranslatePipe } from '../../core/i18n';
 
 export interface AssignTownDialogData {
   user?: AdminUser;  // Optional - if not provided, show user dropdown
@@ -31,24 +31,25 @@ export interface AssignTownDialogResult {
     MatDialogModule,
     MatFormFieldModule,
     MatSelectModule,
-    MatButtonModule
+    MatButtonModule,
+    TranslatePipe
   ],
   template: `
     <div class="dialog-wrapper" (click)="$event.stopPropagation()">
-      <h2 mat-dialog-title>Assign Admin to Town</h2>
+      <h2 mat-dialog-title>{{ 'admin.assignAdminToTown' | translate }}</h2>
 
       <mat-dialog-content class="dialog-content">
         <p class="hint">
-          Assigning an admin to a town gives them access to all trees within that town.
+          {{ 'admin.assignAdminHint' | translate }}
         </p>
 
         @if (data.user) {
           <p class="selected-user">
-            <strong>Admin:</strong> {{ data.user.firstName }} {{ data.user.lastName }} ({{ data.user.email }})
+            <strong>{{ 'admin.admin' | translate }}:</strong> {{ data.user.firstName }} {{ data.user.lastName }} ({{ data.user.email }})
           </p>
         } @else if (data.users && data.users.length > 0) {
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Select Admin</mat-label>
+            <mat-label>{{ 'admin.selectAdmin' | translate }}</mat-label>
             <mat-select [(ngModel)]="selectedUserId" required>
               @for (user of data.users; track user.userId) {
                 <mat-option [value]="user.userId">
@@ -60,7 +61,7 @@ export interface AssignTownDialogResult {
         }
 
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Select Town</mat-label>
+          <mat-label>{{ 'admin.selectTown' | translate }}</mat-label>
           <mat-select [(ngModel)]="selectedTownId" required>
             @for (town of data.towns; track town.id) {
               <mat-option [value]="town.id">
@@ -69,24 +70,24 @@ export interface AssignTownDialogResult {
                   @if (town.country) {
                     <span class="town-option-country">({{ town.country }})</span>
                   }
-                  <span class="town-option-trees">{{ town.treeCount || 0 }} trees</span>
+                  <span class="town-option-trees">{{ 'admin.townTreesCount' | translate: { count: town.treeCount || 0 } }}</span>
                 </span>
               </mat-option>
             }
             @if (data.towns.length === 0) {
-              <mat-option disabled>No towns available</mat-option>
+              <mat-option disabled>{{ 'admin.noTownsAvailable' | translate }}</mat-option>
             }
           </mat-select>
-          <mat-hint>Towns are geographic locations (cities/villages)</mat-hint>
+          <mat-hint>{{ 'admin.townsHint' | translate }}</mat-hint>
         </mat-form-field>
       </mat-dialog-content>
 
       <mat-dialog-actions align="end">
-        <button mat-button mat-dialog-close>Cancel</button>
+        <button mat-button mat-dialog-close>{{ 'common.cancel' | translate }}</button>
         <button mat-flat-button color="primary"
                 [disabled]="!canAssign()"
                 (click)="assign()">
-          Assign Town
+          {{ 'admin.assignTown' | translate }}
         </button>
       </mat-dialog-actions>
     </div>

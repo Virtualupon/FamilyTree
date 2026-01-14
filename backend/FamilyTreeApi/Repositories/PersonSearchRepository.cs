@@ -76,6 +76,7 @@ public sealed class PersonSearchRepository : IPersonSearchRepository
                 death_precision,
                 birth_place_name,
                 death_place_name,
+                nationality,
                 is_living,
                 family_id,
                 family_name,
@@ -84,7 +85,9 @@ public sealed class PersonSearchRepository : IPersonSearchRepository
                 parents_count,
                 children_count,
                 spouses_count,
-                media_count
+                media_count,
+                avatar_media_id,
+                avatar_url
             FROM search_persons_unified(
                 @Query,
                 @SearchIn,
@@ -95,6 +98,7 @@ public sealed class PersonSearchRepository : IPersonSearchRepository
                 @IsLiving,
                 @BirthYearFrom,
                 @BirthYearTo,
+                @Nationality,
                 @Page,
                 @PageSize
             )";
@@ -115,6 +119,7 @@ public sealed class PersonSearchRepository : IPersonSearchRepository
                         IsLiving = request.IsLiving,
                         BirthYearFrom = request.BirthYearFrom,
                         BirthYearTo = request.BirthYearTo,
+                        Nationality = string.IsNullOrWhiteSpace(request.Nationality) ? null : request.Nationality.Trim().ToUpperInvariant(),
                         Page = Math.Max(1, request.Page),
                         PageSize = Math.Clamp(request.PageSize, 1, 100)
                     },
@@ -509,6 +514,7 @@ public sealed class PersonSearchRepository : IPersonSearchRepository
             DeathPrecision = (int?)row.death_precision,
             BirthPlaceName = (string?)row.birth_place_name,
             DeathPlaceName = (string?)row.death_place_name,
+            Nationality = (string?)row.nationality,
             IsLiving = (bool)row.is_living,
             FamilyId = (Guid?)row.family_id,
             FamilyName = (string?)row.family_name,
@@ -517,7 +523,9 @@ public sealed class PersonSearchRepository : IPersonSearchRepository
             ParentsCount = (int)row.parents_count,
             ChildrenCount = (int)row.children_count,
             SpousesCount = (int)row.spouses_count,
-            MediaCount = (int)row.media_count
+            MediaCount = (int)row.media_count,
+            AvatarMediaId = (Guid?)row.avatar_media_id,
+            AvatarUrl = (string?)row.avatar_url
         };
     }
 

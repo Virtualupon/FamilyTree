@@ -302,7 +302,7 @@ export class TownDetailComponent implements OnInit {
         this.loading.set(false);
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'Failed to load town');
+        this.error.set(err.error?.message || this.i18n.t('towns.failedLoad'));
         this.loading.set(false);
       }
     });
@@ -336,7 +336,7 @@ export class TownDetailComponent implements OnInit {
         this.saving.set(false);
       },
       error: (err) => {
-        this.editError.set(err.error?.message || 'Failed to update town');
+        this.editError.set(err.error?.message || this.i18n.t('towns.failedUpdate'));
         this.saving.set(false);
       }
     });
@@ -352,7 +352,7 @@ export class TownDetailComponent implements OnInit {
           this.router.navigate(['/towns']);
         },
         error: (err) => {
-          this.error.set(err.error?.message || 'Failed to delete town');
+          this.error.set(err.error?.message || this.i18n.t('towns.failedDelete'));
         }
       });
     }
@@ -366,7 +366,7 @@ export class TownDetailComponent implements OnInit {
 
   getRoleLabel(role: OrgRole | null): string {
     if (role === null) return '';
-    return OrgRoleLabels[role] || 'Unknown';
+    return OrgRoleLabels[role] || this.i18n.t('common.unknown');
   }
 
   isAdmin(): boolean {

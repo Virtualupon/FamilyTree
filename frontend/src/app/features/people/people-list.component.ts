@@ -548,7 +548,7 @@ export class PeopleListComponent implements OnInit, OnDestroy {
 
     // Build full name: "Name Father Grandfather"
     const parts = [personName, fatherName, grandfatherName].filter(p => p);
-    return parts.join(' ') || 'Unknown';
+    return parts.join(' ') || this.i18n.t('common.unknown');
   }
 
   // Get just the person's own name (for initials, etc.)
@@ -560,9 +560,9 @@ export class PeopleListComponent implements OnInit, OnDestroy {
     if (lang === 'nob' && person.nameNobiin) {
       return person.nameNobiin;
     }
-    return person.nameEnglish || person.nameArabic || person.primaryName || 'Unknown';
+    return person.nameEnglish || person.nameArabic || person.primaryName || this.i18n.t('common.unknown');
   }
-  
+
   // Check if person has secondary names to display
   hasSecondaryNames(person: SearchPersonItem): boolean {
     return this.getSecondaryNames(person).length > 0;

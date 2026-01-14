@@ -97,7 +97,7 @@ import { I18nService, Language } from '../../core/i18n';
           </form>
 
           <div class="nubian-auth__footer">
-            <p>Don't have an account? <a routerLink="/register">Register here</a></p>
+            <p>{{ 'auth.noAccount' | translate }} <a routerLink="/register">{{ 'auth.registerHere' | translate }}</a></p>
           </div>
         </div>
       </div>
@@ -364,10 +364,11 @@ export class LoginComponent {
       },
       error: (error) => {
         this.loading = false;
-        this.snackBar.open(error.error?.message || 'Login failed', 'Close', {
-          duration: 3000,
-          panelClass: ['error-snackbar']
-        });
+        this.snackBar.open(
+          error.error?.message || this.i18n.t('auth.loginFailed'),
+          this.i18n.t('common.close'),
+          { duration: 3000, panelClass: ['error-snackbar'] }
+        );
       }
     });
   }

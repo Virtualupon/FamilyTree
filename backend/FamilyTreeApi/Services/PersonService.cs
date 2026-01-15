@@ -128,6 +128,21 @@ public class PersonService : IPersonService
             }
 
             var dto = _mapper.Map<PersonResponseDto>(person);
+
+            // Fetch avatar base64 data if person has an avatar
+            if (person.AvatarMediaId.HasValue && person.Avatar != null)
+            {
+                var rawBase64 = await _mediaService.GetMediaAsBase64Async(person.AvatarMediaId.Value);
+                if (!string.IsNullOrEmpty(rawBase64))
+                {
+                    // Add data URL prefix for browser display (e.g., "data:image/jpeg;base64,...")
+                    var mimeType = person.Avatar.MimeType ?? "image/jpeg";
+                    var avatarBase64 = $"data:{mimeType};base64,{rawBase64}";
+                    // Use record "with" expression to create a copy with the base64 data
+                    dto = dto with { AvatarBase64 = avatarBase64 };
+                }
+            }
+
             return ServiceResult<PersonResponseDto>.Success(dto);
         }
         catch (Exception ex)

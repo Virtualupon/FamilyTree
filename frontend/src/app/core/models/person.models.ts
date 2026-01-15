@@ -38,6 +38,8 @@ export interface Person {
   avatarMediaId: string | null;
   /** Avatar/profile picture URL */
   avatarUrl: string | null;
+  /** Avatar/profile picture Base64 data (for display) */
+  avatarBase64: string | null;
 }
 
 export interface PersonListItem {

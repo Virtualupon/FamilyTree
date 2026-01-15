@@ -23,6 +23,9 @@ public class MappingProfile : Profile
             .ForCtorParam("Id", opt => opt.MapFrom(src => src.Id))
             .ForCtorParam("OrgId", opt => opt.MapFrom(src => src.OrgId))
             .ForCtorParam("PrimaryName", opt => opt.MapFrom(src => src.PrimaryName))
+            .ForCtorParam("NameArabic", opt => opt.MapFrom(src => src.NameArabic))
+            .ForCtorParam("NameEnglish", opt => opt.MapFrom(src => src.NameEnglish))
+            .ForCtorParam("NameNobiin", opt => opt.MapFrom(src => src.NameNobiin))
             .ForCtorParam("Sex", opt => opt.MapFrom(src => src.Sex))
             .ForCtorParam("Gender", opt => opt.MapFrom(src => src.Gender))
             .ForCtorParam("BirthDate", opt => opt.MapFrom(src => src.BirthDate))
@@ -46,12 +49,16 @@ public class MappingProfile : Profile
             .ForCtorParam("CreatedAt", opt => opt.MapFrom(src => src.CreatedAt))
             .ForCtorParam("UpdatedAt", opt => opt.MapFrom(src => src.UpdatedAt))
             .ForCtorParam("AvatarMediaId", opt => opt.MapFrom(src => src.AvatarMediaId))
-            .ForCtorParam("AvatarUrl", opt => opt.MapFrom(src => src.Avatar != null ? src.Avatar.Url : null));
+            .ForCtorParam("AvatarUrl", opt => opt.MapFrom(src => src.Avatar != null ? src.Avatar.Url : null))
+            .ForCtorParam("AvatarBase64", opt => opt.MapFrom(src => (string?)null)); // Set by service after mapping
 
         // Person → PersonListItemDto (for list views)
         CreateMap<Person, PersonListItemDto>()
             .ForCtorParam("Id", opt => opt.MapFrom(src => src.Id))
             .ForCtorParam("PrimaryName", opt => opt.MapFrom(src => src.PrimaryName))
+            .ForCtorParam("NameArabic", opt => opt.MapFrom(src => src.NameArabic))
+            .ForCtorParam("NameEnglish", opt => opt.MapFrom(src => src.NameEnglish))
+            .ForCtorParam("NameNobiin", opt => opt.MapFrom(src => src.NameNobiin))
             .ForCtorParam("Sex", opt => opt.MapFrom(src => src.Sex))
             .ForCtorParam("BirthDate", opt => opt.MapFrom(src => src.BirthDate))
             .ForCtorParam("BirthPrecision", opt => opt.MapFrom(src => src.BirthPrecision))
@@ -60,7 +67,10 @@ public class MappingProfile : Profile
             .ForCtorParam("BirthPlace", opt => opt.MapFrom(src => src.BirthPlace != null ? src.BirthPlace.Name : null))
             .ForCtorParam("DeathPlace", opt => opt.MapFrom(src => src.DeathPlace != null ? src.DeathPlace.Name : null))
             .ForCtorParam("IsVerified", opt => opt.MapFrom(src => src.IsVerified))
-            .ForCtorParam("NeedsReview", opt => opt.MapFrom(src => src.NeedsReview));
+            .ForCtorParam("NeedsReview", opt => opt.MapFrom(src => src.NeedsReview))
+            .ForCtorParam("MediaCount", opt => opt.MapFrom(src => 0))
+            .ForCtorParam("AvatarMediaId", opt => opt.MapFrom(src => src.AvatarMediaId))
+            .ForCtorParam("AvatarUrl", opt => opt.MapFrom(src => src.Avatar != null ? src.Avatar.Url : null));
 
         // CreatePersonDto → Person (for creating new persons)
         CreateMap<CreatePersonDto, Person>()

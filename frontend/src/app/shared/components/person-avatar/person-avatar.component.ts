@@ -180,7 +180,9 @@ export class PersonAvatarComponent {
 
   get avatarUrl(): string | null {
     if (this.imageError) return null;
-    return this.person?.avatarUrl || null;
+    // Prefer base64 data over URL (URL may be a file path that browsers can't access)
+    const person = this.person as any;
+    return person?.avatarBase64 || person?.avatarUrl || null;
   }
 
   get displayName(): string {
@@ -241,24 +243,33 @@ export class PersonAvatarComponent {
     }
 
     this.uploading = true;
-    this.personService.uploadAvatar(this.person.id, file).subscribe({
-      next: (avatar) => {
-        this.uploading = false;
-        this.imageError = false;
-        // Update person object with new avatar URL
-        if (this.person) {
-          (this.person as any).avatarUrl = avatar.url || avatar.thumbnailPath;
-          (this.person as any).avatarMediaId = avatar.mediaId;
+
+    // Read file as base64 for immediate display after upload
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64Data = reader.result as string;
+
+      this.personService.uploadAvatar(this.person!.id, file).subscribe({
+        next: (avatar) => {
+          this.uploading = false;
+          this.imageError = false;
+          // Update person object with new avatar - use local base64 for immediate display
+          if (this.person) {
+            (this.person as any).avatarBase64 = base64Data;
+            (this.person as any).avatarUrl = avatar.url || avatar.thumbnailPath;
+            (this.person as any).avatarMediaId = avatar.mediaId;
+          }
+          this.avatarChanged.emit();
+          this.snackBar.open('Avatar updated', 'Close', { duration: 2000 });
+        },
+        error: (err) => {
+          this.uploading = false;
+          console.error('Avatar upload failed:', err);
+          this.snackBar.open('Failed to upload avatar', 'Close', { duration: 4000 });
         }
-        this.avatarChanged.emit();
-        this.snackBar.open('Avatar updated', 'Close', { duration: 2000 });
-      },
-      error: (err) => {
-        this.uploading = false;
-        console.error('Avatar upload failed:', err);
-        this.snackBar.open('Failed to upload avatar', 'Close', { duration: 4000 });
-      }
-    });
+      });
+    };
+    reader.readAsDataURL(file);
 
     // Clear input for re-selection of same file
     input.value = '';
@@ -273,6 +284,7 @@ export class PersonAvatarComponent {
         this.uploading = false;
         // Clear avatar from person object
         if (this.person) {
+          (this.person as any).avatarBase64 = null;
           (this.person as any).avatarUrl = null;
           (this.person as any).avatarMediaId = null;
         }

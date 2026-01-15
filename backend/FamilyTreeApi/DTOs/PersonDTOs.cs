@@ -56,7 +56,8 @@ public record PersonResponseDto(
     DateTime CreatedAt,
     DateTime UpdatedAt,
     Guid? AvatarMediaId = null,
-    string? AvatarUrl = null
+    string? AvatarUrl = null,
+    string? AvatarBase64 = null
 );
 
 public class CreatePersonDto

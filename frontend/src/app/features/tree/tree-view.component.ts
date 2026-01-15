@@ -16,6 +16,7 @@ import { MatBottomSheet, MatBottomSheetModule } from '@angular/material/bottom-s
 import { TreeService } from '../../core/services/tree.service';
 import { PersonService } from '../../core/services/person.service';
 import { PersonLinkService } from '../../core/services/person-link.service';
+import { PersonMediaService } from '../../core/services/person-media.service';
 import { TreeContextService } from '../../core/services/tree-context.service';
 import { I18nService, TranslatePipe } from '../../core/i18n';
 import { TreePersonNode, PedigreeRequest } from '../../core/models/tree.models';
@@ -132,11 +133,16 @@ import { RelationshipPathViewComponent } from './relationship-path-view.componen
     (click)="openPersonSelector()">
     @if (selectedPerson()) {
       <ng-container>
-        <div 
+        <div
           class="person-selector-btn__avatar"
           [class.person-selector-btn__avatar--male]="selectedPerson()!.sex === Sex.Male"
-          [class.person-selector-btn__avatar--female]="selectedPerson()!.sex === Sex.Female">
-          {{ getInitials(getDisplayName(selectedPerson()!)) }}
+          [class.person-selector-btn__avatar--female]="selectedPerson()!.sex === Sex.Female"
+          [class.person-selector-btn__avatar--has-image]="selectedPersonAvatarUrl()">
+          @if (selectedPersonAvatarUrl()) {
+            <img [src]="selectedPersonAvatarUrl()" [alt]="getDisplayName(selectedPerson()!)" class="person-selector-btn__avatar-img">
+          } @else {
+            {{ getInitials(getDisplayName(selectedPerson()!)) }}
+          }
         </div>
         <span class="person-selector-btn__name">{{ getDisplayName(selectedPerson()!) }}</span>
       </ng-container>
@@ -371,8 +377,20 @@ import { RelationshipPathViewComponent } from './relationship-path-view.componen
           background: var(--ft-female-light);
           color: var(--ft-female);
         }
+
+        &--has-image {
+          padding: 0;
+          overflow: hidden;
+        }
       }
-      
+
+      &__avatar-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+      }
+
       &__name {
         flex: 1;
         text-align: start;
@@ -631,8 +649,13 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
   private readonly bottomSheet = inject(MatBottomSheet);
+  private readonly mediaService = inject(PersonMediaService);
   private readonly destroy$ = new Subject<void>();
-  
+
+  // Avatar cache: personId -> objectUrl
+  private avatarCache = new Map<string, string>();
+  private avatarLoading = new Set<string>();
+
   readonly Sex = Sex;
   
   // State
@@ -641,6 +664,9 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
   crossTreeLinks = signal<TreeLinksSummary | null>(null);
   loading = signal(false);
   viewMode = signal<'pedigree' | 'descendants' | 'hourglass'>('pedigree');
+
+  // Signal for selected person avatar
+  selectedPersonAvatarUrl = signal<string | null>(null);
 
   // Relationship path state
   showRelationshipPath = signal(false);
@@ -686,6 +712,10 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
     document.removeEventListener('mouseup', this.onPanEnd.bind(this));
     document.removeEventListener('touchmove', this.onTouchMove.bind(this));
     document.removeEventListener('touchend', this.onTouchEnd.bind(this));
+
+    // Revoke all avatar object URLs to prevent memory leaks
+    this.avatarCache.forEach(url => URL.revokeObjectURL(url));
+    this.avatarCache.clear();
   }
   
   private loadPersonById(id: string): void {
@@ -708,9 +738,10 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
           deathPlace: person.deathPlace,
           isVerified: person.isVerified,
           needsReview: person.needsReview,
-          mediaCount: 0
+          mediaCount: 0,
+          avatarMediaId: person.avatarMediaId
         };
-        this.selectedPerson.set(listItem);
+        this.setSelectedPerson(listItem);
         this.loadTree();
       },
       error: (err) => {
@@ -727,7 +758,7 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
     
     ref.afterDismissed().subscribe(result => {
       if (result) {
-        this.selectedPerson.set(result);
+        this.setSelectedPerson(result);
         this.loadTree();
         // Update URL
         this.router.navigate([], {
@@ -858,9 +889,10 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
       deathPlace: node.deathPlace || null,
       isVerified: false,
       needsReview: false,
-      mediaCount: 0
+      mediaCount: 0,
+      avatarMediaId: node.avatarMediaId
     };
-    this.selectedPerson.set(listItem);
+    this.setSelectedPerson(listItem);
     this.loadTree();
     
     // Update URL
@@ -900,7 +932,63 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
       return '';
     }
   }
-  
+
+  /**
+   * Load avatar for a person and cache it
+   */
+  private loadAvatar(personId: string, avatarMediaId: string | null | undefined): void {
+    if (!avatarMediaId) return;
+    if (this.avatarCache.has(personId)) return;
+    if (this.avatarLoading.has(personId)) return;
+
+    this.avatarLoading.add(personId);
+
+    this.mediaService.getMediaById(avatarMediaId).subscribe({
+      next: (media) => {
+        const objectUrl = this.mediaService.createObjectUrl(
+          media.base64Data,
+          media.mimeType || 'image/jpeg'
+        );
+        this.avatarCache.set(personId, objectUrl);
+        this.avatarLoading.delete(personId);
+
+        // If this is the selected person, update the signal
+        if (this.selectedPerson()?.id === personId) {
+          this.selectedPersonAvatarUrl.set(objectUrl);
+        }
+      },
+      error: () => {
+        this.avatarLoading.delete(personId);
+      }
+    });
+  }
+
+  /**
+   * Get cached avatar URL for a person
+   */
+  getAvatarUrl(personId: string): string | null {
+    return this.avatarCache.get(personId) || null;
+  }
+
+  /**
+   * Set selected person and load avatar
+   */
+  private setSelectedPerson(person: PersonListItem | null): void {
+    this.selectedPerson.set(person);
+
+    if (person?.avatarMediaId) {
+      const cached = this.avatarCache.get(person.id);
+      if (cached) {
+        this.selectedPersonAvatarUrl.set(cached);
+      } else {
+        this.selectedPersonAvatarUrl.set(null);
+        this.loadAvatar(person.id, person.avatarMediaId);
+      }
+    } else {
+      this.selectedPersonAvatarUrl.set(null);
+    }
+  }
+
   // Zoom controls
   zoomIn(): void {
     this.zoom.update(z => Math.min(z + 0.1, 2));
@@ -986,9 +1074,10 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
       deathPlace: node.deathPlace || null,
       isVerified: false,
       needsReview: false,
-      mediaCount: 0
+      mediaCount: 0,
+      avatarMediaId: node.avatarMediaId
     };
-    this.selectedPerson.set(listItem);
+    this.setSelectedPerson(listItem);
 
     // Update URL
     this.router.navigate([], {
@@ -1017,9 +1106,10 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
       deathPlace: node.deathPlace || null,
       isVerified: false,
       needsReview: false,
-      mediaCount: 0
+      mediaCount: 0,
+      avatarMediaId: node.avatarMediaId
     };
-    this.selectedPerson.set(listItem);
+    this.setSelectedPerson(listItem);
     this.loadTree();
 
     // Update URL

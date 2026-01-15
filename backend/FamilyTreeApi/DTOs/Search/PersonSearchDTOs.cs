@@ -137,6 +137,7 @@ public record PersonSearchItemDto
     public Guid? FamilyId { get; init; }
     public string? FamilyName { get; init; }
     public Guid OrgId { get; init; }
+    public string? TreeName { get; init; }
     public List<PersonNameSearchDto> Names { get; init; } = new();
     public int ParentsCount { get; init; }
     public int ChildrenCount { get; init; }

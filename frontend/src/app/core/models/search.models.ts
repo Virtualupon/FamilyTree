@@ -42,6 +42,7 @@ export interface PersonSearchResult {
 export interface SearchPersonItem {
   id: string;
   orgId: string;
+  treeName: string | null;
   familyId: string | null;
   familyName: string | null;
   primaryName: string | null;
@@ -74,6 +75,7 @@ export interface SearchPersonItem {
   childrenCount: number;
   spousesCount: number;
   mediaCount: number;
+  avatarMediaId: string | null;
 }
 
 /**

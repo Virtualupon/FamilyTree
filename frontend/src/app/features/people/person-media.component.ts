@@ -1112,12 +1112,48 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
     this.personSearchQuery = '';
     this.personSearchResults.set([]);
 
-    // Pre-select current person
+    // Immediately pre-select current person (don't wait for API)
+    const currentPersonLabel = this.i18n.t('media.currentPerson');
+    const minimalPerson: SearchPersonItem = {
+      id: this.personId,
+      orgId: '',
+      treeName: null,
+      familyId: null,
+      familyName: null,
+      primaryName: currentPersonLabel,
+      nameArabic: null,
+      nameEnglish: currentPersonLabel,
+      nameNobiin: null,
+      fatherId: null,
+      fatherNameArabic: null,
+      fatherNameEnglish: null,
+      fatherNameNobiin: null,
+      grandfatherId: null,
+      grandfatherNameArabic: null,
+      grandfatherNameEnglish: null,
+      grandfatherNameNobiin: null,
+      sex: 2, // Sex.Unknown
+      birthDate: null,
+      deathDate: null,
+      birthPlaceId: null,
+      birthPlaceName: null,
+      nationality: null,
+      isLiving: false,
+      parentsCount: 0,
+      childrenCount: 0,
+      spousesCount: 0,
+      mediaCount: 0,
+      avatarMediaId: null
+    };
+    this.selectedPersons.set([minimalPerson]);
+
+    // Optionally fetch full person details to update the display name
     this.personService.getPerson(this.personId).subscribe({
       next: (person) => {
         const searchItem: SearchPersonItem = {
           id: person.id,
           orgId: '',
+          treeName: null,
           familyId: person.familyId,
           familyName: person.familyName,
           primaryName: person.primaryName,
@@ -1142,42 +1178,13 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
           parentsCount: 0,
           childrenCount: 0,
           spousesCount: 0,
-          mediaCount: 0
+          mediaCount: 0,
+          avatarMediaId: (person as any).avatarMediaId || null
         };
         this.selectedPersons.set([searchItem]);
       },
       error: () => {
-        // Fallback: create minimal person object with just the ID
-        const currentPersonLabel = this.i18n.t('media.currentPerson');
-        this.selectedPersons.set([{
-          id: this.personId,
-          orgId: '',
-          familyId: null,
-          familyName: null,
-          primaryName: currentPersonLabel,
-          nameArabic: null,
-          nameEnglish: currentPersonLabel,
-          nameNobiin: null,
-          fatherId: null,
-          fatherNameArabic: null,
-          fatherNameEnglish: null,
-          fatherNameNobiin: null,
-          grandfatherId: null,
-          grandfatherNameArabic: null,
-          grandfatherNameEnglish: null,
-          grandfatherNameNobiin: null,
-          sex: 0,
-          birthDate: null,
-          deathDate: null,
-          birthPlaceId: null,
-          birthPlaceName: null,
-          nationality: null,
-          isLiving: false,
-          parentsCount: 0,
-          childrenCount: 0,
-          spousesCount: 0,
-          mediaCount: 0
-        }]);
+        // Keep the minimal person object already set above
       }
     });
   }

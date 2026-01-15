@@ -19,6 +19,7 @@ import { SearchPersonItem } from '../../../core/models/search.models';
 import { TownListItem } from '../../../core/models/town.models';
 import { I18nService, TranslatePipe } from '../../../core/i18n';
 import { Sex } from '../../../core/models/person.models';
+import { PersonNameAvatarComponent } from '../person-name-avatar/person-name-avatar.component';
 
 @Component({
   selector: 'app-person-search',
@@ -34,7 +35,8 @@ import { Sex } from '../../../core/models/person.models';
     MatChipsModule,
     MatIconModule,
     MatButtonModule,
-    TranslatePipe
+    TranslatePipe,
+    PersonNameAvatarComponent
   ],
   template: `
     <div class="person-search-container">
@@ -101,7 +103,7 @@ import { Sex } from '../../../core/models/person.models';
           @for (person of searchResults(); track person.id) {
             <mat-option [value]="person">
               <div class="person-option">
-                <span class="person-name">{{ getPersonDisplayName(person) }}</span>
+                <app-person-name-avatar [person]="person" size="small"></app-person-name-avatar>
                 <span class="person-details">
                   @if (person.birthDate || person.deathDate) {
                     <span class="dates">({{ formatYear(person.birthDate) }} - {{ formatYear(person.deathDate) }})</span>

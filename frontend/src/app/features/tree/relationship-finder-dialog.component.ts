@@ -16,6 +16,7 @@ import { Sex } from '../../core/models/person.models';
 import { SearchPersonItem, getPrimaryName } from '../../core/models/search.models';
 import { TreePersonNode } from '../../core/models/tree.models';
 import { RelationshipPathResponse } from '../../core/models/relationship-path.models';
+import { PersonNameAvatarComponent } from '../../shared/components/person-name-avatar/person-name-avatar.component';
 
 export interface RelationshipFinderDialogData {
   fromPerson: TreePersonNode | SearchPersonItem;
@@ -37,7 +38,8 @@ export interface RelationshipFinderDialogResult {
     MatButtonModule,
     MatProgressSpinnerModule,
     MatRippleModule,
-    TranslatePipe
+    TranslatePipe,
+    PersonNameAvatarComponent
   ],
   template: `
     <div class="relationship-finder">
@@ -121,12 +123,7 @@ export interface RelationshipFinderDialogResult {
                       [class.disabled]="person.id === data.fromPerson.id"
                       matRipple
                       (click)="selectToPerson(person)">
-                      <div
-                        class="relationship-finder__avatar relationship-finder__avatar--small"
-                        [class.relationship-finder__avatar--male]="person.sex === Sex.Male"
-                        [class.relationship-finder__avatar--female]="person.sex === Sex.Female">
-                        {{ getInitials(getPersonDisplayName(person)) }}
-                      </div>
+                      <app-person-name-avatar [person]="person" size="small"></app-person-name-avatar>
                       <div class="relationship-finder__result-info">
                         <div class="relationship-finder__result-name">{{ getPersonDisplayName(person) }}</div>
                         <div class="relationship-finder__result-meta">
@@ -482,9 +479,50 @@ export class RelationshipFinderDialogComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Helper to get display name from SearchPersonItem
+  // Helper to get full display with lineage: Name Father Grandfather - (TreeName) - (Town)
   getPersonDisplayName(person: SearchPersonItem | null): string {
-    return person ? getPrimaryName(person) : this.i18n.t('common.unknown');
+    if (!person) return this.i18n.t('common.unknown');
+
+    const lang = this.i18n.currentLang();
+    const parts: string[] = [];
+
+    // Get person's name based on current language
+    let name: string | null = null;
+    let fatherName: string | null = null;
+    let grandfatherName: string | null = null;
+
+    if (lang === 'ar') {
+      name = person.nameArabic || person.nameEnglish || person.primaryName;
+      fatherName = person.fatherNameArabic || person.fatherNameEnglish;
+      grandfatherName = person.grandfatherNameArabic || person.grandfatherNameEnglish;
+    } else if (lang === 'nob') {
+      name = person.nameNobiin || person.nameEnglish || person.primaryName;
+      fatherName = person.fatherNameNobiin || person.fatherNameEnglish;
+      grandfatherName = person.grandfatherNameNobiin || person.grandfatherNameEnglish;
+    } else {
+      name = person.nameEnglish || person.nameArabic || person.primaryName;
+      fatherName = person.fatherNameEnglish || person.fatherNameArabic;
+      grandfatherName = person.grandfatherNameEnglish || person.grandfatherNameArabic;
+    }
+
+    // Build the lineage string
+    if (name) parts.push(name);
+    if (fatherName) parts.push(fatherName);
+    if (grandfatherName) parts.push(grandfatherName);
+
+    let result = parts.join(' ') || this.i18n.t('common.unknown');
+
+    // Add tree name if available
+    if (person.treeName) {
+      result += ` - (${person.treeName})`;
+    }
+
+    // Add town if available
+    if (person.birthPlaceName) {
+      result += ` - (${person.birthPlaceName})`;
+    }
+
+    return result;
   }
 
   selectToPerson(person: SearchPersonItem): void {

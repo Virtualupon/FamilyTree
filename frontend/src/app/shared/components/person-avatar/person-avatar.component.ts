@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, inject } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject, signal, OnChanges, SimpleChanges, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatButtonModule } from '@angular/material/button';
@@ -7,10 +7,13 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 import { PersonService } from '../../../core/services/person.service';
+import { PersonMediaService } from '../../../core/services/person-media.service';
 import type { Person, PersonListItem } from '../../../core/models/person.models';
 
 const MAX_AVATAR_SIZE_MB = 5;
 const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+const MAX_AVATAR_DIMENSION = 300; // Max width/height in pixels
+const AVATAR_QUALITY = 0.85; // JPEG quality (0-1)
 
 @Component({
   selector: 'app-person-avatar',
@@ -25,15 +28,15 @@ const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/web
   ],
   template: `
     <div class="avatar-container" [class]="size">
-      <!-- Avatar Image or Initials -->
-      <div class="avatar" [class.has-image]="avatarUrl">
-        @if (avatarUrl) {
-          <img [src]="avatarUrl" [alt]="displayName" (error)="onImageError()">
+      <div class="avatar" [class.has-image]="displayUrl()">
+        @if (displayUrl()) {
+          <img [src]="displayUrl()" [alt]="displayName" (error)="onImageError()">
+        } @else if (isLoading()) {
+          <mat-spinner [diameter]="spinnerSize"></mat-spinner>
         } @else {
           <span class="initials">{{ initials }}</span>
         }
 
-        <!-- Loading Overlay -->
         @if (uploading) {
           <div class="loading-overlay">
             <mat-spinner [diameter]="spinnerSize"></mat-spinner>
@@ -41,7 +44,6 @@ const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/web
         }
       </div>
 
-      <!-- Edit Controls -->
       @if (editable && !uploading) {
         <div class="avatar-controls">
           <input
@@ -54,12 +56,12 @@ const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/web
           <button
             mat-icon-button
             (click)="fileInput.click()"
-            [matTooltip]="avatarUrl ? 'Change photo' : 'Add photo'"
+            [matTooltip]="displayUrl() ? 'Change photo' : 'Add photo'"
             class="control-btn">
-            <mat-icon>{{ avatarUrl ? 'edit' : 'add_a_photo' }}</mat-icon>
+            <mat-icon>{{ displayUrl() ? 'edit' : 'add_a_photo' }}</mat-icon>
           </button>
 
-          @if (avatarUrl) {
+          @if (displayUrl()) {
             <button
               mat-icon-button
               (click)="removeAvatar()"
@@ -77,29 +79,10 @@ const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/web
       position: relative;
       display: inline-block;
 
-      &.small .avatar {
-        width: 32px;
-        height: 32px;
-        font-size: 12px;
-      }
-
-      &.medium .avatar {
-        width: 64px;
-        height: 64px;
-        font-size: 20px;
-      }
-
-      &.large .avatar {
-        width: 120px;
-        height: 120px;
-        font-size: 36px;
-      }
-
-      &.xlarge .avatar {
-        width: 160px;
-        height: 160px;
-        font-size: 48px;
-      }
+      &.small .avatar { width: 32px; height: 32px; font-size: 12px; }
+      &.medium .avatar { width: 64px; height: 64px; font-size: 20px; }
+      &.large .avatar { width: 120px; height: 120px; font-size: 36px; }
+      &.xlarge .avatar { width: 160px; height: 160px; font-size: 48px; }
     }
 
     .avatar {
@@ -112,18 +95,8 @@ const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/web
       position: relative;
       border: 2px solid var(--ft-outline-variant, #ccc);
 
-      img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-
-      .initials {
-        color: var(--ft-on-surface-variant, #666);
-        font-weight: 500;
-        text-transform: uppercase;
-      }
-
+      img { width: 100%; height: 100%; object-fit: cover; }
+      .initials { color: var(--ft-on-surface-variant, #666); font-weight: 500; text-transform: uppercase; }
       .loading-overlay {
         position: absolute;
         inset: 0;
@@ -148,23 +121,15 @@ const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/web
         line-height: 28px;
         background: var(--ft-surface, white);
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-
-        mat-icon {
-          font-size: 16px;
-          width: 16px;
-          height: 16px;
-          line-height: 16px;
-        }
-
-        &--delete {
-          color: var(--ft-error, #d32f2f);
-        }
+        mat-icon { font-size: 16px; width: 16px; height: 16px; line-height: 16px; }
+        &--delete { color: var(--ft-error, #d32f2f); }
       }
     }
   `]
 })
-export class PersonAvatarComponent {
+export class PersonAvatarComponent implements OnChanges, OnDestroy {
   private personService = inject(PersonService);
+  private mediaService = inject(PersonMediaService);
   private snackBar = inject(MatSnackBar);
 
   @Input() person: Person | PersonListItem | null = null;
@@ -174,15 +139,74 @@ export class PersonAvatarComponent {
   @Output() avatarChanged = new EventEmitter<void>();
 
   uploading = false;
-  imageError = false;
+  displayUrl = signal<string | null>(null);
+  isLoading = signal(false);
+
+  private lastLoadedMediaId: string | null = null;
+  private objectUrl: string | null = null;
 
   readonly acceptTypes = ALLOWED_AVATAR_TYPES.join(',');
 
-  get avatarUrl(): string | null {
-    if (this.imageError) return null;
-    // Prefer base64 data over URL (URL may be a file path that browsers can't access)
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['person']) {
+      this.loadAvatar();
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.objectUrl) {
+      URL.revokeObjectURL(this.objectUrl);
+    }
+  }
+
+  private loadAvatar(): void {
     const person = this.person as any;
-    return person?.avatarBase64 || person?.avatarUrl || null;
+    if (!person) {
+      this.displayUrl.set(null);
+      return;
+    }
+
+    const mediaId = person.avatarMediaId;
+
+    // No avatar
+    if (!mediaId) {
+      this.displayUrl.set(null);
+      this.lastLoadedMediaId = null;
+      return;
+    }
+
+    // Already loaded this avatar
+    if (mediaId === this.lastLoadedMediaId && this.displayUrl()) {
+      return;
+    }
+
+    // Fetch avatar using existing Media system
+    this.isLoading.set(true);
+    this.mediaService.getMediaById(mediaId).subscribe({
+      next: (media) => {
+        this.isLoading.set(false);
+        this.lastLoadedMediaId = mediaId;
+
+        // Clean up old object URL
+        if (this.objectUrl) {
+          URL.revokeObjectURL(this.objectUrl);
+        }
+
+        // Create new object URL from base64
+        if (media?.base64Data) {
+          this.objectUrl = this.mediaService.createObjectUrl(
+            media.base64Data,
+            media.mimeType || 'image/jpeg'
+          );
+          this.displayUrl.set(this.objectUrl);
+        }
+      },
+      error: (err) => {
+        this.isLoading.set(false);
+        this.lastLoadedMediaId = mediaId;
+        console.error('Failed to load avatar:', err);
+      }
+    });
   }
 
   get displayName(): string {
@@ -195,72 +219,76 @@ export class PersonAvatarComponent {
   get initials(): string {
     const name = this.displayName;
     if (!name) return '?';
-
     const parts = name.trim().split(/\s+/);
-    if (parts.length === 1) {
-      return parts[0].substring(0, 2);
-    }
+    if (parts.length === 1) return parts[0].substring(0, 2);
     return (parts[0][0] + parts[parts.length - 1][0]);
   }
 
   get spinnerSize(): number {
-    switch (this.size) {
-      case 'small': return 16;
-      case 'medium': return 24;
-      case 'large': return 32;
-      case 'xlarge': return 40;
-      default: return 24;
-    }
+    const sizes: Record<string, number> = { small: 16, medium: 24, large: 32, xlarge: 40 };
+    return sizes[this.size] || 24;
   }
 
   onImageError(): void {
-    this.imageError = true;
+    this.displayUrl.set(null);
   }
 
-  onFileSelected(event: Event): void {
+  async onFileSelected(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     if (!input.files?.length || !this.person) return;
 
     const file = input.files[0];
 
-    // Validate file type
+    // Validate
     if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
-      this.snackBar.open('Please select an image file (JPEG, PNG, GIF, or WebP)', 'Close', {
-        duration: 4000
-      });
+      this.snackBar.open('Please select an image file (JPEG, PNG, GIF, or WebP)', 'Close', { duration: 4000 });
       input.value = '';
       return;
     }
 
-    // Validate file size
-    const maxBytes = MAX_AVATAR_SIZE_MB * 1024 * 1024;
-    if (file.size > maxBytes) {
-      this.snackBar.open(`Image must be less than ${MAX_AVATAR_SIZE_MB}MB`, 'Close', {
-        duration: 4000
-      });
+    if (file.size > MAX_AVATAR_SIZE_MB * 1024 * 1024) {
+      this.snackBar.open(`Image must be less than ${MAX_AVATAR_SIZE_MB}MB`, 'Close', { duration: 4000 });
       input.value = '';
       return;
     }
 
     this.uploading = true;
 
-    // Read file as base64 for immediate display after upload
-    const reader = new FileReader();
-    reader.onload = () => {
-      const base64Data = reader.result as string;
+    try {
+      // Resize image before upload
+      const { blob, base64 } = await this.resizeImage(file);
+      const resizedFile = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
 
-      this.personService.uploadAvatar(this.person!.id, file).subscribe({
-        next: (avatar) => {
-          this.uploading = false;
-          this.imageError = false;
-          // Update person object with new avatar - use local base64 for immediate display
-          if (this.person) {
-            (this.person as any).avatarBase64 = base64Data;
-            (this.person as any).avatarUrl = avatar.url || avatar.thumbnailPath;
-            (this.person as any).avatarMediaId = avatar.mediaId;
-          }
-          this.avatarChanged.emit();
-          this.snackBar.open('Avatar updated', 'Close', { duration: 2000 });
+      // Prepare upload using existing Media system
+      const payload = await this.mediaService.validateAndPrepareUpload(
+        resizedFile,
+        [this.person.id],
+        'Avatar',
+        undefined
+      );
+
+      // Upload media
+      this.mediaService.uploadMedia(payload).subscribe({
+        next: (media) => {
+          // Update person's avatarMediaId
+          this.personService.updatePerson(this.person!.id, {
+            avatarMediaId: media.id
+          }).subscribe({
+            next: () => {
+              this.uploading = false;
+              (this.person as any).avatarMediaId = media.id;
+              // Update display with resized base64 for immediate feedback
+              this.displayUrl.set(base64);
+              this.lastLoadedMediaId = media.id;
+              this.avatarChanged.emit();
+              this.snackBar.open('Avatar updated', 'Close', { duration: 2000 });
+            },
+            error: (err) => {
+              this.uploading = false;
+              console.error('Failed to set avatar:', err);
+              this.snackBar.open('Failed to set avatar', 'Close', { duration: 4000 });
+            }
+          });
         },
         error: (err) => {
           this.uploading = false;
@@ -268,25 +296,104 @@ export class PersonAvatarComponent {
           this.snackBar.open('Failed to upload avatar', 'Close', { duration: 4000 });
         }
       });
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      this.uploading = false;
+      console.error('Image resize/upload failed:', err);
+      this.snackBar.open('Failed to process image', 'Close', { duration: 4000 });
+    }
 
-    // Clear input for re-selection of same file
     input.value = '';
+  }
+
+  /**
+   * Resize image to fit within MAX_AVATAR_DIMENSION while maintaining aspect ratio
+   * Returns both the blob (for upload) and base64 (for display)
+   */
+  private resizeImage(file: File): Promise<{ blob: Blob; base64: string }> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        // Calculate new dimensions maintaining aspect ratio
+        let width = img.width;
+        let height = img.height;
+
+        if (width > MAX_AVATAR_DIMENSION || height > MAX_AVATAR_DIMENSION) {
+          if (width > height) {
+            height = Math.round((height * MAX_AVATAR_DIMENSION) / width);
+            width = MAX_AVATAR_DIMENSION;
+          } else {
+            width = Math.round((width * MAX_AVATAR_DIMENSION) / height);
+            height = MAX_AVATAR_DIMENSION;
+          }
+        }
+
+        // Create canvas and draw resized image
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Failed to get canvas context'));
+          return;
+        }
+
+        // Use high-quality image smoothing
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Convert to blob and base64
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error('Failed to create blob'));
+              return;
+            }
+
+            const base64 = canvas.toDataURL('image/jpeg', AVATAR_QUALITY);
+            resolve({ blob, base64 });
+          },
+          'image/jpeg',
+          AVATAR_QUALITY
+        );
+      };
+
+      img.onerror = () => reject(new Error('Failed to load image'));
+
+      // Load image from file
+      const reader = new FileReader();
+      reader.onload = () => {
+        img.src = reader.result as string;
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsDataURL(file);
+    });
   }
 
   removeAvatar(): void {
     if (!this.person) return;
+    const oldMediaId = (this.person as any).avatarMediaId;
 
     this.uploading = true;
-    this.personService.deleteAvatar(this.person.id).subscribe({
+
+    // Clear avatarMediaId on person
+    this.personService.updatePerson(this.person.id, {
+      avatarMediaId: null
+    }).subscribe({
       next: () => {
+        // Optionally delete the media file
+        if (oldMediaId) {
+          this.mediaService.deleteMedia(oldMediaId).subscribe();
+        }
+
         this.uploading = false;
-        // Clear avatar from person object
-        if (this.person) {
-          (this.person as any).avatarBase64 = null;
-          (this.person as any).avatarUrl = null;
-          (this.person as any).avatarMediaId = null;
+        (this.person as any).avatarMediaId = null;
+        this.displayUrl.set(null);
+        this.lastLoadedMediaId = null;
+        if (this.objectUrl) {
+          URL.revokeObjectURL(this.objectUrl);
+          this.objectUrl = null;
         }
         this.avatarChanged.emit();
         this.snackBar.open('Avatar removed', 'Close', { duration: 2000 });

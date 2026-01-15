@@ -14,10 +14,12 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as d3 from 'd3';
+import { firstValueFrom } from 'rxjs';
 import { TreePersonNode } from '../../core/models/tree.models';
 import { Sex } from '../../core/models/person.models';
 import { TreeLinksSummary, PersonLinkSummary, PersonLinkType, PersonLinkTypeLabels } from '../../core/models/family-tree.models';
 import { I18nService } from '../../core/i18n';
+import { PersonMediaService } from '../../core/services/person-media.service';
 
 interface D3Node {
   id: string;
@@ -310,6 +312,10 @@ interface D3Link {
 })
 export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestroy {
   private readonly i18n = inject(I18nService);
+  private readonly mediaService = inject(PersonMediaService);
+
+  // Avatar cache: mediaId -> dataUrl
+  private avatarCache = new Map<string, string>();
 
   @ViewChild('container') containerRef!: ElementRef<HTMLDivElement>;
   @ViewChild('svg') svgRef!: ElementRef<SVGSVGElement>;
@@ -408,19 +414,51 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
 
     // Build node and link data
     const { nodes, links } = this.buildTreeData(this.treeData);
-    
+
     // Store for later updates (during drag)
     this.currentLinks = links;
     this.currentNodes = nodes;
 
-    // Draw links first (behind nodes)
-    this.drawLinks(links);
+    // Load avatars then render
+    this.loadAvatarsForNodes(nodes).then(() => {
+      // Draw links first (behind nodes)
+      this.drawLinks(links);
 
-    // Draw nodes
-    this.drawNodes(nodes);
+      // Draw nodes
+      this.drawNodes(nodes);
 
-    // Center the view
-    setTimeout(() => this.centerTree(), 100);
+      // Center the view
+      setTimeout(() => this.centerTree(), 100);
+    });
+  }
+
+  /**
+   * Load avatar images for nodes that have avatarMediaId
+   * Converts to data URLs for use in SVG
+   */
+  private async loadAvatarsForNodes(nodes: D3Node[]): Promise<void> {
+    const nodesToLoad = nodes.filter(n =>
+      n.data.avatarMediaId &&
+      !this.avatarCache.has(n.data.avatarMediaId)
+    );
+
+    // Load avatars in parallel (with concurrency limit)
+    const loadPromises = nodesToLoad.slice(0, 20).map(async (node) => {
+      const mediaId = node.data.avatarMediaId;
+      if (!mediaId) return;
+
+      try {
+        const media = await firstValueFrom(this.mediaService.getMediaById(mediaId));
+        if (media?.base64Data) {
+          const dataUrl = `data:${media.mimeType || 'image/jpeg'};base64,${media.base64Data}`;
+          this.avatarCache.set(mediaId, dataUrl);
+        }
+      } catch (err) {
+        console.error('Failed to load avatar for node:', node.id, err);
+      }
+    });
+
+    await Promise.all(loadPromises);
   }
 
   private buildTreeData(root: TreePersonNode): { nodes: D3Node[]; links: D3Link[] } {
@@ -800,25 +838,49 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
         .attr('rx', 12)
         .attr('ry', 12);
 
-      // Avatar circle
+      // Avatar - show image if available, otherwise initials
       const avatarColor = node.sex === Sex.Male ? '#1976d2'
         : node.sex === Sex.Female ? '#c2185b'
         : '#757575';
 
-      g.append('circle')
-        .attr('cx', 30)
-        .attr('cy', this.nodeHeight / 2)
-        .attr('r', 20)
-        .attr('fill', avatarColor)
-        .attr('opacity', 0.2);
+      const avatarUrl = node.data.avatarMediaId
+        ? this.avatarCache.get(node.data.avatarMediaId)
+        : null;
 
-      // Avatar initials
-      g.append('text')
-        .attr('class', 'node-avatar')
-        .attr('x', 30)
-        .attr('y', this.nodeHeight / 2)
-        .attr('fill', avatarColor)
-        .text(this.getInitials(node.name));
+      if (avatarUrl) {
+        // Clip path for circular avatar
+        g.append('clipPath')
+          .attr('id', `avatar-clip-${node.id}`)
+          .append('circle')
+          .attr('cx', 30)
+          .attr('cy', this.nodeHeight / 2)
+          .attr('r', 20);
+
+        // Avatar image
+        g.append('image')
+          .attr('x', 10)
+          .attr('y', this.nodeHeight / 2 - 20)
+          .attr('width', 40)
+          .attr('height', 40)
+          .attr('clip-path', `url(#avatar-clip-${node.id})`)
+          .attr('href', avatarUrl)
+          .attr('preserveAspectRatio', 'xMidYMid slice');
+      } else {
+        // Fallback to initials
+        g.append('circle')
+          .attr('cx', 30)
+          .attr('cy', this.nodeHeight / 2)
+          .attr('r', 20)
+          .attr('fill', avatarColor)
+          .attr('opacity', 0.2);
+
+        g.append('text')
+          .attr('class', 'node-avatar')
+          .attr('x', 30)
+          .attr('y', this.nodeHeight / 2)
+          .attr('fill', avatarColor)
+          .text(this.getInitials(node.name));
+      }
 
       // Name
       const displayName = node.name.length > 18 ? node.name.substring(0, 16) + '...' : node.name;

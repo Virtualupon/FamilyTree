@@ -17,6 +17,7 @@ export interface TreePersonNode {
   deathPlace?: string;
   isLiving: boolean;
   thumbnailUrl?: string;
+  avatarMediaId?: string | null;
   parents: TreePersonNode[];
   children: TreePersonNode[];
   unions: TreeUnionNode[];

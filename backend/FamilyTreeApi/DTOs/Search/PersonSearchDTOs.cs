@@ -249,6 +249,9 @@ public record TreePersonDto
     public Guid? ParentId { get; init; }
     public Guid? SpouseUnionId { get; init; }
 
+    /// <summary>Avatar/profile picture media ID</summary>
+    public Guid? AvatarMediaId { get; init; }
+
     /// <summary>Legacy names collection - kept for backward compatibility</summary>
     [Obsolete("Use NameArabic, NameEnglish, NameNobiin directly")]
     public List<PersonNameSearchDto> Names { get; init; } = new();

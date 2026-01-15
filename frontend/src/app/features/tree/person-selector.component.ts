@@ -13,6 +13,7 @@ import { I18nService, TranslatePipe } from '../../core/i18n';
 import { Sex } from '../../core/models/person.models';
 import { SearchPersonItem } from '../../core/models/search.models';
 import { SkeletonComponent } from '../../shared/components';
+import { PersonNameAvatarComponent } from '../../shared/components/person-name-avatar/person-name-avatar.component';
 
 @Component({
   selector: 'app-person-selector',
@@ -24,7 +25,8 @@ import { SkeletonComponent } from '../../shared/components';
     MatProgressSpinnerModule,
     MatRippleModule,
     TranslatePipe,
-    SkeletonComponent
+    SkeletonComponent,
+    PersonNameAvatarComponent
   ],
   template: `
     <div class="person-selector">
@@ -75,17 +77,15 @@ import { SkeletonComponent } from '../../shared/components';
         } @else {
           <div class="person-selector__list">
             @for (person of people(); track person.id) {
-              <div 
+              <div
                 class="person-selector__item"
                 matRipple
                 (click)="selectPerson(person)">
-                
-                <div
-                  class="person-selector__avatar"
-                  [class.person-selector__avatar--male]="person.sex === Sex.Male"
-                  [class.person-selector__avatar--female]="person.sex === Sex.Female">
-                  {{ getInitials(getPersonDisplayName(person)) }}
-                </div>
+
+                <app-person-name-avatar
+                  [person]="person"
+                  size="large">
+                </app-person-name-avatar>
 
                 <div class="person-selector__info">
                   <div class="person-selector__name">{{ getPersonDisplayName(person) || ('common.unknown' | translate) }}</div>

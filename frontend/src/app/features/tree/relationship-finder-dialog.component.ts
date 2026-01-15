@@ -512,12 +512,12 @@ export class RelationshipFinderDialogComponent implements OnInit, OnDestroy {
 
     let result = parts.join(' ') || this.i18n.t('common.unknown');
 
-    // Add tree name if available
-    if (person.treeName) {
-      result += ` - (${person.treeName})`;
+    // Add tree/family name if available
+    if (person.familyName) {
+      result += ` - (${person.familyName})`;
     }
 
-    // Add town if available
+    // Add town/birth place if available
     if (person.birthPlaceName) {
       result += ` - (${person.birthPlaceName})`;
     }

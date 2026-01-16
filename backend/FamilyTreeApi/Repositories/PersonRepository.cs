@@ -128,8 +128,7 @@ public class PersonRepository : Repository<Person>, IPersonRepository
                     p.IsVerified,
                     p.NeedsReview,
                     mediaGroup.Count(),
-                    p.AvatarMediaId,
-                    p.Avatar != null ? p.Avatar.Url : null
+                    p.AvatarMediaId
                 ))
             .ToListAsync(cancellationToken);
 
@@ -288,8 +287,7 @@ public class PersonRepository : Repository<Person>, IPersonRepository
                     p.IsVerified,
                     p.NeedsReview,
                     mediaGroup.Count(),
-                    p.AvatarMediaId,
-                    p.Avatar != null ? p.Avatar.Url : null
+                    p.AvatarMediaId
                 ))
             .ToListAsync(cancellationToken);
 

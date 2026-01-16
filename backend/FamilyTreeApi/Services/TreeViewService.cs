@@ -3,10 +3,12 @@ using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using FamilyTreeApi.DTOs;
+using FamilyTreeApi.DTOs.Search;
 using FamilyTreeApi.Helpers;
 using FamilyTreeApi.Models;
 using FamilyTreeApi.Models.Enums;
 using FamilyTreeApi.Repositories;
+using FamilyTreeApi.Repositories.Interfaces;
 
 namespace FamilyTreeApi.Services;
 
@@ -21,6 +23,7 @@ public class TreeViewService : ITreeViewService
     private readonly IPersonRepository _personRepository;
     private readonly IUnionRepository _unionRepository;
     private readonly IOrgRepository _orgRepository;
+    private readonly IPersonSearchRepository _personSearchRepository;
     private readonly IMapper _mapper;
     private readonly ILogger<TreeViewService> _logger;
 
@@ -28,12 +31,14 @@ public class TreeViewService : ITreeViewService
         IPersonRepository personRepository,
         IUnionRepository unionRepository,
         IOrgRepository orgRepository,
+        IPersonSearchRepository personSearchRepository,
         IMapper mapper,
         ILogger<TreeViewService> logger)
     {
         _personRepository = personRepository;
         _unionRepository = unionRepository;
         _orgRepository = orgRepository;
+        _personSearchRepository = personSearchRepository;
         _mapper = mapper;
         _logger = logger;
     }
@@ -619,6 +624,7 @@ public class TreeViewService : ITreeViewService
             DeathDate = person.DeathDate,
             DeathPlace = person.DeathPlace?.Name,
             IsLiving = person.DeathDate == null,
+            AvatarMediaId = person.AvatarMediaId,
             Parents = new List<TreePersonNode>(),
             Children = new List<TreePersonNode>(),
             Unions = new List<TreeUnionNode>(),
@@ -733,89 +739,61 @@ public class TreeViewService : ITreeViewService
     // ============================================================================
 
     /// <summary>
-    /// Find the relationship path between two people using BFS.
+    /// Find the relationship path between two people using optimized SQL function.
+    /// Returns direct relationship labels like "Brother", "Father", etc.
     /// </summary>
     public async Task<ServiceResult<RelationshipPathResponse>> FindRelationshipPathAsync(
-        RelationshipPathRequest request,
+        FamilyTreeApi.DTOs.RelationshipPathRequest request,
         UserContext userContext,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            var (orgId, error) = await ResolveOrgIdAsync(request.TreeId, userContext, cancellationToken);
-            if (orgId == null)
-            {
-                return ServiceResult<RelationshipPathResponse>.Failure(error!);
-            }
-
-            // Handle same person edge case
-            if (request.Person1Id == request.Person2Id)
-            {
-                var samePerson = await GetPathPersonNodeAsync(request.Person1Id, cancellationToken);
-                if (samePerson == null)
+            // Use optimized SQL function for fast relationship finding
+            var sqlResult = await _personSearchRepository.FindRelationshipPathAsync(
+                new FamilyTreeApi.DTOs.Search.RelationshipPathRequest
                 {
-                    return ServiceResult<RelationshipPathResponse>.NotFound("Person not found");
-                }
+                    Person1Id = request.Person1Id,
+                    Person2Id = request.Person2Id,
+                    MaxDepth = request.MaxSearchDepth
+                },
+                cancellationToken);
 
+            if (sqlResult == null || !sqlResult.PathFound)
+            {
                 return ServiceResult<RelationshipPathResponse>.Success(new RelationshipPathResponse
                 {
-                    PathFound = true,
-                    RelationshipNameKey = "relationship.samePerson",
-                    RelationshipDescription = "Same person",
-                    Path = new List<PathPersonNode> { samePerson },
-                    PathLength = 1
+                    PathFound = false,
+                    RelationshipType = "none",
+                    RelationshipLabel = "Not Related",
+                    RelationshipNameKey = "relationship.noRelationFound",
+                    RelationshipDescription = "No relationship found",
+                    ErrorMessage = "No relationship path found between these individuals."
                 });
             }
 
-            // BFS to find shortest path
-            var visited = new HashSet<Guid>();
-            var queue = new Queue<(Guid PersonId, List<(Guid Id, RelationshipEdgeType Edge)> Path)>();
-
-            queue.Enqueue((request.Person1Id, new List<(Guid, RelationshipEdgeType)> { (request.Person1Id, RelationshipEdgeType.None) }));
-            visited.Add(request.Person1Id);
-
-            while (queue.Count > 0)
+            // Build PathPersonNode list from path IDs
+            var pathNodes = new List<PathPersonNode>();
+            foreach (var personId in sqlResult.PathIds)
             {
-                var (currentId, currentPath) = queue.Dequeue();
-
-                // Check max depth to prevent infinite loops
-                if (currentPath.Count > request.MaxSearchDepth)
+                var node = await GetPathPersonNodeAsync(personId, cancellationToken);
+                if (node != null)
                 {
-                    continue;
-                }
-
-                // Get all neighbors (parents, children, spouses)
-                var neighbors = await GetNeighborsAsync(currentId, orgId.Value, cancellationToken);
-
-                foreach (var (neighborId, edgeType) in neighbors)
-                {
-                    if (visited.Contains(neighborId))
-                    {
-                        continue;
-                    }
-
-                    var newPath = new List<(Guid Id, RelationshipEdgeType Edge)>(currentPath)
-                    {
-                        (neighborId, edgeType)
-                    };
-
-                    // Found target!
-                    if (neighborId == request.Person2Id)
-                    {
-                        return await BuildPathResponseAsync(newPath, cancellationToken);
-                    }
-
-                    visited.Add(neighborId);
-                    queue.Enqueue((neighborId, newPath));
+                    pathNodes.Add(node);
                 }
             }
 
-            // No path found
             return ServiceResult<RelationshipPathResponse>.Success(new RelationshipPathResponse
             {
-                PathFound = false,
-                RelationshipNameKey = "relationship.noRelationFound",
-                ErrorMessage = "No relationship path found between these individuals. They may be in different family branches."
+                PathFound = true,
+                RelationshipType = sqlResult.RelationshipType,
+                RelationshipLabel = sqlResult.RelationshipLabel,
+                RelationshipNameKey = sqlResult.RelationshipNameKey,
+                RelationshipDescription = sqlResult.RelationshipLabel,
+                Path = pathNodes,
+                PathLength = sqlResult.PathLength,
+                CommonAncestorId = sqlResult.CommonAncestorId,
+                PathIds = sqlResult.PathIds
             });
         }
         catch (Exception ex)

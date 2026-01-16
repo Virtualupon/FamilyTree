@@ -1117,7 +1117,6 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
     const minimalPerson: SearchPersonItem = {
       id: this.personId,
       orgId: '',
-      treeName: null,
       familyId: null,
       familyName: null,
       primaryName: currentPersonLabel,
@@ -1153,7 +1152,6 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
         const searchItem: SearchPersonItem = {
           id: person.id,
           orgId: '',
-          treeName: null,
           familyId: person.familyId,
           familyName: person.familyName,
           primaryName: person.primaryName,

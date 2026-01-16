@@ -31,7 +31,9 @@ public static class RelationshipNamer
         // Check for spouse relationship (direct)
         if (path.Count == 2 && path[1].Edge == RelationshipEdgeType.Spouse)
         {
-            return ("relationship.spouse", $"{person1.PrimaryName} is married to {person2.PrimaryName}");
+            var name1 = person1.NameEnglish ?? person1.PrimaryName;
+            var name2 = person2.NameEnglish ?? person2.PrimaryName;
+            return ("relationship.spouse", $"{name1} is married to {name2}");
         }
 
         // Check for in-law relationships (path includes spouse edge)
@@ -49,7 +51,7 @@ public static class RelationshipNamer
         // Sibling
         if (analysis.Gen1 == 1 && analysis.Gen2 == 1 && !analysis.HasSpouseEdge)
         {
-            return GetSiblingRelationship(person2);
+            return GetSiblingRelationship(person1, person2);
         }
 
         // Collateral relationships (uncle/aunt, niece/nephew, cousins)
@@ -113,6 +115,8 @@ public static class RelationshipNamer
     {
         int generations = Math.Max(analysis.Gen1, analysis.Gen2);
         bool isAncestor = analysis.Gen1 == 0; // Person1 is ancestor, Person2 is descendant
+        var name1 = person1.NameEnglish ?? person1.PrimaryName;
+        var name2 = person2.NameEnglish ?? person2.PrimaryName;
 
         if (isAncestor)
         {
@@ -124,7 +128,7 @@ public static class RelationshipNamer
                 3 => ("relationship.greatGrandchild", $"great-{GetGenderedTermName("grandchild", person2.Sex)}"),
                 _ => ($"relationship.greatGrandchild{generations - 2}", $"{generations - 2}x great-{GetGenderedTermName("grandchild", person2.Sex)}")
             };
-            return (key, $"{person2.PrimaryName} is {person1.PrimaryName}'s {term}");
+            return (key, $"{name2} is {name1}'s {term}");
         }
         else
         {
@@ -136,14 +140,16 @@ public static class RelationshipNamer
                 3 => ("relationship.greatGrandparent", $"great-{GetGenderedTermName("grandparent", person2.Sex)}"),
                 _ => ($"relationship.greatGrandparent{generations - 2}", $"{generations - 2}x great-{GetGenderedTermName("grandparent", person2.Sex)}")
             };
-            return (key, $"{person2.PrimaryName} is {person1.PrimaryName}'s {term}");
+            return (key, $"{name2} is {name1}'s {term}");
         }
     }
 
-    private static (string NameKey, string Description) GetSiblingRelationship(PathPersonNode person2)
+    private static (string NameKey, string Description) GetSiblingRelationship(PathPersonNode person1, PathPersonNode person2)
     {
         var (key, term) = GetGenderedTerm("sibling", person2.Sex);
-        return (key, term);
+        var name1 = person1.NameEnglish ?? person1.PrimaryName;
+        var name2 = person2.NameEnglish ?? person2.PrimaryName;
+        return (key, $"{name2} is {name1}'s {term}");
     }
 
     private static (string NameKey, string Description) GetCollateralRelationship(
@@ -151,6 +157,8 @@ public static class RelationshipNamer
     {
         int gen1 = analysis.Gen1;
         int gen2 = analysis.Gen2;
+        var name1 = person1.NameEnglish ?? person1.PrimaryName;
+        var name2 = person2.NameEnglish ?? person2.PrimaryName;
 
         // Aunt/Uncle: person1 gen1=1, person2 gen2>1 (parent's sibling)
         if (gen1 == 1 && gen2 >= 2)
@@ -159,11 +167,11 @@ public static class RelationshipNamer
             var (key, term) = GetGenderedTerm("pibling", person2.Sex); // pibling = aunt/uncle
             if (greats == 0)
             {
-                return (key, $"{person2.PrimaryName} is {person1.PrimaryName}'s {term}");
+                return (key, $"{name2} is {name1}'s {term}");
             }
             else
             {
-                return ($"relationship.greatPibling{greats}", $"{person2.PrimaryName} is {person1.PrimaryName}'s {GetGreatPrefix(greats)}{term}");
+                return ($"relationship.greatPibling{greats}", $"{name2} is {name1}'s {GetGreatPrefix(greats)}{term}");
             }
         }
 
@@ -174,11 +182,11 @@ public static class RelationshipNamer
             var (key, term) = GetGenderedTerm("nibling", person2.Sex); // nibling = niece/nephew
             if (greats == 0)
             {
-                return (key, $"{person2.PrimaryName} is {person1.PrimaryName}'s {term}");
+                return (key, $"{name2} is {name1}'s {term}");
             }
             else
             {
-                return ($"relationship.greatNibling{greats}", $"{person2.PrimaryName} is {person1.PrimaryName}'s {GetGreatPrefix(greats)}{term}");
+                return ($"relationship.greatNibling{greats}", $"{name2} is {name1}'s {GetGreatPrefix(greats)}{term}");
             }
         }
 
@@ -191,7 +199,7 @@ public static class RelationshipNamer
         string removedKey = removed > 0 ? $"{removed}xRemoved" : "";
 
         return ($"relationship.cousin{cousinDegree}{removedKey}",
-            $"{person2.PrimaryName} is {person1.PrimaryName}'s {ordinal.ToLower()} cousin{removedText}");
+            $"{name2} is {name1}'s {ordinal.ToLower()} cousin{removedText}");
     }
 
     private static (string NameKey, string Description) GetInLawRelationship(
@@ -205,30 +213,32 @@ public static class RelationshipNamer
 
         int gen1 = analysis.Gen1;
         int gen2 = analysis.Gen2;
+        var name1 = person1.NameEnglish ?? person1.PrimaryName;
+        var name2 = person2.NameEnglish ?? person2.PrimaryName;
 
         // Parent-in-law (spouse's parent)
         if (gen1 == 0 && gen2 == 1)
         {
             var (key, term) = GetGenderedTerm("parentInLaw", person2.Sex);
-            return (key, $"{person2.PrimaryName} is {person1.PrimaryName}'s {term}");
+            return (key, $"{name2} is {name1}'s {term}");
         }
 
         // Child-in-law (child's spouse)
         if (gen1 == 1 && gen2 == 0)
         {
             var (key, term) = GetGenderedTerm("childInLaw", person2.Sex);
-            return (key, $"{person2.PrimaryName} is {person1.PrimaryName}'s {term}");
+            return (key, $"{name2} is {name1}'s {term}");
         }
 
         // Sibling-in-law (spouse's sibling or sibling's spouse)
         if ((gen1 == 0 || gen1 == 1) && (gen2 == 0 || gen2 == 1) && analysis.PathLength <= 4)
         {
             var (key, term) = GetGenderedTerm("siblingInLaw", person2.Sex);
-            return (key, $"{person2.PrimaryName} is {person1.PrimaryName}'s {term}");
+            return (key, $"{name2} is {name1}'s {term}");
         }
 
         // Generic in-law for complex relationships
-        return ("relationship.relatedByMarriage", $"{person2.PrimaryName} is related to {person1.PrimaryName} by marriage");
+        return ("relationship.relatedByMarriage", $"{name2} is related to {name1} by marriage");
     }
 
     private static (string Key, string Term) GetGenderedTerm(string baseTerm, Sex sex)

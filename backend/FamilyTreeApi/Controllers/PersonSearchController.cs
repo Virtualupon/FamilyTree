@@ -235,8 +235,8 @@ public class PersonSearchController : ControllerBase
             {
                 PathFound = true,
                 PathLength = 0,
-                RelationshipSummary = "Same person",
-                HumanReadableRelationship = "Same person"
+                RelationshipType = "self",
+                RelationshipLabel = "Same person"
             });
         }
 

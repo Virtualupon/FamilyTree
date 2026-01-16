@@ -23,15 +23,6 @@ public class PersonService : IPersonService
     private readonly IMapper _mapper;
     private readonly ILogger<PersonService> _logger;
 
-    // Allowed MIME types for avatars
-    private static readonly string[] AllowedAvatarMimeTypes =
-    {
-        "image/jpeg", "image/png", "image/gif", "image/webp"
-    };
-
-    // Max avatar file size: 5 MB
-    private const long MaxAvatarSizeBytes = 5L * 1024 * 1024;
-
     public PersonService(
         IPersonRepository personRepository,
         IOrgRepository orgRepository,
@@ -128,20 +119,6 @@ public class PersonService : IPersonService
             }
 
             var dto = _mapper.Map<PersonResponseDto>(person);
-
-            // Fetch avatar base64 data if person has an avatar
-            if (person.AvatarMediaId.HasValue && person.Avatar != null)
-            {
-                var rawBase64 = await _mediaService.GetMediaAsBase64Async(person.AvatarMediaId.Value);
-                if (!string.IsNullOrEmpty(rawBase64))
-                {
-                    // Add data URL prefix for browser display (e.g., "data:image/jpeg;base64,...")
-                    var mimeType = person.Avatar.MimeType ?? "image/jpeg";
-                    var avatarBase64 = $"data:{mimeType};base64,{rawBase64}";
-                    // Use record "with" expression to create a copy with the base64 data
-                    dto = dto with { AvatarBase64 = avatarBase64 };
-                }
-            }
 
             return ServiceResult<PersonResponseDto>.Success(dto);
         }
@@ -271,6 +248,7 @@ public class PersonService : IPersonService
         if (dto.Notes != null) person.Notes = dto.Notes;
         if (dto.IsVerified.HasValue) person.IsVerified = dto.IsVerified.Value;
         if (dto.NeedsReview.HasValue) person.NeedsReview = dto.NeedsReview.Value;
+        if (dto.AvatarMediaId.HasValue) person.AvatarMediaId = dto.AvatarMediaId.Value == Guid.Empty ? null : dto.AvatarMediaId.Value;
 
         person.UpdatedAt = DateTime.UtcNow;
 
@@ -329,235 +307,6 @@ public class PersonService : IPersonService
             id, parentChildRecords.Count, unionMemberships.Count, personTags.Count);
 
         return ServiceResult.Success();
-    }
-
-    // ============================================================================
-    // AVATAR OPERATIONS
-    // ============================================================================
-
-    public async Task<ServiceResult<AvatarDto>> UploadAvatarAsync(
-        Guid personId,
-        UploadAvatarDto dto,
-        UserContext userContext,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            // Check authorization
-            if (!userContext.CanContribute())
-            {
-                return ServiceResult<AvatarDto>.Forbidden("You don't have permission to upload avatars");
-            }
-
-            // Find the person
-            var person = await _personRepository.FirstOrDefaultAsync(
-                p => p.Id == personId, cancellationToken);
-
-            if (person == null)
-            {
-                return ServiceResult<AvatarDto>.NotFound("Person not found");
-            }
-
-            // Validate MIME type
-            if (!AllowedAvatarMimeTypes.Contains(dto.MimeType.ToLowerInvariant()))
-            {
-                return ServiceResult<AvatarDto>.Failure(
-                    $"Invalid file type. Allowed types: {string.Join(", ", AllowedAvatarMimeTypes)}");
-            }
-
-            // Validate Base64 and check file size
-            byte[] fileData;
-            try
-            {
-                var base64 = dto.Base64Data;
-                // Remove data URL prefix if present
-                if (base64.Contains(','))
-                {
-                    base64 = base64.Split(',')[1];
-                }
-                fileData = Convert.FromBase64String(base64);
-            }
-            catch
-            {
-                return ServiceResult<AvatarDto>.Failure("Invalid Base64 data");
-            }
-
-            if (fileData.Length > MaxAvatarSizeBytes)
-            {
-                var maxMB = MaxAvatarSizeBytes / (1024 * 1024);
-                var actualMB = Math.Round(fileData.Length / (1024.0 * 1024.0), 2);
-                return ServiceResult<AvatarDto>.Failure(
-                    $"File size ({actualMB} MB) exceeds maximum ({maxMB} MB)");
-            }
-
-            // Delete old avatar if exists
-            if (person.AvatarMediaId.HasValue)
-            {
-                await _mediaService.DeleteMediaAsync(person.AvatarMediaId.Value);
-                _logger.LogInformation("Deleted old avatar {MediaId} for person {PersonId}",
-                    person.AvatarMediaId, personId);
-            }
-
-            // Upload new avatar using MediaService
-            var media = await _mediaService.UploadMediaAsync(
-                personId,
-                dto.Base64Data,
-                dto.FileName,
-                dto.MimeType,
-                "Avatar",
-                null,
-                null
-            );
-
-            if (media == null)
-            {
-                return ServiceResult<AvatarDto>.InternalError("Failed to upload avatar");
-            }
-
-            // Update person with new avatar reference
-            person.AvatarMediaId = media.Id;
-            person.UpdatedAt = DateTime.UtcNow;
-            await _personRepository.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Avatar uploaded for person {PersonId}: MediaId={MediaId}",
-                personId, media.Id);
-
-            return ServiceResult<AvatarDto>.Success(new AvatarDto
-            {
-                MediaId = media.Id,
-                ThumbnailPath = media.ThumbnailPath,
-                Url = media.Url,
-                FileName = media.FileName,
-                MimeType = media.MimeType,
-                FileSize = media.FileSize
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error uploading avatar for person {PersonId}", personId);
-            return ServiceResult<AvatarDto>.InternalError("Error uploading avatar");
-        }
-    }
-
-    public async Task<ServiceResult<AvatarDto?>> GetAvatarAsync(
-        Guid personId,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var person = await _personRepository.GetWithAvatarAsync(personId, cancellationToken);
-
-            if (person == null)
-            {
-                return ServiceResult<AvatarDto?>.NotFound("Person not found");
-            }
-
-            if (person.Avatar == null)
-            {
-                return ServiceResult<AvatarDto?>.Success(null);
-            }
-
-            return ServiceResult<AvatarDto?>.Success(new AvatarDto
-            {
-                MediaId = person.Avatar.Id,
-                ThumbnailPath = person.Avatar.ThumbnailPath,
-                Url = person.Avatar.Url,
-                FileName = person.Avatar.FileName,
-                MimeType = person.Avatar.MimeType,
-                FileSize = person.Avatar.FileSize
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting avatar for person {PersonId}", personId);
-            return ServiceResult<AvatarDto?>.InternalError("Error getting avatar");
-        }
-    }
-
-    public async Task<ServiceResult<AvatarWithDataDto?>> GetAvatarWithDataAsync(
-        Guid personId,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var person = await _personRepository.GetWithAvatarAsync(personId, cancellationToken);
-
-            if (person == null)
-            {
-                return ServiceResult<AvatarWithDataDto?>.NotFound("Person not found");
-            }
-
-            if (person.Avatar == null)
-            {
-                return ServiceResult<AvatarWithDataDto?>.Success(null);
-            }
-
-            // Get Base64 data
-            var base64Data = await _mediaService.GetMediaAsBase64Async(person.Avatar.Id);
-
-            return ServiceResult<AvatarWithDataDto?>.Success(new AvatarWithDataDto
-            {
-                MediaId = person.Avatar.Id,
-                ThumbnailPath = person.Avatar.ThumbnailPath,
-                Url = person.Avatar.Url,
-                FileName = person.Avatar.FileName,
-                MimeType = person.Avatar.MimeType,
-                FileSize = person.Avatar.FileSize,
-                Base64Data = base64Data
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting avatar with data for person {PersonId}", personId);
-            return ServiceResult<AvatarWithDataDto?>.InternalError("Error getting avatar");
-        }
-    }
-
-    public async Task<ServiceResult> DeleteAvatarAsync(
-        Guid personId,
-        UserContext userContext,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            // Check authorization
-            if (!userContext.CanEdit())
-            {
-                return ServiceResult.Forbidden("You don't have permission to delete avatars");
-            }
-
-            var person = await _personRepository.FirstOrDefaultAsync(
-                p => p.Id == personId, cancellationToken);
-
-            if (person == null)
-            {
-                return ServiceResult.NotFound("Person not found");
-            }
-
-            if (!person.AvatarMediaId.HasValue)
-            {
-                return ServiceResult.Success(); // No avatar to delete
-            }
-
-            // Delete the media file
-            var mediaId = person.AvatarMediaId.Value;
-            await _mediaService.DeleteMediaAsync(mediaId);
-
-            // Clear the reference
-            person.AvatarMediaId = null;
-            person.UpdatedAt = DateTime.UtcNow;
-            await _personRepository.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Avatar deleted for person {PersonId}: MediaId={MediaId}",
-                personId, mediaId);
-
-            return ServiceResult.Success();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error deleting avatar for person {PersonId}", personId);
-            return ServiceResult.InternalError("Error deleting avatar");
-        }
     }
 
     // ============================================================================

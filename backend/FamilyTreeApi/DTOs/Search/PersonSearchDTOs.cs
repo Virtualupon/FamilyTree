@@ -137,7 +137,6 @@ public record PersonSearchItemDto
     public Guid? FamilyId { get; init; }
     public string? FamilyName { get; init; }
     public Guid OrgId { get; init; }
-    public string? TreeName { get; init; }
     public List<PersonNameSearchDto> Names { get; init; } = new();
     public int ParentsCount { get; init; }
     public int ChildrenCount { get; init; }
@@ -177,37 +176,30 @@ public record PersonNameSearchDto
 }
 
 /// <summary>
-/// Relationship path result
+/// Relationship path result - simplified with direct relationship labels
 /// </summary>
 public record RelationshipPathResult
 {
+    /// <summary>Whether a path was found</summary>
     public bool PathFound { get; init; }
-    public int? PathLength { get; init; }
-    public List<PathNodeDto> PathNodes { get; init; } = new();
-    public List<PathRelationshipDto> PathRelationships { get; init; } = new();
-    public string? RelationshipSummary { get; init; }
-    public string? HumanReadableRelationship { get; init; }
-}
 
-/// <summary>
-/// Node in relationship path
-/// </summary>
-public record PathNodeDto
-{
-    public Guid PersonId { get; init; }
-    public string? Name { get; init; }
-    public int? Sex { get; init; }
-}
+    /// <summary>Relationship type code (e.g., 'sibling', 'parent', 'cousin')</summary>
+    public string RelationshipType { get; init; } = string.Empty;
 
-/// <summary>
-/// Relationship step in path
-/// </summary>
-public record PathRelationshipDto
-{
-    public Guid FromId { get; init; }
-    public Guid ToId { get; init; }
-    public string? Type { get; init; }
-    public Guid? RelationshipId { get; init; }
+    /// <summary>Human-readable relationship label (e.g., 'Brother', 'Father', 'Cousin')</summary>
+    public string RelationshipLabel { get; init; } = string.Empty;
+
+    /// <summary>The i18n key for the relationship name (e.g., "relationship.father")</summary>
+    public string RelationshipNameKey { get; init; } = string.Empty;
+
+    /// <summary>Number of steps in the path</summary>
+    public int PathLength { get; init; }
+
+    /// <summary>Common ancestor ID if applicable (e.g., for siblings)</summary>
+    public Guid? CommonAncestorId { get; init; }
+
+    /// <summary>Array of person IDs in the path</summary>
+    public Guid[] PathIds { get; init; } = Array.Empty<Guid>();
 }
 
 /// <summary>

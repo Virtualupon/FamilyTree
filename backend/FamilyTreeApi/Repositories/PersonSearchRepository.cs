@@ -81,7 +81,6 @@ public sealed class PersonSearchRepository : IPersonSearchRepository
                 family_id,
                 family_name,
                 org_id,
-                tree_name,
                 names,
                 parents_count,
                 children_count,
@@ -283,13 +282,16 @@ public sealed class PersonSearchRepository : IPersonSearchRepository
         await using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync(cancellationToken);
 
+        // SQL function that returns direct relationship labels with i18n keys
         var sql = @"
-            SELECT 
+            SELECT
                 path_found,
                 path_length,
-                path_nodes,
-                path_relationships,
-                relationship_summary
+                relationship_type,
+                relationship_label,
+                relationship_name_key,
+                path_ids,
+                common_ancestor_id
             FROM find_relationship_path(
                 @Person1Id,
                 @Person2Id,
@@ -317,34 +319,29 @@ public sealed class PersonSearchRepository : IPersonSearchRepository
                 return new RelationshipPathResult
                 {
                     PathFound = false,
-                    RelationshipSummary = "No path found"
+                    RelationshipType = "none",
+                    RelationshipLabel = "No path found",
+                    RelationshipNameKey = "relationship.notRelated",
+                    PathLength = -1
                 };
             }
 
-            bool pathFound = (bool)result.path_found;
-
-            if (!pathFound)
+            // Convert path_ids from PostgreSQL UUID[] to C# Guid[]
+            Guid[] pathIds = Array.Empty<Guid>();
+            if (result.path_ids != null)
             {
-                return new RelationshipPathResult
-                {
-                    PathFound = false,
-                    RelationshipSummary = "No relationship found within search depth"
-                };
+                pathIds = ((Guid[])result.path_ids);
             }
-
-            var pathNodes = DeserializeJsonb<List<PathNodeDto>>(result.path_nodes?.ToString())
-                ?? new List<PathNodeDto>();
-            var pathRelationships = DeserializeJsonb<List<PathRelationshipDto>>(result.path_relationships?.ToString())
-                ?? new List<PathRelationshipDto>();
 
             return new RelationshipPathResult
             {
-                PathFound = true,
-                PathLength = (int?)result.path_length,
-                PathNodes = pathNodes,
-                PathRelationships = pathRelationships,
-                RelationshipSummary = (string?)result.relationship_summary,
-                HumanReadableRelationship = BuildHumanReadableRelationship(pathRelationships)
+                PathFound = (bool)result.path_found,
+                RelationshipType = (string)result.relationship_type,
+                RelationshipLabel = (string)result.relationship_label,
+                RelationshipNameKey = (string)result.relationship_name_key,
+                PathLength = (int)result.path_length,
+                CommonAncestorId = (Guid?)result.common_ancestor_id,
+                PathIds = pathIds
             };
         }
         catch (Exception ex)
@@ -520,7 +517,6 @@ public sealed class PersonSearchRepository : IPersonSearchRepository
             FamilyId = (Guid?)row.family_id,
             FamilyName = (string?)row.family_name,
             OrgId = (Guid)row.org_id,
-            TreeName = (string?)row.tree_name,
             Names = DeserializeJsonb<List<PersonNameSearchDto>>(row.names?.ToString()) ?? new List<PersonNameSearchDto>(),
             ParentsCount = (int)row.parents_count,
             ChildrenCount = (int)row.children_count,
@@ -606,49 +602,4 @@ public sealed class PersonSearchRepository : IPersonSearchRepository
         }
     }
 
-    // ========================================================================
-    // RELATIONSHIP DESCRIPTION HELPERS
-    // ========================================================================
-
-    private static string BuildHumanReadableRelationship(List<PathRelationshipDto> relationships)
-    {
-        if (relationships == null || !relationships.Any())
-            return "Same person";
-
-        // Build relationship description from path
-        // This is a simplified version - expand for full relationship names
-        var types = relationships.Select(r => r.Type).ToList();
-
-        // Common patterns
-        if (types.SequenceEqual(new[] { "parent" }))
-            return "Parent";
-        if (types.SequenceEqual(new[] { "child" }))
-            return "Child";
-        if (types.SequenceEqual(new[] { "spouse" }))
-            return "Spouse";
-        if (types.SequenceEqual(new[] { "parent", "parent" }))
-            return "Grandparent";
-        if (types.SequenceEqual(new[] { "child", "child" }))
-            return "Grandchild";
-        if (types.SequenceEqual(new[] { "parent", "child" }))
-            return "Sibling";
-        if (types.SequenceEqual(new[] { "parent", "parent", "child" }))
-            return "Uncle/Aunt";
-        if (types.SequenceEqual(new[] { "parent", "child", "child" }))
-            return "Niece/Nephew";
-        if (types.SequenceEqual(new[] { "parent", "parent", "child", "child" }))
-            return "Cousin";
-
-        // Generic description
-        var parentCount = types.Count(t => t == "parent");
-        var childCount = types.Count(t => t == "child");
-        var spouseCount = types.Count(t => t == "spouse");
-
-        var parts = new List<string>();
-        if (parentCount > 0) parts.Add($"{parentCount} generation(s) up");
-        if (childCount > 0) parts.Add($"{childCount} generation(s) down");
-        if (spouseCount > 0) parts.Add($"{spouseCount} spouse connection(s)");
-
-        return string.Join(", ", parts);
-    }
 }

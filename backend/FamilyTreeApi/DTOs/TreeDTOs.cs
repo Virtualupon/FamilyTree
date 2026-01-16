@@ -17,6 +17,7 @@ public class TreePersonNode
     public string? DeathPlace { get; set; }
     public bool IsLiving { get; set; }
     public string? ThumbnailUrl { get; set; }
+    public Guid? AvatarMediaId { get; set; }
     public List<TreePersonNode> Parents { get; set; } = new();
     public List<TreePersonNode> Children { get; set; } = new();
     public List<TreeUnionNode> Unions { get; set; } = new();

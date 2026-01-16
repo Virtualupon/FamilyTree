@@ -134,6 +134,28 @@
     "addRelationship": "إضافة علاقة",
     "noRelationships": "لا توجد علاقات"
   },
+  "people": {
+    "title": "أفراد العائلة",
+    "addPerson": "إضافة شخص",
+    "searchPlaceholder": "البحث بالاسم...",
+    "filterBySex": "تصفية حسب الجنس",
+    "filterByStatus": "تصفية حسب الحالة",
+    "living": "على قيد الحياة",
+    "deceased": "متوفى",
+    "male": "ذكر",
+    "female": "أنثى",
+    "unknown": "غير معروف",
+    "noPeople": "لا يوجد أفراد عائلة بعد",
+    "addFirst": "أضف أول فرد من العائلة للبدء",
+    "totalCount": "{{count}} فرد من العائلة",
+    "born": "ولد",
+    "died": "توفي",
+    "age": "العمر",
+    "viewProfile": "عرض الملف الشخصي",
+    "editPerson": "تعديل الشخص",
+    "deletePerson": "حذف الشخص",
+    "deleteConfirm": "هل أنت متأكد من حذف هذا الشخص؟ لا يمكن التراجع عن هذا الإجراء."
+  },
   "relationship": {
     "title": "العلاقات",
     "type": "نوع العلاقة",
@@ -229,7 +251,13 @@
     "ancestor": "سلف",
     "descendant": "نسل",
     "ancestorOf": "سلف",
-    "descendantOf": "نسل"
+    "descendantOf": "نسل",
+    "self": "نفس الشخص",
+    "related": "قريب",
+    "notRelated": "غير قريب",
+    "noRelationFound": "لم يتم العثور على صلة قرابة",
+    "notFound": "غير موجود",
+    "distant": "قريب بعيد"
   },
   "media": {
     "title": "الوسائط",

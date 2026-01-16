@@ -23,6 +23,16 @@ public class RelationshipPathResponse
     public bool PathFound { get; set; }
 
     /// <summary>
+    /// Relationship type code (e.g., 'sibling', 'parent', 'cousin')
+    /// </summary>
+    public string RelationshipType { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Human-readable relationship label (e.g., 'Brother', 'Father', 'Cousin')
+    /// </summary>
+    public string RelationshipLabel { get; set; } = string.Empty;
+
+    /// <summary>
     /// The i18n key for the relationship name (e.g., "relationship.father")
     /// </summary>
     public string RelationshipNameKey { get; set; } = string.Empty;
@@ -46,6 +56,16 @@ public class RelationshipPathResponse
     /// Number of people in the path
     /// </summary>
     public int PathLength { get; set; }
+
+    /// <summary>
+    /// Common ancestor ID if applicable (e.g., for siblings)
+    /// </summary>
+    public Guid? CommonAncestorId { get; set; }
+
+    /// <summary>
+    /// Array of person IDs in the path
+    /// </summary>
+    public Guid[] PathIds { get; set; } = Array.Empty<Guid>();
 
     /// <summary>
     /// Error message if path finding failed

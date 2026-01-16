@@ -108,7 +108,8 @@ public class PersonSearchService : IPersonSearchService
                 return ServiceResult<RelationshipPathResult>.Success(new RelationshipPathResult
                 {
                     PathFound = false,
-                    RelationshipSummary = "Unable to find relationship"
+                    RelationshipType = "none",
+                    RelationshipLabel = "Unable to find relationship"
                 });
             }
 

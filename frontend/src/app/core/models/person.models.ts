@@ -36,10 +36,6 @@ export interface Person {
   names: PersonName[];
   /** Avatar/profile picture media ID */
   avatarMediaId: string | null;
-  /** Avatar/profile picture URL */
-  avatarUrl: string | null;
-  /** Avatar/profile picture Base64 data (for display) */
-  avatarBase64: string | null;
 }
 
 export interface PersonListItem {
@@ -65,8 +61,6 @@ export interface PersonListItem {
   mediaCount: number;
   /** Avatar/profile picture media ID */
   avatarMediaId?: string | null;
-  /** Avatar/profile picture URL */
-  avatarUrl?: string | null;
 }
 
 export interface PersonName {
@@ -164,6 +158,8 @@ export interface UpdatePersonRequest {
   notes?: string;
   isVerified?: boolean;
   needsReview?: boolean;
+  /** Avatar/profile picture media ID. Set to null to remove avatar. */
+  avatarMediaId?: string | null;
 }
 
 export interface CreatePersonNameRequest {
@@ -202,26 +198,3 @@ export interface PagedResult<T> {
 }
 
 export type PersonSearchResponse = PagedResult<PersonListItem>;
-
-// ============================================================================
-// AVATAR DTOs
-// ============================================================================
-
-export interface UploadAvatarRequest {
-  base64Data: string;
-  fileName: string;
-  mimeType: string;
-}
-
-export interface Avatar {
-  mediaId: string;
-  thumbnailPath: string | null;
-  url: string | null;
-  fileName: string;
-  mimeType: string | null;
-  fileSize: number;
-}
-
-export interface AvatarWithData extends Avatar {
-  base64Data: string | null;
-}

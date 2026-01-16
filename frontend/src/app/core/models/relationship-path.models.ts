@@ -16,6 +16,10 @@ export interface RelationshipPathRequest {
 export interface RelationshipPathResponse {
   /** Whether a path was found between the two people */
   pathFound: boolean;
+  /** Relationship type code (e.g., 'sibling', 'parent', 'cousin') */
+  relationshipType: string;
+  /** Human-readable relationship label (e.g., 'Brother', 'Father', 'Cousin') */
+  relationshipLabel: string;
   /** The i18n key for the relationship name (e.g., "relationship.father") */
   relationshipNameKey: string;
   /** Human-readable relationship description template */
@@ -26,6 +30,10 @@ export interface RelationshipPathResponse {
   commonAncestors: CommonAncestorInfo[];
   /** Number of people in the path */
   pathLength: number;
+  /** Common ancestor ID if applicable (e.g., for siblings) */
+  commonAncestorId?: string;
+  /** Array of person IDs in the path */
+  pathIds: string[];
   /** Error message if path finding failed */
   errorMessage?: string;
 }
@@ -36,6 +44,9 @@ export interface RelationshipPathResponse {
 export interface PathPersonNode {
   id: string;
   primaryName: string;
+  nameArabic?: string;
+  nameEnglish?: string;
+  nameNobiin?: string;
   sex: Sex;
   birthDate?: string;
   birthPlace?: string;

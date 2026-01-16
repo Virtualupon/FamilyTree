@@ -258,7 +258,13 @@
     "ancestor": "Ancestor",
     "descendant": "Descendant",
     "ancestorOf": "ancestor of",
-    "descendantOf": "descendant of"
+    "descendantOf": "descendant of",
+    "self": "Self",
+    "related": "Related",
+    "notRelated": "Not Related",
+    "noRelationFound": "No Relation Found",
+    "notFound": "Not Found",
+    "distant": "Distant Relative"
   },
   "media": {
     "title": "Media",

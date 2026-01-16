@@ -22,8 +22,7 @@ public record PersonListItemDto(
     bool IsVerified,
     bool NeedsReview,
     int MediaCount = 0,
-    Guid? AvatarMediaId = null,
-    string? AvatarUrl = null
+    Guid? AvatarMediaId = null
 );
 
 public record PersonResponseDto(
@@ -55,9 +54,7 @@ public record PersonResponseDto(
     bool HasConflict,
     DateTime CreatedAt,
     DateTime UpdatedAt,
-    Guid? AvatarMediaId = null,
-    string? AvatarUrl = null,
-    string? AvatarBase64 = null
+    Guid? AvatarMediaId = null
 );
 
 public class CreatePersonDto
@@ -108,6 +105,8 @@ public class UpdatePersonDto
     public string? Notes { get; set; }
     public bool? IsVerified { get; set; }
     public bool? NeedsReview { get; set; }
+    /// <summary>Avatar/profile picture media ID. Set to null to remove avatar.</summary>
+    public Guid? AvatarMediaId { get; set; }
 }
 
 /// <summary>

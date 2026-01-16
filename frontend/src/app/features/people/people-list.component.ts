@@ -15,6 +15,7 @@ import { MatDividerModule } from '@angular/material/divider';
 
 import { PersonService } from '../../core/services/person.service';
 import { PersonSearchService } from '../../core/services/person-search.service';
+import { PersonMediaService } from '../../core/services/person-media.service';
 import { I18nService, TranslatePipe } from '../../core/i18n';
 import { Sex } from '../../core/models/person.models';
 import { SearchPersonItem, getPrimaryName, SearchScript } from '../../core/models/search.models';
@@ -166,8 +167,13 @@ interface FilterState {
                   class="ft-avatar ft-avatar--lg"
                   [class.ft-avatar--male]="person.sex === Sex.Male"
                   [class.ft-avatar--female]="person.sex === Sex.Female"
-                  [class.ft-avatar--unknown]="person.sex === Sex.Unknown">
-                  {{ getInitials(getPersonOwnName(person)) }}
+                  [class.ft-avatar--unknown]="person.sex === Sex.Unknown"
+                  [class.ft-avatar--has-image]="getAvatarUrl(person.id)">
+                  @if (getAvatarUrl(person.id)) {
+                    <img [src]="getAvatarUrl(person.id)" [alt]="getPersonOwnName(person)" class="ft-avatar__img">
+                  } @else {
+                    {{ getInitials(getPersonOwnName(person)) }}
+                  }
                 </div>
                 
                 <!-- Content -->
@@ -389,11 +395,16 @@ export class PeopleListComponent implements OnInit, OnDestroy {
   // Use new efficient search service
   private readonly searchService = inject(PersonSearchService);
   private readonly personService = inject(PersonService);
+  private readonly mediaService = inject(PersonMediaService);
   private readonly i18n = inject(I18nService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly router = inject(Router);
   private readonly destroy$ = new Subject<void>();
+  
+  // Avatar cache: personId -> object URL
+  private avatarCache = new Map<string, string>();
+  private avatarLoading = new Set<string>();
   
   // Expose enum to template
   readonly Sex = Sex;
@@ -444,6 +455,10 @@ export class PeopleListComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    
+    // Revoke avatar object URLs to prevent memory leaks
+    this.avatarCache.forEach(url => URL.revokeObjectURL(url));
+    this.avatarCache.clear();
   }
   
   loadPeople(append = false): void {
@@ -473,6 +488,13 @@ export class PeopleListComponent implements OnInit, OnDestroy {
         this.searchDuration.set(response.searchDurationMs || 0);
         this.loading.set(false);
         this.loadingMore.set(false);
+        
+        // Load avatars for people with avatarMediaId
+        response.items.forEach(person => {
+          if (person.avatarMediaId) {
+            this.loadAvatar(person.id, person.avatarMediaId);
+          }
+        });
       },
       error: (error) => {
         console.error('Failed to load people:', error);
@@ -585,6 +607,38 @@ export class PeopleListComponent implements OnInit, OnDestroy {
     }
 
     return names;
+  }
+
+  /**
+   * Load avatar for a person and cache it
+   */
+  loadAvatar(personId: string, avatarMediaId: string | null | undefined): void {
+    if (!avatarMediaId) return;
+    if (this.avatarCache.has(personId)) return;
+    if (this.avatarLoading.has(personId)) return;
+
+    this.avatarLoading.add(personId);
+
+    this.mediaService.getMediaById(avatarMediaId).subscribe({
+      next: (media) => {
+        const objectUrl = this.mediaService.createObjectUrl(
+          media.base64Data,
+          media.mimeType || 'image/jpeg'
+        );
+        this.avatarCache.set(personId, objectUrl);
+        this.avatarLoading.delete(personId);
+      },
+      error: () => {
+        this.avatarLoading.delete(personId);
+      }
+    });
+  }
+
+  /**
+   * Get cached avatar URL for a person
+   */
+  getAvatarUrl(personId: string): string | null {
+    return this.avatarCache.get(personId) || null;
   }
   
   getInitials(name: string | null): string {

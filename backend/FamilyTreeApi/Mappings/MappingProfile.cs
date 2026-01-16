@@ -48,9 +48,7 @@ public class MappingProfile : Profile
             .ForCtorParam("HasConflict", opt => opt.MapFrom(src => src.HasConflict))
             .ForCtorParam("CreatedAt", opt => opt.MapFrom(src => src.CreatedAt))
             .ForCtorParam("UpdatedAt", opt => opt.MapFrom(src => src.UpdatedAt))
-            .ForCtorParam("AvatarMediaId", opt => opt.MapFrom(src => src.AvatarMediaId))
-            .ForCtorParam("AvatarUrl", opt => opt.MapFrom(src => src.Avatar != null ? src.Avatar.Url : null))
-            .ForCtorParam("AvatarBase64", opt => opt.MapFrom(src => (string?)null)); // Set by service after mapping
+            .ForCtorParam("AvatarMediaId", opt => opt.MapFrom(src => src.AvatarMediaId));
 
         // Person → PersonListItemDto (for list views)
         CreateMap<Person, PersonListItemDto>()
@@ -69,8 +67,7 @@ public class MappingProfile : Profile
             .ForCtorParam("IsVerified", opt => opt.MapFrom(src => src.IsVerified))
             .ForCtorParam("NeedsReview", opt => opt.MapFrom(src => src.NeedsReview))
             .ForCtorParam("MediaCount", opt => opt.MapFrom(src => 0))
-            .ForCtorParam("AvatarMediaId", opt => opt.MapFrom(src => src.AvatarMediaId))
-            .ForCtorParam("AvatarUrl", opt => opt.MapFrom(src => src.Avatar != null ? src.Avatar.Url : null));
+            .ForCtorParam("AvatarMediaId", opt => opt.MapFrom(src => src.AvatarMediaId));
 
         // CreatePersonDto → Person (for creating new persons)
         CreateMap<CreatePersonDto, Person>()

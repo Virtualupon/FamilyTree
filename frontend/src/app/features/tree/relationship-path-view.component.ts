@@ -126,34 +126,40 @@ import { Sex } from '../../core/models/person.models';
       &__header {
         background: var(--ft-primary);
         color: white;
-        padding: var(--ft-spacing-md) var(--ft-spacing-lg);
+        padding: var(--ft-spacing-lg) var(--ft-spacing-xl);
+        text-align: center;
       }
 
       &__header-content {
         display: flex;
-        align-items: flex-start;
+        align-items: center;
+        justify-content: center;
         gap: var(--ft-spacing-md);
+        position: relative;
       }
 
       &__close {
         color: white;
-        margin: -8px;
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
       }
 
       &__title-group {
-        flex: 1;
+        text-align: center;
       }
 
       &__title {
         margin: 0;
-        font-size: 1.5rem;
-        font-weight: 600;
+        font-size: 2rem;
+        font-weight: 700;
       }
 
       &__description {
-        margin: var(--ft-spacing-xs) 0 0;
-        opacity: 0.9;
-        font-size: 0.875rem;
+        margin: var(--ft-spacing-sm) 0 0;
+        opacity: 0.95;
+        font-size: 1rem;
       }
 
       &__chart {
@@ -541,12 +547,13 @@ export class RelationshipPathViewComponent implements AfterViewInit, OnDestroy {
       .attr('font-weight', 'bold')
       .text(this.getInitials(person.primaryName));
 
-    // Name
+    // Name - use language-appropriate name
+    const displayName = this.getDisplayName(person);
     nodeGroup.append('text')
       .attr('class', 'node-name')
       .attr('x', 45)
       .attr('y', 28)
-      .text(this.truncateName(person.primaryName, 14));
+      .text(this.truncateName(displayName, 14));
 
     // Dates
     const dates = this.formatDates(person);
@@ -619,5 +626,17 @@ export class RelationshipPathViewComponent implements AfterViewInit, OnDestroy {
       return `d. ${death}`;
     }
     return '';
+  }
+
+  private getDisplayName(person: PathPersonNode): string {
+    const lang = this.i18n.currentLang();
+    switch (lang) {
+      case 'ar':
+        return person.nameArabic || person.primaryName;
+      case 'nob':
+        return person.nameNobiin || person.primaryName;
+      default:
+        return person.nameEnglish || person.primaryName;
+    }
   }
 }

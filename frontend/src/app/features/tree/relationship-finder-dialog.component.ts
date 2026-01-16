@@ -9,6 +9,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatRippleModule } from '@angular/material/core';
 
 import { PersonSearchService } from '../../core/services/person-search.service';
+import { PersonMediaService } from '../../core/services/person-media.service';
 import { TreeService } from '../../core/services/tree.service';
 import { TreeContextService } from '../../core/services/tree-context.service';
 import { I18nService, TranslatePipe } from '../../core/i18n';
@@ -16,7 +17,6 @@ import { Sex } from '../../core/models/person.models';
 import { SearchPersonItem, getPrimaryName } from '../../core/models/search.models';
 import { TreePersonNode } from '../../core/models/tree.models';
 import { RelationshipPathResponse } from '../../core/models/relationship-path.models';
-import { PersonNameAvatarComponent } from '../../shared/components/person-name-avatar/person-name-avatar.component';
 
 export interface RelationshipFinderDialogData {
   fromPerson: TreePersonNode | SearchPersonItem;
@@ -38,8 +38,7 @@ export interface RelationshipFinderDialogResult {
     MatButtonModule,
     MatProgressSpinnerModule,
     MatRippleModule,
-    TranslatePipe,
-    PersonNameAvatarComponent
+    TranslatePipe
   ],
   template: `
     <div class="relationship-finder">
@@ -59,8 +58,13 @@ export interface RelationshipFinderDialogResult {
             <div
               class="relationship-finder__avatar"
               [class.relationship-finder__avatar--male]="fromPersonSex === Sex.Male"
-              [class.relationship-finder__avatar--female]="fromPersonSex === Sex.Female">
-              {{ getInitials(fromPersonName) }}
+              [class.relationship-finder__avatar--female]="fromPersonSex === Sex.Female"
+              [class.relationship-finder__avatar--has-image]="fromPersonAvatarUrl()">
+              @if (fromPersonAvatarUrl()) {
+                <img [src]="fromPersonAvatarUrl()" [alt]="fromPersonName" class="relationship-finder__avatar-img">
+              } @else {
+                {{ getInitials(fromPersonName) }}
+              }
             </div>
             <span class="relationship-finder__person-name">{{ fromPersonName }}</span>
           </div>
@@ -84,7 +88,7 @@ export interface RelationshipFinderDialogResult {
                 [class.relationship-finder__avatar--female]="selectedToPerson()!.sex === Sex.Female">
                 {{ getInitials(getPersonDisplayName(selectedToPerson())) }}
               </div>
-              <span class="relationship-finder__person-name">{{ getPersonDisplayName(selectedToPerson()) }}</span>
+              <span class="relationship-finder__person-name">{{ getPersonFullDisplayName(selectedToPerson()) }}</span>
               <i class="fa-solid fa-xmark relationship-finder__remove" aria-hidden="true"></i>
             </div>
           } @else {
@@ -123,9 +127,14 @@ export interface RelationshipFinderDialogResult {
                       [class.disabled]="person.id === data.fromPerson.id"
                       matRipple
                       (click)="selectToPerson(person)">
-                      <app-person-name-avatar [person]="person" size="small"></app-person-name-avatar>
+                      <div
+                        class="relationship-finder__avatar relationship-finder__avatar--small"
+                        [class.relationship-finder__avatar--male]="person.sex === Sex.Male"
+                        [class.relationship-finder__avatar--female]="person.sex === Sex.Female">
+                        {{ getInitials(getPersonDisplayName(person)) }}
+                      </div>
                       <div class="relationship-finder__result-info">
-                        <div class="relationship-finder__result-name">{{ getPersonDisplayName(person) }}</div>
+                        <div class="relationship-finder__result-name">{{ getPersonFullDisplayName(person) }}</div>
                         <div class="relationship-finder__result-meta">
                           @if (person.birthDate) {
                             <span>{{ formatYear(person.birthDate) }}</span>
@@ -268,6 +277,18 @@ export interface RelationshipFinderDialogResult {
           height: 32px;
           font-size: 0.75rem;
         }
+
+        &--has-image {
+          padding: 0;
+          overflow: hidden;
+        }
+      }
+
+      &__avatar-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
       }
 
       &__person-name {
@@ -299,10 +320,26 @@ export interface RelationshipFinderDialogResult {
       }
 
       &__results {
-        max-height: 250px;
+        max-height: 350px;
         overflow-y: auto;
         border: 1px solid var(--ft-border);
         border-radius: var(--ft-radius-md);
+        
+        /* Ensure scrollbar is visible */
+        &::-webkit-scrollbar {
+          width: 6px;
+        }
+        &::-webkit-scrollbar-track {
+          background: var(--ft-surface-variant);
+          border-radius: 3px;
+        }
+        &::-webkit-scrollbar-thumb {
+          background: var(--ft-border);
+          border-radius: 3px;
+        }
+        &::-webkit-scrollbar-thumb:hover {
+          background: var(--ft-on-surface-variant);
+        }
       }
 
       &__loading {
@@ -344,14 +381,25 @@ export interface RelationshipFinderDialogResult {
       &__result-info {
         flex: 1;
         min-width: 0;
+        overflow-x: auto;
+
+        &::-webkit-scrollbar {
+          height: 3px;
+        }
+        &::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        &::-webkit-scrollbar-thumb {
+          background: var(--ft-border);
+          border-radius: 2px;
+        }
       }
 
       &__result-name {
         font-weight: 500;
         font-size: 0.875rem;
         white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        padding-bottom: 2px;
       }
 
       &__result-meta {
@@ -399,6 +447,7 @@ export class RelationshipFinderDialogComponent implements OnInit, OnDestroy {
   readonly dialogRef = inject(MatDialogRef<RelationshipFinderDialogComponent>);
   readonly data = inject<RelationshipFinderDialogData>(MAT_DIALOG_DATA);
   private readonly searchService = inject(PersonSearchService);
+  private readonly mediaService = inject(PersonMediaService);
   private readonly treeService = inject(TreeService);
   private readonly treeContext = inject(TreeContextService);
   private readonly i18n = inject(I18nService);
@@ -406,18 +455,27 @@ export class RelationshipFinderDialogComponent implements OnInit, OnDestroy {
 
   readonly Sex = Sex;
 
+  // Avatar for FROM person
+  fromPersonAvatarUrl = signal<string | null>(null);
+
   // From person info
   get fromPersonName(): string {
     const person = this.data.fromPerson;
-    // Check if it's a TreePersonNode with primaryName property
-    if ('primaryName' in person && person.primaryName) {
-      return person.primaryName;
+    const lang = this.i18n.currentLang();
+    
+    // Get language-appropriate name
+    let name: string | null | undefined = null;
+    
+    if (lang === 'ar') {
+      name = person.nameArabic || person.nameEnglish || person.primaryName;
+    } else if (lang === 'nob') {
+      name = person.nameNobiin || person.nameEnglish || person.primaryName;
+    } else {
+      // English - prefer English, fallback to Arabic, then primaryName
+      name = person.nameEnglish || person.nameArabic || person.primaryName;
     }
-    // Otherwise it's a SearchPersonItem - use getPrimaryName
-    if ('names' in person && person.names) {
-      return getPrimaryName(person as SearchPersonItem);
-    }
-    return this.i18n.t('common.unknown');
+    
+    return name || this.i18n.t('common.unknown');
   }
 
   get fromPersonSex(): Sex {
@@ -434,6 +492,22 @@ export class RelationshipFinderDialogComponent implements OnInit, OnDestroy {
   private searchSubject = new Subject<string>();
 
   ngOnInit(): void {
+    // Load FROM person avatar if available
+    const person = this.data.fromPerson;
+    const avatarMediaId = (person as any).avatarMediaId;
+    if (avatarMediaId) {
+      this.mediaService.getMediaById(avatarMediaId).subscribe({
+        next: (media) => {
+          const objectUrl = this.mediaService.createObjectUrl(
+            media.base64Data,
+            media.mimeType || 'image/jpeg'
+          );
+          this.fromPersonAvatarUrl.set(objectUrl);
+        }
+      });
+    }
+
+    // Setup search debounce
     this.searchSubject.pipe(
       debounceTime(300),
       distinctUntilChanged(),
@@ -450,6 +524,12 @@ export class RelationshipFinderDialogComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+
+    // Revoke avatar object URL
+    const avatarUrl = this.fromPersonAvatarUrl();
+    if (avatarUrl) {
+      URL.revokeObjectURL(avatarUrl);
+    }
   }
 
   onSearchChange(query: string): void {
@@ -466,6 +546,13 @@ export class RelationshipFinderDialogComponent implements OnInit, OnDestroy {
 
     this.searchService.quickSearch(query, 1, 20).subscribe({
       next: (response) => {
+        // DEBUG: Log search results to verify familyName and birthPlaceName
+        console.log('Search results:', response.items.map(p => ({
+          name: p.primaryName,
+          familyName: p.familyName,
+          birthPlaceName: p.birthPlaceName
+        })));
+        
         // Filter out the from person
         const filtered = response.items.filter(p => p.id !== this.data.fromPerson.id);
         this.searchResults.set(filtered);
@@ -479,8 +566,13 @@ export class RelationshipFinderDialogComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Helper to get full display with lineage: Name Father Grandfather - (TreeName) - (Town)
+  // Helper to get display name from SearchPersonItem
   getPersonDisplayName(person: SearchPersonItem | null): string {
+    return person ? getPrimaryName(person) : this.i18n.t('common.unknown');
+  }
+
+  // Helper to get full display with lineage: Name Father Grandfather - (Town)
+  getPersonFullDisplayName(person: SearchPersonItem | null): string {
     if (!person) return this.i18n.t('common.unknown');
 
     const lang = this.i18n.currentLang();

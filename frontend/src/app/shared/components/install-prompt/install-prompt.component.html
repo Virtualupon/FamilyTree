@@ -1,0 +1,37 @@
+@if (showPrompt()) {
+  <div class="install-prompt" [class.install-prompt--visible]="isVisible()">
+    <div class="install-prompt__content">
+      <div class="install-prompt__icon">
+        <i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i>
+      </div>
+      <div class="install-prompt__text">
+        <h3 class="install-prompt__title">{{ 'app.install' | translate }} {{ 'app.title' | translate }}</h3>
+        <p class="install-prompt__message">
+          {{ 'install.message' | translate }}
+        </p>
+      </div>
+    </div>
+    <div class="install-prompt__actions">
+      <button
+        mat-button
+        class="install-prompt__btn install-prompt__btn--dismiss"
+        (click)="dismiss()">
+        {{ 'install.notNow' | translate }}
+      </button>
+      <button
+        mat-flat-button
+        color="primary"
+        class="install-prompt__btn install-prompt__btn--install"
+        (click)="install()">
+        <i class="fa-solid fa-download" aria-hidden="true"></i>
+        {{ 'install.installButton' | translate }}
+      </button>
+    </div>
+    <button
+      class="install-prompt__close"
+      (click)="dismiss()"
+      [attr.aria-label]="'common.close' | translate">
+      <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+    </button>
+  </div>
+}

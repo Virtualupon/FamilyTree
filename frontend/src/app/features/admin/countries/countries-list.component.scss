@@ -1,0 +1,142 @@
+.countries-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+
+  &__title {
+    h1 {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 0 0 8px;
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--ft-on-surface);
+
+      i.fa-solid {
+        color: var(--ft-primary);
+      }
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--ft-on-surface-variant);
+    }
+  }
+}
+
+.filters-card {
+  margin-bottom: 24px;
+}
+
+.filters {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 16px;
+
+  mat-form-field {
+    min-width: 200px;
+  }
+
+  .filter-icon {
+    color: var(--ft-on-surface-variant);
+    margin-right: 8px;
+  }
+
+  .filter-count {
+    margin-left: auto;
+    color: var(--ft-on-surface-variant);
+    font-size: 14px;
+  }
+}
+
+.table-card {
+  overflow: hidden;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.countries-table {
+  width: 100%;
+
+  th {
+    font-weight: 600;
+    color: var(--ft-on-surface-variant);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .flag-cell {
+    font-size: 1.5em;
+    width: 50px;
+    text-align: center;
+  }
+
+  .rtl-cell {
+    direction: rtl;
+    text-align: right;
+    font-family: 'Noto Sans Arabic', 'Amiri', serif;
+  }
+
+  .actions-cell {
+    width: 150px;
+    text-align: center;
+  }
+}
+
+.region-chip {
+  background-color: var(--ft-surface-variant) !important;
+  font-size: 12px;
+}
+
+.status-active {
+  background-color: #e8f5e9 !important;
+  color: #2e7d32 !important;
+}
+
+.status-inactive {
+  background-color: #ffebee !important;
+  color: #c62828 !important;
+}
+
+.no-data {
+  color: var(--ft-on-surface-variant);
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 48px;
+}
+
+.no-data-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px;
+  color: var(--ft-on-surface-variant);
+
+  i.fa-solid {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  p {
+    margin: 0;
+  }
+}

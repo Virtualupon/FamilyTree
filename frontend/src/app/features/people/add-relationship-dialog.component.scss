@@ -1,0 +1,192 @@
+mat-dialog-content {
+  min-width: 400px;
+  max-width: 500px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.town-section {
+  margin-bottom: 16px;
+}
+
+.town-hint {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.54);
+  margin-top: -12px;
+  margin-bottom: 16px;
+}
+
+.search-section {
+  margin-bottom: 16px;
+}
+
+.person-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.person-option .name {
+  font-weight: 500;
+}
+
+.person-option .dates {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 12px;
+}
+
+i.sex-icon {
+  font-size: 16px;
+  width: 18px;
+  height: 18px;
+}
+
+i.sex-icon.male {
+  color: #1976d2;
+}
+
+i.sex-icon.female {
+  color: #e91e63;
+}
+
+.selected-person {
+  margin-bottom: 16px;
+}
+
+.relationship-options,
+.union-options {
+  margin-bottom: 16px;
+}
+
+.date-row {
+  display: flex;
+  gap: 16px;
+}
+
+.date-row mat-form-field {
+  flex: 1;
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #f44336;
+  padding: 8px;
+  background: #ffebee;
+  border-radius: 4px;
+  margin-top: 16px;
+}
+
+mat-dialog-actions {
+  padding: 16px 24px;
+}
+
+mat-spinner {
+  display: inline-block;
+}
+
+.relationship-label-section {
+  margin-bottom: 16px;
+}
+
+.rel-type-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.rel-type-option .english {
+  font-weight: 500;
+  min-width: 140px;
+}
+
+.rel-type-option .arabic {
+  color: #1565c0;
+  font-size: 14px;
+  direction: rtl;
+  min-width: 80px;
+}
+
+.rel-type-option .nubian {
+  color: #7b1fa2;
+  font-size: 13px;
+}
+
+.selected-rel-type {
+  margin-top: 8px;
+}
+
+.trilingual-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.trilingual-label .separator {
+  color: rgba(0, 0, 0, 0.38);
+}
+
+.trilingual-label .arabic-text {
+  color: #1565c0;
+  direction: rtl;
+}
+
+.trilingual-label .nubian-text {
+  color: #7b1fa2;
+}
+
+/* Ensure dialog content doesn't clip dropdowns */
+.add-relationship-dialog .mat-mdc-dialog-content {
+  overflow: visible;
+}
+
+/* Ensure select panels appear above dialog */
+.cdk-overlay-container {
+  z-index: 1100 !important;
+}
+
+.mat-mdc-select-panel {
+  z-index: 1100 !important;
+}
+
+.parent-selection-section {
+  margin-bottom: 16px;
+}
+
+.parent-hint {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.54);
+  margin-top: -12px;
+  margin-bottom: 16px;
+}
+
+.parent-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.no-parents-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: #fff3e0;
+  border-radius: 4px;
+  border: 1px solid #ffb74d;
+  margin-bottom: 16px;
+}
+
+.no-parents-warning i {
+  color: #f57c00;
+  font-size: 20px;
+}
+
+.no-parents-warning p {
+  margin: 0;
+  color: #e65100;
+}

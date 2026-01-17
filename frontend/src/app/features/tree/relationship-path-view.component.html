@@ -1,0 +1,55 @@
+<div class="relationship-path-overlay" [@fadeIn]>
+  <!-- Backdrop -->
+  <div class="relationship-path-overlay__backdrop" (click)="onClose()"></div>
+
+  <!-- Content -->
+  <div class="relationship-path-overlay__content">
+    <!-- Header -->
+    <header class="relationship-path-overlay__header">
+      <div class="relationship-path-overlay__header-content">
+        <button mat-icon-button class="relationship-path-overlay__close" (click)="onClose()">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+        <div class="relationship-path-overlay__title-group">
+          <h2 class="relationship-path-overlay__title">
+            {{ pathData.relationshipNameKey | translate }}
+          </h2>
+          <p class="relationship-path-overlay__description">
+            {{ pathData.relationshipDescription }}
+          </p>
+        </div>
+      </div>
+    </header>
+
+    @if (!pathData.pathFound) {
+      <!-- No Path Found -->
+      <div class="relationship-path-overlay__no-path">
+        <i class="fa-solid fa-link-slash" aria-hidden="true"></i>
+        <h3>{{ 'relationship.noPathFound' | translate }}</h3>
+        <p>{{ pathData.errorMessage || ('relationship.noPathFoundMessage' | translate) }}</p>
+        <button mat-flat-button color="primary" (click)="tryAnother.emit()">
+          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+          {{ 'relationship.tryAnother' | translate }}
+        </button>
+      </div>
+    } @else {
+      <!-- Chart Container -->
+      <div class="relationship-path-overlay__chart" #chartContainer>
+        <svg #svg></svg>
+      </div>
+
+      <!-- Controls -->
+      <div class="relationship-path-overlay__controls">
+        <button mat-icon-button (click)="zoomIn()" [matTooltip]="'common.zoomIn' | translate">
+          <i class="fa-solid fa-plus" aria-hidden="true"></i>
+        </button>
+        <button mat-icon-button (click)="zoomOut()" [matTooltip]="'common.zoomOut' | translate">
+          <i class="fa-solid fa-minus" aria-hidden="true"></i>
+        </button>
+        <button mat-icon-button (click)="fitToScreen()" [matTooltip]="'common.fitToScreen' | translate">
+          <i class="fa-solid fa-expand" aria-hidden="true"></i>
+        </button>
+      </div>
+    }
+  </div>
+</div>

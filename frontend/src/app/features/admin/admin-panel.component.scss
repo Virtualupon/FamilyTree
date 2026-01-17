@@ -1,0 +1,521 @@
+.admin-panel {
+  max-width: 1200px;
+  margin: 0 auto;
+
+  &__header {
+    margin-bottom: 24px;
+  }
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0 0 8px;
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--ft-on-surface);
+
+    i.fa-solid {
+      font-size: 1.75rem;
+      color: var(--ft-primary);
+    }
+  }
+
+  &__subtitle {
+    margin: 0;
+    color: var(--ft-on-surface-variant);
+  }
+
+  &__content {
+    margin-top: 24px;
+  }
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.stat-card {
+  mat-card-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px !important;
+  }
+
+  &__icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    i.fa-solid {
+      font-size: 1.5rem;
+      color: white;
+    }
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__value {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--ft-on-surface);
+  }
+
+  &__label {
+    font-size: 13px;
+    color: var(--ft-on-surface-variant);
+    margin-top: 4px;
+  }
+
+  // Nubian theme colors
+  &--users .stat-card__icon { background: linear-gradient(135deg, #187573 0%, #2B9A97 100%); } // Nubian teal
+  &--trees .stat-card__icon { background: linear-gradient(135deg, #2D7A3E 0%, #3FA055 100%); } // Nubian green
+  &--people .stat-card__icon { background: linear-gradient(135deg, #C17E3E 0%, #D4A574 100%); } // Nubian gold
+  &--relations .stat-card__icon { background: linear-gradient(135deg, #E85D35 0%, #FF7A52 100%); } // Nubian orange
+}
+
+.quick-links {
+  margin-top: 24px;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+
+  .quick-link {
+    text-decoration: none;
+    color: inherit;
+    flex: 1;
+    min-width: 200px;
+    max-width: 300px;
+
+    mat-card {
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+
+      mat-card-content {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px !important;
+
+        i.fa-globe {
+          font-size: 1.5rem;
+          color: var(--ft-primary);
+        }
+
+        span {
+          flex: 1;
+          font-weight: 500;
+        }
+
+        i.fa-chevron-right {
+          color: var(--ft-on-surface-variant);
+        }
+      }
+    }
+  }
+}
+
+.tab-content {
+  padding: 24px;
+}
+
+.tab-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 16px;
+
+  h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+  }
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 48px;
+}
+
+.users-table, .assignments-table, .trees-table {
+  width: 100%;
+
+  th {
+    font-weight: 600;
+    color: var(--ft-on-surface-variant);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+}
+
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #187573 0%, #2B9A97 100%); // Nubian teal
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+
+  &--small {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name {
+  font-weight: 500;
+  color: var(--ft-on-surface);
+}
+
+.user-email {
+  font-size: 12px;
+  color: var(--ft-on-surface-variant);
+}
+
+.role-select {
+  width: 140px;
+
+  ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+    display: none;
+  }
+}
+
+.tree-count {
+  background: var(--ft-surface-variant);
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.tree-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tree-icon {
+  color: var(--ft-primary);
+}
+
+.tree-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.tree-name {
+  font-weight: 500;
+}
+
+.tree-desc {
+  font-size: 12px;
+  color: var(--ft-on-surface-variant);
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.visibility-chip {
+  font-size: 12px;
+
+  i.fa-solid {
+    font-size: 0.75rem;
+    margin-right: 4px;
+  }
+
+  &--public {
+    background-color: #EDF7EF !important; // Nubian green-50
+    color: #2D7A3E !important; // Nubian green
+  }
+
+  &--private {
+    background-color: #FFF8F0 !important; // Nubian gold-50
+    color: #8B5A2B !important; // Nubian gold-700
+  }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px;
+  color: var(--ft-on-surface-variant);
+
+  i.fa-solid {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  p {
+    margin: 0;
+  }
+
+  .empty-hint {
+    font-size: 13px;
+    margin-top: 8px;
+    opacity: 0.7;
+  }
+}
+
+.tab-description {
+  font-size: 13px;
+  color: var(--ft-on-surface-variant);
+  margin: 0 0 16px;
+  flex: 1;
+}
+
+.town-chip {
+  background-color: #E6F5F5 !important; // Nubian teal-50
+  color: #187573 !important; // Nubian teal
+}
+
+.modal-hint {
+  font-size: 13px;
+  color: var(--ft-on-surface-variant);
+  margin: 0 0 16px;
+  padding: 12px;
+  background: var(--ft-surface-variant);
+  border-radius: 8px;
+}
+
+.option-secondary {
+  opacity: 0.7;
+}
+
+.town-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.town-option-name {
+  font-weight: 500;
+}
+
+.town-option-country {
+  color: var(--ft-on-surface-variant);
+  font-size: 12px;
+}
+
+.town-option-trees {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--ft-on-surface-variant);
+  background: var(--ft-surface-variant);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;  /* Below CDK overlay (1100) so mat-select dropdowns appear above */
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 480px;
+  margin: 16px;
+  z-index: 1000;  /* Above backdrop but below CDK overlay */
+  position: relative;
+}
+
+.full-width {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.half-width {
+  flex: 1;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: #ffebee;
+  color: #c62828;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+
+  i.fa-solid {
+    font-size: 1.125rem;
+  }
+}
+
+.input-prefix-icon {
+  font-size: 1rem;
+  color: var(--ft-on-surface-variant);
+  margin-right: 8px;
+}
+
+// TODO: ::ng-deep is deprecated. Consider using component styles with ViewEncapsulation.None
+// or restructuring styles to avoid deep selectors.
+// See: https://angular.io/guide/component-styles#deprecated-deep--and-ng-deep
+::ng-deep {
+  .mat-mdc-tab-labels {
+    gap: 8px;
+  }
+
+  .mat-mdc-tab {
+    min-width: auto;
+    padding: 0 24px;
+
+    .mdc-tab__content {
+      gap: 8px;
+    }
+  }
+}
+
+// Transliteration Tab Styles
+.transliteration-tab {
+  .transliteration-header {
+    margin-bottom: 24px;
+
+    h3 {
+      margin: 0 0 8px;
+      font-size: 1.25rem;
+    }
+
+    .transliteration-desc {
+      color: var(--ft-on-surface-variant);
+      margin: 0;
+    }
+  }
+
+  .transliteration-card {
+    margin-bottom: 24px;
+
+    mat-card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1rem;
+
+      i.fa-solid {
+        color: var(--ft-primary);
+      }
+    }
+  }
+
+  .bulk-options {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+
+    mat-form-field {
+      min-width: 200px;
+    }
+  }
+
+  .translit-result {
+    padding: 16px;
+    border-radius: 8px;
+    background: var(--ft-surface-variant);
+    margin-top: 16px;
+
+    &--success {
+      background: #e8f5e9;
+    }
+
+    &__header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+      margin-bottom: 8px;
+
+      .fa-check-circle { color: #4caf50; }
+      .fa-exclamation-circle { color: #f44336; }
+    }
+
+    &__stats {
+      display: flex;
+      gap: 24px;
+      font-size: 14px;
+      color: var(--ft-on-surface-variant);
+
+      .error-count {
+        color: #f44336;
+      }
+    }
+  }
+
+  .mappings-table {
+    width: 100%;
+
+    .rtl-cell {
+      direction: rtl;
+      text-align: right;
+      font-family: 'Noto Sans Arabic', 'Amiri', serif;
+    }
+
+    .nobiin-cell {
+      font-family: 'Noto Sans Coptic', 'Antinoou', serif;
+    }
+  }
+
+  .confidence-high { background: #e8f5e9 !important; color: #2e7d32 !important; }
+  .confidence-medium { background: #fff3e0 !important; color: #e65100 !important; }
+  .confidence-low { background: #ffebee !important; color: #c62828 !important; }
+
+  .empty-state--small {
+    padding: 24px;
+
+    i.fa-solid {
+      font-size: 2rem;
+      color: #4caf50;
+    }
+  }
+}

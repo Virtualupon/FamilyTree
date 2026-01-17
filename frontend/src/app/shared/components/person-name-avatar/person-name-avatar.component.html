@@ -1,0 +1,22 @@
+<span class="person-name-avatar" [class.clickable]="linkToProfile">
+  <span
+    class="avatar"
+    [class.avatar--male]="person?.sex === 1"
+    [class.avatar--female]="person?.sex === 2"
+    [class.avatar--small]="size === 'small'"
+    [class.avatar--medium]="size === 'medium'"
+    [class.avatar--large]="size === 'large'">
+    @if (avatarUrl()) {
+      <img [src]="avatarUrl()" [alt]="displayName" class="avatar__img">
+    } @else if (isLoading()) {
+      <mat-spinner [diameter]="spinnerSize"></mat-spinner>
+    } @else {
+      <span class="avatar__initials">{{ initials }}</span>
+    }
+  </span>
+  @if (linkToProfile && person && person.id) {
+    <a [routerLink]="['/persons', person.id]" class="name-link">{{ displayName }}</a>
+  } @else {
+    <span class="name-text">{{ displayName }}</span>
+  }
+</span>

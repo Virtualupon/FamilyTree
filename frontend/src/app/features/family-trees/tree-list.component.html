@@ -1,0 +1,503 @@
+<div class="tree-list-page">
+  <!-- Greeting Header with Town Selector -->
+  <div class="greeting-header">
+    <div class="greeting-content">
+      <div class="greeting-text">
+        <h1>{{ getGreeting() }}, {{ getUserFirstName() }}!</h1>
+        <p class="greeting-subtitle">{{ 'trees.greetingSubtitle' | translate }}</p>
+      </div>
+
+      <!-- Town Selector Dropdown -->
+      <div class="town-selector-container">
+        <label class="town-selector-label">{{ 'trees.selectYourTown' | translate }}</label>
+        <div class="town-selector-dropdown" (click)="toggleTownDropdown()">
+          <div class="town-selector-value">
+            <svg class="town-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+            <span>{{ getSelectedTownDisplayName() || ('trees.chooseTown' | translate) }}</span>
+            <svg class="dropdown-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </div>
+
+          @if (showTownDropdown()) {
+            <div class="town-dropdown-menu">
+              @for (town of availableTowns(); track town.id) {
+                <div
+                  class="town-dropdown-item"
+                  [class.active]="selectedTownId === town.id"
+                  (click)="selectTown(town); $event.stopPropagation()">
+                  <span class="town-name">{{ getLocalizedTownName(town) }}</span>
+                  <span class="town-meta">{{ town.treeCount || 0 }} {{ 'nav.trees' | translate }}</span>
+                  @if (selectedTownId === town.id) {
+                    <svg class="check-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                  }
+                </div>
+              }
+              @if (availableTowns().length === 0) {
+                <div class="town-dropdown-empty">
+                  {{ 'nav.noTownsAssigned' | translate }}
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Area -->
+  @if (!selectedTownId) {
+    <!-- No Town Selected - Show prompt -->
+    <div class="empty-state select-town-prompt">
+      <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+      </svg>
+      <h3>{{ 'trees.selectTownFirst' | translate }}</h3>
+      <p>{{ 'trees.selectTownHint' | translate }}</p>
+    </div>
+  } @else if (!selectedFamilyId()) {
+    <!-- Town Selected - Show Families -->
+    <div class="section-header">
+      <div class="section-title">
+        <h2>{{ getSelectedTownDisplayName() }} - {{ 'trees.title' | translate }}</h2>
+        <p class="section-subtitle">{{ 'trees.manageFamilies' | translate }}</p>
+      </div>
+      <div class="section-actions">
+        <button class="btn-secondary" (click)="showImportModal = true">
+          <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+          </svg>
+          {{ 'trees.import' | translate }}
+        </button>
+        <button class="btn-primary" (click)="showCreateModal = true">
+          <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+          {{ 'familyGroups.create' | translate }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Search Families -->
+    <div class="filters">
+      <div class="search-box">
+        <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <input
+          type="text"
+          [(ngModel)]="familySearchQuery"
+          [placeholder]="'familyGroups.searchPlaceholder' | translate"
+          class="search-input">
+      </div>
+    </div>
+
+    <!-- Loading Families -->
+    @if (loadingFamilies()) {
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>{{ 'common.loading' | translate }}</p>
+      </div>
+    }
+
+    <!-- Families Grid -->
+    @if (!loadingFamilies() && filteredFamilies().length > 0) {
+      <div class="stats-bar">
+        <span>{{ filteredFamilies().length }} {{ 'familyGroups.found' | translate }}</span>
+      </div>
+      <div class="family-grid">
+        @for (family of filteredFamilies(); track family.id) {
+          <div class="family-card" (click)="selectFamily(family.id)" [style.border-left-color]="family.color || '#6366f1'">
+            <div class="family-card-header">
+              <div class="family-color-badge" [style.background-color]="family.color || '#6366f1'"></div>
+              <h3 class="family-name">{{ getLocalizedFamilyName(family) }}</h3>
+            </div>
+            <div class="family-card-body">
+              <div class="family-meta">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                <span>{{ family.memberCount }} {{ 'trees.people' | translate }}</span>
+              </div>
+            </div>
+            <div class="family-card-action">
+              <span>{{ 'trees.viewMembers' | translate }}</span>
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+              </svg>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- No Families -->
+    @if (!loadingFamilies() && filteredFamilies().length === 0) {
+      <div class="empty-state">
+        @if (familySearchQuery) {
+          <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <h3>{{ 'familyGroups.noResults' | translate }}</h3>
+          <p>{{ 'familyGroups.tryDifferentSearch' | translate }}</p>
+          <button class="btn-secondary" (click)="familySearchQuery = ''">{{ 'trees.clearFilters' | translate }}</button>
+        } @else {
+          <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          <h3>{{ 'familyGroups.noFamilies' | translate }}</h3>
+          <p>{{ 'familyGroups.createFirst' | translate }}</p>
+          <button class="btn-primary" (click)="showCreateModal = true">
+            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            {{ 'familyGroups.createFirstButton' | translate }}
+          </button>
+        }
+      </div>
+    }
+  } @else {
+    <!-- Family Selected - Show People -->
+    <div class="section-header with-back">
+      <button class="back-button" (click)="clearFamilySelection()">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+        {{ 'common.back' | translate }}
+      </button>
+      <div class="section-title">
+        <h2>{{ getSelectedFamilyDisplayName() }}</h2>
+        <p class="section-subtitle">{{ selectedFamilyDetails()?.memberCount || 0 }} {{ 'trees.people' | translate }}</p>
+      </div>
+    </div>
+
+    <!-- Loading Members -->
+    @if (loadingMembers()) {
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>{{ 'common.loading' | translate }}</p>
+      </div>
+    }
+
+    <!-- Members List -->
+    @if (!loadingMembers() && selectedFamilyDetails()) {
+      <div class="members-grid">
+        @for (member of selectedFamilyDetails()!.members; track member.id) {
+          <div class="member-card" [routerLink]="['/people', member.id]">
+            <div class="member-avatar" [class.female]="member.sex === 1" [class.unknown]="member.sex !== 0 && member.sex !== 1">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+              </svg>
+            </div>
+            <div class="member-info">
+              <h4 class="member-name">{{ member.primaryName || ('person.unknown' | translate) }}</h4>
+              <div class="member-meta">
+                @if (member.birthDate) {
+                  <span>{{ formatYear(member.birthDate) }}</span>
+                }
+                @if (member.birthDate && member.deathDate) {
+                  <span>-</span>
+                }
+                @if (member.deathDate) {
+                  <span>{{ formatYear(member.deathDate) }}</span>
+                }
+                @if (!member.birthDate && !member.deathDate && member.isLiving) {
+                  <span class="living-badge">{{ 'personForm.isLiving' | translate }}</span>
+                }
+              </div>
+            </div>
+            <svg class="member-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+          </div>
+        }
+        @if (selectedFamilyDetails()!.members.length === 0) {
+          <div class="empty-state small">
+            <p>{{ 'familyGroups.noMembers' | translate }}</p>
+          </div>
+        }
+      </div>
+    }
+  }
+
+  <!-- Old Filters - Hidden -->
+  <div class="filters" style="display: none;">
+    <div class="search-box">
+      <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+      </svg>
+      <input
+        type="text"
+        [(ngModel)]="searchQuery"
+        [placeholder]="'trees.searchPlaceholder' | translate"
+        class="search-input">
+    </div>
+    <select [(ngModel)]="selectedTownId" class="town-filter">
+      <option [ngValue]="null">{{ 'trees.allTowns' | translate }}</option>
+      @for (town of towns(); track town.id) {
+        <option [ngValue]="town.id">{{ getLocalizedTownName(town) }}</option>
+      }
+    </select>
+  </div>
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>{{ 'common.loading' | translate }}</p>
+    </div>
+  }
+
+  <!-- Error -->
+  @if (error()) {
+    <div class="error-state">
+      <svg class="error-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+      </svg>
+      <p>{{ error() }}</p>
+      <button class="btn-secondary" (click)="loadTrees()">{{ 'common.retry' | translate }}</button>
+    </div>
+  }
+
+  <!-- Tree Grid -->
+  @if (!loading() && filteredTrees().length > 0) {
+    <div class="stats-bar">
+      <span>{{ filteredTrees().length }} {{ 'trees.treesFound' | translate }}</span>
+    </div>
+    <div class="tree-grid">
+      @for (tree of filteredTrees(); track tree.id) {
+        <div class="tree-card" [class.public]="tree.isPublic">
+          <!-- Cover -->
+          <div class="card-cover">
+            @if (tree.coverImageUrl) {
+              <img [src]="tree.coverImageUrl" alt="" class="cover-image">
+            } @else {
+              <div class="cover-gradient"></div>
+            }
+            <div class="cover-overlay">
+              @if (tree.isPublic) {
+                <span class="badge public-badge">
+                  <svg class="badge-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"/>
+                  </svg>
+                  {{ 'trees.public' | translate }}
+                </span>
+              }
+            </div>
+            <div class="tree-icon">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Content -->
+          <div class="card-content">
+            <h3 class="tree-name">{{ tree.name }}</h3>
+            @if (tree.description) {
+              <p class="tree-description">{{ tree.description }}</p>
+            }
+
+            <div class="tree-meta">
+              <div class="meta-item">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                <span>{{ tree.personCount }} {{ 'trees.people' | translate }}</span>
+              </div>
+              @if (tree.userRole !== null && tree.userRole !== undefined) {
+                <span class="role-badge" [class]="'role-' + tree.userRole">
+                  {{ getRoleLabel(tree.userRole) }}
+                </span>
+              }
+            </div>
+
+            <div class="card-actions">
+              <a [routerLink]="['/trees', tree.id]" class="btn-primary btn-sm">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+                {{ 'trees.open' | translate }}
+              </a>
+              @if (canManage(tree.userRole)) {
+                <a [routerLink]="['/trees', tree.id, 'settings']" class="btn-icon" [title]="'trees.settings' | translate">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  </svg>
+                </a>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Empty State -->
+  @if (!loading() && !error() && filteredTrees().length === 0) {
+    <div class="empty-state">
+      @if (searchQuery || selectedTownId) {
+        <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <h3>{{ 'trees.noResults' | translate }}</h3>
+        <p>{{ 'trees.tryDifferentSearch' | translate }}</p>
+        <button class="btn-secondary" (click)="clearFilters()">{{ 'trees.clearFilters' | translate }}</button>
+      } @else {
+        <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
+        </svg>
+        <h3>{{ 'trees.noTrees' | translate }}</h3>
+        <p>{{ 'trees.createFirst' | translate }}</p>
+        <button class="btn-primary" (click)="showCreateModal = true">
+          <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+          {{ 'trees.createFirstButton' | translate }}
+        </button>
+      }
+    </div>
+  }
+
+  <!-- Create Modal -->
+  @if (showCreateModal) {
+    <div class="modal-backdrop" (click)="showCreateModal = false">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>{{ 'trees.createTitle' | translate }}</h2>
+          <button class="modal-close" (click)="showCreateModal = false">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        <form (ngSubmit)="createTree()" class="modal-body">
+          <div class="form-group">
+            <label class="form-label required">{{ 'trees.name' | translate }}</label>
+            <input
+              type="text"
+              [(ngModel)]="newTree.name"
+              name="name"
+              required
+              class="form-input"
+              [placeholder]="'trees.namePlaceholder' | translate">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">{{ 'trees.description' | translate }}</label>
+            <textarea
+              [(ngModel)]="newTree.description"
+              name="description"
+              rows="3"
+              class="form-input"
+              [placeholder]="'trees.descriptionPlaceholder' | translate"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label required">{{ 'trees.town' | translate }}</label>
+            <select [(ngModel)]="newTree.townId" name="townId" class="form-input" required (change)="onCreateTreeTownChange()">
+              <option [ngValue]="''" disabled>{{ 'trees.selectTown' | translate }}</option>
+              @for (town of towns(); track town.id) {
+                <option [ngValue]="town.id">{{ getLocalizedTownName(town) }}{{ town.country ? ' (' + town.country + ')' : '' }}</option>
+              }
+            </select>
+            <p class="form-hint">{{ 'trees.townHintRequired' | translate }}</p>
+
+            @if (newTree.townId && getSelectedCreateTown()) {
+              <div class="town-confirmation">
+                <div class="town-confirmation-header">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <span>{{ 'trees.confirmTownSelection' | translate }}</span>
+                </div>
+                <div class="town-confirmation-details">
+                  <div class="town-name-row">
+                    <span class="label">English:</span>
+                    <strong>{{ getSelectedCreateTown()?.nameEn || getSelectedCreateTown()?.name || '-' }}</strong>
+                  </div>
+                  <div class="town-name-row">
+                    <span class="label">العربية:</span>
+                    <strong dir="rtl">{{ getSelectedCreateTown()?.nameAr || '-' }}</strong>
+                  </div>
+                  @if (getSelectedCreateTown()?.nameLocal) {
+                    <div class="town-name-row">
+                      <span class="label">Local:</span>
+                      <strong>{{ getSelectedCreateTown()?.nameLocal }}</strong>
+                    </div>
+                  }
+                  @if (getSelectedCreateTown()?.country) {
+                    <div class="town-name-row">
+                      <span class="label">Country:</span>
+                      <strong>{{ getSelectedCreateTown()?.country }}</strong>
+                    </div>
+                  }
+                </div>
+                <p class="town-confirmation-warning">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                  </svg>
+                  {{ 'trees.townSelectionWarning' | translate }}
+                </p>
+              </div>
+            }
+          </div>
+
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                [(ngModel)]="newTree.isPublic"
+                name="isPublic"
+                class="checkbox">
+              <span>{{ 'trees.makePublic' | translate }}</span>
+            </label>
+          </div>
+
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                [(ngModel)]="newTree.allowCrossTreeLinking"
+                name="allowCrossTreeLinking"
+                class="checkbox">
+              <span>{{ 'trees.allowLinking' | translate }}</span>
+            </label>
+            <p class="form-hint">{{ 'trees.linkingHint' | translate }}</p>
+          </div>
+
+          @if (createError()) {
+            <div class="error-message">{{ createError() }}</div>
+          }
+
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary" (click)="showCreateModal = false">
+              {{ 'common.cancel' | translate }}
+            </button>
+            <button type="submit" class="btn-primary" [disabled]="creating()">
+              @if (creating()) {
+                <span class="spinner-sm"></span>
+              }
+              {{ creating() ? ('common.creating' | translate) : ('trees.create' | translate) }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- GEDCOM Import Dialog -->
+  @if (showImportModal) {
+    <app-gedcom-import-dialog
+      (close)="showImportModal = false"
+      (imported)="onImportComplete()">
+    </app-gedcom-import-dialog>
+  }
+</div>

@@ -1,0 +1,44 @@
+<div class="offline-page">
+  <div class="offline-page__container">
+    <div class="offline-page__icon">
+      <i class="fa-solid fa-wifi" aria-hidden="true"></i>
+      <div class="offline-page__icon-slash"></div>
+    </div>
+
+    <h1 class="offline-page__title">{{ 'offline.title' | translate }}</h1>
+
+    <p class="offline-page__message">
+      {{ 'offline.message' | translate }}
+    </p>
+
+    <div class="offline-page__actions">
+      <button
+        mat-flat-button
+        color="primary"
+        class="offline-page__btn"
+        (click)="tryAgain()">
+        <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+        {{ 'offline.tryAgain' | translate }}
+      </button>
+
+      @if (networkService.isOnline()) {
+        <button
+          mat-stroked-button
+          class="offline-page__btn offline-page__btn--secondary"
+          (click)="goHome()">
+          <i class="fa-solid fa-house" aria-hidden="true"></i>
+          {{ 'offline.goHome' | translate }}
+        </button>
+      }
+    </div>
+
+    <div class="offline-page__tips">
+      <h3>{{ 'offline.tipsTitle' | translate }}</h3>
+      <ul>
+        <li>{{ 'offline.tip1' | translate }}</li>
+        <li>{{ 'offline.tip2' | translate }}</li>
+        <li>{{ 'offline.tip3' | translate }}</li>
+      </ul>
+    </div>
+  </div>
+</div>

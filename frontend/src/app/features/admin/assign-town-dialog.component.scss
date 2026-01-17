@@ -1,0 +1,41 @@
+.dialog-content {
+  min-width: 400px;
+  padding-top: 8px;
+}
+
+.hint {
+  color: rgba(0, 0, 0, 0.6);
+  margin-bottom: 16px;
+}
+
+.selected-user {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.full-width {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.town-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.town-option-name {
+  flex: 1;
+}
+
+.town-option-country {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 12px;
+}
+
+.town-option-trees {
+  color: rgba(0, 0, 0, 0.5);
+  font-size: 12px;
+}

@@ -1,0 +1,90 @@
+.people-page {
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--ft-spacing-lg);
+  }
+
+  &__title-section {
+    display: flex;
+    align-items: baseline;
+    gap: var(--ft-spacing-sm);
+  }
+
+  &__count {
+    color: var(--ft-text-secondary);
+    font-size: var(--ft-font-size-sm);
+  }
+
+  &__duration {
+    color: var(--ft-text-tertiary);
+    font-size: var(--ft-font-size-xs);
+  }
+
+  &__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ft-spacing-md);
+    margin-bottom: var(--ft-spacing-lg);
+  }
+
+  &__content {
+    min-height: 300px;
+  }
+
+  &__load-more {
+    display: flex;
+    justify-content: center;
+    padding: var(--ft-spacing-xl) 0;
+  }
+
+  &__fab {
+    position: fixed;
+    bottom: calc(var(--ft-spacing-xl) + 56px);
+    right: var(--ft-spacing-lg);
+    z-index: 100;
+  }
+}
+
+.people-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--ft-spacing-md);
+}
+
+.ft-search__script-hint {
+  font-size: var(--ft-font-size-xs);
+  color: var(--ft-primary);
+  background: var(--ft-primary-light);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-right: var(--ft-spacing-xs);
+}
+
+.ft-person-card__alt-names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ft-spacing-xs);
+  margin-top: var(--ft-spacing-xs);
+}
+
+.ft-person-card__alt-name {
+  font-size: var(--ft-font-size-xs);
+  color: var(--ft-text-secondary);
+  direction: auto;
+}
+
+.ft-person-card__counts {
+  display: flex;
+  gap: var(--ft-spacing-xs);
+  margin-top: var(--ft-spacing-xs);
+}
+
+mat-divider {
+  margin: var(--ft-spacing-xs) 0;
+}
+
+.text-error {
+  color: var(--ft-error) !important;
+}

@@ -1,0 +1,119 @@
+.person-search-container {
+  width: 100%;
+}
+
+.filter-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 8px;
+
+  .filter-field {
+    flex: 1;
+
+    i.fa-solid {
+      margin-right: 8px;
+      color: rgba(0, 0, 0, 0.54);
+    }
+  }
+}
+
+.search-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 16px;
+  background-color: #fff8e1;
+  border-radius: 4px;
+  color: #f57c00;
+  font-size: 0.85em;
+
+  i.fa-solid {
+    font-size: 16px;
+  }
+}
+
+.full-width {
+  width: 100%;
+
+  i.fa-solid {
+    margin-right: 8px;
+    color: rgba(0, 0, 0, 0.54);
+  }
+}
+
+.country-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .country-flag {
+    font-size: 1.1em;
+  }
+}
+
+.person-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+
+  .person-name {
+    flex: 1;
+    font-weight: 500;
+  }
+
+  .person-details {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85em;
+    color: rgba(0, 0, 0, 0.6);
+  }
+
+  .dates {
+    font-size: 12px;
+  }
+
+  i.sex-icon {
+    font-size: 14px;
+  }
+
+  i.sex-icon.male {
+    color: #1976d2;
+  }
+
+  i.sex-icon.female {
+    color: #e91e63;
+  }
+}
+
+.selected-person {
+  margin-top: 8px;
+
+  mat-chip-row {
+    i.fa-solid {
+      font-size: 14px;
+    }
+
+    i.male {
+      color: #1976d2;
+    }
+
+    i.female {
+      color: #e91e63;
+    }
+  }
+}
+
+mat-spinner {
+  display: inline-block;
+  margin-right: 8px;
+}
+
+@media (max-width: 600px) {
+  .filter-row {
+    flex-direction: column;
+    gap: 0;
+  }
+}

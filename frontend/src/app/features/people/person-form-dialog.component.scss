@@ -1,0 +1,178 @@
+.person-form-dialog {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 90vh;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--ft-spacing-md);
+    border-bottom: 1px solid var(--ft-divider);
+    position: sticky;
+    top: 0;
+    background: var(--ft-surface);
+    z-index: 1;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+
+  &__content {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--ft-spacing-sm);
+    padding: var(--ft-spacing-md);
+    border-top: 1px solid var(--ft-divider);
+    position: sticky;
+    bottom: 0;
+    background: var(--ft-surface);
+
+    button {
+      min-height: var(--ft-touch-target);
+    }
+  }
+}
+
+.form-tab-content {
+  padding: var(--ft-spacing-md);
+}
+
+.full-width {
+  width: 100%;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.form-row {
+  display: flex;
+  gap: var(--ft-spacing-md);
+
+  @media (max-width: 500px) {
+    flex-direction: column;
+    gap: 0;
+  }
+}
+
+.precision-field {
+  width: 120px;
+
+  @media (max-width: 500px) {
+    width: 100%;
+  }
+}
+
+.form-field-toggle {
+  margin-bottom: var(--ft-spacing-md);
+}
+
+.form-section {
+  margin-bottom: var(--ft-spacing-lg);
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: var(--ft-spacing-sm);
+    margin: 0 0 var(--ft-spacing-md);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--ft-on-surface-variant);
+
+    i.fa-solid {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+  }
+}
+
+.name-panel {
+  margin-bottom: var(--ft-spacing-md);
+}
+
+.name-form-content {
+  padding-top: var(--ft-spacing-md);
+}
+
+.name-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--ft-spacing-sm);
+}
+
+.names-hint {
+  color: var(--ft-on-surface-variant);
+  font-size: 0.875rem;
+  margin-bottom: var(--ft-spacing-md);
+}
+
+.name-field-arabic input {
+  font-family: 'Noto Naskh Arabic', 'Arabic Typesetting', serif;
+  font-size: 1.1em;
+}
+
+.transliterate-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--ft-spacing-md);
+  margin-top: var(--ft-spacing-md);
+  padding: var(--ft-spacing-md);
+  background: var(--ft-surface-variant);
+  border-radius: 8px;
+}
+
+.transliterate-hint {
+  color: var(--ft-on-surface-variant);
+  font-size: 0.75rem;
+}
+
+.family-color {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+// TODO: ::ng-deep is deprecated. Consider using component styles with ViewEncapsulation.None
+// or restructuring styles to avoid deep selectors.
+// See: https://angular.io/guide/component-styles#deprecated-deep--and-ng-deep
+::ng-deep .mat-mdc-tab-body-wrapper {
+  flex: 1;
+}
+
+mat-spinner {
+  display: inline-block;
+}
+
+.country-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .country-flag {
+    font-size: 1.2em;
+    line-height: 1;
+  }
+
+  .country-name {
+    flex: 1;
+  }
+}
+
+.selected-flag {
+  font-size: 1.2em;
+  margin-right: 8px;
+}

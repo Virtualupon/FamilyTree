@@ -1,0 +1,46 @@
+<div class="avatar-container" [class]="size">
+  <div class="avatar" [class.has-image]="displayUrl()">
+    @if (displayUrl()) {
+      <img [src]="displayUrl()" [alt]="displayName" (error)="onImageError()">
+    } @else if (isLoading()) {
+      <mat-spinner [diameter]="spinnerSize"></mat-spinner>
+    } @else {
+      <span class="initials">{{ initials }}</span>
+    }
+
+    @if (uploading) {
+      <div class="loading-overlay">
+        <mat-spinner [diameter]="spinnerSize"></mat-spinner>
+      </div>
+    }
+  </div>
+
+  @if (editable && !uploading) {
+    <div class="avatar-controls">
+      <input
+        type="file"
+        #fileInput
+        [accept]="acceptTypes"
+        (change)="onFileSelected($event)"
+        hidden>
+
+      <button
+        mat-icon-button
+        (click)="fileInput.click()"
+        [matTooltip]="displayUrl() ? 'Change photo' : 'Add photo'"
+        class="control-btn">
+        <mat-icon>{{ displayUrl() ? 'edit' : 'add_a_photo' }}</mat-icon>
+      </button>
+
+      @if (displayUrl()) {
+        <button
+          mat-icon-button
+          (click)="removeAvatar()"
+          matTooltip="Remove photo"
+          class="control-btn control-btn--delete">
+          <mat-icon>delete</mat-icon>
+        </button>
+      }
+    </div>
+  }
+</div>

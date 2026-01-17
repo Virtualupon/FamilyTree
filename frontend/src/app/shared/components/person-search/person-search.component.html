@@ -1,0 +1,101 @@
+<div class="person-search-container">
+  <!-- Filter Row -->
+  <div class="filter-row">
+    <!-- Town Filter (Optional) -->
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>{{ 'common.town' | translate }}</mat-label>
+      <mat-select [value]="selectedTownId()" (selectionChange)="onTownChange($event.value)">
+        <mat-option [value]="null">{{ 'common.allTowns' | translate }}</mat-option>
+        @for (town of towns(); track town.id) {
+          <mat-option [value]="town.id">
+            {{ getLocalizedTownName(town) }}
+          </mat-option>
+        }
+      </mat-select>
+      <i class="fa-solid fa-city" matPrefix aria-hidden="true"></i>
+      <mat-hint>{{ 'common.optional' | translate }}</mat-hint>
+    </mat-form-field>
+
+    <!-- Nationality Filter (Optional) -->
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>{{ 'personForm.nationality' | translate }}</mat-label>
+      <mat-select [value]="selectedNationality()" (selectionChange)="onNationalityChange($event.value)">
+        <mat-option [value]="null">{{ 'common.allNationalities' | translate }}</mat-option>
+        @for (country of countries(); track country.code) {
+          <mat-option [value]="country.code">
+            <span class="country-option">
+              <span class="country-flag">{{ getCountryFlag(country.code) }}</span>
+              <span>{{ getCountryDisplayName(country) }}</span>
+            </span>
+          </mat-option>
+        }
+      </mat-select>
+      <i class="fa-solid fa-flag" matPrefix aria-hidden="true"></i>
+      <mat-hint>{{ 'common.optional' | translate }}</mat-hint>
+    </mat-form-field>
+  </div>
+
+  <!-- Search Hint -->
+  @if (!selectedTownId() && !selectedNationality()) {
+    <div class="search-hint">
+      <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+      <span>{{ 'relationships.filterHint' | translate }}</span>
+    </div>
+  }
+
+  <!-- Person Search -->
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>{{ 'relationships.searchPerson' | translate }}</mat-label>
+    <i class="fa-solid fa-magnifying-glass" matPrefix aria-hidden="true"></i>
+    <input matInput
+           [formControl]="searchControl"
+           [matAutocomplete]="personAuto"
+           [placeholder]="placeholder">
+    @if (selectedPerson()) {
+      <button mat-icon-button matSuffix (click)="clearSelection()" type="button">
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+    }
+    <mat-autocomplete #personAuto="matAutocomplete"
+                      [displayWith]="displayPersonFn"
+                      (optionSelected)="onPersonSelected($event.option.value)">
+      @for (person of searchResults(); track person.id) {
+        <mat-option [value]="person">
+          <div class="person-option">
+            <app-person-name-avatar [person]="person" size="small"></app-person-name-avatar>
+            <span class="person-details">
+              @if (person.birthDate || person.deathDate) {
+                <span class="dates">({{ formatYear(person.birthDate) }} - {{ formatYear(person.deathDate) }})</span>
+              }
+              @if (person.sex !== null && person.sex !== undefined) {
+                <i class="fa-solid sex-icon" [class]="getSexClass(person.sex)" [ngClass]="getSexIcon(person.sex)" aria-hidden="true"></i>
+              }
+            </span>
+          </div>
+        </mat-option>
+      }
+      @if (isSearching()) {
+        <mat-option disabled>
+          <mat-spinner diameter="20"></mat-spinner>
+          <span>{{ 'common.searching' | translate }}</span>
+        </mat-option>
+      }
+      @if (!isSearching() && searchResults().length === 0 && searchControl.value && searchControl.value.length >= 2) {
+        <mat-option disabled>{{ 'common.noResults' | translate }}</mat-option>
+      }
+    </mat-autocomplete>
+  </mat-form-field>
+
+  <!-- Selected Person Display -->
+  @if (selectedPerson()) {
+    <div class="selected-person">
+      <mat-chip-row (removed)="clearSelection()">
+        <i class="fa-solid" [ngClass]="getSexIcon(selectedPerson()!.sex)" [class]="getSexClass(selectedPerson()!.sex)" matChipAvatar aria-hidden="true"></i>
+        {{ getPersonDisplayName(selectedPerson()!) }}
+        <button matChipRemove>
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </mat-chip-row>
+    </div>
+  }
+</div>

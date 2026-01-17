@@ -1,0 +1,161 @@
+<div class="dashboard">
+  <!-- Welcome Hero -->
+  <section class="dashboard__hero">
+    <div class="dashboard__hero-content">
+      <div class="dashboard__greeting">
+        <h1 class="dashboard__title">{{ getGreeting() }}</h1>
+        @if (currentUser()) {
+          <p class="dashboard__subtitle">
+            {{ currentUser()!.firstName || currentUser()!.email }}
+          </p>
+        }
+      </div>
+      <div class="dashboard__hero-illustration">
+        <i class="fa-solid fa-people-roof" aria-hidden="true"></i>
+      </div>
+    </div>
+  </section>
+
+  <!-- No Trees Prompt -->
+  @if (hasNoTrees() && !checkingTrees()) {
+    <section class="dashboard__section">
+      <div class="no-trees-prompt">
+        <div class="no-trees-prompt__icon">
+          <i class="fa-solid fa-sitemap" aria-hidden="true"></i>
+        </div>
+        <div class="no-trees-prompt__content">
+          <h2>{{ 'dashboard.getStarted' | translate }}</h2>
+          <p>{{ 'dashboard.noTreesMessage' | translate }}</p>
+        </div>
+        <div class="no-trees-prompt__actions">
+          <button mat-flat-button color="primary" routerLink="/trees">
+            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+            {{ 'dashboard.createTree' | translate }}
+          </button>
+        </div>
+      </div>
+    </section>
+  }
+
+  <!-- Quick Stats -->
+  <section class="dashboard__section">
+    <h2 class="dashboard__section-title">{{ 'dashboard.quickStats' | translate }}</h2>
+    <div class="stats-grid">
+      @for (stat of stats(); track stat.labelKey) {
+        <div
+          class="stat-card ft-fade-in"
+          [class.stat-card--clickable]="stat.route"
+          [style.--stat-color]="stat.color"
+          matRipple
+          [matRippleDisabled]="!stat.route"
+          (click)="stat.route && navigateTo(stat.route)">
+          <div class="stat-card__icon">
+            <i class="fa-solid" [ngClass]="'fa-' + stat.icon" aria-hidden="true"></i>
+          </div>
+          <div class="stat-card__content">
+            <span class="stat-card__value">{{ stat.value }}</span>
+            <span class="stat-card__label">{{ stat.labelKey | translate }}</span>
+          </div>
+        </div>
+      }
+    </div>
+  </section>
+
+  <!-- Quick Actions -->
+  <section class="dashboard__section">
+    <h2 class="dashboard__section-title">{{ 'dashboard.quickActions' | translate }}</h2>
+    <div class="actions-grid">
+      @for (action of quickActions; track action.labelKey) {
+        <button
+          class="action-card ft-fade-in"
+          [style.--action-color]="action.color"
+          matRipple
+          (click)="handleAction(action)">
+          <div class="action-card__icon">
+            <i class="fa-solid" [ngClass]="'fa-' + action.icon" aria-hidden="true"></i>
+          </div>
+          <span class="action-card__label">{{ action.labelKey | translate }}</span>
+        </button>
+      }
+    </div>
+  </section>
+
+  <!-- Recent People -->
+  <section class="dashboard__section">
+    <div class="dashboard__section-header">
+      <h2 class="dashboard__section-title">{{ 'dashboard.recentActivity' | translate }}</h2>
+      <button mat-button color="primary" routerLink="/people">
+        {{ 'common.all' | translate }}
+        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    @if (loadingRecent()) {
+      <div class="recent-list">
+        @for (i of [1,2,3]; track i) {
+          <div class="recent-item recent-item--skeleton">
+            <div class="ft-skeleton ft-skeleton--avatar"></div>
+            <div class="recent-item__content">
+              <div class="ft-skeleton ft-skeleton--title" style="width: 60%"></div>
+              <div class="ft-skeleton ft-skeleton--text" style="width: 40%; margin-top: 4px"></div>
+            </div>
+          </div>
+        }
+      </div>
+    } @else if (recentPeople().length > 0) {
+      <div class="recent-list">
+        @for (person of recentPeople(); track person.id; let i = $index) {
+          <div
+            class="recent-item ft-fade-in"
+            [class]="'ft-stagger-' + (i + 1)"
+            matRipple
+            (click)="viewPerson(person)">
+            <div
+              class="recent-item__avatar"
+              [class.recent-item__avatar--male]="person.sex === Sex.Male"
+              [class.recent-item__avatar--female]="person.sex === Sex.Female">
+              {{ getInitials(getPersonDisplayName(person)) }}
+            </div>
+            <div class="recent-item__content">
+              <span class="recent-item__name">{{ getPersonDisplayName(person) || ('common.unknown' | translate) }}</span>
+              <span class="recent-item__meta">
+                @if (person.birthDate) {
+                  {{ formatYear(person.birthDate) }}
+                }
+                @if (person.birthPlaceName) {
+                  · {{ person.birthPlaceName }}
+                }
+              </span>
+            </div>
+            <i class="fa-solid fa-chevron-right recent-item__arrow" aria-hidden="true"></i>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="empty-recent">
+        <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
+        <p>{{ 'people.noPeople' | translate }}</p>
+        <button mat-stroked-button color="primary" (click)="openAddPerson()">
+          <i class="fa-solid fa-plus" aria-hidden="true"></i>
+          {{ 'people.addPerson' | translate }}
+        </button>
+      </div>
+    }
+  </section>
+
+  <!-- Features Banner -->
+  <section class="dashboard__section">
+    <div class="features-banner">
+      <div class="features-banner__content">
+        <i class="fa-solid fa-lightbulb" aria-hidden="true"></i>
+        <div>
+          <h3>{{ 'dashboard.welcome' | translate }}</h3>
+          <p>{{ 'dashboard.featuresBannerMessage' | translate }}</p>
+        </div>
+      </div>
+      <button mat-flat-button color="primary" routerLink="/people">
+        {{ 'common.add' | translate }}
+      </button>
+    </div>
+  </section>
+</div>

@@ -1,0 +1,46 @@
+.country-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 400px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.code-field {
+  width: 150px;
+}
+
+.order-field {
+  width: 120px;
+}
+
+.row {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+
+.active-checkbox {
+  margin-top: -8px;
+}
+
+.flag-preview {
+  font-size: 1.5em;
+  margin-right: 8px;
+}
+
+mat-dialog-content {
+  padding-top: 16px;
+}
+
+mat-dialog-actions button mat-spinner {
+  display: inline-block;
+  margin-right: 8px;
+}
+
+input[style*="text-transform: uppercase"] {
+  text-transform: uppercase;
+}

@@ -1,0 +1,286 @@
+<div class="person-form-dialog">
+  <!-- Header -->
+  <div class="person-form-dialog__header">
+    <h2 class="person-form-dialog__title">
+      {{ (data.person ? 'people.editPerson' : 'people.addPerson') | translate }}
+    </h2>
+    <button mat-icon-button (click)="onCancel()">
+      <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+    </button>
+  </div>
+
+  <!-- Form -->
+  <form [formGroup]="form" class="person-form-dialog__content">
+    <mat-tab-group animationDuration="200ms">
+      <!-- Basic Info Tab -->
+      <mat-tab [label]="'personForm.basicInfo' | translate">
+        <div class="form-tab-content">
+          <!-- Primary Name -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'personForm.fullName' | translate }} *</mat-label>
+            <input matInput formControlName="primaryName" autocomplete="name">
+            @if (form.get('primaryName')?.hasError('required')) {
+              <mat-error>{{ 'common.required' | translate }}</mat-error>
+            }
+          </mat-form-field>
+
+          <!-- Sex -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'personForm.sex' | translate }}</mat-label>
+            <mat-select formControlName="sex">
+              <mat-option [value]="Sex.Male">
+                <i class="fa-solid fa-mars" aria-hidden="true"></i>
+                {{ 'people.male' | translate }}
+              </mat-option>
+              <mat-option [value]="Sex.Female">
+                <i class="fa-solid fa-venus" aria-hidden="true"></i>
+                {{ 'people.female' | translate }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <!-- Is Living Toggle -->
+          <div class="form-field-toggle">
+            <mat-slide-toggle formControlName="isLiving" color="primary">
+              {{ 'personForm.isLiving' | translate }}
+            </mat-slide-toggle>
+          </div>
+
+          <!-- Family Group -->
+          @if (families().length > 0) {
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>{{ 'personForm.family' | translate }}</mat-label>
+              <mat-select formControlName="familyId">
+                <mat-option [value]="null">
+                  <i class="fa-solid fa-circle-minus" aria-hidden="true"></i>
+                  {{ 'personForm.noFamily' | translate }}
+                </mat-option>
+                @for (family of families(); track family.id) {
+                  <mat-option [value]="family.id">
+                    @if (family.color) {
+                      <span class="family-color" [style.background-color]="family.color"></span>
+                    }
+                    {{ getLocalizedFamilyName(family) }}
+                  </mat-option>
+                }
+              </mat-select>
+              <i class="fa-solid fa-people-group" matSuffix aria-hidden="true"></i>
+            </mat-form-field>
+          }
+
+          <!-- Privacy Level -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'personForm.privacy' | translate }}</mat-label>
+            <mat-select formControlName="privacyLevel">
+              <mat-option [value]="PrivacyLevel.Public">
+                <i class="fa-solid fa-globe" aria-hidden="true"></i>
+                {{ 'personForm.privacyPublic' | translate }}
+              </mat-option>
+              <mat-option [value]="PrivacyLevel.Family">
+                <i class="fa-solid fa-people-roof" aria-hidden="true"></i>
+                {{ 'personForm.privacyFamily' | translate }}
+              </mat-option>
+              <mat-option [value]="PrivacyLevel.Private">
+                <i class="fa-solid fa-lock" aria-hidden="true"></i>
+                {{ 'personForm.privacyPrivate' | translate }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </mat-tab>
+
+      <!-- Life Events Tab -->
+      <mat-tab [label]="'personForm.lifeEvents' | translate">
+        <div class="form-tab-content">
+          <!-- Birth Section -->
+          <div class="form-section">
+            <h4 class="form-section__title">
+              <i class="fa-solid fa-cake-candles" aria-hidden="true"></i>
+              {{ 'people.born' | translate }}
+            </h4>
+
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="flex-1">
+                <mat-label>{{ 'personForm.birthDate' | translate }}</mat-label>
+                <input matInput [matDatepicker]="birthPicker" formControlName="birthDate">
+                <mat-datepicker-toggle matSuffix [for]="birthPicker"></mat-datepicker-toggle>
+                <mat-datepicker #birthPicker></mat-datepicker>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="precision-field">
+                <mat-select formControlName="birthPrecision">
+                  <mat-option [value]="DatePrecision.Exact">Exact</mat-option>
+                  <mat-option [value]="DatePrecision.About">About</mat-option>
+                  <mat-option [value]="DatePrecision.Before">Before</mat-option>
+                  <mat-option [value]="DatePrecision.After">After</mat-option>
+                  <mat-option [value]="DatePrecision.Unknown">Unknown</mat-option>
+                </mat-select>
+              </mat-form-field>
+            </div>
+
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>{{ 'personForm.birthPlace' | translate }}</mat-label>
+              <input matInput formControlName="birthPlace" autocomplete="off">
+              <i class="fa-solid fa-location-dot" matSuffix aria-hidden="true"></i>
+            </mat-form-field>
+          </div>
+
+          <!-- Death Section -->
+          @if (!form.get('isLiving')?.value) {
+            <div class="form-section">
+              <h4 class="form-section__title">
+                <i class="fa-solid fa-clock" aria-hidden="true"></i>
+                {{ 'people.died' | translate }}
+              </h4>
+
+              <div class="form-row">
+                <mat-form-field appearance="outline" class="flex-1">
+                  <mat-label>{{ 'personForm.deathDate' | translate }}</mat-label>
+                  <input matInput [matDatepicker]="deathPicker" formControlName="deathDate">
+                  <mat-datepicker-toggle matSuffix [for]="deathPicker"></mat-datepicker-toggle>
+                  <mat-datepicker #deathPicker></mat-datepicker>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" class="precision-field">
+                  <mat-select formControlName="deathPrecision">
+                    <mat-option [value]="DatePrecision.Exact">Exact</mat-option>
+                    <mat-option [value]="DatePrecision.About">About</mat-option>
+                    <mat-option [value]="DatePrecision.Before">Before</mat-option>
+                    <mat-option [value]="DatePrecision.After">After</mat-option>
+                    <mat-option [value]="DatePrecision.Unknown">Unknown</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              </div>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>{{ 'personForm.deathPlace' | translate }}</mat-label>
+                <input matInput formControlName="deathPlace" autocomplete="off">
+                <i class="fa-solid fa-location-dot" matSuffix aria-hidden="true"></i>
+              </mat-form-field>
+            </div>
+          }
+        </div>
+      </mat-tab>
+
+      <!-- Additional Info Tab -->
+      <mat-tab [label]="'personForm.additionalInfo' | translate">
+        <div class="form-tab-content">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'personForm.occupation' | translate }}</mat-label>
+            <input matInput formControlName="occupation">
+            <i class="fa-solid fa-briefcase" matSuffix aria-hidden="true"></i>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'personForm.education' | translate }}</mat-label>
+            <input matInput formControlName="education">
+            <i class="fa-solid fa-graduation-cap" matSuffix aria-hidden="true"></i>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'personForm.religion' | translate }}</mat-label>
+            <input matInput formControlName="religion">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'personForm.nationality' | translate }}</mat-label>
+            @if (getSelectedCountryFlag()) {
+              <span matPrefix class="selected-flag">{{ getSelectedCountryFlag() }}</span>
+            }
+            <input matInput
+                   formControlName="nationality"
+                   [matAutocomplete]="countryAuto"
+                   (input)="onNationalityInput($event)">
+            <mat-autocomplete #countryAuto="matAutocomplete"
+                              [displayWith]="displayCountry"
+                              autoActiveFirstOption>
+              @for (country of filteredCountries(); track country.code) {
+                <mat-option [value]="country">
+                  <span class="country-option">
+                    <span class="country-flag">{{ getCountryFlag(country.code) }}</span>
+                    <span class="country-name">{{ getCountryDisplayName(country) }}</span>
+                  </span>
+                </mat-option>
+              }
+            </mat-autocomplete>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'personForm.notes' | translate }}</mat-label>
+            <textarea matInput formControlName="notes" rows="4"></textarea>
+          </mat-form-field>
+        </div>
+      </mat-tab>
+
+      <!-- Names Tab -->
+      <mat-tab [label]="'personForm.names' | translate">
+        <div class="form-tab-content">
+          <p class="names-hint">{{ 'personForm.namesHint' | translate }}</p>
+
+          <!-- Arabic Name -->
+          <mat-form-field appearance="outline" class="full-width name-field-arabic">
+            <mat-label>الاسم بالعربية (Arabic Name)</mat-label>
+            <input matInput formControlName="nameArabic" dir="rtl"
+                   (blur)="onArabicNameBlur()">
+            <i class="fa-solid fa-font" matSuffix aria-hidden="true"></i>
+          </mat-form-field>
+
+          <!-- English Name -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Name in English</mat-label>
+            <input matInput formControlName="nameEnglish"
+                   (blur)="onEnglishNameBlur()">
+            <i class="fa-solid fa-font" matSuffix aria-hidden="true"></i>
+          </mat-form-field>
+
+          <!-- Nobiin Name -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>ⲣⲁⲛ ⲛⲟⲃⲓⲓⲛ (Nobiin Name)</mat-label>
+            <input matInput formControlName="nameNobiin">
+            <i class="fa-solid fa-font" matSuffix aria-hidden="true"></i>
+            <mat-hint>{{ 'personForm.nobiinOptional' | translate }}</mat-hint>
+          </mat-form-field>
+
+          <!-- Transliterate Button -->
+          <div class="transliterate-actions">
+            <button
+              mat-stroked-button
+              color="primary"
+              type="button"
+              (click)="transliterateAllNames()"
+              [disabled]="transliterating() !== null || !hasAnyNameToTransliterate()">
+              @if (transliterating() !== null) {
+                <mat-spinner diameter="18"></mat-spinner>
+              } @else {
+                <i class="fa-solid fa-language" aria-hidden="true"></i>
+              }
+              {{ 'personForm.autoFillNames' | translate }}
+            </button>
+            <span class="transliterate-hint">{{ 'personForm.autoFillHint' | translate }}</span>
+          </div>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  </form>
+
+  <!-- Actions -->
+  <div class="person-form-dialog__actions">
+    <button mat-button (click)="onCancel()">
+      {{ 'common.cancel' | translate }}
+    </button>
+    <button
+      mat-flat-button
+      color="primary"
+      (click)="onSave()"
+      [disabled]="saving() || form.invalid">
+      @if (saving()) {
+        <mat-spinner diameter="20"></mat-spinner>
+      } @else {
+        <ng-container>
+          <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+          {{ 'common.save' | translate }}
+        </ng-container>
+      }
+    </button>
+  </div>
+</div>

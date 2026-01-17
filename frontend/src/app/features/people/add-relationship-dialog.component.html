@@ -1,0 +1,174 @@
+<h2 mat-dialog-title>
+  @switch (data.type) {
+    @case ('parent') { {{ 'relationships.addParent' | translate }} }
+    @case ('child') { {{ 'relationships.addChild' | translate }} }
+    @case ('spouse') { {{ 'relationships.addSpouse' | translate }} }
+    @case ('sibling') { {{ 'relationships.addSibling' | translate }} }
+  }
+</h2>
+
+<mat-dialog-content>
+  <!-- Person Search with optional Town/Nationality filters -->
+  <app-person-search
+    [excludePersonId]="data.personId"
+    [placeholder]="'relationships.typeNameSearch' | translate"
+    (personSelected)="onPersonSelectedFromSearch($event)">
+  </app-person-search>
+
+  <!-- Parent Selection for Sibling type -->
+  @if (data.type === 'sibling' && data.parents && data.parents.length > 0) {
+    <div class="parent-selection-section">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>{{ 'relationships.selectSharedParent' | translate }}</mat-label>
+        <mat-select (selectionChange)="onParentSelected($event.value)" [value]="selectedParentId()">
+          @for (parent of data.parents; track parent.id) {
+            <mat-option [value]="parent.id">
+              <div class="parent-option">
+                <i class="fa-solid" [ngClass]="[getSexIcon(parent.sex), getSexClass(parent.sex)]" aria-hidden="true"></i>
+                <span>{{ getParentDisplayName(parent) }}</span>
+              </div>
+            </mat-option>
+          }
+        </mat-select>
+        <i class="fa-solid fa-users" matPrefix aria-hidden="true" style="margin-right: 8px;"></i>
+      </mat-form-field>
+      <p class="parent-hint">
+        {{ 'relationships.siblingParentHint' | translate }}
+      </p>
+    </div>
+  }
+
+  @if (data.type === 'sibling' && (!data.parents || data.parents.length === 0)) {
+    <div class="no-parents-warning">
+      <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+      <p>{{ 'relationships.noParentsWarning' | translate }}</p>
+    </div>
+  }
+
+  <!-- Family Relationship Label (Trilingual) -->
+  <div class="relationship-label-section">
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>{{ 'relationships.familyRelationship' | translate }} ({{ getRelationshipExamples() }})</mat-label>
+      <input matInput
+             [formControl]="familyRelTypeSearchControl"
+             [matAutocomplete]="relTypeAuto"
+             [placeholder]="'relationships.typeSearchMultiLang' | translate">
+      <i class="fa-solid fa-language" matSuffix aria-hidden="true"></i>
+      <mat-autocomplete #relTypeAuto="matAutocomplete"
+                       [displayWith]="displayRelType.bind(this)"
+                       (optionSelected)="onRelTypeSelected($event.option.value)">
+        @for (type of filteredRelTypes(); track type.id) {
+          <mat-option [value]="type">
+            <div class="rel-type-option">
+              <span class="english">{{ type.nameEnglish }}</span>
+              <span class="arabic">{{ type.nameArabic }}</span>
+              <span class="nubian" [matTooltip]="('relationships.nubian' | translate) + ': ' + type.nameNubian">{{ type.nameNubian }}</span>
+            </div>
+          </mat-option>
+        }
+        @if (familyRelTypesLoading()) {
+          <mat-option disabled>
+            <mat-spinner diameter="20"></mat-spinner>
+            {{ 'common.loading' | translate }}
+          </mat-option>
+        }
+      </mat-autocomplete>
+      @if (selectedRelType()) {
+        <button mat-icon-button matSuffix (click)="clearRelTypeSelection($event)" [matTooltip]="'common.clearSelection' | translate">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      }
+    </mat-form-field>
+
+    @if (selectedRelType()) {
+      <div class="selected-rel-type">
+        <mat-chip-row>
+          <span class="trilingual-label">
+            <strong>{{ selectedRelType()?.nameEnglish }}</strong>
+            <span class="separator">|</span>
+            <span class="arabic-text">{{ selectedRelType()?.nameArabic }}</span>
+            <span class="separator">|</span>
+            <span class="nubian-text">{{ selectedRelType()?.nameNubian }}</span>
+          </span>
+        </mat-chip-row>
+      </div>
+    }
+  </div>
+
+  <!-- Parent/Child/Sibling specific options -->
+  @if (data.type === 'parent' || data.type === 'child' || data.type === 'sibling') {
+    <div class="relationship-options">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>{{ 'relationships.relationshipNature' | translate }}</mat-label>
+        <mat-select [formControl]="relationshipTypeControl">
+          <mat-option [value]="ParentChildRelationshipType.Biological">{{ 'relationships.biological' | translate }}</mat-option>
+          <mat-option [value]="ParentChildRelationshipType.Adopted">{{ 'relationships.adopted' | translate }}</mat-option>
+          <mat-option [value]="ParentChildRelationshipType.Foster">{{ 'relationships.foster' | translate }}</mat-option>
+          <mat-option [value]="ParentChildRelationshipType.Step">{{ 'relationships.step' | translate }}</mat-option>
+          <mat-option [value]="ParentChildRelationshipType.Guardian">{{ 'relationships.guardian' | translate }}</mat-option>
+          <mat-option [value]="ParentChildRelationshipType.Unknown">{{ 'common.unknown' | translate }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+  }
+
+  <!-- Spouse specific options -->
+  @if (data.type === 'spouse') {
+    <div class="union-options">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>{{ 'relationships.unionType' | translate }}</mat-label>
+        <mat-select [formControl]="unionTypeControl">
+          <mat-option [value]="UnionType.Marriage">{{ 'unions.marriage' | translate }}</mat-option>
+          <mat-option [value]="UnionType.CivilUnion">{{ 'unions.civilUnion' | translate }}</mat-option>
+          <mat-option [value]="UnionType.DomesticPartnership">{{ 'unions.domesticPartnership' | translate }}</mat-option>
+          <mat-option [value]="UnionType.CommonLaw">{{ 'unions.commonLaw' | translate }}</mat-option>
+          <mat-option [value]="UnionType.Engagement">{{ 'unions.engagement' | translate }}</mat-option>
+          <mat-option [value]="UnionType.Unknown">{{ 'common.unknown' | translate }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <div class="date-row">
+        <mat-form-field appearance="outline">
+          <mat-label>{{ 'relationships.startDate' | translate }}</mat-label>
+          <input matInput [matDatepicker]="startPicker" [formControl]="startDateControl">
+          <mat-datepicker-toggle matIconSuffix [for]="startPicker"></mat-datepicker-toggle>
+          <mat-datepicker #startPicker></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>{{ 'relationships.endDate' | translate }}</mat-label>
+          <input matInput [matDatepicker]="endPicker" [formControl]="endDateControl">
+          <mat-datepicker-toggle matIconSuffix [for]="endPicker"></mat-datepicker-toggle>
+          <mat-datepicker #endPicker></mat-datepicker>
+        </mat-form-field>
+      </div>
+    </div>
+  }
+
+  <!-- Notes -->
+  <mat-form-field appearance="outline" class="full-width">
+    <mat-label>{{ 'common.notesOptional' | translate }}</mat-label>
+    <textarea matInput [formControl]="notesControl" rows="2"></textarea>
+  </mat-form-field>
+
+  @if (error()) {
+    <div class="error-message">
+      <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+      {{ error() }}
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>{{ 'common.cancel' | translate }}</button>
+  <button mat-raised-button
+          color="primary"
+          [disabled]="!canSave()"
+          (click)="save()">
+    @if (isSaving()) {
+      <mat-spinner diameter="20"></mat-spinner>
+    } @else {
+      {{ 'common.add' | translate }} {{ getRelationshipLabel() }}
+    }
+  </button>
+</mat-dialog-actions>

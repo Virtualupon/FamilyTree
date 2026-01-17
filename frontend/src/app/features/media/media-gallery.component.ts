@@ -6,6 +6,6 @@ import { TranslatePipe } from '../../core/i18n';
   selector: 'app-media-gallery',
   standalone: true,
   imports: [CommonModule, TranslatePipe],
-  template: `<h1>{{ 'media.galleryComingSoon' | translate }}</h1>`
+  templateUrl: './media-gallery.component.html'
 })
 export class MediaGalleryComponent {}

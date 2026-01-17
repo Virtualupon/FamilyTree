@@ -1,0 +1,288 @@
+<div class="modal-overlay" (click)="onOverlayClick($event)">
+  <div class="modal-container" [class.rtl]="i18n.isRtl()">
+    <!-- Header -->
+    <div class="modal-header">
+      <h2>{{ t('gedcom.title') }}</h2>
+      <button class="close-btn" (click)="close.emit()" [attr.aria-label]="t('common.close')">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 6L6 18M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Step Indicator -->
+    <div class="step-indicator">
+      <div class="step" [class.active]="step() === 'upload'" [class.completed]="stepIndex() > 0">
+        <span class="step-number">1</span>
+        <span class="step-label">{{ t('gedcom.steps.upload') }}</span>
+      </div>
+      <div class="step-line" [class.completed]="stepIndex() > 0"></div>
+      <div class="step" [class.active]="step() === 'preview'" [class.completed]="stepIndex() > 1">
+        <span class="step-number">2</span>
+        <span class="step-label">{{ t('gedcom.steps.preview') }}</span>
+      </div>
+      <div class="step-line" [class.completed]="stepIndex() > 1"></div>
+      <div class="step" [class.active]="step() === 'options'" [class.completed]="stepIndex() > 2">
+        <span class="step-number">3</span>
+        <span class="step-label">{{ t('gedcom.steps.options') }}</span>
+      </div>
+      <div class="step-line" [class.completed]="stepIndex() > 2"></div>
+      <div class="step" [class.active]="step() === 'result'" [class.completed]="stepIndex() > 3">
+        <span class="step-number">4</span>
+        <span class="step-label">{{ t('gedcom.steps.result') }}</span>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="modal-content">
+      <!-- Upload Step -->
+      @if (step() === 'upload') {
+        <div class="upload-area"
+             [class.drag-over]="isDragOver()"
+             (dragover)="onDragOver($event)"
+             (dragleave)="onDragLeave($event)"
+             (drop)="onDrop($event)"
+             (click)="fileInput.click()">
+          <input #fileInput type="file" accept=".ged" (change)="onFileSelected($event)" hidden>
+          <div class="upload-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <p class="upload-text">{{ t('gedcom.upload.dragDrop') }}</p>
+          <p class="upload-subtext">{{ t('gedcom.upload.or') }}</p>
+          <button class="browse-btn">{{ t('gedcom.upload.browse') }}</button>
+          <p class="upload-hint">{{ t('gedcom.upload.hint') }}</p>
+        </div>
+
+        @if (uploadError()) {
+          <div class="error-message">{{ uploadError() }}</div>
+        }
+      }
+
+      <!-- Preview Step -->
+      @if (step() === 'preview') {
+        @if (loading()) {
+          <div class="loading-state">
+            <div class="spinner"></div>
+            <p>{{ t('gedcom.preview.analyzing') }}</p>
+          </div>
+        } @else if (preview()) {
+          <div class="preview-content">
+            <div class="preview-stats">
+              <div class="stat-card">
+                <div class="stat-value">{{ preview()!.individualCount }}</div>
+                <div class="stat-label">{{ t('gedcom.preview.individuals') }}</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value">{{ preview()!.familyCount }}</div>
+                <div class="stat-label">{{ t('gedcom.preview.families') }}</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value">{{ formatFileSize(preview()!.fileSize) }}</div>
+                <div class="stat-label">{{ t('gedcom.preview.fileSize') }}</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value">{{ preview()!.encoding }}</div>
+                <div class="stat-label">{{ t('gedcom.preview.encoding') }}</div>
+              </div>
+            </div>
+
+            @if (preview()!.sampleIndividuals.length > 0) {
+              <div class="sample-table">
+                <h4>{{ t('gedcom.preview.sampleData') }}</h4>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>{{ t('gedcom.preview.name') }}</th>
+                      <th>{{ t('gedcom.preview.sex') }}</th>
+                      <th>{{ t('gedcom.preview.birth') }}</th>
+                      <th>{{ t('gedcom.preview.death') }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (person of preview()!.sampleIndividuals; track person.id) {
+                      <tr>
+                        <td>{{ person.name || '—' }}</td>
+                        <td>{{ person.sex || '—' }}</td>
+                        <td>{{ person.birthDate || '—' }}</td>
+                        <td>{{ person.deathDate || '—' }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+
+            @if (preview()!.warningCount > 0) {
+              <div class="warnings-section">
+                <h4>{{ t('gedcom.preview.warnings') }} ({{ preview()!.warningCount }})</h4>
+                <ul>
+                  @for (warning of preview()!.warnings; track warning) {
+                    <li>{{ warning }}</li>
+                  }
+                </ul>
+              </div>
+            }
+          </div>
+        }
+      }
+
+      <!-- Options Step -->
+      @if (step() === 'options') {
+        <div class="options-form">
+          <div class="form-group">
+            <label for="townId">{{ t('gedcom.options.town') }} <span class="required">*</span></label>
+            <select
+              id="townId"
+              [(ngModel)]="selectedTownId"
+              [class.invalid]="!selectedTownId && townTouched()"
+              (blur)="townTouched.set(true)"
+              (change)="onTownChange()"
+            >
+              <option value="">{{ t('gedcom.options.selectTown') }}</option>
+              @for (town of availableTowns(); track town.id) {
+                <option [value]="town.id">{{ getLocalizedTownName(town) }}</option>
+              }
+            </select>
+            @if (!selectedTownId && townTouched()) {
+              <span class="field-error">{{ t('gedcom.options.townRequired') }}</span>
+            }
+          </div>
+
+          <div class="form-group">
+            <label for="treeId">{{ t('gedcom.options.treeName') }} <span class="required">*</span></label>
+            <select
+              id="treeId"
+              [(ngModel)]="selectedTreeId"
+              [disabled]="!selectedTownId || availableTrees().length === 0"
+            >
+              <option value="">{{ availableTrees().length === 0 ? 'No trees in selected town' : 'Select a tree' }}</option>
+              @for (tree of availableTrees(); track tree.id) {
+                <option [value]="tree.id">{{ tree.name }}</option>
+              }
+            </select>
+            @if (selectedTownId && availableTrees().length === 0) {
+              <span class="field-hint">No existing trees in this town. Create a new tree first.</span>
+            }
+          </div>
+
+          <div class="form-group checkbox-group">
+            <label>
+              <input type="checkbox" [(ngModel)]="importNotes">
+              <span>{{ t('gedcom.options.importNotes') }}</span>
+            </label>
+          </div>
+
+          <div class="form-group checkbox-group">
+            <label>
+              <input type="checkbox" [(ngModel)]="importOccupations">
+              <span>{{ t('gedcom.options.importOccupations') }}</span>
+            </label>
+          </div>
+
+          <div class="info-box">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="16" x2="12" y2="12"/>
+              <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+            <p>{{ t('gedcom.options.info') }}</p>
+          </div>
+        </div>
+      }
+
+      <!-- Importing Step -->
+      @if (step() === 'importing') {
+        <div class="loading-state">
+          <div class="spinner large"></div>
+          <p>{{ t('gedcom.importing.message') }}</p>
+          <p class="loading-subtext">{{ t('gedcom.importing.patience') }}</p>
+        </div>
+      }
+
+      <!-- Result Step -->
+      @if (step() === 'result') {
+        @if (result()) {
+          <div class="result-content" [class.success]="result()!.success" [class.error]="!result()!.success">
+            <div class="result-icon">
+              @if (result()!.success) {
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+              } @else {
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="15" y1="9" x2="9" y2="15"/>
+                  <line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
+              }
+            </div>
+
+            <h3>{{ result()!.success ? t('gedcom.result.success') : t('gedcom.result.failed') }}</h3>
+            <p class="result-message">{{ result()!.message }}</p>
+
+            @if (result()!.success) {
+              <div class="result-stats">
+                <div class="result-stat">
+                  <span class="value">{{ result()!.individualsImported }}</span>
+                  <span class="label">{{ t('gedcom.result.individuals') }}</span>
+                </div>
+                <div class="result-stat">
+                  <span class="value">{{ result()!.familiesImported }}</span>
+                  <span class="label">{{ t('gedcom.result.families') }}</span>
+                </div>
+                <div class="result-stat">
+                  <span class="value">{{ result()!.relationshipsCreated }}</span>
+                  <span class="label">{{ t('gedcom.result.relationships') }}</span>
+                </div>
+              </div>
+            }
+
+            @if (result()!.warnings.length > 0) {
+              <div class="result-warnings">
+                <h4>{{ t('gedcom.result.warnings') }}</h4>
+                <ul>
+                  @for (warning of result()!.warnings.slice(0, 5); track warning) {
+                    <li>{{ warning }}</li>
+                  }
+                </ul>
+                @if (result()!.warnings.length > 5) {
+                  <p class="more-warnings">{{ t('gedcom.result.moreWarnings', { count: result()!.warnings.length - 5 }) }}</p>
+                }
+              </div>
+            }
+
+            @if (result()!.errors.length > 0) {
+              <div class="result-errors">
+                <h4>{{ t('gedcom.result.errors') }}</h4>
+                <ul>
+                  @for (error of result()!.errors.slice(0, 5); track error) {
+                    <li>{{ error }}</li>
+                  }
+                </ul>
+              </div>
+            }
+          </div>
+        }
+      }
+    </div>
+
+    <!-- Footer -->
+    <div class="modal-footer">
+      @if (step() === 'upload') {
+        <button class="btn secondary" (click)="close.emit()">{{ t('common.cancel') }}</button>
+      } @else if (step() === 'preview' || step() === 'options') {
+        <button class="btn secondary" (click)="previousStep()">{{ t('common.back') }}</button>
+        <button class="btn primary" (click)="nextStep()" [disabled]="loading() || (step() === 'options' && (!selectedTownId || !selectedTreeId))">
+          {{ step() === 'options' ? t('gedcom.import') : t('common.next') }}
+        </button>
+      } @else if (step() === 'result') {
+        <button class="btn primary" (click)="imported.emit(); close.emit()">{{ t('common.done') }}</button>
+      }
+    </div>
+  </div>
+</div>

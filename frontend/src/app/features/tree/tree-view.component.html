@@ -1,0 +1,244 @@
+<div class="tree-page">
+  <!-- Header -->
+  <header class="tree-page__header">
+    <div class="tree-page__title-section">
+      <h1 class="ft-page__title">{{ 'tree.title' | translate }}</h1>
+    </div>
+
+    <div class="tree-page__controls">
+      <!-- View Mode Selector -->
+      <div class="tree-page__view-modes d-mobile-none">
+        <button
+          mat-stroked-button
+          [class.active]="viewMode() === 'pedigree'"
+          (click)="setViewMode('pedigree')">
+          {{ 'tree.pedigree' | translate }}
+        </button>
+        <button
+          mat-stroked-button
+          [class.active]="viewMode() === 'descendants'"
+          (click)="setViewMode('descendants')">
+          {{ 'tree.descendants' | translate }}
+        </button>
+        <button
+          mat-stroked-button
+          [class.active]="viewMode() === 'hourglass'"
+          (click)="setViewMode('hourglass')">
+          {{ 'tree.hourglass' | translate }}
+        </button>
+      </div>
+
+      <!-- Mobile View Mode Menu -->
+      <button mat-stroked-button class="d-desktop-none" [matMenuTriggerFor]="viewModeMenu">
+        {{ getViewModeLabel() }}
+        <i class="fa-solid fa-caret-down" aria-hidden="true"></i>
+      </button>
+      <mat-menu #viewModeMenu="matMenu">
+        <button mat-menu-item (click)="setViewMode('pedigree')">
+          <i class="fa-solid fa-arrow-up" aria-hidden="true"></i>
+          {{ 'tree.pedigree' | translate }}
+        </button>
+        <button mat-menu-item (click)="setViewMode('descendants')">
+          <i class="fa-solid fa-arrow-down" aria-hidden="true"></i>
+          {{ 'tree.descendants' | translate }}
+        </button>
+        <button mat-menu-item (click)="setViewMode('hourglass')">
+          <i class="fa-solid fa-arrows-up-down" aria-hidden="true"></i>
+          {{ 'tree.hourglass' | translate }}
+        </button>
+      </mat-menu>
+
+      <!-- Settings Menu -->
+      <button mat-icon-button [matMenuTriggerFor]="settingsMenu" [matTooltip]="'nav.settings' | translate">
+        <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+      </button>
+      <mat-menu #settingsMenu="matMenu">
+        <div class="menu-setting" (click)="$event.stopPropagation()">
+          <span>{{ 'tree.generations' | translate }}</span>
+          <select [(ngModel)]="generations" (ngModelChange)="onSettingsChange()">
+            <option [value]="2">2</option>
+            <option [value]="3">3</option>
+            <option [value]="4">4</option>
+            <option [value]="5">5</option>
+          </select>
+        </div>
+        <div class="menu-setting" (click)="$event.stopPropagation()">
+          <mat-slide-toggle
+            [(ngModel)]="includeSpouses"
+            (ngModelChange)="onSettingsChange()"
+            color="primary">
+            {{ 'tree.includeSpouses' | translate }}
+          </mat-slide-toggle>
+        </div>
+      </mat-menu>
+    </div>
+  </header>
+
+<!-- Person Selector -->
+<div class="tree-page__selector">
+<button
+  mat-stroked-button
+  class="person-selector-btn"
+  (click)="openPersonSelector()">
+  @if (selectedPerson()) {
+    <ng-container>
+      <div
+        class="person-selector-btn__avatar"
+        [class.person-selector-btn__avatar--male]="selectedPerson()!.sex === Sex.Male"
+        [class.person-selector-btn__avatar--female]="selectedPerson()!.sex === Sex.Female"
+        [class.person-selector-btn__avatar--has-image]="selectedPersonAvatarUrl()">
+        @if (selectedPersonAvatarUrl()) {
+          <img [src]="selectedPersonAvatarUrl()" [alt]="getDisplayName(selectedPerson()!)" class="person-selector-btn__avatar-img">
+        } @else {
+          {{ getInitials(getDisplayName(selectedPerson()!)) }}
+        }
+      </div>
+      <span class="person-selector-btn__name">{{ getDisplayName(selectedPerson()!) }}</span>
+    </ng-container>
+  } @else {
+    <ng-container>
+      <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+      <span>{{ 'tree.selectPerson' | translate }}</span>
+    </ng-container>
+  }
+  <i class="fa-solid fa-caret-down person-selector-btn__arrow" aria-hidden="true"></i>
+</button>
+</div>
+
+  <!-- Tree View Content -->
+  <div class="tree-page__content" #treeContainer>
+    @if (loading()) {
+      <app-loading [message]="'common.loading' | translate"></app-loading>
+    } @else if (!selectedPerson()) {
+      <app-empty-state
+        icon="fa-sitemap"
+        [title]="'tree.selectPerson' | translate"
+        [description]="''">
+        <button mat-flat-button color="primary" (click)="openPersonSelector()">
+          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+          {{ 'common.search' | translate }}
+        </button>
+      </app-empty-state>
+    } @else if (treeData()) {
+      <!-- D3 Tree Visualization -->
+      <app-d3-family-tree
+        #d3Tree
+        [treeData]="treeData()"
+        [viewMode]="viewMode()"
+        [generations]="generations"
+        [includeSpouses]="includeSpouses"
+        [selectedPersonId]="selectedPerson()?.id || null"
+        [crossTreeLinks]="crossTreeLinks()"
+        (personSelected)="onD3NodeClick($event)"
+        (personDoubleClicked)="onD3NodeDoubleClick($event)"
+        (crossTreeLinkClicked)="onCrossTreeLinkClick($event)"
+        (findRelationshipClicked)="onFindRelationship($event)"
+        (addRelationshipClicked)="onAddRelationship($event)">
+      </app-d3-family-tree>
+
+      <!-- Zoom Controls -->
+      <div class="tree-zoom-controls">
+        <button mat-icon-button (click)="d3ZoomIn()" [matTooltip]="'tree.zoomIn' | translate">
+          <i class="fa-solid fa-plus" aria-hidden="true"></i>
+        </button>
+        <button mat-icon-button (click)="d3ZoomOut()" [matTooltip]="'tree.zoomOut' | translate">
+          <i class="fa-solid fa-minus" aria-hidden="true"></i>
+        </button>
+        <button mat-icon-button (click)="d3ResetZoom()" [matTooltip]="'tree.resetView' | translate">
+          <i class="fa-solid fa-crosshairs" aria-hidden="true"></i>
+        </button>
+        <button mat-icon-button (click)="d3FitToScreen()" [matTooltip]="'tree.fitToScreen' | translate">
+          <i class="fa-solid fa-expand" aria-hidden="true"></i>
+        </button>
+      </div>
+    } @else {
+      <app-empty-state
+        icon="fa-triangle-exclamation"
+        [title]="'error.generic' | translate">
+      </app-empty-state>
+    }
+  </div>
+</div>
+
+<!-- Relationship Path Overlay -->
+@if (showRelationshipPath() && currentRelationshipPath()) {
+  <app-relationship-path-view
+    [pathData]="currentRelationshipPath()!"
+    (closed)="closeRelationshipPath()"
+    (tryAnother)="onTryAnotherRelationship()">
+  </app-relationship-path-view>
+}
+
+<!-- Node Template -->
+<ng-template #nodeTemplate let-node="node" let-depth="depth" let-isRoot="isRoot">
+  <div class="tree-node" [class.tree-node--root]="isRoot">
+    <div
+      class="tree-node__card"
+      [class.tree-node__card--male]="node.sex === Sex.Male"
+      [class.tree-node__card--female]="node.sex === Sex.Female"
+      [class.tree-node__card--selected]="node.id === selectedPerson()?.id"
+      (click)="onNodeClick(node)">
+
+      <div class="tree-node__avatar">
+        {{ getInitials(getDisplayName(node)) }}
+      </div>
+
+      <div class="tree-node__info">
+        <div class="tree-node__name">{{ getDisplayName(node) || ('common.unknown' | translate) }}</div>
+        <div class="tree-node__dates">
+          @if (node.birthDate) {
+            {{ formatYear(node.birthDate) }}
+          }
+          @if (node.birthDate && node.deathDate) {
+            -
+          }
+          @if (node.deathDate) {
+            {{ formatYear(node.deathDate) }}
+          }
+        </div>
+      </div>
+
+      @if (node.isLiving) {
+        <div class="tree-node__living-indicator"></div>
+      }
+    </div>
+
+    <!-- Spouses -->
+    @if (includeSpouses && node.unions && node.unions.length > 0) {
+      <div class="tree-node__spouses">
+        @for (union of node.unions; track union.id) {
+          @for (partner of union.partners; track partner.id) {
+            <div
+              class="tree-node__spouse"
+              [class.tree-node__spouse--male]="partner.sex === Sex.Male"
+              [class.tree-node__spouse--female]="partner.sex === Sex.Female"
+              (click)="onNodeClick(partner); $event.stopPropagation()">
+              <div class="tree-node__spouse-avatar">
+                {{ getInitials(getDisplayName(partner)) }}
+              </div>
+              <span class="tree-node__spouse-name">{{ getDisplayName(partner) }}</span>
+            </div>
+          }
+        }
+      </div>
+    }
+
+    <!-- Child nodes (recursive) -->
+    @if (viewMode() !== 'pedigree' && node.children && node.children.length > 0 && depth < generations) {
+      <div class="tree-node__children">
+        @for (child of node.children; track child.id) {
+          <ng-container *ngTemplateOutlet="nodeTemplate; context: { node: child, depth: depth + 1 }"></ng-container>
+        }
+      </div>
+    }
+
+    <!-- Parent nodes (recursive) for pedigree -->
+    @if (viewMode() !== 'descendants' && node.parents && node.parents.length > 0 && depth < generations) {
+      <div class="tree-node__parents">
+        @for (parent of node.parents; track parent.id) {
+          <ng-container *ngTemplateOutlet="nodeTemplate; context: { node: parent, depth: depth + 1 }"></ng-container>
+        }
+      </div>
+    }
+  </div>
+</ng-template>

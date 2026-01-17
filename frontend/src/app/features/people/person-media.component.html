@@ -1,0 +1,379 @@
+<div class="person-media-container">
+  <!-- Header with upload button -->
+  <div class="media-header">
+    <h3>{{ 'media.title' | translate }}</h3>
+    <button mat-raised-button color="primary" (click)="triggerUpload()">
+      <i class="fa-solid fa-image" aria-hidden="true"></i>
+      {{ 'media.uploadMedia' | translate }}
+    </button>
+    <!-- Hidden file input - accepts all media types -->
+    <input
+      #fileInput
+      type="file"
+      style="display: none"
+      [accept]="acceptTypes"
+      (change)="onFileSelected($event)"
+    />
+  </div>
+
+  <!-- Upload progress -->
+  @if (isUploading()) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    <p class="upload-status">{{ 'media.uploading' | translate }} {{ uploadingFileName() }}...</p>
+  }
+
+  <!-- Loading state -->
+  @if (isLoading()) {
+    <div class="loading">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>{{ 'media.loading' | translate }}</p>
+    </div>
+  } @else if (error()) {
+    <mat-card class="error-card">
+      <mat-card-content>
+        <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+        <p>{{ error() }}</p>
+        <button mat-button color="primary" (click)="loadMedia()">{{ 'common.retry' | translate }}</button>
+      </mat-card-content>
+    </mat-card>
+  } @else if (hasNoMedia()) {
+    <mat-card class="empty-state">
+      <mat-card-content>
+        <i class="fa-solid fa-images" aria-hidden="true"></i>
+        <h4>{{ 'media.noFiles' | translate }}</h4>
+        <p>{{ 'media.uploadHint' | translate }}</p>
+      </mat-card-content>
+    </mat-card>
+  } @else {
+    <!-- Media Tabs -->
+    <mat-tab-group>
+      <!-- Images Tab -->
+      @if (mediaGrouped()?.images?.length) {
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <i class="fa-solid fa-image" aria-hidden="true"></i>
+            <span class="tab-label">{{ 'media.image' | translate }} ({{ mediaGrouped()!.images.length }})</span>
+          </ng-template>
+          <div class="media-grid images-grid">
+            @for (media of mediaGrouped()!.images; track media.mediaId) {
+              <mat-card class="media-item image-item">
+                @if (loadedImages()[media.mediaId]) {
+                  <img
+                    [src]="loadedImages()[media.mediaId]"
+                    [alt]="media.fileName"
+                    (click)="openLightbox(media)"
+                  />
+                } @else {
+                  <div class="image-placeholder" (click)="loadFullMedia(media)">
+                    <i class="fa-solid fa-image" aria-hidden="true"></i>
+                    <span>{{ 'media.clickToLoad' | translate }}</span>
+                  </div>
+                }
+                <mat-card-content>
+                  <p class="file-name" [matTooltip]="media.title || media.fileName">
+                    {{ truncateFileName(media.title || media.fileName) }}
+                  </p>
+                  <p class="file-meta">
+                    {{ formatFileSize(media.fileSize) }} &bull; {{ formatDate(media.linkedAt) }}
+                  </p>
+                  <!-- Description -->
+                  @if (media.description) {
+                    <p class="media-description">{{ media.description }}</p>
+                  }
+                  <!-- Linked persons -->
+                  @if (media.linkedPersons && media.linkedPersons.length > 1) {
+                    <div class="linked-persons">
+                      <i class="fa-solid fa-users linked-icon" aria-hidden="true"></i>
+                      <span class="linked-count">{{ media.linkedPersons.length }} {{ 'common.people' | translate }}</span>
+                      <div class="linked-list">
+                        @for (person of media.linkedPersons; track person.personId) {
+                          <a [routerLink]="['/persons', person.personId]" class="linked-person"
+                             [class.primary]="person.isPrimary">
+                            {{ person.personName || ('common.unknown' | translate) }}
+                            @if (person.isPrimary) {
+                              <i class="fa-solid fa-star primary-badge" [matTooltip]="'media.primary' | translate" aria-hidden="true"></i>
+                            }
+                          </a>
+                        }
+                      </div>
+                    </div>
+                  }
+                </mat-card-content>
+                <mat-card-actions>
+                  <button mat-icon-button (click)="downloadMedia(media)" [matTooltip]="'media.download' | translate">
+                    <i class="fa-solid fa-download" aria-hidden="true"></i>
+                  </button>
+                  <button mat-icon-button color="warn" (click)="deleteMedia(media)" [matTooltip]="'common.delete' | translate">
+                    <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                  </button>
+                </mat-card-actions>
+              </mat-card>
+            }
+          </div>
+        </mat-tab>
+      }
+
+      <!-- Audio Tab -->
+      @if (mediaGrouped()?.audio?.length) {
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <i class="fa-solid fa-music" aria-hidden="true"></i>
+            <span class="tab-label">{{ 'media.audio' | translate }} ({{ mediaGrouped()!.audio.length }})</span>
+          </ng-template>
+          <div class="media-list audio-list">
+            @for (media of mediaGrouped()!.audio; track media.mediaId) {
+              <mat-card class="media-item audio-item">
+                <mat-card-content>
+                  <div class="audio-header">
+                    <i class="fa-solid fa-music audio-icon" aria-hidden="true"></i>
+                    <div class="audio-info">
+                      <p class="file-name" [matTooltip]="media.title || media.fileName">
+                        {{ media.title || media.fileName }}
+                      </p>
+                      <p class="file-meta">
+                        {{ formatFileSize(media.fileSize) }} &bull; {{ formatDate(media.linkedAt) }}
+                      </p>
+                      <!-- Description -->
+                      @if (media.description) {
+                        <p class="media-description">{{ media.description }}</p>
+                      }
+                      <!-- Linked persons -->
+                      @if (media.linkedPersons && media.linkedPersons.length > 1) {
+                        <div class="linked-persons inline">
+                          <i class="fa-solid fa-users linked-icon small" aria-hidden="true"></i>
+                          <span class="linked-count">{{ 'media.sharedWith' | translate }} {{ media.linkedPersons.length }} {{ 'common.people' | translate }}</span>
+                        </div>
+                      }
+                    </div>
+                    <div class="audio-actions">
+                      <button mat-icon-button (click)="downloadMedia(media)" [matTooltip]="'media.download' | translate">
+                        <i class="fa-solid fa-download" aria-hidden="true"></i>
+                      </button>
+                      <button mat-icon-button color="warn" (click)="deleteMedia(media)" [matTooltip]="'common.delete' | translate">
+                        <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                      </button>
+                    </div>
+                  </div>
+                  @if (loadedAudio()[media.mediaId]) {
+                    <audio controls class="audio-player">
+                      <source [src]="loadedAudio()[media.mediaId]" [type]="media.mimeType" />
+                      {{ 'media.browserNoAudio' | translate }}
+                    </audio>
+                  } @else {
+                    <button mat-stroked-button (click)="loadFullMedia(media)">
+                      <i class="fa-solid fa-play" aria-hidden="true"></i>
+                      {{ 'media.loadAudio' | translate }}
+                    </button>
+                  }
+                </mat-card-content>
+              </mat-card>
+            }
+          </div>
+        </mat-tab>
+      }
+
+      <!-- Videos Tab -->
+      @if (mediaGrouped()?.videos?.length) {
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <i class="fa-solid fa-video" aria-hidden="true"></i>
+            <span class="tab-label">{{ 'media.video' | translate }} ({{ mediaGrouped()!.videos.length }})</span>
+          </ng-template>
+          <div class="media-list video-list">
+            @for (media of mediaGrouped()!.videos; track media.mediaId) {
+              <mat-card class="media-item video-item">
+                <mat-card-content>
+                  <div class="video-header">
+                    <i class="fa-solid fa-video video-icon" aria-hidden="true"></i>
+                    <div class="video-info">
+                      <p class="file-name" [matTooltip]="media.title || media.fileName">
+                        {{ media.title || media.fileName }}
+                      </p>
+                      <p class="file-meta">
+                        {{ formatFileSize(media.fileSize) }} &bull; {{ formatDate(media.linkedAt) }}
+                      </p>
+                      <!-- Description -->
+                      @if (media.description) {
+                        <p class="media-description">{{ media.description }}</p>
+                      }
+                      <!-- Linked persons -->
+                      @if (media.linkedPersons && media.linkedPersons.length > 1) {
+                        <div class="linked-persons inline">
+                          <i class="fa-solid fa-users linked-icon small" aria-hidden="true"></i>
+                          <span class="linked-count">{{ 'media.sharedWith' | translate }} {{ media.linkedPersons.length }} {{ 'common.people' | translate }}</span>
+                        </div>
+                      }
+                    </div>
+                    <div class="video-actions">
+                      <button mat-icon-button (click)="downloadMedia(media)" [matTooltip]="'media.download' | translate">
+                        <i class="fa-solid fa-download" aria-hidden="true"></i>
+                      </button>
+                      <button mat-icon-button color="warn" (click)="deleteMedia(media)" [matTooltip]="'common.delete' | translate">
+                        <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                      </button>
+                    </div>
+                  </div>
+                  @if (loadedVideos()[media.mediaId]) {
+                    <video controls class="video-player">
+                      <source [src]="loadedVideos()[media.mediaId]" [type]="media.mimeType" />
+                      {{ 'media.browserNoVideo' | translate }}
+                    </video>
+                  } @else {
+                    <button mat-stroked-button (click)="loadFullMedia(media)">
+                      <i class="fa-solid fa-play" aria-hidden="true"></i>
+                      {{ 'media.loadVideo' | translate }}
+                    </button>
+                  }
+                </mat-card-content>
+              </mat-card>
+            }
+          </div>
+        </mat-tab>
+      }
+    </mat-tab-group>
+  }
+
+  <!-- Lightbox for images -->
+  @if (lightboxImage()) {
+    <div class="lightbox" (click)="closeLightbox()">
+      <button mat-icon-button class="lightbox-close">
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+      <img [src]="lightboxImage()" alt="Full size image" />
+    </div>
+  }
+
+  <!-- Upload Dialog Overlay -->
+  @if (showUploadDialog()) {
+    <div class="upload-dialog-overlay" (click)="closeUploadDialog()">
+      <div class="upload-dialog" (click)="$event.stopPropagation()">
+        <div class="upload-dialog-header">
+          <h3>{{ 'media.uploadMedia' | translate }}</h3>
+          <button mat-icon-button (click)="closeUploadDialog()">
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <div class="upload-dialog-content">
+          <!-- Selected file info -->
+          @if (selectedFile()) {
+            <div class="selected-file-info">
+              <i class="fa-solid" [ngClass]="getFileIconClass(selectedFile()!.type)" aria-hidden="true"></i>
+              <div class="file-details">
+                <span class="file-name">{{ selectedFile()!.name }}</span>
+                <span class="file-size">{{ formatFileSize(selectedFile()!.size) }}</span>
+              </div>
+              <button mat-icon-button (click)="clearSelectedFile()">
+                <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+              </button>
+            </div>
+          } @else {
+            <div class="drop-zone" (click)="triggerFileInput()">
+              <i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i>
+              <p>{{ 'media.clickToSelect' | translate }}</p>
+              <span class="drop-hint">{{ 'media.fileTypes' | translate }}</span>
+            </div>
+          }
+
+          <!-- Description field -->
+          @if (selectedFile()) {
+            <mat-form-field appearance="outline" class="description-field">
+              <mat-label>{{ 'media.descriptionOptional' | translate }}</mat-label>
+              <textarea matInput
+                        [(ngModel)]="mediaDescription"
+                        [placeholder]="'media.descriptionPlaceholder' | translate"
+                        rows="3"
+                        maxlength="500"></textarea>
+              <mat-hint align="end">{{ mediaDescription.length }}/500</mat-hint>
+            </mat-form-field>
+          }
+
+          <!-- Person selection section -->
+          <div class="person-selection-section">
+            <h4>{{ 'media.tagPeople' | translate }}</h4>
+            <p class="selection-hint">{{ 'media.tagPeopleHint' | translate }}</p>
+
+            <!-- Search input -->
+            <mat-form-field appearance="outline" class="search-field">
+              <mat-label>{{ 'media.searchPeopleToTag' | translate }}</mat-label>
+              <input matInput
+                     [(ngModel)]="personSearchQuery"
+                     (ngModelChange)="onSearchQueryChange($event)"
+                     [placeholder]="'media.searchNamePlaceholder' | translate">
+              <i class="fa-solid fa-magnifying-glass" matSuffix aria-hidden="true"></i>
+            </mat-form-field>
+
+            <!-- Selected persons chips -->
+            @if (selectedPersons().length > 0) {
+              <div class="selected-persons-chips">
+                @for (person of selectedPersons(); track person.id) {
+                  <div class="person-chip" [class.current]="person.id === personId">
+                    <span>{{ getSearchPersonName(person) || ('common.unknown' | translate) }}</span>
+                    @if (person.id === personId) {
+                      <span class="current-badge">({{ 'media.current' | translate }})</span>
+                    }
+                    @if (person.id !== personId) {
+                      <button mat-icon-button class="remove-btn" (click)="togglePersonSelection(person)">
+                        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+            }
+
+            <!-- Search results -->
+            @if (isSearching()) {
+              <div class="search-loading">
+                <mat-spinner diameter="24"></mat-spinner>
+                <span>{{ 'common.searching' | translate }}</span>
+              </div>
+            } @else if (personSearchResults().length > 0) {
+              <div class="search-results">
+                @for (person of personSearchResults(); track person.id) {
+                  <div class="search-result-item"
+                       [class.selected]="isPersonSelected(person.id)"
+                       (click)="togglePersonSelection(person)">
+                    <mat-checkbox
+                      [checked]="isPersonSelected(person.id)"
+                      [disabled]="person.id === personId"
+                      (click)="$event.stopPropagation()">
+                    </mat-checkbox>
+                    <div class="person-info">
+                      <span class="person-name">{{ getSearchPersonName(person) || ('common.unknown' | translate) }}</span>
+                      @if (person.birthDate || person.deathDate) {
+                        <span class="person-dates">{{ getLifespan(person) }}</span>
+                      }
+                    </div>
+                    @if (person.id === personId) {
+                      <span class="current-label">{{ 'media.currentPerson' | translate }}</span>
+                    }
+                  </div>
+                }
+              </div>
+            } @else if (personSearchQuery && personSearchQuery.length >= 2) {
+              <div class="no-results">
+                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                <span>{{ 'media.noPeopleMatching' | translate:{ query: personSearchQuery } }}</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="upload-dialog-actions">
+          <button mat-button (click)="closeUploadDialog()">{{ 'common.cancel' | translate }}</button>
+          <button mat-raised-button color="primary"
+                  [disabled]="!selectedFile() || selectedPersons().length === 0 || isUploading()"
+                  (click)="performUpload()">
+            @if (isUploading()) {
+              <mat-spinner diameter="20"></mat-spinner>
+            } @else {
+              <i class="fa-solid fa-upload" aria-hidden="true"></i>
+            }
+            {{ 'media.upload' | translate }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

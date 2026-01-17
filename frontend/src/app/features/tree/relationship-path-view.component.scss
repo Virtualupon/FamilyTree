@@ -1,0 +1,227 @@
+.relationship-path-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+  }
+
+  &__content {
+    position: relative;
+    width: 95vw;
+    height: 90vh;
+    max-width: 1400px;
+    background: var(--ft-surface);
+    border-radius: var(--ft-radius-xl);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: var(--ft-shadow-xl);
+    animation: slideUp 0.3s ease-out;
+  }
+
+  &__header {
+    background: var(--ft-primary);
+    color: white;
+    padding: var(--ft-spacing-lg) var(--ft-spacing-xl);
+    text-align: center;
+  }
+
+  &__header-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--ft-spacing-md);
+    position: relative;
+  }
+
+  &__close {
+    color: white;
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  &__title-group {
+    text-align: center;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 700;
+  }
+
+  &__description {
+    margin: var(--ft-spacing-sm) 0 0;
+    opacity: 0.95;
+    font-size: 1rem;
+  }
+
+  &__chart {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+
+    svg {
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+
+      &:active {
+        cursor: grabbing;
+      }
+    }
+  }
+
+  &__controls {
+    position: absolute;
+    bottom: var(--ft-spacing-lg);
+    right: var(--ft-spacing-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--ft-spacing-xs);
+    background: var(--ft-surface);
+    border-radius: var(--ft-radius-lg);
+    padding: var(--ft-spacing-xs);
+    box-shadow: var(--ft-shadow-lg);
+  }
+
+  &__no-path {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: var(--ft-spacing-xxl);
+    color: var(--ft-on-surface-variant);
+
+    > i.fa-solid {
+      font-size: 64px;
+      width: 64px;
+      height: 64px;
+      margin-bottom: var(--ft-spacing-lg);
+      opacity: 0.5;
+    }
+
+    h3 {
+      margin: 0 0 var(--ft-spacing-sm);
+      font-size: 1.25rem;
+      color: var(--ft-on-surface);
+    }
+
+    p {
+      margin: 0 0 var(--ft-spacing-lg);
+      max-width: 400px;
+    }
+
+    button {
+      i.fa-solid {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+        margin-right: var(--ft-spacing-xs);
+        opacity: 1;
+      }
+    }
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// TODO: ::ng-deep is deprecated. Consider using component styles with ViewEncapsulation.None
+// or restructuring styles to avoid deep selectors.
+// See: https://angular.io/guide/component-styles#deprecated-deep--and-ng-deep
+:host ::ng-deep {
+  .path-node {
+    cursor: pointer;
+
+    &:hover .node-rect {
+      filter: brightness(0.95);
+    }
+  }
+
+  .node-rect {
+    transition: filter 0.2s ease;
+  }
+
+  .node-rect-male {
+    fill: var(--ft-male-light);
+    stroke: var(--ft-male);
+    stroke-width: 2px;
+  }
+
+  .node-rect-female {
+    fill: var(--ft-female-light);
+    stroke: var(--ft-female);
+    stroke-width: 2px;
+  }
+
+  .node-rect-unknown {
+    fill: var(--ft-unknown-light);
+    stroke: var(--ft-unknown);
+    stroke-width: 2px;
+  }
+
+  .node-name {
+    font-size: 13px;
+    font-weight: 600;
+    fill: #333;
+  }
+
+  .node-dates {
+    font-size: 11px;
+    fill: #666;
+  }
+
+  .node-place {
+    font-size: 10px;
+    fill: #888;
+  }
+
+  .edge-line {
+    stroke: #666;
+    stroke-width: 2px;
+    fill: none;
+  }
+
+  .edge-line-spouse {
+    stroke: var(--ft-female);
+    stroke-dasharray: 5,5;
+  }
+
+  .edge-line-parent {
+    stroke: var(--ft-male);
+  }
+
+  .edge-label {
+    font-size: 10px;
+    fill: #666;
+    text-anchor: middle;
+  }
+
+  .edge-label-bg {
+    fill: white;
+  }
+}

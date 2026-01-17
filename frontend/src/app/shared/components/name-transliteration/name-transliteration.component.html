@@ -1,0 +1,140 @@
+<div class="name-transliteration">
+  <!-- Input section -->
+  <div class="name-transliteration__input">
+    <mat-form-field appearance="outline" class="name-input">
+      <mat-label>{{ 'transliteration.enterName' | translate }}</mat-label>
+      <input
+        matInput
+        [(ngModel)]="inputName"
+        [placeholder]="'transliteration.namePlaceholder' | translate"
+        (keyup.enter)="onTransliterate()">
+      <i class="fa-solid fa-language" matSuffix aria-hidden="true"></i>
+    </mat-form-field>
+
+    <button
+      mat-flat-button
+      color="primary"
+      [disabled]="loading() || !inputName.trim()"
+      (click)="onTransliterate()"
+      class="transliterate-btn">
+      @if (loading()) {
+        <mat-spinner diameter="20"></mat-spinner>
+      } @else {
+        <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+        {{ 'transliteration.transliterate' | translate }}
+      }
+    </button>
+  </div>
+
+  <!-- Results section -->
+  @if (result()) {
+    <mat-card class="name-transliteration__results">
+      <mat-card-content>
+        <!-- Confidence indicator -->
+        <div class="confidence-badge" [style.background-color]="getConfidenceBackground()">
+          <i [class]="'fa-solid ' + getConfidenceIcon()" aria-hidden="true"></i>
+          <span>{{ (result()!.english.confidence * 100).toFixed(0) }}%</span>
+        </div>
+
+        <!-- Language variants -->
+        <div class="variants">
+          <!-- English -->
+          <div
+            class="variant"
+            [class.variant--selected]="selectedVariant === 'english'"
+            (click)="selectVariant('english', result()!.english.best)">
+            <div class="variant__label">
+              <span class="variant__flag">EN</span>
+              {{ 'transliteration.english' | translate }}
+            </div>
+            <div class="variant__value">{{ result()!.english.best }}</div>
+            @if (result()!.english.alternatives.length > 0) {
+              <div class="variant__alternatives">
+                <span class="variant__alternatives-label">{{ 'transliteration.alternatives' | translate }}:</span>
+                @for (alt of result()!.english.alternatives; track alt) {
+                  <mat-chip (click)="selectVariant('english', alt); $event.stopPropagation()">
+                    {{ alt }}
+                  </mat-chip>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Arabic -->
+          @if (result()!.arabic) {
+            <div
+              class="variant variant--rtl"
+              [class.variant--selected]="selectedVariant === 'arabic'"
+              (click)="selectVariant('arabic', result()!.arabic!)">
+              <div class="variant__label">
+                <span class="variant__flag">AR</span>
+                {{ 'transliteration.arabic' | translate }}
+              </div>
+              <div class="variant__value">{{ result()!.arabic }}</div>
+            </div>
+          }
+
+          <!-- Nobiin -->
+          @if (result()!.nobiin.value) {
+            <div
+              class="variant"
+              [class.variant--selected]="selectedVariant === 'nobiin'"
+              (click)="selectVariant('nobiin', result()!.nobiin.value!)">
+              <div class="variant__label">
+                <span class="variant__flag">NOB</span>
+                {{ 'transliteration.nobiin' | translate }}
+              </div>
+              <div class="variant__value variant__value--nobiin">{{ result()!.nobiin.value }}</div>
+              @if (result()!.nobiin.ipa) {
+                <div class="variant__ipa">IPA: /{{ result()!.nobiin.ipa }}/</div>
+              }
+            </div>
+          }
+        </div>
+
+        <!-- Warnings -->
+        @if (result()!.metadata.warnings.length > 0) {
+          <div class="warnings">
+            @for (warning of result()!.metadata.warnings; track warning) {
+              <div class="warning">
+                <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                {{ warning }}
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Review indicator -->
+        @if (result()!.metadata.needsReview) {
+          <div class="review-needed">
+            <i class="fa-solid fa-star-half-stroke" aria-hidden="true"></i>
+            {{ 'transliteration.needsReview' | translate }}
+          </div>
+        }
+      </mat-card-content>
+
+      <!-- Actions -->
+      <mat-card-actions align="end">
+        <button mat-button (click)="clearResult()">
+          {{ 'common.clear' | translate }}
+        </button>
+        <button
+          mat-flat-button
+          color="primary"
+          [disabled]="!selectedVariant"
+          (click)="confirmSelection()">
+          <i class="fa-solid fa-check" aria-hidden="true"></i>
+          {{ 'transliteration.useSelected' | translate }}
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  }
+
+  <!-- Error message -->
+  @if (error()) {
+    <div class="error-message">
+      <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+      {{ error() }}
+    </div>
+  }
+</div>

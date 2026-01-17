@@ -1,0 +1,187 @@
+.person-detail-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px;
+}
+
+.error-card {
+  text-align: center;
+  padding: 24px;
+}
+
+.error-card i.fa-solid {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  color: #f44336;
+}
+
+.header-card {
+  margin-bottom: 24px;
+}
+
+.person-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 24px;
+}
+
+.avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e0e0e0;
+}
+
+.avatar i.fa-solid {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+}
+
+.avatar.male {
+  background: #bbdefb;
+  color: #1565c0;
+}
+
+.avatar.female {
+  background: #f8bbd9;
+  color: #c2185b;
+}
+
+.info {
+  flex: 1;
+}
+
+.info h1 {
+  margin: 0 0 8px 0;
+  font-size: 28px;
+}
+
+.info .lifespan {
+  margin: 0;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 16px;
+}
+
+.info .occupation {
+  margin: 4px 0 0 0;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.tab-content {
+  margin-top: 16px;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-item .label {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.6);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.detail-item .value {
+  font-size: 14px;
+}
+
+.detail-item .value small {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.notes-section,
+.names-section {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.notes-section h4,
+.names-section h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.name-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.name-item .transliteration {
+  color: rgba(0, 0, 0, 0.6);
+  font-style: italic;
+}
+
+.name-item .name-arabic {
+  font-family: 'Noto Naskh Arabic', 'Arabic Typesetting', serif;
+  font-size: 1.1em;
+  direction: rtl;
+}
+
+.family-section {
+  margin-bottom: 24px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.section-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.clickable:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.no-data {
+  color: rgba(0, 0, 0, 0.5);
+  font-style: italic;
+  padding: 16px;
+  text-align: center;
+}
+
+.delete-action {
+  color: #f44336;
+}
+
+i.fa-solid.male {
+  color: #1565c0;
+}
+
+i.fa-solid.female {
+  color: #c2185b;
+}

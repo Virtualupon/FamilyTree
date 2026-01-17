@@ -1,0 +1,102 @@
+<div class="person-selector">
+  <!-- Handle -->
+  <div class="person-selector__handle"></div>
+
+  <!-- Header -->
+  <div class="person-selector__header">
+    <h3 class="person-selector__title">{{ 'tree.selectPerson' | translate }}</h3>
+    <button mat-icon-button (click)="close()">
+      <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+    </button>
+  </div>
+
+  <!-- Search -->
+  <div class="person-selector__search">
+    <div class="ft-search">
+      <i class="fa-solid fa-magnifying-glass ft-search__icon" aria-hidden="true"></i>
+      <input
+        type="text"
+        class="ft-search__input"
+        [placeholder]="'people.searchPlaceholder' | translate"
+        [(ngModel)]="searchQuery"
+        (ngModelChange)="onSearchChange($event)"
+        autocomplete="off"
+        autofocus>
+      @if (searchQuery) {
+        <button class="ft-search__clear" (click)="clearSearch()">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="person-selector__content">
+    @if (loading()) {
+      <div class="person-selector__list">
+        @for (i of [1,2,3,4,5]; track i) {
+          <app-skeleton type="person-card"></app-skeleton>
+        }
+      </div>
+    } @else if (people().length === 0) {
+      <div class="person-selector__empty">
+        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+        <p>{{ 'common.noResults' | translate }}</p>
+      </div>
+    } @else {
+      <div class="person-selector__list">
+        @for (person of people(); track person.id) {
+          <div
+            class="person-selector__item"
+            matRipple
+            (click)="selectPerson(person)">
+
+            <app-person-name-avatar
+              [person]="person"
+              size="large">
+            </app-person-name-avatar>
+
+            <div class="person-selector__info">
+              <div class="person-selector__name">{{ getPersonDisplayName(person) || ('common.unknown' | translate) }}</div>
+              <div class="person-selector__meta">
+                @if (person.birthDate) {
+                  <span>{{ formatYear(person.birthDate) }}</span>
+                }
+                @if (person.birthDate && person.deathDate) {
+                  <span>-</span>
+                }
+                @if (person.deathDate) {
+                  <span>{{ formatYear(person.deathDate) }}</span>
+                }
+                @if (person.birthPlaceName) {
+                  <span class="person-selector__place">
+                    <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+                    {{ person.birthPlaceName }}
+                  </span>
+                }
+              </div>
+            </div>
+
+            <i class="fa-solid fa-chevron-right person-selector__arrow" aria-hidden="true"></i>
+          </div>
+        }
+      </div>
+
+      <!-- Load More -->
+      @if (hasMore()) {
+        <div class="person-selector__load-more">
+          <button
+            mat-stroked-button
+            (click)="loadMore()"
+            [disabled]="loadingMore()">
+            @if (loadingMore()) {
+              <mat-spinner diameter="20"></mat-spinner>
+            } @else {
+              {{ 'common.next' | translate }}
+            }
+          </button>
+        </div>
+      }
+    }
+  </div>
+</div>

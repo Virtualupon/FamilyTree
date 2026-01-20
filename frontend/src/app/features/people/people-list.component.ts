@@ -16,6 +16,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { PersonService } from '../../core/services/person.service';
 import { PersonSearchService } from '../../core/services/person-search.service';
 import { PersonMediaService } from '../../core/services/person-media.service';
+import { TreeContextService } from '../../core/services/tree-context.service';
 import { I18nService, TranslatePipe } from '../../core/i18n';
 import { Sex } from '../../core/models/person.models';
 import { SearchPersonItem, getPrimaryName, SearchScript } from '../../core/models/search.models';
@@ -51,11 +52,15 @@ export class PeopleListComponent implements OnInit, OnDestroy {
   private readonly searchService = inject(PersonSearchService);
   private readonly personService = inject(PersonService);
   private readonly mediaService = inject(PersonMediaService);
+  private readonly treeContext = inject(TreeContextService);
   private readonly i18n = inject(I18nService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly router = inject(Router);
   private readonly destroy$ = new Subject<void>();
+
+  // Track if we've already retried after clearing tree selection
+  private hasRetriedAfterClearingTree = false;
   
   // Avatar cache: personId -> object URL
   private avatarCache = new Map<string, string>();
@@ -152,6 +157,15 @@ export class PeopleListComponent implements OnInit, OnDestroy {
         });
       },
       error: (error) => {
+        // Handle 403 Forbidden - likely caused by stale tree selection in localStorage
+        if (error.status === 403 && !this.hasRetriedAfterClearingTree) {
+          console.warn('403 Forbidden - clearing tree selection and retrying');
+          this.hasRetriedAfterClearingTree = true;
+          this.treeContext.selectTree(null);
+          this.loadPeople(append);
+          return;
+        }
+
         console.error('Failed to load people:', error);
         this.loading.set(false);
         this.loadingMore.set(false);

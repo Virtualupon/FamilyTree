@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using FamilyTreeApi.DTOs.Search;
+using FamilyTreeApi.Repositories;
 using FamilyTreeApi.Repositories.Interfaces;
 using FamilyTreeApi.Services.Interfaces;
 
@@ -17,13 +18,16 @@ namespace FamilyTreeApi.Services.Implementations;
 public class PersonSearchService : IPersonSearchService
 {
     private readonly IPersonSearchRepository _searchRepository;
+    private readonly IOrgRepository _orgRepository;
     private readonly ILogger<PersonSearchService> _logger;
 
     public PersonSearchService(
         IPersonSearchRepository searchRepository,
+        IOrgRepository orgRepository,
         ILogger<PersonSearchService> logger)
     {
         _searchRepository = searchRepository;
+        _orgRepository = orgRepository;
         _logger = logger;
     }
 
@@ -34,16 +38,17 @@ public class PersonSearchService : IPersonSearchService
     {
         try
         {
-            // Apply tree filter based on user context if not explicitly provided
+            // Apply tree and town filters based on user context if not explicitly provided
             var effectiveRequest = request with
             {
                 TreeId = request.TreeId ?? GetUserTreeId(userContext),
+                TownId = request.TownId ?? GetUserTownId(userContext),
                 PageSize = Math.Clamp(request.PageSize, 1, 100)
             };
 
             // Validate tree access if TreeId is specified
             if (effectiveRequest.TreeId.HasValue &&
-                !HasTreeAccess(userContext, effectiveRequest.TreeId.Value))
+                !await HasTreeAccessAsync(userContext, effectiveRequest.TreeId.Value, cancellationToken))
             {
                 return ServiceResult<PersonSearchResult>.Forbidden("Access denied to this family tree");
             }
@@ -75,6 +80,7 @@ public class PersonSearchService : IPersonSearchService
             Query = query.Trim(),
             SearchIn = "auto",
             TreeId = GetUserTreeId(userContext),
+            TownId = GetUserTownId(userContext),
             Page = page,
             PageSize = pageSize
         };
@@ -96,7 +102,7 @@ public class PersonSearchService : IPersonSearchService
             };
 
             if (effectiveRequest.TreeId.HasValue &&
-                !HasTreeAccess(userContext, effectiveRequest.TreeId.Value))
+                !await HasTreeAccessAsync(userContext, effectiveRequest.TreeId.Value, cancellationToken))
             {
                 return ServiceResult<RelationshipPathResult>.Forbidden("Access denied to this family tree");
             }
@@ -160,7 +166,7 @@ public class PersonSearchService : IPersonSearchService
             }
 
             // Check tree access
-            if (!HasTreeAccess(userContext, result.OrgId))
+            if (!await HasTreeAccessAsync(userContext, result.OrgId, cancellationToken))
             {
                 return ServiceResult<PersonDetailsResult>.Forbidden("Access denied to this person");
             }
@@ -232,7 +238,24 @@ public class PersonSearchService : IPersonSearchService
         return userContext.OrgId;
     }
 
-    private static bool HasTreeAccess(UserContext userContext, Guid treeId)
+    /// <summary>
+    /// Get the effective town ID for filtering searches.
+    /// Users should only see people from trees in their selected town.
+    /// </summary>
+    private static Guid? GetUserTownId(UserContext userContext)
+    {
+        // SuperAdmins can see all data across all towns
+        if (userContext.IsSuperAdmin)
+        {
+            return null;
+        }
+
+        // Admin and User roles should be scoped to their selected town
+        // This is the key security filter - ensures data isolation by town
+        return userContext.SelectedTownId;
+    }
+
+    private async Task<bool> HasTreeAccessAsync(UserContext userContext, Guid treeId, CancellationToken cancellationToken = default)
     {
         // SuperAdmins and Admins have access to all trees
         if (userContext.IsSuperAdmin || userContext.IsAdmin)
@@ -240,7 +263,25 @@ public class PersonSearchService : IPersonSearchService
             return true;
         }
 
-        // Regular users only have access to their assigned tree
-        return userContext.OrgId == treeId;
+        // Regular users have access to their assigned tree (membership)
+        if (userContext.OrgId == treeId)
+        {
+            return true;
+        }
+
+        // Regular users can also access trees in their selected town (browse mode)
+        if (userContext.SelectedTownId.HasValue)
+        {
+            var tree = await _orgRepository.GetByIdAsync(treeId, cancellationToken);
+            if (tree != null && tree.TownId == userContext.SelectedTownId.Value)
+            {
+                _logger.LogInformation(
+                    "User {UserId} granted read access to tree {TreeId} via town selection {TownId}",
+                    userContext.UserId, treeId, userContext.SelectedTownId.Value);
+                return true;
+            }
+        }
+
+        return false;
     }
 }

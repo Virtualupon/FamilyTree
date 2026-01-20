@@ -48,6 +48,11 @@ public class AuthService : IAuthService
         }
 
         user.LastLoginAt = DateTime.UtcNow;
+
+        // Clear selected town on every login - user must re-select town each session
+        // This ensures proper town-scoped access control
+        user.SelectedTownId = null;
+
         await _userManager.UpdateAsync(user);
 
         var rawRefreshToken = GenerateRefreshToken();
@@ -246,6 +251,16 @@ public class AuthService : IAuthService
                        : userRoles.Contains("Admin") ? "Admin"
                        : "User";
 
+        // Get selected town name if set
+        string? selectedTownName = null;
+        if (user.SelectedTownId.HasValue)
+        {
+            selectedTownName = await _context.Towns
+                .Where(t => t.Id == user.SelectedTownId.Value)
+                .Select(t => t.Name)
+                .FirstOrDefaultAsync();
+        }
+
         return new UserDto(
             user.Id,
             user.Email!,
@@ -256,8 +271,108 @@ public class AuthService : IAuthService
             orgUser?.Org?.Name,
             orgUser != null ? (int)orgUser.Role : 0,
             systemRole,
-            user.PreferredLanguage
+            user.PreferredLanguage,
+            user.IsFirstLogin,
+            user.SelectedTownId,
+            selectedTownName
         );
+    }
+
+    // ============================================================================
+    // Governance Model - Language and Town Selection
+    // ============================================================================
+
+    public async Task<SetLanguageResponse> SetLanguageAsync(long userId, string language)
+    {
+        // Validate language
+        var validLanguages = new[] { "en", "ar", "nob" };
+        if (!validLanguages.Contains(language))
+        {
+            throw new ArgumentException($"Invalid language. Supported: {string.Join(", ", validLanguages)}");
+        }
+
+        var user = await _userManager.FindByIdAsync(userId.ToString())
+            ?? throw new UnauthorizedAccessException("User not found");
+
+        user.PreferredLanguage = language;
+        await _userManager.UpdateAsync(user);
+
+        var userDto = await BuildUserDtoAsync(user);
+
+        return new SetLanguageResponse(
+            language,
+            user.IsFirstLogin,
+            userDto
+        );
+    }
+
+    public async Task<UserDto> CompleteOnboardingAsync(long userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString())
+            ?? throw new UnauthorizedAccessException("User not found");
+
+        user.IsFirstLogin = false;
+        await _userManager.UpdateAsync(user);
+
+        return await BuildUserDtoAsync(user);
+    }
+
+    public async Task<AvailableTownsResponse> GetAvailableTownsAsync()
+    {
+        var towns = await _context.Towns
+            .OrderBy(t => t.Name)
+            .Select(t => new
+            {
+                t.Id,
+                t.Name,
+                t.NameEn,
+                t.NameAr,
+                t.Country,
+                TreeCount = t.FamilyTrees.Count
+            })
+            .ToListAsync();
+
+        var result = towns.Select(t => new TownInfoDto(
+            t.Id,
+            t.Name,
+            t.NameEn,
+            t.NameAr,
+            t.Country,
+            t.TreeCount
+        )).ToList();
+
+        return new AvailableTownsResponse(result);
+    }
+
+    public async Task<SelectTownResponse> SelectTownForUserAsync(long userId, Guid townId)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString())
+            ?? throw new UnauthorizedAccessException("User not found");
+
+        // Verify town exists
+        var town = await _context.Towns.FindAsync(townId)
+            ?? throw new ArgumentException("Town not found");
+
+        // Update user's selected town
+        user.SelectedTownId = townId;
+        await _userManager.UpdateAsync(user);
+
+        // Generate new token with town claim
+        var accessToken = await GenerateAccessTokenWithTownAsync(userId, townId);
+
+        return new SelectTownResponse(
+            accessToken,
+            townId,
+            town.Name
+        );
+    }
+
+    public async Task<UserDto> GetUserProfileAsync(long userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString())
+            ?? throw new UnauthorizedAccessException("User not found");
+
+        return await BuildUserDtoAsync(user);
     }
 
     /// <summary>

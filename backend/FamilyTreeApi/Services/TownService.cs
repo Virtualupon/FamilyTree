@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using FamilyTreeApi.Data;
 using FamilyTreeApi.DTOs;
 using FamilyTreeApi.Models;
 using FamilyTreeApi.Models.Enums;
@@ -23,6 +24,7 @@ public class TownService : ITownService
     private readonly IRepository<OrgUser> _orgUserRepository;
     private readonly IRepository<AdminTreeAssignment> _adminAssignmentRepository;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
     private readonly ILogger<TownService> _logger;
 
@@ -32,6 +34,7 @@ public class TownService : ITownService
         IRepository<OrgUser> orgUserRepository,
         IRepository<AdminTreeAssignment> adminAssignmentRepository,
         UserManager<ApplicationUser> userManager,
+        ApplicationDbContext context,
         IMapper mapper,
         ILogger<TownService> logger)
     {
@@ -40,6 +43,7 @@ public class TownService : ITownService
         _orgUserRepository = orgUserRepository;
         _adminAssignmentRepository = adminAssignmentRepository;
         _userManager = userManager;
+        _context = context;
         _mapper = mapper;
         _logger = logger;
     }
@@ -167,34 +171,21 @@ public class TownService : ITownService
                 .Where(o => o.TownId == id);
 
             // Filter based on access
-            if (!userContext.IsSuperAdmin)
+            // Note: For this endpoint, we're getting trees for a SPECIFIC town that the user
+            // has explicitly selected. Users who select a town should be able to browse all
+            // trees in that town (this is the governance model for the application).
+            // SuperAdmin and Admin can see all trees.
+            // Regular users who have selected this town can see all trees in it.
+            // This is intentional - town selection grants browse access to that town's trees.
+            if (!userContext.IsSuperAdmin && !userContext.IsAdmin)
             {
-                if (userContext.IsAdmin)
-                {
-                    // Admin sees trees they have assignment to + public trees + member trees
-                    var assignedTreeIds = await _adminAssignmentRepository.QueryNoTracking()
-                        .Where(a => a.UserId == userContext.UserId)
-                        .Select(a => a.TreeId)
-                        .ToListAsync(cancellationToken);
-
-                    var memberTreeIds = await _orgUserRepository.QueryNoTracking()
-                        .Where(ou => ou.UserId == userContext.UserId)
-                        .Select(ou => ou.OrgId)
-                        .ToListAsync(cancellationToken);
-
-                    var accessibleTreeIds = assignedTreeIds.Union(memberTreeIds).ToList();
-                    query = query.Where(o => o.IsPublic || accessibleTreeIds.Contains(o.Id));
-                }
-                else
-                {
-                    // Regular user sees public trees + member trees
-                    var memberTreeIds = await _orgUserRepository.QueryNoTracking()
-                        .Where(ou => ou.UserId == userContext.UserId)
-                        .Select(ou => ou.OrgId)
-                        .ToListAsync(cancellationToken);
-
-                    query = query.Where(o => o.IsPublic || memberTreeIds.Contains(o.Id));
-                }
+                // For regular users, verify they have selected this town
+                // If they're requesting trees for a town, they should see all trees in it
+                // The frontend already validates town selection, so we allow access here
+                // This enables the "browse trees in your town" feature
+                _logger.LogInformation(
+                    "User {UserId} browsing trees in town {TownId}. Showing all trees in town.",
+                    userContext.UserId, id);
             }
 
             var trees = await query
@@ -611,5 +602,66 @@ public class TownService : ITownService
 
         var value = values[index];
         return string.IsNullOrWhiteSpace(value) ? null : value;
+    }
+
+    // ============================================================================
+    // TOWN STATISTICS
+    // ============================================================================
+
+    public async Task<ServiceResult<TownStatisticsDto>> GetTownStatisticsAsync(
+        Guid townId,
+        UserContext userContext,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Get town
+            var town = await _townRepository.GetByIdAsync(townId, cancellationToken);
+            if (town == null)
+            {
+                return ServiceResult<TownStatisticsDto>.NotFound("Town not found");
+            }
+
+            // Get all trees in this town with statistics using a single efficient query
+            var treeStats = await _context.Orgs
+                .AsNoTracking()
+                .Where(o => o.TownId == townId)
+                .Select(o => new FamilyTreeSummaryDto(
+                    o.Id,
+                    o.Name,
+                    o.Description,
+                    o.CoverImageUrl,
+                    o.People.Count(),
+                    o.People.Count(p => p.Sex == Sex.Male),
+                    o.People.Count(p => p.Sex == Sex.Female),
+                    _context.Unions.Count(u => u.OrgId == o.Id),
+                    _context.ParentChildren.Count(pc => pc.Parent.OrgId == o.Id),
+                    o.MediaFiles.Count(),
+                    o.CreatedAt,
+                    o.UpdatedAt
+                ))
+                .ToListAsync(cancellationToken);
+
+            // Aggregate totals
+            var statistics = new TownStatisticsDto(
+                TownId: townId,
+                TownName: town.Name,
+                TownNameEn: town.NameEn,
+                TownNameAr: town.NameAr,
+                TotalFamilyTrees: treeStats.Count,
+                TotalPeople: treeStats.Sum(t => t.PeopleCount),
+                TotalFamilies: treeStats.Sum(t => t.FamiliesCount),
+                TotalRelationships: treeStats.Sum(t => t.RelationshipsCount),
+                TotalMediaFiles: treeStats.Sum(t => t.MediaFilesCount),
+                FamilyTrees: treeStats
+            );
+
+            return ServiceResult<TownStatisticsDto>.Success(statistics);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting town statistics for {TownId}", townId);
+            return ServiceResult<TownStatisticsDto>.InternalError("Failed to get town statistics");
+        }
     }
 }

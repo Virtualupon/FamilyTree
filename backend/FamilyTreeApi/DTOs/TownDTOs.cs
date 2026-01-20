@@ -87,3 +87,37 @@ public record TownSearchDto(
     string? NameQuery = null,
     string? Country = null
 );
+
+/// <summary>
+/// Statistics for a town including all family trees
+/// </summary>
+public record TownStatisticsDto(
+    Guid TownId,
+    string TownName,
+    string? TownNameEn,
+    string? TownNameAr,
+    int TotalFamilyTrees,
+    int TotalPeople,
+    int TotalFamilies,
+    int TotalRelationships,
+    int TotalMediaFiles,
+    List<FamilyTreeSummaryDto> FamilyTrees
+);
+
+/// <summary>
+/// Summary of a family tree with counts for display in town overview
+/// </summary>
+public record FamilyTreeSummaryDto(
+    Guid Id,
+    string Name,
+    string? Description,
+    string? CoverImageUrl,
+    int PeopleCount,
+    int MaleCount,
+    int FemaleCount,
+    int FamiliesCount,
+    int RelationshipsCount,
+    int MediaFilesCount,
+    DateTime CreatedAt,
+    DateTime UpdatedAt
+);

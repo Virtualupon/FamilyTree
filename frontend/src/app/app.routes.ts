@@ -1,11 +1,33 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
-import { superAdminGuard } from './core/guards/admin.guard';
+import { superAdminGuard, adminGuard } from './core/guards/admin.guard';
+import { onboardingCompleteGuard, onboardingInProgressGuard } from './core/guards/onboarding.guard';
 
 export const routes: Routes = [
+  // Onboarding routes (language and town selection)
+  {
+    path: 'onboarding',
+    canActivate: [authGuard, onboardingInProgressGuard],
+    children: [
+      {
+        path: '',
+        redirectTo: 'language',
+        pathMatch: 'full'
+      },
+      {
+        path: 'language',
+        loadComponent: () => import('./features/onboarding/language-selection.component').then(m => m.LanguageSelectionComponent)
+      },
+      {
+        path: 'town',
+        loadComponent: () => import('./features/onboarding/town-selection.component').then(m => m.TownSelectionComponent)
+      }
+    ]
+  },
+  // Main application routes (requires onboarding complete)
   {
     path: '',
-    canActivate: [authGuard],
+    canActivate: [authGuard, onboardingCompleteGuard],
     loadComponent: () => import('./features/layout/layout.component').then(m => m.LayoutComponent),
     children: [
       {
@@ -44,6 +66,33 @@ export const routes: Routes = [
         loadComponent: () => import('./features/admin/countries/countries-list.component').then(m => m.CountriesListComponent)
       },
       {
+        path: 'admin/suggestions',
+        canActivate: [adminGuard],
+        loadComponent: () => import('./features/admin/suggestion-queue.component').then(m => m.SuggestionQueueComponent)
+      },
+      {
+        path: 'admin/suggestions/:id',
+        canActivate: [adminGuard],
+        loadComponent: () => import('./features/admin/suggestion-review.component').then(m => m.SuggestionReviewComponent)
+      },
+      {
+        path: 'suggestions',
+        children: [
+          {
+            path: 'my',
+            loadComponent: () => import('./features/suggestions/my-suggestions.component').then(m => m.MySuggestionsComponent)
+          },
+          {
+            path: 'new',
+            loadComponent: () => import('./features/suggestions/my-suggestions.component').then(m => m.MySuggestionsComponent)
+          },
+          {
+            path: ':id',
+            loadComponent: () => import('./features/admin/suggestion-review.component').then(m => m.SuggestionReviewComponent)
+          }
+        ]
+      },
+      {
         path: 'people',
         loadChildren: () => import('./features/people/people.routes').then(m => m.PEOPLE_ROUTES)
       },
@@ -62,6 +111,14 @@ export const routes: Routes = [
       {
         path: 'towns/:id',
         loadComponent: () => import('./features/towns/town-detail.component').then(m => m.TownDetailComponent)
+      },
+      {
+        path: 'towns/:townId/overview',
+        loadComponent: () => import('./features/towns/town-overview.component').then(m => m.TownOverviewComponent)
+      },
+      {
+        path: 'towns/:townId/trees/:treeId',
+        loadComponent: () => import('./features/towns/tree-detail.component').then(m => m.TreeDetailComponent)
       },
       {
         path: 'families',

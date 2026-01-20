@@ -68,6 +68,18 @@ public class TownController : ControllerBase
         return HandleResult(result);
     }
 
+    /// <summary>
+    /// Get aggregated statistics for a town including all family trees
+    /// </summary>
+    [HttpGet("{townId}/statistics")]
+    public async Task<ActionResult<TownStatisticsDto>> GetTownStatistics(Guid townId)
+    {
+        var userContext = BuildUserContext();
+        var result = await _townService.GetTownStatisticsAsync(townId, userContext);
+
+        return HandleResult(result);
+    }
+
     // ========================================================================
     // TOWN MUTATIONS - SuperAdmin Only
     // ========================================================================

@@ -54,6 +54,18 @@ public class FamilyTreeController : ControllerBase
     }
 
     /// <summary>
+    /// Get detailed family tree information with statistics
+    /// </summary>
+    [HttpGet("{treeId}/details")]
+    public async Task<ActionResult<FamilyTreeDetailDto>> GetTreeDetails(Guid treeId)
+    {
+        var userContext = BuildUserContext();
+        var result = await _familyTreeService.GetTreeDetailsAsync(treeId, userContext);
+
+        return HandleResult(result);
+    }
+
+    /// <summary>
     /// Create a new family tree.
     /// </summary>
     [HttpPost]

@@ -306,3 +306,52 @@ export interface PlatformStats {
     personCount: number;
   }>;
 }
+
+// ============================================================================
+// TREE DETAIL WITH STATISTICS
+// ============================================================================
+
+export interface FamilyTreeDetail {
+  id: string;
+  name: string;
+  description?: string;
+  coverImageUrl?: string;
+  townId: string;
+  townName: string;
+  isPublic: boolean;
+  statistics: TreeStatistics;
+  recentlyAddedPeople: RecentPerson[];
+  recentlyUpdatedPeople: RecentPerson[];
+  ownerId: number | null;
+  ownerName?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TreeStatistics {
+  totalPeople: number;
+  maleCount: number;
+  femaleCount: number;
+  unknownGenderCount: number;
+  livingCount: number;
+  deceasedCount: number;
+  familiesCount: number;
+  relationshipsCount: number;
+  mediaFilesCount: number;
+  photosCount: number;
+  documentsCount: number;
+  oldestPerson?: RecentPerson;
+  youngestPerson?: RecentPerson;
+}
+
+export interface RecentPerson {
+  id: string;
+  primaryName?: string;
+  nameEnglish?: string;
+  nameArabic?: string;
+  sex?: string;
+  birthDate?: string;
+  deathDate?: string;
+  avatarUrl?: string;
+  activityDate: string;
+}

@@ -217,13 +217,7 @@ public record AdminUserWithTownsResponse(
     DateTime CreatedAt
 );
 
-/// <summary>
-/// Response after login for Admin users - includes assigned towns
-/// </summary>
-public record AdminLoginResponse(
-    List<TownSummaryDto> AssignedTowns,
-    bool RequiresTownSelection // True if admin has multiple towns
-);
+// NOTE: AdminLoginResponse, SelectTownRequest, SelectTownResponse are defined in AuthDTOs.cs
 
 public record TownSummaryDto(
     Guid Id,
@@ -232,22 +226,6 @@ public record TownSummaryDto(
     string? NameAr,
     string? NameLocal,
     int TreeCount
-);
-
-/// <summary>
-/// Request to select a town after login (for multi-town admins)
-/// </summary>
-public record SelectTownRequest(
-    Guid TownId
-);
-
-/// <summary>
-/// Response after selecting a town - includes updated token
-/// </summary>
-public record SelectTownResponse(
-    string AccessToken,
-    Guid SelectedTownId,
-    string TownName
 );
 
 public record UserSystemRoleResponse(
@@ -284,4 +262,62 @@ public record UpdatePersonMediaRequest(
     bool? IsPrimary = null,
     int? SortOrder = null,
     string? Notes = null
+);
+
+// ============================================================================
+// TREE DETAIL WITH STATISTICS DTOs
+// ============================================================================
+
+/// <summary>
+/// Detailed family tree information with statistics
+/// </summary>
+public record FamilyTreeDetailDto(
+    Guid Id,
+    string Name,
+    string? Description,
+    string? CoverImageUrl,
+    Guid TownId,
+    string TownName,
+    bool IsPublic,
+    TreeStatisticsDto Statistics,
+    List<RecentPersonDto> RecentlyAddedPeople,
+    List<RecentPersonDto> RecentlyUpdatedPeople,
+    long? OwnerId,
+    string? OwnerName,
+    DateTime CreatedAt,
+    DateTime UpdatedAt
+);
+
+/// <summary>
+/// Statistics for a family tree
+/// </summary>
+public record TreeStatisticsDto(
+    int TotalPeople,
+    int MaleCount,
+    int FemaleCount,
+    int UnknownGenderCount,
+    int LivingCount,
+    int DeceasedCount,
+    int FamiliesCount,
+    int RelationshipsCount,
+    int MediaFilesCount,
+    int PhotosCount,
+    int DocumentsCount,
+    RecentPersonDto? OldestPerson,
+    RecentPersonDto? YoungestPerson
+);
+
+/// <summary>
+/// Recent person for activity feeds
+/// </summary>
+public record RecentPersonDto(
+    Guid Id,
+    string? PrimaryName,
+    string? NameEnglish,
+    string? NameArabic,
+    string? Sex,
+    string? BirthDate,
+    string? DeathDate,
+    string? AvatarUrl,
+    DateTime ActivityDate
 );

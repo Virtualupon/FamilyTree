@@ -10,7 +10,8 @@ import {
   UpdateTownRequest,
   TownSearchParams,
   TownImportResult,
-  PagedResult
+  PagedResult,
+  TownStatistics
 } from '../models/town.models';
 import { FamilyTreeListItem } from '../models/family-tree.models';
 
@@ -67,6 +68,13 @@ export class TownService {
    */
   getTownTrees(townId: string): Observable<FamilyTreeListItem[]> {
     return this.http.get<FamilyTreeListItem[]>(`${this.apiUrl}/${townId}/trees`);
+  }
+
+  /**
+   * Get aggregated statistics for a town
+   */
+  getTownStatistics(townId: string): Observable<TownStatistics> {
+    return this.http.get<TownStatistics>(`${this.apiUrl}/${townId}/statistics`);
   }
 
   /**

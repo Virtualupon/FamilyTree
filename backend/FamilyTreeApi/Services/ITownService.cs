@@ -45,4 +45,9 @@ public interface ITownService
 
     Task<ServiceResult<List<string>>> GetCountriesAsync(
         CancellationToken cancellationToken = default);
+
+    Task<ServiceResult<TownStatisticsDto>> GetTownStatisticsAsync(
+        Guid townId,
+        UserContext userContext,
+        CancellationToken cancellationToken = default);
 }

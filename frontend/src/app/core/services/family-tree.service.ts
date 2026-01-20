@@ -5,6 +5,7 @@ import { environment } from '../../../environments/environment';
 import {
   FamilyTree,
   FamilyTreeListItem,
+  FamilyTreeDetail,
   CreateFamilyTreeRequest,
   UpdateFamilyTreeRequest,
   TreeMember,
@@ -33,6 +34,13 @@ export class FamilyTreeService {
 
   getTree(id: string): Observable<FamilyTree> {
     return this.http.get<FamilyTree>(`${this.apiUrl}/${id}`);
+  }
+
+  /**
+   * Get detailed tree information with statistics
+   */
+  getTreeDetails(treeId: string): Observable<FamilyTreeDetail> {
+    return this.http.get<FamilyTreeDetail>(`${this.apiUrl}/${treeId}/details`);
   }
 
   createTree(request: CreateFamilyTreeRequest): Observable<FamilyTree> {

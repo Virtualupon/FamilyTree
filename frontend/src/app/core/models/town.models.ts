@@ -72,3 +72,35 @@ export interface PagedResult<T> {
   pageSize: number;
   totalPages: number;
 }
+
+// ============================================================================
+// TOWN STATISTICS
+// ============================================================================
+
+export interface TownStatistics {
+  townId: string;
+  townName: string;
+  townNameEn?: string;
+  townNameAr?: string;
+  totalFamilyTrees: number;
+  totalPeople: number;
+  totalFamilies: number;
+  totalRelationships: number;
+  totalMediaFiles: number;
+  familyTrees: FamilyTreeSummary[];
+}
+
+export interface FamilyTreeSummary {
+  id: string;
+  name: string;
+  description?: string;
+  coverImageUrl?: string;
+  peopleCount: number;
+  maleCount: number;
+  femaleCount: number;
+  familiesCount: number;
+  relationshipsCount: number;
+  mediaFilesCount: number;
+  createdAt: string;
+  updatedAt: string;
+}

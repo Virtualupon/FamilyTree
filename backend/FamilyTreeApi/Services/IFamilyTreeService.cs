@@ -18,6 +18,11 @@ public interface IFamilyTreeService
         UserContext userContext,
         CancellationToken cancellationToken = default);
 
+    Task<ServiceResult<FamilyTreeDetailDto>> GetTreeDetailsAsync(
+        Guid treeId,
+        UserContext userContext,
+        CancellationToken cancellationToken = default);
+
     Task<ServiceResult<FamilyTreeResponse>> CreateTreeAsync(
         CreateFamilyTreeRequest request,
         UserContext userContext,

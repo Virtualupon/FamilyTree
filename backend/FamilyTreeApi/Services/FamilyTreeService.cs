@@ -175,6 +175,134 @@ public class FamilyTreeService : IFamilyTreeService
         }
     }
 
+    public async Task<ServiceResult<FamilyTreeDetailDto>> GetTreeDetailsAsync(
+        Guid treeId,
+        UserContext userContext,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (!await HasTreeAccessAsync(treeId, userContext, OrgRole.Viewer, cancellationToken))
+            {
+                return ServiceResult<FamilyTreeDetailDto>.Forbidden("You do not have access to this tree");
+            }
+
+            var tree = await _context.Orgs
+                .AsNoTracking()
+                .Include(o => o.Town)
+                .Include(o => o.Owner)
+                .FirstOrDefaultAsync(o => o.Id == treeId, cancellationToken);
+
+            if (tree == null)
+            {
+                return ServiceResult<FamilyTreeDetailDto>.NotFound("Family tree not found");
+            }
+
+            // Get people statistics
+            var people = await _context.People
+                .AsNoTracking()
+                .Where(p => p.OrgId == treeId)
+                .ToListAsync(cancellationToken);
+
+            var maleCount = people.Count(p => p.Sex == Sex.Male);
+            var femaleCount = people.Count(p => p.Sex == Sex.Female);
+            var unknownCount = people.Count(p => p.Sex == Sex.Unknown);
+            var livingCount = people.Count(p => p.DeathDate == null);
+            var deceasedCount = people.Count(p => p.DeathDate != null);
+
+            // Get counts
+            var familiesCount = await _context.Unions
+                .AsNoTracking()
+                .CountAsync(u => u.OrgId == treeId, cancellationToken);
+            var relationshipsCount = await _context.ParentChildren
+                .AsNoTracking()
+                .CountAsync(pc => pc.Parent.OrgId == treeId, cancellationToken);
+            var mediaFiles = await _context.MediaFiles
+                .AsNoTracking()
+                .Where(m => m.OrgId == treeId)
+                .ToListAsync(cancellationToken);
+
+            // Find oldest and youngest
+            var oldestPerson = people
+                .Where(p => p.BirthDate != null)
+                .OrderBy(p => p.BirthDate)
+                .FirstOrDefault();
+            var youngestPerson = people
+                .Where(p => p.BirthDate != null)
+                .OrderByDescending(p => p.BirthDate)
+                .FirstOrDefault();
+
+            // Recent people
+            var recentlyAdded = people
+                .OrderByDescending(p => p.CreatedAt)
+                .Take(5)
+                .Select(p => MapToRecentPerson(p, p.CreatedAt))
+                .ToList();
+
+            var recentlyUpdated = people
+                .Where(p => p.UpdatedAt > p.CreatedAt)
+                .OrderByDescending(p => p.UpdatedAt)
+                .Take(5)
+                .Select(p => MapToRecentPerson(p, p.UpdatedAt))
+                .ToList();
+
+            var statistics = new TreeStatisticsDto(
+                TotalPeople: people.Count,
+                MaleCount: maleCount,
+                FemaleCount: femaleCount,
+                UnknownGenderCount: unknownCount,
+                LivingCount: livingCount,
+                DeceasedCount: deceasedCount,
+                FamiliesCount: familiesCount,
+                RelationshipsCount: relationshipsCount,
+                MediaFilesCount: mediaFiles.Count,
+                PhotosCount: mediaFiles.Count(m => m.Kind == MediaKind.Image),
+                DocumentsCount: mediaFiles.Count(m => m.Kind == MediaKind.Document),
+                OldestPerson: oldestPerson != null ? MapToRecentPerson(oldestPerson, oldestPerson.CreatedAt) : null,
+                YoungestPerson: youngestPerson != null ? MapToRecentPerson(youngestPerson, youngestPerson.CreatedAt) : null
+            );
+
+            var detail = new FamilyTreeDetailDto(
+                Id: tree.Id,
+                Name: tree.Name,
+                Description: tree.Description,
+                CoverImageUrl: tree.CoverImageUrl,
+                TownId: tree.TownId,
+                TownName: tree.Town?.Name ?? "Unknown",
+                IsPublic: tree.IsPublic,
+                Statistics: statistics,
+                RecentlyAddedPeople: recentlyAdded,
+                RecentlyUpdatedPeople: recentlyUpdated,
+                OwnerId: tree.OwnerId,
+                OwnerName: tree.Owner != null ? $"{tree.Owner.FirstName} {tree.Owner.LastName}".Trim() : null,
+                CreatedAt: tree.CreatedAt,
+                UpdatedAt: tree.UpdatedAt
+            );
+
+            return ServiceResult<FamilyTreeDetailDto>.Success(detail);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting tree details for {TreeId}", treeId);
+            return ServiceResult<FamilyTreeDetailDto>.InternalError("Failed to get tree details");
+        }
+    }
+
+    private static RecentPersonDto MapToRecentPerson(Person p, DateTime activityDate)
+    {
+        return new RecentPersonDto(
+            Id: p.Id,
+            PrimaryName: p.PrimaryName,
+            NameEnglish: p.NameEnglish,
+            NameArabic: p.NameArabic,
+            Sex: p.Sex.ToString(),
+            BirthDate: p.BirthDate?.ToString("yyyy-MM-dd"),
+            DeathDate: p.DeathDate?.ToString("yyyy-MM-dd"),
+            AvatarUrl: p.Avatar?.Url,
+            ActivityDate: activityDate
+        );
+    }
+
     public async Task<ServiceResult<FamilyTreeResponse>> CreateTreeAsync(
         CreateFamilyTreeRequest request,
         UserContext userContext,

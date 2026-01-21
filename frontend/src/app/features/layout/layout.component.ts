@@ -1017,9 +1017,28 @@ export class LayoutComponent implements OnInit {
   }
 
   selectTown(townId: string): void {
-    this.treeContext.selectTown(townId);
-    // Load trees for the selected town
-    this.treeContext.loadTreesForTown(townId);
+    const user = this.authService.getCurrentUser();
+    const isAdmin = user?.systemRole === 'Admin' || user?.systemRole === 'SuperAdmin';
+
+    // Call API to get new token with selectedTownId claim
+    const selectObs = isAdmin
+      ? this.authService.selectTownForAdmin(townId)
+      : this.authService.selectTownForUser(townId);
+
+    selectObs.subscribe({
+      next: () => {
+        // Update tree context after token is updated
+        this.treeContext.selectTown(townId);
+        // Load trees for the selected town
+        this.treeContext.loadTreesForTown(townId);
+      },
+      error: (err) => {
+        console.error('Failed to select town:', err);
+        // Fallback to just updating context without token
+        this.treeContext.selectTown(townId);
+        this.treeContext.loadTreesForTown(townId);
+      }
+    });
   }
 
   getSelectedTownName(): string | null {

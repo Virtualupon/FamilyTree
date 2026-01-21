@@ -355,3 +355,45 @@ export interface RecentPerson {
   avatarUrl?: string;
   activityDate: string;
 }
+
+// ============================================================================
+// PAGINATED PEOPLE LIST
+// ============================================================================
+
+export interface PaginatedPeopleResponse {
+  people: PersonListItem[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export interface PersonListItem {
+  id: string;
+  primaryName?: string;
+  nameEnglish?: string;
+  nameArabic?: string;
+  nameNobiin?: string;
+  sex?: string;
+  birthDate?: string;
+  deathDate?: string;
+  birthPlace?: string;
+  deathPlace?: string;
+  isLiving: boolean;
+  avatarUrl?: string;
+  avatarMediaId?: string;
+  relationshipsCount: number;
+  mediaCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GetTreePeopleParams {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  sex?: string;
+  isLiving?: boolean;
+  sortBy?: string;
+  sortOrder?: string;
+}

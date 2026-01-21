@@ -13,7 +13,9 @@ import {
   UpdateTreeMemberRoleRequest,
   TreeInvitation,
   CreateInvitationRequest,
-  AcceptInvitationRequest
+  AcceptInvitationRequest,
+  PaginatedPeopleResponse,
+  GetTreePeopleParams
 } from '../models/family-tree.models';
 
 @Injectable({
@@ -41,6 +43,25 @@ export class FamilyTreeService {
    */
   getTreeDetails(treeId: string): Observable<FamilyTreeDetail> {
     return this.http.get<FamilyTreeDetail>(`${this.apiUrl}/${treeId}/details`);
+  }
+
+  /**
+   * Get paginated list of people in a family tree
+   */
+  getTreePeople(treeId: string, params?: GetTreePeopleParams): Observable<PaginatedPeopleResponse> {
+    let httpParams = new HttpParams();
+
+    if (params) {
+      if (params.page !== undefined) httpParams = httpParams.set('page', params.page.toString());
+      if (params.pageSize !== undefined) httpParams = httpParams.set('pageSize', params.pageSize.toString());
+      if (params.search) httpParams = httpParams.set('search', params.search);
+      if (params.sex) httpParams = httpParams.set('sex', params.sex);
+      if (params.isLiving !== undefined) httpParams = httpParams.set('isLiving', params.isLiving.toString());
+      if (params.sortBy) httpParams = httpParams.set('sortBy', params.sortBy);
+      if (params.sortOrder) httpParams = httpParams.set('sortOrder', params.sortOrder);
+    }
+
+    return this.http.get<PaginatedPeopleResponse>(`${this.apiUrl}/${treeId}/people`, { params: httpParams });
   }
 
   createTree(request: CreateFamilyTreeRequest): Observable<FamilyTree> {

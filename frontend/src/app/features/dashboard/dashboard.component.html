@@ -9,6 +9,12 @@
             {{ currentUser()!.firstName || currentUser()!.email }}
           </p>
         }
+        @if (selectedTownName()) {
+          <div class="dashboard__town-badge">
+            <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+            <span>{{ selectedTownName() }}</span>
+          </div>
+        }
       </div>
       <div class="dashboard__hero-illustration">
         <i class="fa-solid fa-people-roof" aria-hidden="true"></i>
@@ -24,16 +30,89 @@
           <i class="fa-solid fa-sitemap" aria-hidden="true"></i>
         </div>
         <div class="no-trees-prompt__content">
-          <h2>{{ 'dashboard.getStarted' | translate }}</h2>
-          <p>{{ 'dashboard.noTreesMessage' | translate }}</p>
+          @if (canCreateTree()) {
+            <h2>{{ 'dashboard.getStarted' | translate }}</h2>
+            <p>{{ 'dashboard.noTreesMessage' | translate }}</p>
+          } @else {
+            <h2>{{ 'dashboard.noTreesYet' | translate }}</h2>
+            <p>{{ 'dashboard.noTreesUserMessage' | translate }}</p>
+          }
         </div>
-        <div class="no-trees-prompt__actions">
-          <button mat-flat-button color="primary" routerLink="/trees">
-            <i class="fa-solid fa-plus" aria-hidden="true"></i>
-            {{ 'dashboard.createTree' | translate }}
-          </button>
-        </div>
+        @if (canCreateTree()) {
+          <div class="no-trees-prompt__actions">
+            <button mat-flat-button color="primary" routerLink="/trees">
+              <i class="fa-solid fa-plus" aria-hidden="true"></i>
+              {{ 'dashboard.createTree' | translate }}
+            </button>
+          </div>
+        } @else {
+          <div class="no-trees-prompt__actions">
+            <button mat-flat-button color="primary" routerLink="/trees">
+              <i class="fa-solid fa-search" aria-hidden="true"></i>
+              {{ 'dashboard.browseTrees' | translate }}
+            </button>
+          </div>
+        }
       </div>
+    </section>
+  }
+
+  <!-- Family Trees in Selected Town (for regular users) -->
+  @if (showTownTreesSection()) {
+    <section class="dashboard__section">
+      <h2 class="dashboard__section-title">{{ 'dashboard.familyTreesInTown' | translate }}</h2>
+
+      @if (loadingTownTrees()) {
+        <div class="trees-grid">
+          @for (i of [1,2,3]; track i) {
+            <div class="tree-card tree-card--skeleton">
+              <div class="ft-skeleton ft-skeleton--icon"></div>
+              <div class="tree-card__content">
+                <div class="ft-skeleton ft-skeleton--title" style="width: 70%"></div>
+                <div class="ft-skeleton ft-skeleton--text" style="width: 50%; margin-top: 8px"></div>
+              </div>
+            </div>
+          }
+        </div>
+      } @else if (townTrees().length > 0) {
+        <div class="trees-grid">
+          @for (tree of townTrees(); track tree.id; let i = $index) {
+            <div
+              class="tree-card ft-fade-in"
+              [class]="'ft-stagger-' + (i + 1)"
+              matRipple
+              (click)="selectFamilyTree(tree)">
+              <div class="tree-card__icon">
+                <i class="fa-solid fa-sitemap" aria-hidden="true"></i>
+              </div>
+              <div class="tree-card__content">
+                <h3 class="tree-card__name">{{ tree.name }}</h3>
+                <p class="tree-card__meta">
+                  <span class="tree-card__count">
+                    <i class="fa-solid fa-users" aria-hidden="true"></i>
+                    {{ tree.personCount }} {{ 'common.people' | translate }}
+                  </span>
+                  @if (tree.isPublic) {
+                    <span class="tree-card__public">
+                      <i class="fa-solid fa-globe" aria-hidden="true"></i>
+                      {{ 'common.public' | translate }}
+                    </span>
+                  }
+                </p>
+                @if (tree.description) {
+                  <p class="tree-card__description">{{ tree.description }}</p>
+                }
+              </div>
+              <i class="fa-solid fa-chevron-right tree-card__arrow" aria-hidden="true"></i>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="empty-trees">
+          <i class="fa-solid fa-sitemap" aria-hidden="true"></i>
+          <p>{{ 'dashboard.noTreesInTown' | translate }}</p>
+        </div>
+      }
     </section>
   }
 
@@ -65,7 +144,7 @@
   <section class="dashboard__section">
     <h2 class="dashboard__section-title">{{ 'dashboard.quickActions' | translate }}</h2>
     <div class="actions-grid">
-      @for (action of quickActions; track action.labelKey) {
+      @for (action of quickActions(); track action.labelKey) {
         <button
           class="action-card ft-fade-in"
           [style.--action-color]="action.color"
@@ -79,6 +158,74 @@
       }
     </div>
   </section>
+
+  <!-- Viewer: My Suggestions Summary -->
+  @if (isViewer() && suggestionStats()) {
+    <section class="dashboard__section">
+      <div class="dashboard__section-header">
+        <h2 class="dashboard__section-title">{{ 'suggestion.mySuggestions' | translate }}</h2>
+        <button mat-button color="primary" routerLink="/suggestions/my">
+          {{ 'common.all' | translate }}
+          <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+        </button>
+      </div>
+      <div class="suggestion-stats-grid">
+        <div class="suggestion-stat-card suggestion-stat-card--pending" matRipple (click)="viewMySuggestions()">
+          <div class="suggestion-stat-card__icon">
+            <i class="fa-solid fa-clock" aria-hidden="true"></i>
+          </div>
+          <div class="suggestion-stat-card__content">
+            <span class="suggestion-stat-card__value">{{ suggestionStats()!.pendingCount }}</span>
+            <span class="suggestion-stat-card__label">{{ 'suggestion.status.pending' | translate }}</span>
+          </div>
+        </div>
+        <div class="suggestion-stat-card suggestion-stat-card--approved" matRipple (click)="viewMySuggestions()">
+          <div class="suggestion-stat-card__icon">
+            <i class="fa-solid fa-check-circle" aria-hidden="true"></i>
+          </div>
+          <div class="suggestion-stat-card__content">
+            <span class="suggestion-stat-card__value">{{ suggestionStats()!.approvedCount }}</span>
+            <span class="suggestion-stat-card__label">{{ 'suggestion.status.approved' | translate }}</span>
+          </div>
+        </div>
+        <div class="suggestion-stat-card suggestion-stat-card--rejected" matRipple (click)="viewMySuggestions()">
+          <div class="suggestion-stat-card__icon">
+            <i class="fa-solid fa-times-circle" aria-hidden="true"></i>
+          </div>
+          <div class="suggestion-stat-card__content">
+            <span class="suggestion-stat-card__value">{{ suggestionStats()!.rejectedCount }}</span>
+            <span class="suggestion-stat-card__label">{{ 'suggestion.status.rejected' | translate }}</span>
+          </div>
+        </div>
+        <div class="suggestion-stat-card suggestion-stat-card--info" matRipple (click)="viewMySuggestions()">
+          <div class="suggestion-stat-card__icon">
+            <i class="fa-solid fa-info-circle" aria-hidden="true"></i>
+          </div>
+          <div class="suggestion-stat-card__content">
+            <span class="suggestion-stat-card__value">{{ suggestionStats()!.needsInfoCount }}</span>
+            <span class="suggestion-stat-card__label">{{ 'suggestion.status.needsInfo' | translate }}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  }
+
+  <!-- Admin: Pending Review Alert -->
+  @if (isAdmin() && pendingReviewCount() > 0) {
+    <section class="dashboard__section">
+      <div class="admin-alert" matRipple (click)="viewSuggestionQueue()">
+        <div class="admin-alert__icon">
+          <i class="fa-solid fa-inbox" aria-hidden="true"></i>
+          <span class="admin-alert__badge">{{ pendingReviewCount() }}</span>
+        </div>
+        <div class="admin-alert__content">
+          <h3>{{ 'suggestion.pendingReview' | translate }}</h3>
+          <p>{{ 'suggestion.pendingReviewMessage' | translate: { count: pendingReviewCount() } }}</p>
+        </div>
+        <i class="fa-solid fa-chevron-right admin-alert__arrow" aria-hidden="true"></i>
+      </div>
+    </section>
+  }
 
   <!-- Recent People -->
   <section class="dashboard__section">
@@ -122,8 +269,11 @@
                 @if (person.birthDate) {
                   {{ formatYear(person.birthDate) }}
                 }
-                @if (person.birthPlaceName) {
-                  · {{ person.birthPlaceName }}
+                @if (person.treeName) {
+                  · <i class="fa-solid fa-sitemap" aria-hidden="true"></i> {{ person.treeName }}
+                }
+                @if (getLocationDisplayName(person)) {
+                  · <i class="fa-solid fa-city" aria-hidden="true"></i> {{ getLocationDisplayName(person) }}
                 }
               </span>
             </div>
@@ -135,10 +285,17 @@
       <div class="empty-recent">
         <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
         <p>{{ 'people.noPeople' | translate }}</p>
-        <button mat-stroked-button color="primary" (click)="openAddPerson()">
-          <i class="fa-solid fa-plus" aria-hidden="true"></i>
-          {{ 'people.addPerson' | translate }}
-        </button>
+        @if (canEdit()) {
+          <button mat-stroked-button color="primary" (click)="openAddPerson()">
+            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+            {{ 'people.addPerson' | translate }}
+          </button>
+        } @else if (isViewer()) {
+          <button mat-stroked-button color="primary" (click)="openSuggestionWizard()">
+            <i class="fa-solid fa-lightbulb" aria-hidden="true"></i>
+            {{ 'suggestion.suggestRelationship' | translate }}
+          </button>
+        }
       </div>
     }
   </section>

@@ -341,9 +341,23 @@
                     </mat-checkbox>
                     <div class="person-info">
                       <span class="person-name">{{ getSearchPersonName(person) || ('common.unknown' | translate) }}</span>
-                      @if (person.birthDate || person.deathDate) {
-                        <span class="person-dates">{{ getLifespan(person) }}</span>
-                      }
+                      <span class="person-meta">
+                        @if (person.birthDate || person.deathDate) {
+                          <span class="person-dates">{{ getLifespan(person) }}</span>
+                        }
+                        @if (person.treeName) {
+                          <span class="person-tree">
+                            <i class="fa-solid fa-sitemap" aria-hidden="true"></i>
+                            {{ person.treeName }}
+                          </span>
+                        }
+                        @if (getLocationDisplayName(person)) {
+                          <span class="person-town">
+                            <i class="fa-solid fa-city" aria-hidden="true"></i>
+                            {{ getLocationDisplayName(person) }}
+                          </span>
+                        }
+                      </span>
                     </div>
                     @if (person.id === personId) {
                       <span class="current-label">{{ 'media.currentPerson' | translate }}</span>

@@ -162,6 +162,18 @@
                     {{ person.birthPlaceName }}
                   </span>
                 }
+                @if (person.treeName) {
+                  <span class="ft-person-card__meta-item ft-person-card__meta-item--tree">
+                    <i class="fa-solid fa-sitemap" aria-hidden="true"></i>
+                    {{ person.treeName }}
+                  </span>
+                }
+                @if (getLocationDisplayName(person)) {
+                  <span class="ft-person-card__meta-item ft-person-card__meta-item--town">
+                    <i class="fa-solid fa-city" aria-hidden="true"></i>
+                    {{ getLocationDisplayName(person) }}
+                  </span>
+                }
               </div>
 
               <!-- Relationship counts -->

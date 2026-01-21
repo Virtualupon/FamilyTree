@@ -657,8 +657,8 @@ export class TreeDetailComponent implements OnInit {
   }
 
   viewPeople() {
-    if (this.treeId) {
-      this.router.navigate(['/people'], { queryParams: { treeId: this.treeId } });
+    if (this.treeId && this.townId) {
+      this.router.navigate(['/towns', this.townId, 'trees', this.treeId, 'people']);
     }
   }
 

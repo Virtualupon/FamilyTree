@@ -24,4 +24,10 @@ public class ParentChild
     public string? Notes { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // Soft delete fields
+    public bool IsDeleted { get; set; } = false;
+    public DateTime? DeletedAt { get; set; }
+    public long? DeletedByUserId { get; set; }
+    public ApplicationUser? DeletedByUser { get; set; }
 }

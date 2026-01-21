@@ -17,7 +17,9 @@ import { debounceTime } from 'rxjs/operators';
 import { Observable } from 'rxjs';
 
 import { Sex } from '../../core/models/person.models';
+import { OrgRole } from '../../core/models/auth.models';
 import { SearchPersonItem } from '../../core/models/search.models';
+import { SuggestAddRelationshipRequest, ConfidenceLevel } from '../../core/models/suggestion.models';
 import { PersonSearchComponent } from '../../shared/components/person-search/person-search.component';
 import {
   RelationshipService,
@@ -26,6 +28,9 @@ import {
   CreateUnionRequest
 } from '../../core/services/relationship.service';
 import { FamilyRelationshipTypeService } from '../../core/services/family-relationship-type.service';
+import { AuthService } from '../../core/services/auth.service';
+import { SuggestionService } from '../../core/services/suggestion.service';
+import { TreeContextService } from '../../core/services/tree-context.service';
 import { FamilyRelationshipType } from '../../core/models/family-relationship-type.models';
 import { I18nService, TranslatePipe } from '../../core/i18n';
 
@@ -45,6 +50,7 @@ export interface RelationshipDialogData {
   personName?: string | null;
   type: RelationshipDialogType;
   parents?: ParentInfo[];  // Required for sibling type
+  treeId?: string;  // Tree ID for creating suggestions
 }
 
 @Component({
@@ -75,12 +81,26 @@ export interface RelationshipDialogData {
 export class AddRelationshipDialogComponent implements OnInit {
   private relationshipService = inject(RelationshipService);
   private familyRelTypeService = inject(FamilyRelationshipTypeService);
+  private authService = inject(AuthService);
+  private suggestionService = inject(SuggestionService);
+  private treeContext = inject(TreeContextService);
   private i18n = inject(I18nService);
 
   // Expose enums to template
   ParentChildRelationshipType = ParentChildRelationshipType;
   UnionType = UnionType;
   Sex = Sex;
+
+  // Computed: Check if user is a Viewer (read-only, can only create suggestions)
+  isViewer = computed(() => {
+    const user = this.authService.getCurrentUser();
+    if (!user) return true;
+    // System admins are never viewers - they can directly edit
+    if (user.systemRole === 'SuperAdmin' || user.systemRole === 'Admin') return false;
+    // Regular users: need Contributor or higher org role to directly edit
+    // If role is undefined or less than Contributor, they must use suggestions
+    return user.role === undefined || user.role === null || user.role < OrgRole.Contributor;
+  });
 
   // Form controls
   relationshipTypeControl = new FormControl(ParentChildRelationshipType.Biological);
@@ -244,12 +264,19 @@ export class AddRelationshipDialogComponent implements OnInit {
     this.isSaving.set(true);
     this.error.set(null);
 
+    // Check if user is a viewer - use suggestion system instead
+    if (this.isViewer()) {
+      this.saveAsSuggestion(selected);
+      return;
+    }
+
+    // Admin/Contributor path - direct API calls
     let request$: Observable<any>;
 
     switch (this.data.type) {
       case 'parent':
         request$ = this.relationshipService.addParent(
-          this.data.personId, 
+          this.data.personId,
           selected.id,
           {
             relationshipType: this.relationshipTypeControl.value ?? ParentChildRelationshipType.Biological,
@@ -319,6 +346,102 @@ export class AddRelationshipDialogComponent implements OnInit {
       error: (err: any) => {
         this.isSaving.set(false);
         const message = err.error?.message || err.message || this.i18n.t('relationships.failedAdd');
+        this.error.set(message);
+      }
+    });
+  }
+
+  /**
+   * Save as a suggestion (for viewers who cannot directly add relationships)
+   */
+  private saveAsSuggestion(selected: SearchPersonItem): void {
+    // Get tree ID from dialog data (passed from person being viewed) or fall back to tree context
+    const treeId = this.data.treeId || this.treeContext.effectiveTreeId();
+    if (!treeId) {
+      this.error.set(this.i18n.t('relationships.noTreeSelected'));
+      this.isSaving.set(false);
+      return;
+    }
+
+    let suggestionRequest: SuggestAddRelationshipRequest;
+
+    switch (this.data.type) {
+      case 'parent':
+        // Adding a parent: person1 (selected) is parent of person2 (data.personId)
+        suggestionRequest = {
+          treeId,
+          person1Id: selected.id,
+          person2Id: this.data.personId,
+          relationshipType: 'parent-child',
+          person1IsParent: true,
+          confidence: ConfidenceLevel.Probable,
+          submitterNotes: this.notesControl.value || undefined
+        };
+        break;
+
+      case 'child':
+        // Adding a child: person1 (data.personId) is parent of person2 (selected)
+        suggestionRequest = {
+          treeId,
+          person1Id: this.data.personId,
+          person2Id: selected.id,
+          relationshipType: 'parent-child',
+          person1IsParent: true,
+          confidence: ConfidenceLevel.Probable,
+          submitterNotes: this.notesControl.value || undefined
+        };
+        break;
+
+      case 'spouse':
+        suggestionRequest = {
+          treeId,
+          person1Id: this.data.personId,
+          person2Id: selected.id,
+          relationshipType: 'spouse',
+          marriageDate: this.startDateControl.value?.toISOString(),
+          confidence: ConfidenceLevel.Probable,
+          submitterNotes: this.notesControl.value || undefined
+        };
+        break;
+
+      case 'sibling':
+        // Adding a sibling: suggest adding selected as child of the shared parent
+        const parentId = this.selectedParentId();
+        if (!parentId) {
+          this.error.set(this.i18n.t('relationships.selectSharedParentError'));
+          this.isSaving.set(false);
+          return;
+        }
+        suggestionRequest = {
+          treeId,
+          person1Id: parentId,
+          person2Id: selected.id,
+          relationshipType: 'parent-child',
+          person1IsParent: true,
+          confidence: ConfidenceLevel.Probable,
+          submitterNotes: this.notesControl.value || undefined
+        };
+        break;
+
+      default:
+        this.error.set(this.i18n.t('relationships.unknownType'));
+        this.isSaving.set(false);
+        return;
+    }
+
+    this.suggestionService.suggestAddRelationship(suggestionRequest).subscribe({
+      next: (result) => {
+        this.isSaving.set(false);
+        this.dialogRef.close({
+          success: true,
+          result,
+          isSuggestion: true,
+          message: this.i18n.t('suggestion.createSuccess')
+        });
+      },
+      error: (err: any) => {
+        this.isSaving.set(false);
+        const message = err.error?.message || err.message || this.i18n.t('suggestion.createError');
         this.error.set(message);
       }
     });

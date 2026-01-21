@@ -119,20 +119,66 @@ export class PersonSelectorComponent implements OnInit, OnDestroy {
     this.bottomSheetRef.dismiss(person);
   }
 
-  // Helper to get display name based on current language
-  getPersonDisplayName(person: SearchPersonItem): string {
-    if (!person) return '';
-
+  // Helper to get full lineage name (Person + Father + Grandfather)
+  getPersonLineageName(person: SearchPersonItem): string {
     const lang = this.i18n.currentLang();
 
-    switch (lang) {
-      case 'ar':
-        return person.nameArabic || person.nameEnglish || person.primaryName || '';
-      case 'nob':
-        return person.nameNobiin || person.nameEnglish || person.primaryName || '';
-      default: // 'en'
-        return person.nameEnglish || person.nameArabic || person.primaryName || '';
+    // Get person's name based on language
+    let personName = '';
+    if (lang === 'ar' && person.nameArabic) {
+      personName = person.nameArabic;
+    } else if (lang === 'nob' && person.nameNobiin) {
+      personName = person.nameNobiin;
+    } else {
+      personName = person.nameEnglish || person.nameArabic || person.primaryName || '';
     }
+
+    // Get father's name based on language
+    let fatherName = '';
+    if (lang === 'ar' && person.fatherNameArabic) {
+      fatherName = person.fatherNameArabic;
+    } else if (lang === 'nob' && person.fatherNameNobiin) {
+      fatherName = person.fatherNameNobiin;
+    } else {
+      fatherName = person.fatherNameEnglish || person.fatherNameArabic || '';
+    }
+
+    // Get grandfather's name based on language
+    let grandfatherName = '';
+    if (lang === 'ar' && person.grandfatherNameArabic) {
+      grandfatherName = person.grandfatherNameArabic;
+    } else if (lang === 'nob' && person.grandfatherNameNobiin) {
+      grandfatherName = person.grandfatherNameNobiin;
+    } else {
+      grandfatherName = person.grandfatherNameEnglish || person.grandfatherNameArabic || '';
+    }
+
+    // Build full name: "Name Father Grandfather"
+    const parts = [personName, fatherName, grandfatherName].filter(p => p);
+    return parts.join(' ') || this.i18n.t('common.unknown');
+  }
+
+  // Get location name (town or country fallback) based on current language
+  getLocationDisplayName(person: SearchPersonItem): string {
+    const lang = this.i18n.currentLang();
+
+    // Try town first
+    let townName = '';
+    if (lang === 'ar') {
+      townName = person.townNameAr || person.townNameEn || person.townName || '';
+    } else if (lang === 'nob') {
+      townName = person.townName || person.townNameEn || person.townNameAr || '';
+    } else {
+      townName = person.townNameEn || person.townName || person.townNameAr || '';
+    }
+
+    if (townName) return townName;
+
+    // Fallback to country
+    if (lang === 'ar') {
+      return person.countryNameAr || person.countryNameEn || '';
+    }
+    return person.countryNameEn || person.countryNameAr || '';
   }
   
   close(): void {

@@ -158,6 +158,8 @@ export interface SuggestionSummary {
   submitterNotes?: string;
   townId: string;
   townName: string;
+  townNameEn?: string;
+  townNameAr?: string;
   treeId: string;
   treeName: string;
   targetPersonId?: string;
@@ -181,6 +183,8 @@ export interface SuggestionDetail {
   updatedAt: string;
   townId: string;
   townName: string;
+  townNameEn?: string;
+  townNameAr?: string;
   treeId: string;
   treeName: string;
   targetPersonId?: string;

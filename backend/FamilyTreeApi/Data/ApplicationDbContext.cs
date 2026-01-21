@@ -57,6 +57,17 @@ public class ApplicationDbContext : IdentityDbContext<
     // Countries lookup table
     public DbSet<Country> Countries { get; set; }
 
+    // Governance model - Suggestion workflow
+    public DbSet<RelationshipSuggestion> RelationshipSuggestions { get; set; }
+    public DbSet<SuggestionEvidence> SuggestionEvidence { get; set; }
+    public DbSet<SuggestionComment> SuggestionComments { get; set; }
+
+    // System configuration - Carousel images for onboarding
+    public DbSet<CarouselImage> CarouselImages { get; set; }
+
+    // Town-specific images for carousels
+    public DbSet<TownImage> TownImages { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -546,6 +557,216 @@ public class ApplicationDbContext : IdentityDbContext<
             entity.HasIndex(e => e.NameEn);
             entity.HasIndex(e => e.IsActive);
             entity.HasIndex(e => e.Region);
+        });
+
+        // ============================================================================
+        // Governance Model - Suggestion Workflow
+        // ============================================================================
+
+        // RelationshipSuggestion - Main suggestion entity
+        modelBuilder.Entity<RelationshipSuggestion>(entity =>
+        {
+            entity.ToTable("RelationshipSuggestions");
+            entity.HasKey(e => e.Id);
+
+            // Indexes for common queries
+            entity.HasIndex(e => e.TownId);
+            entity.HasIndex(e => e.TreeId);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.SubmittedByUserId);
+            entity.HasIndex(e => e.TargetPersonId);
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => new { e.TownId, e.Status, e.CreatedAt });
+
+            // JSONB columns
+            entity.Property(e => e.ProposedValuesJson)
+                .HasColumnType("jsonb");
+
+            entity.Property(e => e.PreviousValuesJson)
+                .HasColumnType("jsonb");
+
+            // Town relationship
+            entity.HasOne(e => e.Town)
+                .WithMany()
+                .HasForeignKey(e => e.TownId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Tree (Org) relationship
+            entity.HasOne(e => e.Tree)
+                .WithMany()
+                .HasForeignKey(e => e.TreeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Target person relationship
+            entity.HasOne(e => e.TargetPerson)
+                .WithMany()
+                .HasForeignKey(e => e.TargetPersonId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Secondary person relationship (for merge suggestions)
+            entity.HasOne(e => e.SecondaryPerson)
+                .WithMany()
+                .HasForeignKey(e => e.SecondaryPersonId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Target union relationship
+            entity.HasOne(e => e.TargetUnion)
+                .WithMany()
+                .HasForeignKey(e => e.TargetUnionId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Submitter relationship
+            entity.HasOne(e => e.SubmittedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.SubmittedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Reviewer relationship
+            entity.HasOne(e => e.ReviewedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.ReviewedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Deleted by relationship
+            entity.HasOne(e => e.DeletedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.DeletedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Navigation collections
+            entity.HasMany(e => e.Evidence)
+                .WithOne(ev => ev.Suggestion)
+                .HasForeignKey(ev => ev.SuggestionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(e => e.Comments)
+                .WithOne(c => c.Suggestion)
+                .HasForeignKey(c => c.SuggestionId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // SuggestionEvidence - Evidence attachments
+        modelBuilder.Entity<SuggestionEvidence>(entity =>
+        {
+            entity.ToTable("SuggestionEvidence");
+            entity.HasKey(e => e.Id);
+
+            entity.HasIndex(e => e.SuggestionId);
+            entity.HasIndex(e => e.MediaId);
+
+            // Media relationship
+            entity.HasOne(e => e.Media)
+                .WithMany()
+                .HasForeignKey(e => e.MediaId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // SuggestionComment - Conversation thread
+        modelBuilder.Entity<SuggestionComment>(entity =>
+        {
+            entity.ToTable("SuggestionComments");
+            entity.HasKey(e => e.Id);
+
+            entity.HasIndex(e => e.SuggestionId);
+
+            // Author relationship
+            entity.HasOne(e => e.AuthorUser)
+                .WithMany()
+                .HasForeignKey(e => e.AuthorUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ApplicationUser - SelectedTown relationship
+        modelBuilder.Entity<ApplicationUser>(entity =>
+        {
+            entity.HasOne(e => e.SelectedTown)
+                .WithMany()
+                .HasForeignKey(e => e.SelectedTownId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // AuditLog - Suggestion relationship (for tracking suggestion-triggered changes)
+        modelBuilder.Entity<AuditLog>(entity =>
+        {
+            entity.HasOne(e => e.Suggestion)
+                .WithMany()
+                .HasForeignKey(e => e.SuggestionId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.Property(e => e.PreviousValuesJson)
+                .HasColumnType("jsonb");
+
+            entity.Property(e => e.NewValuesJson)
+                .HasColumnType("jsonb");
+        });
+
+        // Soft delete configurations for existing entities
+        // Person soft delete relationships
+        modelBuilder.Entity<Person>(entity =>
+        {
+            entity.HasOne(e => e.DeletedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.DeletedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // ParentChild soft delete relationships
+        modelBuilder.Entity<ParentChild>(entity =>
+        {
+            entity.HasOne(e => e.DeletedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.DeletedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // Union soft delete relationships
+        modelBuilder.Entity<Union>(entity =>
+        {
+            entity.HasOne(e => e.DeletedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.DeletedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // UnionMember soft delete relationships
+        modelBuilder.Entity<UnionMember>(entity =>
+        {
+            entity.HasOne(e => e.DeletedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.DeletedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // ============================================================================
+        // TownImage - Town-specific carousel images
+        // ============================================================================
+        modelBuilder.Entity<TownImage>(entity =>
+        {
+            entity.ToTable("TownImages");
+            entity.HasKey(e => e.Id);
+
+            // Indexes for efficient queries
+            entity.HasIndex(e => e.TownId);
+            entity.HasIndex(e => e.IsActive);
+            entity.HasIndex(e => new { e.TownId, e.DisplayOrder });
+
+            // Town relationship
+            entity.HasOne(e => e.Town)
+                .WithMany(t => t.Images)
+                .HasForeignKey(e => e.TownId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // CreatedBy user relationship
+            entity.HasOne(e => e.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedBy)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // UpdatedBy user relationship
+            entity.HasOne(e => e.UpdatedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.UpdatedBy)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

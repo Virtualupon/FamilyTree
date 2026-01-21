@@ -65,6 +65,24 @@
     z-index: 1;
   }
 
+  &__town-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ft-spacing-xs);
+    margin-top: var(--ft-spacing-sm);
+    padding: var(--ft-spacing-xs) var(--ft-spacing-sm);
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: var(--ft-radius-full);
+    font-size: 0.875rem;
+    position: relative;
+    z-index: 1;
+
+    i.fa-solid {
+      font-size: 0.75rem;
+      color: #C17E3E; // $nubian-gold
+    }
+  }
+
   &__hero-illustration {
     display: none;
 
@@ -437,5 +455,319 @@
       font-size: 1rem;
       padding: var(--ft-spacing-sm) var(--ft-spacing-xl);
     }
+  }
+}
+
+// Suggestion Stats Grid (for Viewers)
+.suggestion-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--ft-spacing-md);
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.suggestion-stat-card {
+  display: flex;
+  align-items: center;
+  gap: var(--ft-spacing-md);
+  padding: var(--ft-spacing-md);
+  background: white;
+  border-radius: var(--ft-radius-lg);
+  border: 1px solid #F4E4D7; // $nubian-beige
+  cursor: pointer;
+  transition: all var(--ft-transition-fast);
+
+  &:hover {
+    box-shadow: 0 4px 16px rgba(45, 45, 45, 0.1);
+    transform: translateY(-2px);
+  }
+
+  &--pending {
+    --card-color: #EAB308; // Yellow
+
+    &:hover {
+      border-color: var(--card-color);
+    }
+  }
+
+  &--approved {
+    --card-color: #22C55E; // Green
+
+    &:hover {
+      border-color: var(--card-color);
+    }
+  }
+
+  &--rejected {
+    --card-color: #EF4444; // Red
+
+    &:hover {
+      border-color: var(--card-color);
+    }
+  }
+
+  &--info {
+    --card-color: #3B82F6; // Blue
+
+    &:hover {
+      border-color: var(--card-color);
+    }
+  }
+
+  &__icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--card-color, #6B7280) 15%, transparent);
+
+    i.fa-solid {
+      color: var(--card-color, #6B7280);
+      font-size: 20px;
+    }
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #2D2D2D; // $nubian-charcoal
+    line-height: 1.2;
+    font-family: 'Cinzel', serif;
+  }
+
+  &__label {
+    font-size: 0.7rem;
+    color: #6B6B6B; // $nubian-gray
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+}
+
+// Admin Pending Review Alert
+.admin-alert {
+  display: flex;
+  align-items: center;
+  gap: var(--ft-spacing-md);
+  padding: var(--ft-spacing-lg);
+  background: linear-gradient(135deg, #FEF2F2 0%, #FECACA 100%); // Red gradient
+  border-radius: var(--ft-radius-lg);
+  border: 1px solid #FECACA;
+  cursor: pointer;
+  transition: all var(--ft-transition-fast);
+
+  &:hover {
+    box-shadow: 0 4px 16px rgba(220, 38, 38, 0.15);
+    transform: translateY(-2px);
+  }
+
+  &__icon {
+    position: relative;
+    width: 56px;
+    height: 56px;
+    border-radius: var(--ft-radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(220, 38, 38, 0.15);
+    flex-shrink: 0;
+
+    i.fa-solid {
+      color: #DC2626;
+      font-size: 24px;
+    }
+  }
+
+  &__badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 22px;
+    height: 22px;
+    border-radius: 11px;
+    background: #DC2626;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 6px;
+  }
+
+  &__content {
+    flex: 1;
+
+    h3 {
+      margin: 0 0 var(--ft-spacing-xs);
+      font-size: 1rem;
+      font-weight: 600;
+      color: #991B1B; // $red-800
+      font-family: 'Cormorant Garamond', Georgia, serif;
+    }
+
+    p {
+      margin: 0;
+      font-size: 0.875rem;
+      color: #6B6B6B; // $nubian-gray
+    }
+  }
+
+  &__arrow {
+    color: #DC2626;
+    flex-shrink: 0;
+  }
+}
+
+// Trees Grid (for town trees)
+.trees-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--ft-spacing-md);
+
+  @media (min-width: 576px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (min-width: 992px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.tree-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ft-spacing-md);
+  padding: var(--ft-spacing-lg);
+  background: white;
+  border-radius: var(--ft-radius-lg);
+  border: 1px solid #F4E4D7; // $nubian-beige
+  cursor: pointer;
+  transition: all var(--ft-transition-fast);
+
+  &:hover {
+    border-color: #2D7A3E; // $nubian-green
+    box-shadow: 0 4px 16px rgba(45, 122, 62, 0.15);
+    transform: translateY(-2px);
+  }
+
+  &--skeleton {
+    cursor: default;
+
+    &:hover {
+      border-color: #F4E4D7;
+      box-shadow: none;
+      transform: none;
+    }
+  }
+
+  &__icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(45, 122, 62, 0.15); // $nubian-green
+    flex-shrink: 0;
+
+    i.fa-solid {
+      color: #2D7A3E; // $nubian-green
+      font-size: 24px;
+    }
+  }
+
+  &__content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__name {
+    margin: 0 0 var(--ft-spacing-xs);
+    font-size: 1rem;
+    font-weight: 600;
+    color: #2D2D2D; // $nubian-charcoal
+    font-family: 'Cormorant Garamond', Georgia, serif;
+  }
+
+  &__meta {
+    display: flex;
+    align-items: center;
+    gap: var(--ft-spacing-md);
+    margin: 0;
+    font-size: 0.813rem;
+    color: #6B6B6B; // $nubian-gray
+  }
+
+  &__count {
+    display: flex;
+    align-items: center;
+    gap: var(--ft-spacing-xs);
+
+    i.fa-solid {
+      font-size: 0.75rem;
+      color: #187573; // $nubian-teal
+    }
+  }
+
+  &__public {
+    display: flex;
+    align-items: center;
+    gap: var(--ft-spacing-xs);
+    color: #22C55E; // Green
+
+    i.fa-solid {
+      font-size: 0.75rem;
+    }
+  }
+
+  &__description {
+    margin: var(--ft-spacing-xs) 0 0;
+    font-size: 0.813rem;
+    color: #6B6B6B; // $nubian-gray
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  &__arrow {
+    color: #C17E3E; // $nubian-gold
+    flex-shrink: 0;
+    align-self: center;
+  }
+}
+
+.empty-trees {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--ft-spacing-xxl);
+  background: white;
+  border-radius: var(--ft-radius-lg);
+  border: 1px solid #F4E4D7; // $nubian-beige
+  text-align: center;
+
+  i.fa-solid {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    color: #2D7A3E; // $nubian-green
+    opacity: 0.5;
+    margin-bottom: var(--ft-spacing-md);
+  }
+
+  p {
+    margin: 0;
+    color: #6B6B6B; // $nubian-gray
   }
 }

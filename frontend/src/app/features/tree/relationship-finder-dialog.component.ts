@@ -171,8 +171,8 @@ export class RelationshipFinderDialogComponent implements OnInit, OnDestroy {
     return person ? getPrimaryName(person) : this.i18n.t('common.unknown');
   }
 
-  // Helper to get full display with lineage: Name Father Grandfather - (Town)
-  getPersonFullDisplayName(person: SearchPersonItem | null): string {
+  // Helper to get full lineage name (Person + Father + Grandfather)
+  getPersonLineageName(person: SearchPersonItem | null): string {
     if (!person) return this.i18n.t('common.unknown');
 
     const lang = this.i18n.currentLang();
@@ -202,19 +202,50 @@ export class RelationshipFinderDialogComponent implements OnInit, OnDestroy {
     if (fatherName) parts.push(fatherName);
     if (grandfatherName) parts.push(grandfatherName);
 
-    let result = parts.join(' ') || this.i18n.t('common.unknown');
+    return parts.join(' ') || this.i18n.t('common.unknown');
+  }
 
-    // Add tree/family name if available
-    if (person.familyName) {
-      result += ` - (${person.familyName})`;
+  // Helper to get full display with lineage: Name Father Grandfather - (Town)
+  getPersonFullDisplayName(person: SearchPersonItem | null): string {
+    if (!person) return this.i18n.t('common.unknown');
+
+    let result = this.getPersonLineageName(person);
+
+    // Add tree name if available
+    if (person.treeName) {
+      result += ` - (${person.treeName})`;
     }
 
-    // Add town/birth place if available
-    if (person.birthPlaceName) {
-      result += ` - (${person.birthPlaceName})`;
+    // Add town name (language-aware) if available
+    const locationName = this.getLocationDisplayName(person);
+    if (locationName) {
+      result += ` - (${locationName})`;
     }
 
     return result;
+  }
+
+  // Get location name (town or country fallback) based on current language
+  getLocationDisplayName(person: SearchPersonItem): string {
+    const lang = this.i18n.currentLang();
+
+    // Try town first
+    let townName = '';
+    if (lang === 'ar') {
+      townName = person.townNameAr || person.townNameEn || person.townName || '';
+    } else if (lang === 'nob') {
+      townName = person.townName || person.townNameEn || person.townNameAr || '';
+    } else {
+      townName = person.townNameEn || person.townName || person.townNameAr || '';
+    }
+
+    if (townName) return townName;
+
+    // Fallback to country
+    if (lang === 'ar') {
+      return person.countryNameAr || person.countryNameEn || '';
+    }
+    return person.countryNameEn || person.countryNameAr || '';
   }
 
   selectToPerson(person: SearchPersonItem): void {

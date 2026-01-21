@@ -66,6 +66,36 @@ public class FamilyTreeController : ControllerBase
     }
 
     /// <summary>
+    /// Get paginated list of people in a family tree
+    /// </summary>
+    [HttpGet("{treeId}/people")]
+    public async Task<ActionResult<PaginatedPeopleResponse>> GetTreePeople(
+        Guid treeId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        [FromQuery] string? search = null,
+        [FromQuery] string? sex = null,
+        [FromQuery] bool? isLiving = null,
+        [FromQuery] string sortBy = "name",
+        [FromQuery] string sortOrder = "asc")
+    {
+        var userContext = BuildUserContext();
+        var request = new GetTreePeopleRequest
+        {
+            Page = page,
+            PageSize = pageSize,
+            Search = search,
+            Sex = sex,
+            IsLiving = isLiving,
+            SortBy = sortBy,
+            SortOrder = sortOrder
+        };
+        var result = await _familyTreeService.GetTreePeopleAsync(treeId, request, userContext);
+
+        return HandleResult(result);
+    }
+
+    /// <summary>
     /// Create a new family tree.
     /// </summary>
     [HttpPost]

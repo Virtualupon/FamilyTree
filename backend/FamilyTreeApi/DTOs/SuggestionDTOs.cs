@@ -95,6 +95,8 @@ public record SuggestionSummaryDto(
     // Town info
     Guid TownId,
     string TownName,
+    string? TownNameEn,
+    string? TownNameAr,
     // Tree info
     Guid TreeId,
     string TreeName,
@@ -127,6 +129,8 @@ public record SuggestionDetailDto(
     // Scope
     Guid TownId,
     string TownName,
+    string? TownNameEn,
+    string? TownNameAr,
     Guid TreeId,
     string TreeName,
     // Targets

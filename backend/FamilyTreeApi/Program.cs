@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 using Npgsql;
 using Serilog;
@@ -19,8 +20,7 @@ using FamilyTreeApi.Models.Configuration;
 using FamilyTreeApi.Models.Enums;
 using FamilyTreeApi.Repositories;
 using FamilyTreeApi.Services;
-using VirtualUpon.Storage.Factories;
-using VirtualUpon.Storage.Utilities;
+using FamilyTreeApi.Storage;
 using FamilyTreeApi.Extensions;
 
 // -------------------------------
@@ -262,6 +262,12 @@ services.AddScoped<IFamilyService, FamilyService>();  // Family groups (Town->Or
 services.AddScoped<IFileStorageService, LocalFileStorageService>();
 services.AddScoped<INameTransliterationService, NameTransliterationService>();
 services.AddScoped<ICountryService, CountryService>();
+services.AddScoped<ICarouselImageService, CarouselImageService>();
+services.AddScoped<ITownImageService, TownImageService>();
+
+// Governance Model Services
+services.AddScoped<IAuditLogService, AuditLogService>();
+services.AddScoped<ISuggestionService, SuggestionService>();
 
 // -------------------------------
 // REPOSITORIES
@@ -271,6 +277,12 @@ services.AddScoped<IPersonRepository, PersonRepository>();
 services.AddScoped<IOrgRepository, OrgRepository>();
 services.AddScoped<IUnionRepository, UnionRepository>();
 services.AddScoped<IPersonMediaRepository, PersonMediaRepository>();
+services.AddScoped<ITownImageRepository, TownImageRepository>();
+
+// Governance Model Repositories
+services.AddScoped<ISuggestionRepository, SuggestionRepository>();
+services.AddScoped<ISuggestionEvidenceRepository, SuggestionEvidenceRepository>();
+services.AddScoped<ISuggestionCommentRepository, SuggestionCommentRepository>();
 
 services.AddSearchServices();
 
@@ -282,8 +294,7 @@ services.AddAutoMapper(typeof(MappingProfile));
 // -------------------------------
 // STORAGE CONFIGURATION
 // -------------------------------
-// NOTE: Requires VirtualUpon.Storage library (custom library from your Nobiin Dictionary baseline)
-// Add the library as a project/package reference in Visual Studio 2022 to remove LSP errors
+// Storage abstraction using local FamilyTreeApi.Storage namespace
 services.Configure<StorageConfiguration>(configuration.GetSection("StorageConfiguration"));
 services.AddSingleton(resolver => resolver.GetRequiredService<IOptions<StorageConfiguration>>().Value);
 
@@ -378,6 +389,33 @@ else
 
 //app.UseHttpsRedirection();
 app.UseCors();
+
+// -------------------------------
+// STATIC FILES FOR MEDIA STORAGE
+// -------------------------------
+// Serve uploaded media files from /uploads path
+var storageConfig = app.Services.GetRequiredService<StorageConfiguration>();
+var mediaBasePath = storageConfig.LocalStorage?.BasePath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+
+// Ensure media directory exists
+if (!Directory.Exists(mediaBasePath))
+{
+    Directory.CreateDirectory(mediaBasePath);
+    app.Logger.LogInformation("Created media storage directory: {Path}", mediaBasePath);
+}
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(mediaBasePath),
+    RequestPath = "/uploads",
+    OnPrepareResponse = ctx =>
+    {
+        // Cache static files for 1 day
+        ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=86400");
+    }
+});
+
+app.Logger.LogInformation("Static files configured. Serving media from {Path} at /uploads", mediaBasePath);
 
 app.UseSerilogRequestLogging();
 

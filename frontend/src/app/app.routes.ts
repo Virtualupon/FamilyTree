@@ -66,6 +66,16 @@ export const routes: Routes = [
         loadComponent: () => import('./features/admin/countries/countries-list.component').then(m => m.CountriesListComponent)
       },
       {
+        path: 'admin/carousel-images',
+        canActivate: [superAdminGuard],
+        loadComponent: () => import('./features/admin/carousel-images/carousel-images.component').then(m => m.CarouselImagesComponent)
+      },
+      {
+        path: 'admin/town-images',
+        canActivate: [superAdminGuard],
+        loadComponent: () => import('./features/admin/town-images/town-images.component').then(m => m.TownImagesComponent)
+      },
+      {
         path: 'admin/suggestions',
         canActivate: [adminGuard],
         loadComponent: () => import('./features/admin/suggestion-queue.component').then(m => m.SuggestionQueueComponent)
@@ -119,6 +129,10 @@ export const routes: Routes = [
       {
         path: 'towns/:townId/trees/:treeId',
         loadComponent: () => import('./features/towns/tree-detail.component').then(m => m.TreeDetailComponent)
+      },
+      {
+        path: 'towns/:townId/trees/:treeId/people',
+        loadComponent: () => import('./features/towns/tree-people-list.component').then(m => m.TreePeopleListComponent)
       },
       {
         path: 'families',

@@ -19,4 +19,10 @@ public class UnionMember
     public string Role { get; set; } = "Spouse";
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // Soft delete fields
+    public bool IsDeleted { get; set; } = false;
+    public DateTime? DeletedAt { get; set; }
+    public long? DeletedByUserId { get; set; }
+    public ApplicationUser? DeletedByUser { get; set; }
 }

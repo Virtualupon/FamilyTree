@@ -14,6 +14,19 @@ public class ApplicationUser : IdentityUser<long>
     [MaxLength(10)]
     public string PreferredLanguage { get; set; } = "en";
 
+    /// <summary>
+    /// The currently selected town for browsing family trees.
+    /// Required for Admin and User roles after login.
+    /// </summary>
+    public Guid? SelectedTownId { get; set; }
+    public Town? SelectedTown { get; set; }
+
+    /// <summary>
+    /// Flag indicating user needs to complete onboarding (language selection).
+    /// Set to FALSE after first setup.
+    /// </summary>
+    public bool IsFirstLogin { get; set; } = true;
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime LastLoginAt { get; set; } = DateTime.UtcNow;
 

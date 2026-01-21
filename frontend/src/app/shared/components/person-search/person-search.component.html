@@ -64,12 +64,27 @@
           <div class="person-option">
             <app-person-name-avatar [person]="person" size="small"></app-person-name-avatar>
             <span class="person-details">
-              @if (person.birthDate || person.deathDate) {
-                <span class="dates">({{ formatYear(person.birthDate) }} - {{ formatYear(person.deathDate) }})</span>
-              }
-              @if (person.sex !== null && person.sex !== undefined) {
-                <i class="fa-solid sex-icon" [class]="getSexClass(person.sex)" [ngClass]="getSexIcon(person.sex)" aria-hidden="true"></i>
-              }
+              <span class="person-lineage">{{ getPersonLineageName(person) }}</span>
+              <span class="person-meta">
+                @if (person.birthDate || person.deathDate) {
+                  <span class="dates">({{ formatYear(person.birthDate) }} - {{ formatYear(person.deathDate) }})</span>
+                }
+                @if (person.treeName) {
+                  <span class="tree-name">
+                    <i class="fa-solid fa-sitemap" aria-hidden="true"></i>
+                    {{ person.treeName }}
+                  </span>
+                }
+                @if (getLocationDisplayName(person)) {
+                  <span class="town-name">
+                    <i class="fa-solid fa-city" aria-hidden="true"></i>
+                    {{ getLocationDisplayName(person) }}
+                  </span>
+                }
+                @if (person.sex !== null && person.sex !== undefined) {
+                  <i class="fa-solid sex-icon" [class]="getSexClass(person.sex)" [ngClass]="getSexIcon(person.sex)" aria-hidden="true"></i>
+                }
+              </span>
             </span>
           </div>
         </mat-option>

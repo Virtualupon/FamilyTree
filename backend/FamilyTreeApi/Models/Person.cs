@@ -83,6 +83,12 @@ public class Person
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
+    // Soft delete fields
+    public bool IsDeleted { get; set; } = false;
+    public DateTime? DeletedAt { get; set; }
+    public long? DeletedByUserId { get; set; }
+    public ApplicationUser? DeletedByUser { get; set; }
+
     public ICollection<ParentChild> AsParent { get; set; } = new List<ParentChild>();
     public ICollection<ParentChild> AsChild { get; set; } = new List<ParentChild>();
     public ICollection<UnionMember> UnionMemberships { get; set; } = new List<UnionMember>();

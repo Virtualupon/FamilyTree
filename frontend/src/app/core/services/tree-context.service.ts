@@ -347,10 +347,18 @@ export class TreeContextService {
             personCount: 0,
             createdAt: new Date().toISOString()
           })));
-          // Auto-select first town if only one
-          if (towns.length === 1 && !this.selectedTownId()) {
+
+          // Auto-select first town for Admin
+          const currentTownId = this.selectedTownId();
+          if (currentTownId && towns.some(t => t.id === currentTownId)) {
+            // Current selection is valid - load trees for it
+            this.loadTreesForTown(currentTownId);
+          } else if (towns.length > 0 && !currentTownId) {
+            // No selection - auto-select first town
             this.selectTown(towns[0].id);
+            this.loadTreesForTown(towns[0].id);
           }
+
           this.loadingTowns.set(false);
         },
         error: () => {
@@ -368,13 +376,15 @@ export class TreeContextService {
   }
 
   /**
-   * Auto-select a town if none is selected
+   * Auto-select a town if none is selected (for Admin/SuperAdmin)
    */
   private autoSelectTown(towns: TownListItem[]): void {
     const currentSelection = this.selectedTownId();
 
     // If current selection is still valid, keep it
     if (currentSelection && towns.some(t => t.id === currentSelection)) {
+      // Load trees for the selected town
+      this.loadTreesForTown(currentSelection);
       return;
     }
 
@@ -384,7 +394,15 @@ export class TreeContextService {
       localStorage.removeItem(this.TOWN_STORAGE_KEY);
     }
 
-    // Don't auto-select a town - let users browse all trees by default
+    // Auto-select first town for Admin/SuperAdmin
+    const user = this.authService.getCurrentUser();
+    if (user && (user.systemRole === 'SuperAdmin' || user.systemRole === 'Admin')) {
+      if (towns.length > 0 && !this.selectedTownId()) {
+        this.selectTown(towns[0].id);
+        // Load trees for the auto-selected town
+        this.loadTreesForTown(towns[0].id);
+      }
+    }
   }
 
   /**

@@ -321,3 +321,55 @@ public record RecentPersonDto(
     string? AvatarUrl,
     DateTime ActivityDate
 );
+
+// ============================================================================
+// PAGINATED PEOPLE LIST DTOs
+// ============================================================================
+
+/// <summary>
+/// Paginated response for people in a family tree
+/// </summary>
+public record PaginatedPeopleResponse(
+    List<PersonListDto> People,
+    int TotalCount,
+    int Page,
+    int PageSize,
+    int TotalPages
+);
+
+/// <summary>
+/// Person summary for list views
+/// </summary>
+public record PersonListDto(
+    Guid Id,
+    string? PrimaryName,
+    string? NameEnglish,
+    string? NameArabic,
+    string? NameNobiin,
+    string? Sex,
+    DateTime? BirthDate,
+    DateTime? DeathDate,
+    string? BirthPlace,
+    string? DeathPlace,
+    bool IsLiving,
+    string? AvatarUrl,
+    Guid? AvatarMediaId,
+    int RelationshipsCount,
+    int MediaCount,
+    DateTime CreatedAt,
+    DateTime UpdatedAt
+);
+
+/// <summary>
+/// Request parameters for getting people in a tree
+/// </summary>
+public class GetTreePeopleRequest
+{
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 50;
+    public string? Search { get; set; }
+    public string? Sex { get; set; }
+    public bool? IsLiving { get; set; }
+    public string SortBy { get; set; } = "name";
+    public string SortOrder { get; set; } = "asc";
+}

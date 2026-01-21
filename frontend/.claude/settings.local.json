@@ -13,7 +13,10 @@
       "Bash(npm start)",
       "Bash(timeout:*)",
       "Bash(npx ng serve:*)",
-      "Bash(npx ng build:*)"
+      "Bash(npx ng build:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(taskkill:*)"
     ]
   }
 }

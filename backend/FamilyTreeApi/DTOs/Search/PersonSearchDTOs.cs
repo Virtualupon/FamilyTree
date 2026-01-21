@@ -137,6 +137,15 @@ public record PersonSearchItemDto
     public Guid? FamilyId { get; init; }
     public string? FamilyName { get; init; }
     public Guid OrgId { get; init; }
+    public string? TreeName { get; init; }
+    public Guid? TownId { get; init; }
+    public string? TownName { get; init; }
+    public string? TownNameEn { get; init; }
+    public string? TownNameAr { get; init; }
+    // Country info (from Nationality)
+    public string? CountryCode { get; init; }
+    public string? CountryNameEn { get; init; }
+    public string? CountryNameAr { get; init; }
     public List<PersonNameSearchDto> Names { get; init; } = new();
     public int ParentsCount { get; init; }
     public int ChildrenCount { get; init; }

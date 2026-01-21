@@ -43,4 +43,7 @@ public class Town
 
     /// <summary>Admin users assigned to manage this town</summary>
     public ICollection<AdminTownAssignment> AdminAssignments { get; set; } = new List<AdminTownAssignment>();
+
+    /// <summary>Images associated with this town for carousel display</summary>
+    public virtual ICollection<TownImage> Images { get; set; } = new List<TownImage>();
 }

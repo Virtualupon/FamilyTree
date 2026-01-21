@@ -481,10 +481,42 @@ i.fa-solid.primary-badge {
   text-overflow: ellipsis;
 }
 
-.person-dates {
-  display: block;
+.person-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
   font-size: 12px;
   color: rgba(0, 0, 0, 0.6);
+}
+
+.person-dates {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.person-tree {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #187573;
+
+  i {
+    font-size: 10px;
+  }
+}
+
+.person-town {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #8B5A2B;
+
+  i {
+    font-size: 10px;
+  }
 }
 
 .current-label {

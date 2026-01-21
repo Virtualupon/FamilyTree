@@ -131,7 +131,7 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Select a town for the current session (returns new token with town claim)
+    /// Select a town for the current session (returns new token with town claim) - Admin/SuperAdmin
     /// </summary>
     [HttpPost("select-town")]
     [Authorize(Roles = "Admin,SuperAdmin")]
@@ -172,6 +172,153 @@ public class AuthController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to select town");
+            return StatusCode(500, new { message = "An error occurred" });
+        }
+    }
+
+    // ============================================================================
+    // Governance Model - Language and Town Selection Endpoints
+    // ============================================================================
+
+    /// <summary>
+    /// Set preferred language for the current user (first login onboarding)
+    /// </summary>
+    [HttpPost("set-language")]
+    [Authorize]
+    public async Task<ActionResult<SetLanguageResponse>> SetLanguage([FromBody] SetLanguageRequest request)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized(new { message = "User ID not found in token" });
+            }
+
+            var response = await _authService.SetLanguageAsync(userId, request.Language);
+            return Ok(response);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to set language");
+            return StatusCode(500, new { message = "An error occurred" });
+        }
+    }
+
+    /// <summary>
+    /// Complete first login onboarding (marks IsFirstLogin = false)
+    /// </summary>
+    [HttpPost("complete-onboarding")]
+    [Authorize]
+    public async Task<ActionResult<UserDto>> CompleteOnboarding()
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized(new { message = "User ID not found in token" });
+            }
+
+            var userDto = await _authService.CompleteOnboardingAsync(userId);
+            return Ok(userDto);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to complete onboarding");
+            return StatusCode(500, new { message = "An error occurred" });
+        }
+    }
+
+    /// <summary>
+    /// Get available towns for User role to browse
+    /// </summary>
+    [HttpGet("available-towns")]
+    [Authorize]
+    public async Task<ActionResult<AvailableTownsResponse>> GetAvailableTowns()
+    {
+        try
+        {
+            var response = await _authService.GetAvailableTownsAsync();
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get available towns");
+            return StatusCode(500, new { message = "An error occurred" });
+        }
+    }
+
+    /// <summary>
+    /// Select a town for viewing (User role) - updates SelectedTownId and returns new token
+    /// </summary>
+    [HttpPost("select-town-user")]
+    [Authorize]
+    public async Task<ActionResult<SelectTownResponse>> SelectTownForUser([FromBody] SelectTownRequest request)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized(new { message = "User ID not found in token" });
+            }
+
+            var response = await _authService.SelectTownForUserAsync(userId, request.TownId);
+            return Ok(response);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to select town for user");
+            return StatusCode(500, new { message = "An error occurred" });
+        }
+    }
+
+    /// <summary>
+    /// Get current user profile including IsFirstLogin and SelectedTown
+    /// </summary>
+    [HttpGet("profile")]
+    [Authorize]
+    public async Task<ActionResult<UserDto>> GetProfile()
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !long.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized(new { message = "User ID not found in token" });
+            }
+
+            var userDto = await _authService.GetUserProfileAsync(userId);
+            return Ok(userDto);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get user profile");
             return StatusCode(500, new { message = "An error occurred" });
         }
     }

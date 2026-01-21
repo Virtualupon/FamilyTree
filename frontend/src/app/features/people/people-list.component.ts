@@ -399,4 +399,29 @@ export class PeopleListComponent implements OnInit, OnDestroy {
       }
     });
   }
+
+  /**
+   * Get location name (town or country fallback) based on current language
+   */
+  getLocationDisplayName(person: SearchPersonItem): string {
+    const lang = this.i18n.currentLang();
+
+    // Try town first
+    let townName = '';
+    if (lang === 'ar') {
+      townName = person.townNameAr || person.townNameEn || person.townName || '';
+    } else if (lang === 'nob') {
+      townName = person.townName || person.townNameEn || person.townNameAr || '';
+    } else {
+      townName = person.townNameEn || person.townName || person.townNameAr || '';
+    }
+
+    if (townName) return townName;
+
+    // Fallback to country
+    if (lang === 'ar') {
+      return person.countryNameAr || person.countryNameEn || '';
+    }
+    return person.countryNameEn || person.countryNameAr || '';
+  }
 }

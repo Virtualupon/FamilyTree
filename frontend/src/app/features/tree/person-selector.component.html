@@ -57,16 +57,24 @@
             </app-person-name-avatar>
 
             <div class="person-selector__info">
-              <div class="person-selector__name">{{ getPersonDisplayName(person) || ('common.unknown' | translate) }}</div>
+              <div class="person-selector__name">{{ getPersonLineageName(person) }}</div>
               <div class="person-selector__meta">
-                @if (person.birthDate) {
-                  <span>{{ formatYear(person.birthDate) }}</span>
+                @if (person.birthDate || person.deathDate) {
+                  <span class="person-selector__dates">
+                    ({{ formatYear(person.birthDate) || '?' }} - {{ formatYear(person.deathDate) || '?' }})
+                  </span>
                 }
-                @if (person.birthDate && person.deathDate) {
-                  <span>-</span>
+                @if (person.treeName) {
+                  <span class="person-selector__tree">
+                    <i class="fa-solid fa-sitemap" aria-hidden="true"></i>
+                    {{ person.treeName }}
+                  </span>
                 }
-                @if (person.deathDate) {
-                  <span>{{ formatYear(person.deathDate) }}</span>
+                @if (getLocationDisplayName(person)) {
+                  <span class="person-selector__town">
+                    <i class="fa-solid fa-city" aria-hidden="true"></i>
+                    {{ getLocationDisplayName(person) }}
+                  </span>
                 }
                 @if (person.birthPlaceName) {
                   <span class="person-selector__place">

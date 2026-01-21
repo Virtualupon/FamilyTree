@@ -115,6 +115,32 @@
     color: var(--ft-on-surface-variant);
   }
 
+  &__dates {
+    font-size: 0.75rem;
+  }
+
+  &__tree {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #187573;
+
+    i {
+      font-size: 10px;
+    }
+  }
+
+  &__town {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #8B5A2B;
+
+    i {
+      font-size: 10px;
+    }
+  }
+
   &__place {
     display: inline-flex;
     align-items: center;

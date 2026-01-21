@@ -252,7 +252,8 @@ export class PersonDetailComponent implements OnInit {
         personId: this.personId(),
         personName: this.person()?.primaryName,
         type,
-        parents: parentsData
+        parents: parentsData,
+        treeId: this.person()?.orgId  // Pass tree ID for suggestions
       },
       panelClass: 'add-relationship-dialog',
       autoFocus: false

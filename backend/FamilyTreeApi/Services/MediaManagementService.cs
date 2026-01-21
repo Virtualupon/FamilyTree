@@ -6,7 +6,7 @@ using FamilyTreeApi.Data;
 using FamilyTreeApi.DTOs;
 using FamilyTreeApi.Models;
 using FamilyTreeApi.Models.Enums;
-using VirtualUpon.Storage.Factories;
+using FamilyTreeApi.Storage;
 
 namespace FamilyTreeApi.Services;
 

@@ -81,6 +81,14 @@
   margin-top: var(--ft-spacing-xs);
 }
 
+.ft-person-card__meta-item--tree {
+  color: #187573;
+}
+
+.ft-person-card__meta-item--town {
+  color: #8B5A2B;
+}
+
 mat-divider {
   margin: var(--ft-spacing-xs) 0;
 }

@@ -27,6 +27,10 @@ export interface User {
   orgName: string | null;
   role: OrgRole;
   systemRole: SystemRole;
+  preferredLanguage: string;
+  isFirstLogin: boolean;
+  selectedTownId: string | null;
+  selectedTownName: string | null;
 }
 
 // System-wide roles (via ASP.NET Identity)
@@ -53,4 +57,46 @@ export const OrgRoleLabels: Record<OrgRole, string> = {
 
 export interface RefreshTokenRequest {
   refreshToken: string;
+}
+
+// ============================================================================
+// Governance Model - Language and Town Selection
+// ============================================================================
+
+export interface SetLanguageRequest {
+  language: string;
+}
+
+export interface SetLanguageResponse {
+  language: string;
+  isFirstLogin: boolean;
+  user: User;
+}
+
+export interface SelectTownRequest {
+  townId: string;
+}
+
+export interface SelectTownResponse {
+  accessToken: string;
+  townId: string;
+  townName: string;
+}
+
+export interface TownInfo {
+  id: string;
+  name: string;
+  nameEn: string | null;
+  nameAr: string | null;
+  country: string | null;
+  treeCount: number;
+}
+
+export interface AvailableTownsResponse {
+  towns: TownInfo[];
+}
+
+export interface AdminLoginResponse {
+  assignedTowns: TownInfo[];
+  isSuperAdmin: boolean;
 }

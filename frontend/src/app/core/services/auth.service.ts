@@ -1,8 +1,22 @@
 import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, BehaviorSubject, tap, of, catchError } from 'rxjs';
-import { AuthResponse, LoginRequest, RegisterRequest, User, OrgRole, SystemRole } from '../models/auth.models';
+import { Observable, BehaviorSubject, tap, of, catchError, map } from 'rxjs';
+import {
+  AuthResponse,
+  LoginRequest,
+  RegisterRequest,
+  User,
+  OrgRole,
+  SystemRole,
+  SetLanguageRequest,
+  SetLanguageResponse,
+  SelectTownRequest,
+  SelectTownResponse,
+  AvailableTownsResponse,
+  AdminLoginResponse,
+  TownInfo
+} from '../models/auth.models';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -214,5 +228,161 @@ export class AuthService {
     const token = this.getAccessToken();
     if (!token) return false;
     return this.isTokenExpired(token);
+  }
+
+  // ============================================================================
+  // Governance Model - Language and Town Selection
+  // ============================================================================
+
+  /**
+   * Set preferred language for the user (first login onboarding)
+   */
+  setLanguage(language: string): Observable<SetLanguageResponse> {
+    return this.http.post<SetLanguageResponse>(`${this.apiUrl}/set-language`, { language })
+      .pipe(
+        tap(response => {
+          // Update stored user with new language
+          this.updateStoredUser(response.user);
+        })
+      );
+  }
+
+  /**
+   * Complete first login onboarding (marks IsFirstLogin = false)
+   */
+  completeOnboarding(): Observable<User> {
+    return this.http.post<User>(`${this.apiUrl}/complete-onboarding`, {})
+      .pipe(
+        tap(user => {
+          this.updateStoredUser(user);
+        })
+      );
+  }
+
+  /**
+   * Get available towns for User role to browse
+   */
+  getAvailableTowns(): Observable<TownInfo[]> {
+    return this.http.get<AvailableTownsResponse>(`${this.apiUrl}/available-towns`)
+      .pipe(map(response => response.towns));
+  }
+
+  /**
+   * Get assigned towns for Admin role (for town selection)
+   */
+  getMyTowns(): Observable<AdminLoginResponse> {
+    return this.http.get<AdminLoginResponse>(`${this.apiUrl}/my-towns`);
+  }
+
+  /**
+   * Select a town for viewing (User role)
+   */
+  selectTownForUser(townId: string): Observable<SelectTownResponse> {
+    return this.http.post<SelectTownResponse>(`${this.apiUrl}/select-town-user`, { townId })
+      .pipe(
+        tap(response => {
+          // Update access token with town claim
+          localStorage.setItem(this.accessTokenKey, response.accessToken);
+
+          // Update stored user with selected town
+          const user = this.getCurrentUser();
+          if (user) {
+            user.selectedTownId = response.townId;
+            user.selectedTownName = response.townName;
+            this.updateStoredUser(user);
+          }
+        })
+      );
+  }
+
+  /**
+   * Select a town for managing (Admin role)
+   */
+  selectTownForAdmin(townId: string): Observable<SelectTownResponse> {
+    return this.http.post<SelectTownResponse>(`${this.apiUrl}/select-town`, { townId })
+      .pipe(
+        tap(response => {
+          // Update access token with town claim
+          localStorage.setItem(this.accessTokenKey, response.accessToken);
+
+          // Update stored user with selected town
+          const user = this.getCurrentUser();
+          if (user) {
+            user.selectedTownId = response.townId;
+            user.selectedTownName = response.townName;
+            this.updateStoredUser(user);
+          }
+        })
+      );
+  }
+
+  /**
+   * Get current user profile from server
+   */
+  getProfile(): Observable<User> {
+    return this.http.get<User>(`${this.apiUrl}/profile`)
+      .pipe(
+        tap(user => {
+          this.updateStoredUser(user);
+        })
+      );
+  }
+
+  /**
+   * Check if user needs language selection (first login)
+   */
+  needsLanguageSelection(): boolean {
+    const user = this.getCurrentUser();
+    return user?.isFirstLogin === true;
+  }
+
+  /**
+   * Check if user needs town selection (regular User role without selected town)
+   * Admin and SuperAdmin have assigned towns that auto-select, so they bypass this check.
+   */
+  needsTownSelection(): boolean {
+    const user = this.getCurrentUser();
+    if (!user) return false;
+
+    // SuperAdmin doesn't need town selection - has access to all towns
+    if (user.systemRole === 'SuperAdmin') return false;
+
+    // Admin doesn't need town selection - has assigned towns that auto-select
+    if (user.systemRole === 'Admin') return false;
+
+    // Regular users need town selection if they don't have one
+    return !user.selectedTownId;
+  }
+
+  /**
+   * Get selected town ID from current user
+   */
+  getSelectedTownId(): string | null {
+    const user = this.getCurrentUser();
+    return user?.selectedTownId ?? null;
+  }
+
+  /**
+   * Get selected town name from current user
+   */
+  getSelectedTownName(): string | null {
+    const user = this.getCurrentUser();
+    return user?.selectedTownName ?? null;
+  }
+
+  /**
+   * Check if user is a viewer (User role)
+   */
+  isViewer(): boolean {
+    const user = this.getCurrentUser();
+    return user?.systemRole === 'User';
+  }
+
+  /**
+   * Update stored user and emit change
+   */
+  private updateStoredUser(user: User): void {
+    localStorage.setItem('user', JSON.stringify(user));
+    this.currentUserSubject.next(user);
   }
 }

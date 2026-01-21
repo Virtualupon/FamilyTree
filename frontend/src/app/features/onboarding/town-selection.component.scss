@@ -1,0 +1,377 @@
+@use 'nubian-variables' as *;
+
+.town-selection-page {
+  min-height: 100vh;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+// ============================================
+// BACKGROUND CAROUSEL
+// ============================================
+.background-carousel {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.carousel-slide {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  transition: opacity 1.5s ease-in-out;
+
+  &.active {
+    opacity: 1;
+  }
+}
+
+.carousel-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba($nubian-teal, 0.85) 0%,
+    rgba($nubian-charcoal, 0.9) 50%,
+    rgba($nubian-gold, 0.85) 100%
+  );
+}
+
+// ============================================
+// CONTENT CONTAINER
+// ============================================
+.content-container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 480px;
+  padding: $spacing-lg;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+// ============================================
+// BRANDING
+// ============================================
+.branding {
+  text-align: center;
+  margin-bottom: $spacing-xl;
+  color: white;
+}
+
+.logo-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto $spacing-md;
+  color: $nubian-gold;
+  animation: pulse 3s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.9; }
+}
+
+.app-title {
+  font-family: $font-display;
+  font-size: $font-size-3xl;
+  font-weight: $font-weight-semibold;
+  margin: 0 0 $spacing-sm;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.app-subtitle {
+  font-size: $font-size-base;
+  opacity: 0.9;
+  margin: 0;
+  color: $nubian-gold-200;
+}
+
+// ============================================
+// SELECTION CARD
+// ============================================
+.selection-card {
+  width: 100%;
+  border-radius: $radius-xl;
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(10px);
+  box-shadow: $shadow-2xl;
+  overflow: hidden;
+}
+
+mat-card-header {
+  background: linear-gradient(135deg, $nubian-teal 0%, $nubian-teal-600 100%);
+  padding: $spacing-lg !important;
+  margin: 0 !important;
+
+  mat-card-title {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    color: white;
+    font-size: $font-size-xl;
+    font-weight: $font-weight-semibold;
+    margin: 0;
+
+    .title-icon {
+      font-size: 28px;
+      width: 28px;
+      height: 28px;
+    }
+  }
+
+  mat-card-subtitle {
+    color: rgba(255, 255, 255, 0.85);
+    margin-top: $spacing-sm;
+    font-size: $font-size-sm;
+  }
+}
+
+mat-card-content {
+  padding: $spacing-lg !important;
+}
+
+// ============================================
+// LOADING & EMPTY STATES
+// ============================================
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: $spacing-3xl $spacing-lg;
+  gap: $spacing-md;
+
+  p {
+    color: $nubian-gray;
+    margin: 0;
+  }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: $spacing-3xl $spacing-lg;
+  color: $nubian-gray;
+
+  mat-icon {
+    font-size: 56px;
+    width: 56px;
+    height: 56px;
+    margin-bottom: $spacing-md;
+    opacity: 0.4;
+  }
+}
+
+// ============================================
+// TOWN DROPDOWN
+// ============================================
+.town-select {
+  width: 100%;
+
+  .select-icon {
+    color: $nubian-teal;
+    margin-right: $spacing-sm;
+  }
+}
+
+.town-option-content {
+  display: flex;
+  flex-direction: column;
+  padding: $spacing-xs 0;
+
+  .town-name {
+    font-weight: $font-weight-medium;
+    color: $nubian-charcoal;
+  }
+
+  .town-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: $font-size-sm;
+    color: $nubian-gray;
+    margin-top: 2px;
+
+    .separator {
+      opacity: 0.5;
+    }
+  }
+}
+
+// ============================================
+// SELECTED PREVIEW
+// ============================================
+.selected-preview {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-md;
+  margin-top: $spacing-md;
+  background: linear-gradient(135deg, $nubian-gold-50 0%, $nubian-cream 100%);
+  border-radius: $radius-lg;
+  border: 1px solid $nubian-gold-200;
+
+  .preview-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: $radius-md;
+    background: $nubian-teal;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    mat-icon {
+      color: white;
+    }
+  }
+
+  .preview-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+
+    .preview-label {
+      font-size: $font-size-xs;
+      color: $nubian-gray;
+      text-transform: uppercase;
+      letter-spacing: $letter-spacing-wide;
+    }
+
+    .preview-name {
+      font-weight: $font-weight-semibold;
+      color: $nubian-charcoal;
+      font-size: $font-size-lg;
+    }
+  }
+
+  .check-icon {
+    color: $nubian-green;
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+  }
+}
+
+// ============================================
+// ACTIONS
+// ============================================
+mat-card-actions {
+  padding: $spacing-md $spacing-lg $spacing-lg !important;
+  margin: 0 !important;
+}
+
+.continue-btn {
+  width: 100%;
+  height: 48px;
+  font-size: $font-size-base;
+  font-weight: $font-weight-semibold;
+  border-radius: $radius-lg;
+  background: linear-gradient(135deg, $nubian-gold 0%, $nubian-gold-600 100%) !important;
+  color: white !important;
+  box-shadow: $shadow-gold;
+  transition: all $transition-base;
+
+  &:hover:not([disabled]) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba($nubian-gold, 0.5);
+  }
+
+  &[disabled] {
+    background: $nubian-gray-light !important;
+    box-shadow: none;
+  }
+
+  mat-icon {
+    margin-left: $spacing-sm;
+  }
+
+  mat-spinner {
+    display: inline-block;
+  }
+}
+
+// ============================================
+// CAROUSEL INDICATORS
+// ============================================
+.carousel-indicators {
+  position: fixed;
+  bottom: $spacing-lg;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: $spacing-sm;
+  z-index: 10;
+}
+
+.indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  background: transparent;
+  cursor: pointer;
+  transition: all $transition-base;
+  padding: 0;
+
+  &:hover {
+    border-color: white;
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  &.active {
+    background: $nubian-gold;
+    border-color: $nubian-gold;
+    transform: scale(1.2);
+  }
+}
+
+// ============================================
+// RESPONSIVE
+// ============================================
+@media (max-width: $breakpoint-sm) {
+  .content-container {
+    padding: $spacing-md;
+  }
+
+  .branding {
+    margin-bottom: $spacing-lg;
+  }
+
+  .logo-icon {
+    width: 64px;
+    height: 64px;
+  }
+
+  .app-title {
+    font-size: $font-size-2xl;
+  }
+
+  mat-card-header,
+  mat-card-content {
+    padding: $spacing-md !important;
+  }
+}
+
+// ============================================
+// RTL SUPPORT
+// ============================================
+:host-context([dir="rtl"]) {
+  .town-select .select-icon {
+    margin-right: 0;
+    margin-left: $spacing-sm;
+  }
+
+  .continue-btn mat-icon {
+    margin-left: 0;
+    margin-right: $spacing-sm;
+    transform: scaleX(-1);
+  }
+}

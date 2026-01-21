@@ -29,5 +29,11 @@ public class Union
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
+    // Soft delete fields
+    public bool IsDeleted { get; set; } = false;
+    public DateTime? DeletedAt { get; set; }
+    public long? DeletedByUserId { get; set; }
+    public ApplicationUser? DeletedByUser { get; set; }
+
     public ICollection<UnionMember> Members { get; set; } = new List<UnionMember>();
 }

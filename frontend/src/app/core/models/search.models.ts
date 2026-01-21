@@ -42,6 +42,15 @@ export interface PersonSearchResult {
 export interface SearchPersonItem {
   id: string;
   orgId: string;
+  treeName: string | null;
+  townId: string | null;
+  townName: string | null;
+  townNameEn: string | null;
+  townNameAr: string | null;
+  // Country info (from Nationality) - fallback when no town
+  countryCode: string | null;
+  countryNameEn: string | null;
+  countryNameAr: string | null;
   familyId: string | null;
   familyName: string | null;
   primaryName: string | null;

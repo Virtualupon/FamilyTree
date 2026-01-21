@@ -479,7 +479,7 @@ public class ParentChildService : IParentChildService
     /// Check if user has access to a specific tree.
     /// SuperAdmin: access to all trees
     /// Admin: access to assigned trees + member trees
-    /// User: access to member trees only (or public trees)
+    /// User: access to member trees, public trees, or trees in their selected town
     /// </summary>
     private async Task<bool> HasTreeAccessAsync(
         Guid treeId,
@@ -505,8 +505,23 @@ public class ParentChildService : IParentChildService
         // Check if tree is public
         var isPublic = await _context.Orgs
             .AnyAsync(o => o.Id == treeId && o.IsPublic, cancellationToken);
+        if (isPublic) return true;
 
-        return isPublic;
+        // Regular users can also access trees in their selected town (browse mode)
+        if (userContext.SelectedTownId.HasValue)
+        {
+            var tree = await _context.Orgs
+                .FirstOrDefaultAsync(o => o.Id == treeId, cancellationToken);
+            if (tree != null && tree.TownId == userContext.SelectedTownId.Value)
+            {
+                _logger.LogInformation(
+                    "User {UserId} granted read access to tree {TreeId} via town selection {TownId}",
+                    userContext.UserId, treeId, userContext.SelectedTownId.Value);
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>

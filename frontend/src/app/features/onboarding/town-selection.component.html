@@ -1,0 +1,137 @@
+<div class="town-selection-page">
+  <!-- Background Image Carousel -->
+  <div class="background-carousel">
+    @for (img of carouselImages; track img.id; let i = $index) {
+      <div
+        class="carousel-slide"
+        [class.active]="i === currentSlide()"
+        [class.loading]="img.loadingBase64"
+        [style.background-image]="img.displayUrl ? 'url(' + img.displayUrl + ')' : 'none'"
+      ></div>
+    }
+    <div class="carousel-overlay"></div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-container">
+    <!-- Logo/Branding -->
+    <div class="branding">
+      <div class="logo-icon">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="50" cy="50" r="45" stroke="currentColor" stroke-width="2" fill="none" opacity="0.3"/>
+          <path d="M50 15 L50 85" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+          <path d="M50 30 L30 45" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M50 30 L70 45" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M50 45 L25 60" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M50 45 L75 60" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M50 60 L20 75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M50 60 L80 75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="50" cy="20" r="4" fill="currentColor"/>
+          <circle cx="30" cy="45" r="3" fill="currentColor"/>
+          <circle cx="70" cy="45" r="3" fill="currentColor"/>
+          <circle cx="25" cy="60" r="2.5" fill="currentColor"/>
+          <circle cx="75" cy="60" r="2.5" fill="currentColor"/>
+        </svg>
+      </div>
+      <h1 class="app-title">{{ 'app.name' | translate }}</h1>
+      <p class="app-subtitle">{{ 'app.tagline' | translate }}</p>
+    </div>
+
+    <!-- Selection Card -->
+    <mat-card class="selection-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon class="title-icon">location_city</mat-icon>
+          {{ 'onboarding.selectTown' | translate }}
+        </mat-card-title>
+        <mat-card-subtitle>
+          {{ isAdmin ? ('onboarding.townSubtitleAdmin' | translate) : ('onboarding.townSubtitleUser' | translate) }}
+        </mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        @if (loadingTowns) {
+          <div class="loading-container">
+            <mat-spinner diameter="40" color="primary"></mat-spinner>
+            <p>{{ 'common.loading' | translate }}...</p>
+          </div>
+        } @else if (towns.length === 0) {
+          <div class="empty-state">
+            <mat-icon>location_off</mat-icon>
+            <p>{{ 'onboarding.noTownsFound' | translate }}</p>
+          </div>
+        } @else {
+          <!-- Town Dropdown -->
+          <mat-form-field appearance="outline" class="town-select">
+            <mat-label>{{ 'onboarding.chooseTown' | translate }}</mat-label>
+            <mat-select
+              [(value)]="selectedTown"
+              [disabled]="loading"
+            >
+              @for (town of towns; track town.id) {
+                <mat-option [value]="town">
+                  <div class="town-option-content">
+                    <span class="town-name">{{ getTownName(town) }}</span>
+                    <span class="town-meta">
+                      @if (town.country) {
+                        <span class="town-country">{{ town.country }}</span>
+                        <span class="separator">&#8226;</span>
+                      }
+                      <span class="tree-count">{{ town.treeCount }} {{ 'common.trees' | translate }}</span>
+                    </span>
+                  </div>
+                </mat-option>
+              }
+            </mat-select>
+            <mat-icon matPrefix class="select-icon">place</mat-icon>
+            @if (selectedTown) {
+              <mat-hint>{{ selectedTown.treeCount }} {{ 'onboarding.familyTrees' | translate }}</mat-hint>
+            }
+          </mat-form-field>
+
+          <!-- Selected Town Preview -->
+          @if (selectedTown) {
+            <div class="selected-preview">
+              <div class="preview-icon">
+                <mat-icon>account_tree</mat-icon>
+              </div>
+              <div class="preview-info">
+                <span class="preview-label">{{ 'onboarding.selectedTown' | translate }}</span>
+                <span class="preview-name">{{ getTownName(selectedTown) }}</span>
+              </div>
+              <mat-icon class="check-icon">check_circle</mat-icon>
+            </div>
+          }
+        }
+      </mat-card-content>
+
+      <mat-card-actions>
+        <button
+          mat-raised-button
+          class="continue-btn"
+          [disabled]="!selectedTown || loading"
+          (click)="confirmSelection()"
+        >
+          @if (loading) {
+            <mat-spinner diameter="20"></mat-spinner>
+          } @else {
+            <span>{{ 'common.continue' | translate }}</span>
+            <mat-icon>arrow_forward</mat-icon>
+          }
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+
+  <!-- Carousel Indicators -->
+  <div class="carousel-indicators">
+    @for (img of carouselImages; track img.id; let i = $index) {
+      <button
+        class="indicator"
+        [class.active]="i === currentSlide()"
+        (click)="goToSlide(i)"
+        [attr.aria-label]="'Slide ' + (i + 1)"
+      ></button>
+    }
+  </div>
+</div>

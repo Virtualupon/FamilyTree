@@ -126,6 +126,7 @@ public class UserContext
 {
     public long UserId { get; init; }
     public Guid? OrgId { get; init; }
+    public Guid? SelectedTownId { get; init; }
     public string SystemRole { get; init; } = "User";
     public string TreeRole { get; init; } = "Viewer";
 

@@ -335,6 +335,7 @@ public class PersonSearchController : ControllerBase
         {
             UserId = GetUserId(),
             OrgId = TryGetOrgIdFromToken(),
+            SelectedTownId = TryGetSelectedTownIdFromToken(),
             SystemRole = GetSystemRole(),
             TreeRole = GetTreeRole()
         };
@@ -358,6 +359,16 @@ public class PersonSearchController : ControllerBase
             return null;
         }
         return orgId;
+    }
+
+    private Guid? TryGetSelectedTownIdFromToken()
+    {
+        var townIdClaim = User.FindFirst("selectedTownId")?.Value;
+        if (string.IsNullOrEmpty(townIdClaim) || !Guid.TryParse(townIdClaim, out var townId))
+        {
+            return null;
+        }
+        return townId;
     }
 
     private string GetSystemRole()

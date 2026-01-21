@@ -1,13 +1,33 @@
 <h2 mat-dialog-title>
-  @switch (data.type) {
-    @case ('parent') { {{ 'relationships.addParent' | translate }} }
-    @case ('child') { {{ 'relationships.addChild' | translate }} }
-    @case ('spouse') { {{ 'relationships.addSpouse' | translate }} }
-    @case ('sibling') { {{ 'relationships.addSibling' | translate }} }
+  @if (isViewer()) {
+    <!-- Suggestion mode for viewers -->
+    @switch (data.type) {
+      @case ('parent') { {{ 'suggestion.types.addParent' | translate }} }
+      @case ('child') { {{ 'suggestion.types.addChild' | translate }} }
+      @case ('spouse') { {{ 'suggestion.types.addSpouse' | translate }} }
+      @case ('sibling') { {{ 'suggestion.types.addSibling' | translate }} }
+    }
+    <span class="suggestion-badge">{{ 'suggestion.mySuggestions' | translate }}</span>
+  } @else {
+    <!-- Direct add mode for admins/contributors -->
+    @switch (data.type) {
+      @case ('parent') { {{ 'relationships.addParent' | translate }} }
+      @case ('child') { {{ 'relationships.addChild' | translate }} }
+      @case ('spouse') { {{ 'relationships.addSpouse' | translate }} }
+      @case ('sibling') { {{ 'relationships.addSibling' | translate }} }
+    }
   }
 </h2>
 
 <mat-dialog-content>
+  <!-- Suggestion notice for viewers -->
+  @if (isViewer()) {
+    <div class="suggestion-notice">
+      <i class="fa-solid fa-lightbulb" aria-hidden="true"></i>
+      <span>{{ 'suggestion.viewerNotice' | translate }}</span>
+    </div>
+  }
+
   <!-- Person Search with optional Town/Nationality filters -->
   <app-person-search
     [excludePersonId]="data.personId"
@@ -167,6 +187,8 @@
           (click)="save()">
     @if (isSaving()) {
       <mat-spinner diameter="20"></mat-spinner>
+    } @else if (isViewer()) {
+      {{ 'suggestion.submit' | translate }}
     } @else {
       {{ 'common.add' | translate }} {{ getRelationshipLabel() }}
     }

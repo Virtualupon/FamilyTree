@@ -780,8 +780,10 @@ public class AdminService : IAdminService
             )).ToList();
 
             var response = new AdminLoginResponse(
-                AssignedTowns: towns,
-                RequiresTownSelection: towns.Count > 1
+                AssignedTowns: towns.Select(t => new TownInfoDto(
+                    t.Id, t.Name, t.NameEn, t.NameAr, null, t.TreeCount
+                )).ToList(),
+                IsSuperAdmin: false
             );
 
             return ServiceResult<AdminLoginResponse>.Success(response);

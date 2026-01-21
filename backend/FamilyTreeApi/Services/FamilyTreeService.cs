@@ -303,6 +303,159 @@ public class FamilyTreeService : IFamilyTreeService
         );
     }
 
+    public async Task<ServiceResult<PaginatedPeopleResponse>> GetTreePeopleAsync(
+        Guid treeId,
+        GetTreePeopleRequest request,
+        UserContext userContext,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (!await HasTreeAccessAsync(treeId, userContext, OrgRole.Viewer, cancellationToken))
+            {
+                return ServiceResult<PaginatedPeopleResponse>.Forbidden("You do not have access to this tree");
+            }
+
+            // Validate tree exists
+            var treeExists = await _context.Orgs
+                .AsNoTracking()
+                .AnyAsync(o => o.Id == treeId, cancellationToken);
+
+            if (!treeExists)
+            {
+                return ServiceResult<PaginatedPeopleResponse>.NotFound("Family tree not found");
+            }
+
+            // Build query
+            var query = _context.People
+                .AsNoTracking()
+                .Include(p => p.Avatar)
+                .Include(p => p.BirthPlace)
+                .Include(p => p.DeathPlace)
+                .Where(p => p.OrgId == treeId);
+
+            // Apply search filter
+            if (!string.IsNullOrWhiteSpace(request.Search))
+            {
+                var searchTerm = request.Search.ToLower();
+                query = query.Where(p =>
+                    (p.PrimaryName != null && p.PrimaryName.ToLower().Contains(searchTerm)) ||
+                    (p.NameEnglish != null && p.NameEnglish.ToLower().Contains(searchTerm)) ||
+                    (p.NameArabic != null && p.NameArabic.ToLower().Contains(searchTerm)) ||
+                    (p.NameNobiin != null && p.NameNobiin.ToLower().Contains(searchTerm))
+                );
+            }
+
+            // Apply sex filter
+            if (!string.IsNullOrWhiteSpace(request.Sex))
+            {
+                if (Enum.TryParse<Sex>(request.Sex, true, out var sex))
+                {
+                    query = query.Where(p => p.Sex == sex);
+                }
+            }
+
+            // Apply living/deceased filter
+            if (request.IsLiving.HasValue)
+            {
+                if (request.IsLiving.Value)
+                {
+                    query = query.Where(p => p.DeathDate == null);
+                }
+                else
+                {
+                    query = query.Where(p => p.DeathDate != null);
+                }
+            }
+
+            // Get total count before pagination
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            // Apply sorting
+            query = request.SortBy?.ToLower() switch
+            {
+                "birthdate" => request.SortOrder?.ToLower() == "desc"
+                    ? query.OrderByDescending(p => p.BirthDate)
+                    : query.OrderBy(p => p.BirthDate),
+                "deathdate" => request.SortOrder?.ToLower() == "desc"
+                    ? query.OrderByDescending(p => p.DeathDate)
+                    : query.OrderBy(p => p.DeathDate),
+                "createdat" => request.SortOrder?.ToLower() == "desc"
+                    ? query.OrderByDescending(p => p.CreatedAt)
+                    : query.OrderBy(p => p.CreatedAt),
+                "updatedat" => request.SortOrder?.ToLower() == "desc"
+                    ? query.OrderByDescending(p => p.UpdatedAt)
+                    : query.OrderBy(p => p.UpdatedAt),
+                _ => request.SortOrder?.ToLower() == "desc"
+                    ? query.OrderByDescending(p => p.PrimaryName)
+                    : query.OrderBy(p => p.PrimaryName)
+            };
+
+            // Apply pagination
+            var page = Math.Max(1, request.Page);
+            var pageSize = Math.Clamp(request.PageSize, 1, 100);
+            var skip = (page - 1) * pageSize;
+
+            var people = await query
+                .Skip(skip)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
+
+            // Get relationship counts for each person
+            var personIds = people.Select(p => p.Id).ToList();
+            var relationshipCounts = await _context.ParentChildren
+                .AsNoTracking()
+                .Where(pc => personIds.Contains(pc.ParentId) || personIds.Contains(pc.ChildId))
+                .GroupBy(pc => personIds.Contains(pc.ParentId) ? pc.ParentId : pc.ChildId)
+                .Select(g => new { PersonId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.PersonId, x => x.Count, cancellationToken);
+
+            // Get media counts for each person
+            var mediaCounts = await _context.PersonMedia
+                .AsNoTracking()
+                .Where(pm => personIds.Contains(pm.PersonId))
+                .GroupBy(pm => pm.PersonId)
+                .Select(g => new { PersonId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.PersonId, x => x.Count, cancellationToken);
+
+            // Map to DTOs
+            var peopleList = people.Select(p => new PersonListDto(
+                Id: p.Id,
+                PrimaryName: p.PrimaryName,
+                NameEnglish: p.NameEnglish,
+                NameArabic: p.NameArabic,
+                NameNobiin: p.NameNobiin,
+                Sex: p.Sex.ToString(),
+                BirthDate: p.BirthDate,
+                DeathDate: p.DeathDate,
+                BirthPlace: p.BirthPlace?.Name,
+                DeathPlace: p.DeathPlace?.Name,
+                IsLiving: p.DeathDate == null,
+                AvatarUrl: p.Avatar?.Url,
+                AvatarMediaId: p.AvatarMediaId,
+                RelationshipsCount: relationshipCounts.GetValueOrDefault(p.Id, 0),
+                MediaCount: mediaCounts.GetValueOrDefault(p.Id, 0),
+                CreatedAt: p.CreatedAt,
+                UpdatedAt: p.UpdatedAt
+            )).ToList();
+
+            var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+
+            return ServiceResult<PaginatedPeopleResponse>.Success(new PaginatedPeopleResponse(
+                People: peopleList,
+                TotalCount: totalCount,
+                Page: page,
+                PageSize: pageSize,
+                TotalPages: totalPages
+            ));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting people for tree {TreeId}", treeId);
+            return ServiceResult<PaginatedPeopleResponse>.InternalError("Failed to get people");
+        }
+    }
+
     public async Task<ServiceResult<FamilyTreeResponse>> CreateTreeAsync(
         CreateFamilyTreeRequest request,
         UserContext userContext,

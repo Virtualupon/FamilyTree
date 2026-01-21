@@ -203,6 +203,17 @@ public class SuggestionController : ControllerBase
     {
         try
         {
+            // Check for model binding errors
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
+                _logger.LogWarning("SuggestAddRelationship - ModelState invalid: {Errors}", string.Join(", ", errors));
+                return BadRequest(new { message = "Invalid request", errors = errors.ToArray() });
+            }
+
+            _logger.LogInformation("SuggestAddRelationship called. TreeId: {TreeId}, Person1Id: {P1}, Person2Id: {P2}, RelType: {RelType}, Person1IsParent: {IsParent}",
+                request.TreeId, request.Person1Id, request.Person2Id, request.RelationshipType, request.Person1IsParent);
+
             var userId = GetUserId();
             var townId = GetSelectedTownId();
 

@@ -456,19 +456,41 @@ public class UnionService : IUnionService
             return (null, "Admin must specify a treeId.");
         }
 
-        if (userContext.OrgId == null)
+        // Regular user: check membership first
+        if (userContext.OrgId.HasValue)
         {
-            return (null, "You must be a member of a family tree.");
+            if (requestedTreeId.HasValue && requestedTreeId.Value != userContext.OrgId.Value)
+            {
+                var isMember = await _orgRepository.IsUserMemberOfOrgAsync(userContext.UserId, requestedTreeId.Value, cancellationToken);
+                if (!isMember)
+                {
+                    // Check if tree is in user's selected town (browse mode)
+                    if (userContext.SelectedTownId.HasValue)
+                    {
+                        var tree = await _orgRepository.GetByIdAsync(requestedTreeId.Value, cancellationToken);
+                        if (tree != null && tree.TownId == userContext.SelectedTownId.Value)
+                        {
+                            return (requestedTreeId, null);
+                        }
+                    }
+                    return (null, "You are not a member of this tree.");
+                }
+                return (requestedTreeId, null);
+            }
+            return (userContext.OrgId, null);
         }
 
-        if (requestedTreeId.HasValue && requestedTreeId.Value != userContext.OrgId.Value)
+        // Regular user without membership: check if requested tree is in their selected town
+        if (requestedTreeId.HasValue && userContext.SelectedTownId.HasValue)
         {
-            var isMember = await _orgRepository.IsUserMemberOfOrgAsync(userContext.UserId, requestedTreeId.Value, cancellationToken);
-            if (!isMember) return (null, "You are not a member of this tree.");
-            return (requestedTreeId, null);
+            var tree = await _orgRepository.GetByIdAsync(requestedTreeId.Value, cancellationToken);
+            if (tree != null && tree.TownId == userContext.SelectedTownId.Value)
+            {
+                return (requestedTreeId, null);
+            }
         }
 
-        return (userContext.OrgId, null);
+        return (null, "You must be a member of a family tree or select a town to browse.");
     }
 
     private static UnionResponseDto MapToResponseDto(Union union)

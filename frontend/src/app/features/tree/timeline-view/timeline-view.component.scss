@@ -1,0 +1,239 @@
+@use '../../../../styles/nubian-variables' as *;
+
+.timeline-view {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: $warm-white;
+
+  &__controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: $spacing-sm $spacing-md;
+    background: white;
+    border-bottom: 1px solid $nubian-beige;
+    gap: $spacing-md;
+    flex-wrap: wrap;
+  }
+
+  &__controls-left,
+  &__controls-right {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+  }
+
+  &__generation-select {
+    width: 200px;
+  }
+
+  &__legend {
+    display: flex;
+    gap: $spacing-md;
+    flex-wrap: wrap;
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: $spacing-xs;
+    }
+
+    .legend-color {
+      width: 14px;
+      height: 14px;
+      border-radius: $radius-sm;
+    }
+
+    .legend-label {
+      font-size: $font-size-sm;
+      color: $nubian-gray;
+    }
+  }
+
+  &__container {
+    flex: 1;
+    overflow: auto;
+    position: relative;
+
+    // Custom scrollbar
+    &::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: $nubian-cream;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: $nubian-sand;
+      border-radius: $radius-full;
+
+      &:hover {
+        background: $nubian-teal-400;
+      }
+    }
+  }
+
+  &__svg {
+    min-width: 1200px;
+    cursor: grab;
+    display: block;
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+
+  &__tooltip {
+    position: fixed;
+    z-index: $z-tooltip;
+    background: white;
+    border-radius: $radius-md;
+    box-shadow: $shadow-xl;
+    padding: $spacing-sm $spacing-md;
+    max-width: 280px;
+    pointer-events: none;
+    display: none;
+    border: 1px solid $nubian-beige;
+
+    .tooltip-name {
+      font-family: $font-display;
+      font-size: $font-size-base;
+      font-weight: $font-weight-semibold;
+      color: $nubian-charcoal;
+      margin-bottom: $spacing-xs;
+    }
+
+    .tooltip-dates {
+      font-size: $font-size-sm;
+      color: $nubian-gray;
+      margin-bottom: $spacing-xs;
+    }
+
+    .tooltip-descendants {
+      display: flex;
+      align-items: center;
+      gap: $spacing-xs;
+      font-size: $font-size-sm;
+      color: $nubian-teal;
+      padding-top: $spacing-xs;
+      border-top: 1px solid $nubian-beige;
+
+      i {
+        font-size: $font-size-xs;
+      }
+    }
+  }
+}
+
+// D3 elements styling (using :host ::ng-deep for SVG elements)
+:host ::ng-deep {
+  .timeline-axis {
+    .axis-line {
+      stroke: $nubian-sand;
+      stroke-width: 2;
+    }
+
+    .axis-tick {
+      stroke: $nubian-sand;
+      stroke-width: 1;
+    }
+
+    .axis-label {
+      font-family: $font-primary;
+      font-size: 11px;
+      fill: $nubian-gray;
+    }
+  }
+
+  .current-year-line {
+    stroke: $nubian-orange;
+    stroke-width: 2;
+    stroke-dasharray: 5, 5;
+    opacity: 0.4;
+  }
+
+  .lifespan-bars {
+    .lifespan-bar {
+      &:hover {
+        .bar {
+          filter: brightness(1.1);
+        }
+
+        .person-name {
+          font-weight: $font-weight-semibold;
+        }
+      }
+
+      &.selected {
+        .bar {
+          stroke: $nubian-charcoal;
+          stroke-width: 2;
+        }
+
+        .person-name {
+          font-weight: $font-weight-bold;
+          fill: $nubian-teal;
+        }
+      }
+    }
+
+    .bar {
+      transition: filter 0.2s ease;
+    }
+
+    .person-name {
+      font-family: $font-primary;
+      font-size: 12px;
+      fill: $nubian-charcoal;
+    }
+
+    .avatar-bg {
+      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+    }
+
+    .avatar-initials {
+      font-family: $font-primary;
+    }
+
+    .count-badge {
+      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.15));
+    }
+
+    .count-text {
+      font-family: $font-primary;
+    }
+  }
+
+  .connection-lines {
+    .connection-line {
+      transition: opacity 0.2s ease;
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: $breakpoint-md) {
+  .timeline-view {
+    &__controls {
+      flex-direction: column;
+      align-items: stretch;
+      gap: $spacing-sm;
+    }
+
+    &__controls-left,
+    &__controls-right {
+      justify-content: center;
+    }
+
+    &__legend {
+      justify-content: center;
+    }
+
+    &__generation-select {
+      width: 100%;
+    }
+  }
+}

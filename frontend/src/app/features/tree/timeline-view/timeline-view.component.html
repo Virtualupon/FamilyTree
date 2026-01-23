@@ -1,0 +1,46 @@
+<div class="timeline-view">
+  <!-- Controls Bar -->
+  <div class="timeline-view__controls">
+    <div class="timeline-view__controls-left">
+      <mat-select
+        [value]="selectedGeneration()"
+        (selectionChange)="onGenerationChange($event.value)"
+        class="timeline-view__generation-select">
+        @for (option of generationOptions(); track option.value) {
+          <mat-option [value]="option.value">{{ option.label }}</mat-option>
+        }
+      </mat-select>
+    </div>
+
+    <div class="timeline-view__legend">
+      @for (item of legendItems(); track item.label) {
+        <div class="legend-item">
+          <span class="legend-color" [style.background-color]="item.color"></span>
+          <span class="legend-label">{{ item.label }}</span>
+        </div>
+      }
+    </div>
+
+    <div class="timeline-view__controls-right">
+      <button mat-icon-button (click)="zoomIn()" [matTooltip]="'tree.zoomIn' | translate">
+        <i class="fa-solid fa-plus" aria-hidden="true"></i>
+      </button>
+      <button mat-icon-button (click)="zoomOut()" [matTooltip]="'tree.zoomOut' | translate">
+        <i class="fa-solid fa-minus" aria-hidden="true"></i>
+      </button>
+      <button mat-icon-button (click)="resetZoom()" [matTooltip]="'tree.resetView' | translate">
+        <i class="fa-solid fa-crosshairs" aria-hidden="true"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Timeline Container -->
+  <div class="timeline-view__container" #container>
+    <svg #svgElement class="timeline-view__svg">
+      <defs></defs>
+    </svg>
+  </div>
+
+  <!-- Tooltip -->
+  <div #tooltip class="timeline-view__tooltip"></div>
+</div>

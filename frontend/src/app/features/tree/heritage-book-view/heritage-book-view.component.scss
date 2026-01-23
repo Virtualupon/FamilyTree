@@ -1,0 +1,479 @@
+@use '../../../../styles/nubian-variables' as *;
+
+.heritage-book {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-lg;
+  background: linear-gradient(135deg, $nubian-cream 0%, $nubian-beige 50%, $nubian-gold-100 100%);
+  overflow: auto;
+
+  &__frame {
+    position: relative;
+    width: 100%;
+    max-width: 900px;
+    background: $warm-white;
+    border: 3px solid $nubian-gold;
+    border-radius: $radius-lg;
+    box-shadow:
+      0 0 0 8px rgba($nubian-gold, 0.1),
+      0 0 0 12px rgba($nubian-gold, 0.05),
+      $shadow-2xl;
+    padding: $spacing-2xl;
+
+    // Inner decorative border
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 12px;
+      border: 2px solid $nubian-gold-300;
+      border-radius: $radius-md;
+      pointer-events: none;
+    }
+  }
+
+  &__corner {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    color: $nubian-gold;
+
+    &--tl {
+      top: 8px;
+      left: 8px;
+    }
+
+    &--tr {
+      top: 8px;
+      right: 8px;
+      transform: scaleX(-1);
+    }
+
+    &--bl {
+      bottom: 8px;
+      left: 8px;
+      transform: scaleY(-1);
+    }
+
+    &--br {
+      bottom: 8px;
+      right: 8px;
+      transform: scale(-1);
+    }
+  }
+
+  &__content {
+    position: relative;
+    z-index: 1;
+  }
+
+  &__parents {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: $spacing-md;
+    margin-bottom: $spacing-xl;
+    flex-wrap: wrap;
+  }
+
+  &__parent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: $spacing-sm;
+    padding: $spacing-md;
+    border-radius: $radius-lg;
+    cursor: pointer;
+    transition: all $transition-base;
+    min-width: 150px;
+    max-width: 180px;
+
+    &:hover:not(&--empty) {
+      background: rgba($nubian-gold, 0.08);
+      transform: translateY(-2px);
+    }
+
+    &--selected {
+      background: rgba($nubian-teal, 0.1) !important;
+      box-shadow: 0 0 0 3px $nubian-teal;
+    }
+
+    &--empty {
+      opacity: 0.6;
+      cursor: default;
+    }
+  }
+
+  &__parent-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__parent-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  &__parent-initials {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    font-family: $font-display;
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+
+    &--male {
+      background: $nubian-teal-100;
+      color: $nubian-teal;
+      border: 2px solid $nubian-teal;
+    }
+
+    &--female {
+      background: $nubian-gold-100;
+      color: $nubian-gold;
+      border: 2px solid $nubian-gold;
+    }
+  }
+
+  &__parent-info {
+    text-align: center;
+  }
+
+  &__parent-name {
+    font-family: $font-display;
+    font-size: $font-size-md;
+    font-weight: $font-weight-semibold;
+    color: $nubian-charcoal;
+    line-height: $line-height-snug;
+  }
+
+  &__parent-dates {
+    font-family: $font-serif;
+    font-size: $font-size-sm;
+    color: $nubian-gray;
+    font-style: italic;
+    margin-top: 2px;
+  }
+
+  &__marriage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: $spacing-xs;
+    padding: 0 $spacing-sm;
+  }
+
+  &__marriage-ornament {
+    width: 140px;
+    height: 50px;
+    color: $nubian-gold;
+  }
+
+  &__marriage-date {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+
+  &__marriage-label {
+    font-family: $font-serif;
+    font-size: $font-size-xs;
+    color: $nubian-gray;
+    text-transform: uppercase;
+    letter-spacing: $letter-spacing-wide;
+  }
+
+  &__marriage-value {
+    font-family: $font-serif;
+    font-size: $font-size-sm;
+    color: $nubian-gold-600;
+    font-weight: $font-weight-medium;
+  }
+
+  &__divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: $spacing-lg 0;
+  }
+
+  &__divider-ornament {
+    width: 100%;
+    max-width: 400px;
+    height: 30px;
+    color: $nubian-gold-400;
+  }
+
+  &__body {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: $spacing-xl;
+    align-items: start;
+
+    @media (max-width: $breakpoint-md) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__photo {
+    position: relative;
+    aspect-ratio: 3/4;
+    border-radius: $radius-md;
+    overflow: hidden;
+    box-shadow: $shadow-lg;
+
+    @media (max-width: $breakpoint-md) {
+      max-width: 200px;
+      margin: 0 auto;
+    }
+  }
+
+  &__photo-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: $spacing-sm;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(145deg, $nubian-beige 0%, $nubian-cream 100%);
+    color: $nubian-gray;
+
+    i {
+      font-size: $font-size-3xl;
+      opacity: 0.4;
+    }
+
+    span {
+      font-size: $font-size-sm;
+      font-family: $font-serif;
+      font-style: italic;
+    }
+  }
+
+  &__photo-frame {
+    position: absolute;
+    inset: 0;
+    border: 4px solid $nubian-gold-300;
+    border-radius: $radius-md;
+    pointer-events: none;
+
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 4px;
+      border: 1px solid $nubian-gold-200;
+      border-radius: $radius-sm;
+    }
+  }
+
+  &__children {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__children-title {
+    font-family: $font-display;
+    font-size: $font-size-xl;
+    color: $nubian-teal;
+    margin: 0 0 $spacing-md 0;
+    padding-bottom: $spacing-sm;
+    border-bottom: 2px solid $nubian-gold-200;
+  }
+
+  &__children-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  &__child {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+    padding: $spacing-sm $spacing-md;
+    margin-bottom: $spacing-xs;
+    border-radius: $radius-md;
+    cursor: pointer;
+    transition: all $transition-fast;
+
+    &:hover {
+      background: rgba($nubian-gold, 0.08);
+    }
+
+    &--selected {
+      background: rgba($nubian-teal, 0.1);
+      box-shadow: inset 3px 0 0 $nubian-teal;
+
+      [dir="rtl"] & {
+        box-shadow: inset -3px 0 0 $nubian-teal;
+      }
+    }
+  }
+
+  &__child-number {
+    font-family: $font-display;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
+    min-width: 24px;
+    text-align: center;
+
+    .heritage-book__child--male & {
+      color: $nubian-teal;
+    }
+
+    .heritage-book__child--female & {
+      color: $nubian-gold;
+    }
+  }
+
+  &__child-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  &__child-name {
+    font-family: $font-primary;
+    font-size: $font-size-base;
+    font-weight: $font-weight-medium;
+    color: $nubian-charcoal;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__child-dates {
+    font-family: $font-serif;
+    font-size: $font-size-sm;
+    color: $nubian-gray;
+    font-style: italic;
+  }
+
+  &__child-living {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: $nubian-green;
+    flex-shrink: 0;
+  }
+
+  &__no-children {
+    font-family: $font-serif;
+    font-size: $font-size-base;
+    color: $nubian-gray;
+    font-style: italic;
+    text-align: center;
+    padding: $spacing-lg;
+  }
+
+  &__footer {
+    margin-top: $spacing-xl;
+    text-align: center;
+    padding-top: $spacing-lg;
+  }
+
+  &__footer-ornament {
+    width: 200px;
+    height: 20px;
+    color: $nubian-gold-400;
+    margin-bottom: $spacing-sm;
+  }
+
+  &__family-name {
+    font-family: $font-display;
+    font-size: $font-size-2xl;
+    font-weight: $font-weight-bold;
+    color: $nubian-teal;
+    letter-spacing: $letter-spacing-wider;
+    text-transform: uppercase;
+  }
+
+  &__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: $spacing-md;
+    padding: $spacing-3xl;
+    color: $nubian-gray;
+
+    i {
+      font-size: $font-size-4xl;
+      opacity: 0.3;
+    }
+
+    p {
+      font-family: $font-serif;
+      font-size: $font-size-lg;
+      font-style: italic;
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: $breakpoint-sm) {
+  .heritage-book {
+    padding: $spacing-md;
+
+    &__frame {
+      padding: $spacing-lg;
+    }
+
+    &__parents {
+      flex-direction: column;
+      gap: $spacing-lg;
+    }
+
+    &__parent {
+      min-width: 140px;
+    }
+
+    &__marriage {
+      order: -1;
+      margin-bottom: $spacing-md;
+    }
+
+    &__parent-avatar {
+      width: 70px;
+      height: 70px;
+    }
+
+    &__corner {
+      width: 40px;
+      height: 40px;
+    }
+  }
+}
+
+// Print styles
+@media print {
+  .heritage-book {
+    background: white;
+    padding: 0;
+
+    &__frame {
+      box-shadow: none;
+      border-width: 1px;
+      max-width: 100%;
+    }
+
+    &__child:hover {
+      background: transparent;
+    }
+  }
+}

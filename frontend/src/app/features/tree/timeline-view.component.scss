@@ -1,0 +1,196 @@
+.timeline-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  background: var(--ft-background, #FAF7F1);
+}
+
+.timeline-svg {
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+// Timeline content styles
+:host ::ng-deep {
+  .timeline-content {
+    // Grid lines
+    .grid-line {
+      pointer-events: none;
+    }
+
+    // Row styling
+    .timeline-row {
+      transition: opacity 0.2s ease;
+
+      &:hover {
+        .row-bg {
+          fill: rgba(24, 117, 115, 0.05);
+        }
+
+        .lifespan-bar {
+          filter: brightness(1.1);
+        }
+
+        .person-name {
+          fill: var(--ft-primary, #187573);
+        }
+      }
+
+      &.selected {
+        .row-bg {
+          fill: rgba(24, 117, 115, 0.1);
+        }
+
+        .avatar-bg {
+          stroke-width: 3;
+        }
+
+        .person-name {
+          font-weight: 600;
+        }
+      }
+    }
+
+    // Lifespan bar styling
+    .lifespan-bar {
+      transition: filter 0.2s ease, transform 0.2s ease;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+    }
+
+    // Living indicator pulse animation
+    .living-indicator {
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        opacity: 1;
+        r: 5;
+      }
+      50% {
+        opacity: 0.6;
+        r: 7;
+      }
+      100% {
+        opacity: 1;
+        r: 5;
+      }
+    }
+
+    // Avatar styling
+    .avatar-bg {
+      transition: stroke-width 0.2s ease;
+    }
+
+    .avatar-image {
+      object-fit: cover;
+    }
+
+    .avatar-initials {
+      user-select: none;
+      pointer-events: none;
+    }
+
+    // Text styling
+    .person-name {
+      transition: fill 0.2s ease;
+      user-select: none;
+    }
+
+    .year-label {
+      user-select: none;
+      pointer-events: none;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
+
+    .no-dates {
+      user-select: none;
+      pointer-events: none;
+    }
+
+    // Time axis
+    .time-axis {
+      text {
+        user-select: none;
+      }
+    }
+
+    // Legend
+    .legend {
+      text {
+        user-select: none;
+      }
+    }
+
+    // Connectors
+    .connectors {
+      line {
+        pointer-events: none;
+      }
+    }
+  }
+}
+
+// Tooltip styling
+.timeline-tooltip {
+  position: absolute;
+  pointer-events: none;
+  z-index: 1000;
+
+  &__content {
+    background: var(--ft-surface, #fff);
+    border-radius: 8px;
+    padding: 12px 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    border: 1px solid var(--ft-border, #F4E4D7);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ft-on-surface, #2D2D2D);
+    max-width: 280px;
+
+    .tooltip-name {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .tooltip-dates {
+      color: var(--ft-on-surface-variant, #6B6B6B);
+      font-size: 12px;
+    }
+
+    .tooltip-age {
+      color: var(--ft-primary, #187573);
+      font-size: 12px;
+      font-weight: 500;
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  :host ::ng-deep {
+    .timeline-content {
+      .person-name {
+        font-size: 11px;
+      }
+
+      .year-label {
+        font-size: 10px;
+      }
+
+      .avatar-bg {
+        r: 16;
+      }
+
+      .avatar-initials {
+        font-size: 12px;
+      }
+    }
+  }
+}

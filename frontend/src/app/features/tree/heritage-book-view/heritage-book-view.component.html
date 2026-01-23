@@ -1,0 +1,203 @@
+<div class="heritage-book">
+  @if (familyUnit()) {
+    <!-- Decorative Border Frame -->
+    <div class="heritage-book__frame">
+      <!-- Ornamental Corners -->
+      <svg class="heritage-book__corner heritage-book__corner--tl" viewBox="0 0 60 60">
+        <path d="M0 0 L60 0 C40 0 30 10 30 30 C30 10 10 0 0 0 Z" fill="currentColor" opacity="0.15"/>
+        <path d="M0 0 Q20 20 0 40" stroke="currentColor" fill="none" stroke-width="2"/>
+        <path d="M0 0 Q20 20 40 0" stroke="currentColor" fill="none" stroke-width="2"/>
+        <circle cx="12" cy="12" r="3" fill="currentColor"/>
+      </svg>
+      <svg class="heritage-book__corner heritage-book__corner--tr" viewBox="0 0 60 60">
+        <path d="M0 0 L60 0 C40 0 30 10 30 30 C30 10 10 0 0 0 Z" fill="currentColor" opacity="0.15"/>
+        <path d="M0 0 Q20 20 0 40" stroke="currentColor" fill="none" stroke-width="2"/>
+        <path d="M0 0 Q20 20 40 0" stroke="currentColor" fill="none" stroke-width="2"/>
+        <circle cx="12" cy="12" r="3" fill="currentColor"/>
+      </svg>
+      <svg class="heritage-book__corner heritage-book__corner--bl" viewBox="0 0 60 60">
+        <path d="M0 0 L60 0 C40 0 30 10 30 30 C30 10 10 0 0 0 Z" fill="currentColor" opacity="0.15"/>
+        <path d="M0 0 Q20 20 0 40" stroke="currentColor" fill="none" stroke-width="2"/>
+        <path d="M0 0 Q20 20 40 0" stroke="currentColor" fill="none" stroke-width="2"/>
+        <circle cx="12" cy="12" r="3" fill="currentColor"/>
+      </svg>
+      <svg class="heritage-book__corner heritage-book__corner--br" viewBox="0 0 60 60">
+        <path d="M0 0 L60 0 C40 0 30 10 30 30 C30 10 10 0 0 0 Z" fill="currentColor" opacity="0.15"/>
+        <path d="M0 0 Q20 20 0 40" stroke="currentColor" fill="none" stroke-width="2"/>
+        <path d="M0 0 Q20 20 40 0" stroke="currentColor" fill="none" stroke-width="2"/>
+        <circle cx="12" cy="12" r="3" fill="currentColor"/>
+      </svg>
+
+      <!-- Main Content -->
+      <div class="heritage-book__content">
+        <!-- Header: Parents Section -->
+        <div class="heritage-book__parents">
+          <!-- Father Card -->
+          @if (familyUnit()!.father) {
+            <div
+              class="heritage-book__parent heritage-book__parent--father"
+              [class.heritage-book__parent--selected]="familyUnit()!.father!.id === selectedPersonId"
+              (click)="onPersonClick(familyUnit()!.father)"
+              (dblclick)="onPersonDoubleClick(familyUnit()!.father)">
+              <div class="heritage-book__parent-avatar">
+                @if (fatherAvatarUrl()) {
+                  <img [src]="fatherAvatarUrl()" [alt]="getDisplayName(familyUnit()!.father)" class="heritage-book__parent-avatar-img">
+                } @else {
+                  <div class="heritage-book__parent-initials heritage-book__parent-initials--male">
+                    {{ getInitials(familyUnit()!.father) }}
+                  </div>
+                }
+              </div>
+              <div class="heritage-book__parent-info">
+                <div class="heritage-book__parent-name">{{ getDisplayName(familyUnit()!.father) }}</div>
+                <div class="heritage-book__parent-dates">{{ formatLifespan(familyUnit()!.father!) }}</div>
+              </div>
+            </div>
+          } @else {
+            <div class="heritage-book__parent heritage-book__parent--empty">
+              <div class="heritage-book__parent-avatar">
+                <div class="heritage-book__parent-initials heritage-book__parent-initials--male">?</div>
+              </div>
+              <div class="heritage-book__parent-info">
+                <div class="heritage-book__parent-name">{{ 'common.unknown' | translate }}</div>
+              </div>
+            </div>
+          }
+
+          <!-- Marriage Ornament -->
+          <div class="heritage-book__marriage">
+            <svg class="heritage-book__marriage-ornament" viewBox="0 0 140 50">
+              <!-- Left flourish -->
+              <path d="M10 25 Q30 10 50 25" stroke="currentColor" fill="none" stroke-width="1.5"/>
+              <path d="M10 25 Q30 40 50 25" stroke="currentColor" fill="none" stroke-width="1.5"/>
+              <!-- Right flourish -->
+              <path d="M90 25 Q110 10 130 25" stroke="currentColor" fill="none" stroke-width="1.5"/>
+              <path d="M90 25 Q110 40 130 25" stroke="currentColor" fill="none" stroke-width="1.5"/>
+              <!-- Center connection -->
+              <line x1="50" y1="25" x2="90" y2="25" stroke="currentColor" stroke-width="1.5"/>
+              <!-- Center diamond -->
+              <polygon points="70,15 80,25 70,35 60,25" fill="currentColor" opacity="0.3"/>
+              <polygon points="70,18 77,25 70,32 63,25" stroke="currentColor" fill="none" stroke-width="1"/>
+              <!-- Decorative dots -->
+              <circle cx="20" cy="25" r="2" fill="currentColor"/>
+              <circle cx="120" cy="25" r="2" fill="currentColor"/>
+            </svg>
+            @if (familyUnit()!.marriageDate) {
+              <div class="heritage-book__marriage-date">
+                <span class="heritage-book__marriage-label">{{ 'heritageBook.marriedOn' | translate }}</span>
+                <span class="heritage-book__marriage-value">{{ formatDate(familyUnit()!.marriageDate) }}</span>
+              </div>
+            }
+          </div>
+
+          <!-- Mother Card -->
+          @if (familyUnit()!.mother) {
+            <div
+              class="heritage-book__parent heritage-book__parent--mother"
+              [class.heritage-book__parent--selected]="familyUnit()!.mother!.id === selectedPersonId"
+              (click)="onPersonClick(familyUnit()!.mother)"
+              (dblclick)="onPersonDoubleClick(familyUnit()!.mother)">
+              <div class="heritage-book__parent-avatar">
+                @if (motherAvatarUrl()) {
+                  <img [src]="motherAvatarUrl()" [alt]="getDisplayName(familyUnit()!.mother)" class="heritage-book__parent-avatar-img">
+                } @else {
+                  <div class="heritage-book__parent-initials heritage-book__parent-initials--female">
+                    {{ getInitials(familyUnit()!.mother) }}
+                  </div>
+                }
+              </div>
+              <div class="heritage-book__parent-info">
+                <div class="heritage-book__parent-name">{{ getDisplayName(familyUnit()!.mother) }}</div>
+                <div class="heritage-book__parent-dates">{{ formatLifespan(familyUnit()!.mother!) }}</div>
+              </div>
+            </div>
+          } @else {
+            <div class="heritage-book__parent heritage-book__parent--empty">
+              <div class="heritage-book__parent-avatar">
+                <div class="heritage-book__parent-initials heritage-book__parent-initials--female">?</div>
+              </div>
+              <div class="heritage-book__parent-info">
+                <div class="heritage-book__parent-name">{{ 'common.unknown' | translate }}</div>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Divider Line with Ornament -->
+        <div class="heritage-book__divider">
+          <svg class="heritage-book__divider-ornament" viewBox="0 0 400 30">
+            <!-- Left line with dots -->
+            <circle cx="20" cy="15" r="2" fill="currentColor"/>
+            <line x1="30" y1="15" x2="175" y2="15" stroke="currentColor" stroke-width="1"/>
+            <!-- Center ornament -->
+            <circle cx="200" cy="15" r="6" stroke="currentColor" fill="none" stroke-width="1.5"/>
+            <circle cx="200" cy="15" r="3" fill="currentColor"/>
+            <!-- Right line with dots -->
+            <line x1="225" y1="15" x2="370" y2="15" stroke="currentColor" stroke-width="1"/>
+            <circle cx="380" cy="15" r="2" fill="currentColor"/>
+          </svg>
+        </div>
+
+        <!-- Body: Family Photo Placeholder + Children List -->
+        <div class="heritage-book__body">
+          <!-- Family Photo Placeholder -->
+          <div class="heritage-book__photo">
+            <div class="heritage-book__photo-placeholder">
+              <i class="fa-solid fa-image"></i>
+              <span>{{ 'heritageBook.familyPhoto' | translate }}</span>
+            </div>
+            <div class="heritage-book__photo-frame"></div>
+          </div>
+
+          <!-- Children List -->
+          <div class="heritage-book__children">
+            <h3 class="heritage-book__children-title">{{ 'heritageBook.children' | translate }}</h3>
+            @if (familyUnit()!.children.length > 0) {
+              <ol class="heritage-book__children-list">
+                @for (child of familyUnit()!.children; track child.node.id) {
+                  <li
+                    class="heritage-book__child"
+                    [class.heritage-book__child--selected]="child.node.id === selectedPersonId"
+                    [class.heritage-book__child--male]="child.node.sex === Sex.Male"
+                    [class.heritage-book__child--female]="child.node.sex === Sex.Female"
+                    (click)="onPersonClick(child.node)"
+                    (dblclick)="onPersonDoubleClick(child.node)">
+                    <span class="heritage-book__child-number">{{ child.index }}</span>
+                    <div class="heritage-book__child-info">
+                      <span class="heritage-book__child-name">{{ child.displayName }}</span>
+                      <span class="heritage-book__child-dates">{{ child.lifespan }}</span>
+                    </div>
+                    @if (child.node.isLiving) {
+                      <span class="heritage-book__child-living" [title]="'people.living' | translate"></span>
+                    }
+                  </li>
+                }
+              </ol>
+            } @else {
+              <p class="heritage-book__no-children">{{ 'heritageBook.noChildren' | translate }}</p>
+            }
+          </div>
+        </div>
+
+        <!-- Footer: Family Name -->
+        <div class="heritage-book__footer">
+          <svg class="heritage-book__footer-ornament" viewBox="0 0 200 20">
+            <line x1="0" y1="10" x2="70" y2="10" stroke="currentColor" stroke-width="1"/>
+            <circle cx="85" cy="10" r="3" fill="currentColor"/>
+            <circle cx="100" cy="10" r="4" stroke="currentColor" fill="none" stroke-width="1"/>
+            <circle cx="115" cy="10" r="3" fill="currentColor"/>
+            <line x1="130" y1="10" x2="200" y2="10" stroke="currentColor" stroke-width="1"/>
+          </svg>
+          <div class="heritage-book__family-name">
+            {{ familyUnit()!.familyName }}
+          </div>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <div class="heritage-book__empty">
+      <i class="fa-solid fa-book"></i>
+      <p>{{ 'tree.selectPerson' | translate }}</p>
+    </div>
+  }
+</div>

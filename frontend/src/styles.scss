@@ -1,16 +1,19 @@
+// ============================================
+// SASS MODULE IMPORTS (must come first)
+// ============================================
 @use '@angular/material' as mat;
+@use 'styles/nubian-theme' as nubian;
 
 // ============================================
-// TAILWIND CSS - DISABLED (conflicts with Angular Material form fields)
+// TAILWIND CSS (Angular Material Safe)
 // ============================================
-// @tailwind base;
-// @tailwind components;
-// @tailwind utilities;
-
+// CRITICAL: @tailwind base is OMITTED - it includes Preflight which
+// destroys Angular Material form fields, buttons, and inputs.
+// Material owns resets; Tailwind owns layout utilities only.
 // ============================================
-// NUBIAN THEME IMPORT
-// ============================================
-@import 'styles/nubian-theme';
+// @tailwind base;  // ❌ DO NOT ENABLE - breaks Material components
+@tailwind components;
+@tailwind utilities;
 
 // ============================================
 // GOOGLE FONTS
@@ -186,6 +189,24 @@ html {
 *::before,
 *::after {
   box-sizing: border-box;
+}
+
+// ============================================
+// TAILWIND-COMPATIBLE BASE STYLES
+// ============================================
+// Minimal base styles that work with Tailwind utilities.
+// Note: We do NOT reset borders globally - Tailwind's border utilities
+// include complete styles and work without Preflight's reset.
+
+// Image defaults for responsive images
+img, video {
+  max-width: 100%;
+  height: auto;
+}
+
+// Hidden attribute support
+[hidden] {
+  display: none !important;
 }
 
 html, body {

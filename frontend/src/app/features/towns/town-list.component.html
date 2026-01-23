@@ -1,16 +1,21 @@
-<div class="town-list">
-  <div class="town-list__header">
-    <h1>{{ i18n.t('towns.title') }}</h1>
+<div class="max-w-6xl mx-auto p-4 md:p-6">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+    <h1 class="text-2xl font-bold text-on-surface">{{ i18n.t('towns.title') }}</h1>
     @if (isSuperAdmin()) {
-      <div class="town-list__actions">
-        <button (click)="showImportModal = true" class="btn btn--outline">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="flex gap-2">
+        <button
+          (click)="showImportModal = true"
+          class="inline-flex items-center gap-2 px-4 py-2 border border-primary text-primary rounded-lg hover:bg-primary/5 transition-colors min-h-touch">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
           </svg>
           {{ i18n.t('towns.import') }}
         </button>
-        <button (click)="showCreateModal = true" class="btn btn--primary">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <button
+          (click)="showCreateModal = true"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors min-h-touch">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
           </svg>
           {{ i18n.t('towns.create') }}
@@ -20,61 +25,65 @@
   </div>
 
   <!-- Search & Filters -->
-  <div class="town-list__filters">
-    <div class="search-input">
+  <div class="flex flex-col sm:flex-row gap-4 mb-6">
+    <div class="flex-1">
       <input
         type="text"
         [(ngModel)]="searchQuery"
         (ngModelChange)="onSearchChange()"
+        class="w-full px-4 py-2 border border-border rounded-lg bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
         [placeholder]="i18n.t('towns.searchPlaceholder')">
     </div>
-    <div class="country-select">
-      <select [(ngModel)]="selectedCountry" (ngModelChange)="loadTowns()">
-        <option value="">{{ i18n.t('towns.allCountries') }}</option>
-        @for (country of countries(); track country) {
-          <option [value]="country">{{ country }}</option>
-        }
-      </select>
-    </div>
+    <select
+      [(ngModel)]="selectedCountry"
+      (ngModelChange)="loadTowns()"
+      class="px-4 py-2 border border-border rounded-lg bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary">
+      <option value="">{{ i18n.t('towns.allCountries') }}</option>
+      @for (country of countries(); track country) {
+        <option [value]="country">{{ country }}</option>
+      }
+    </select>
   </div>
 
   <!-- Loading -->
   @if (loading()) {
-    <div class="loading">
-      <div class="spinner"></div>
+    <div class="flex justify-center py-12">
+      <div class="w-12 h-12 border-4 border-border border-t-primary rounded-full animate-spin"></div>
     </div>
   }
 
   <!-- Error -->
   @if (error()) {
-    <div class="error-message">
+    <div class="bg-error/10 border border-error/30 text-error px-4 py-3 rounded-lg mb-4">
       {{ error() }}
     </div>
   }
 
   <!-- Town Grid -->
   @if (!loading() && towns().length > 0) {
-    <div class="town-grid">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
       @for (town of towns(); track town.id) {
-        <a [routerLink]="['/towns', town.id]" class="town-card">
+        <a
+          [routerLink]="['/towns', town.id]"
+          class="block bg-surface rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
           <!-- Cover -->
-          <div class="town-card__cover">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="h-24 bg-gradient-to-br from-primary to-primary-light flex items-center justify-center">
+            <svg class="w-12 h-12 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                 d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
             </svg>
           </div>
 
           <!-- Content -->
-          <div class="town-card__content">
-            <h3 class="town-card__name">{{ getTownName(town) }}</h3>
+          <div class="p-4">
+            <h3 class="text-lg font-semibold text-on-surface mb-1">{{ getTownName(town) }}</h3>
             @if (town.country) {
-              <p class="town-card__country">{{ town.country }}</p>
+              <p class="text-on-surface-variant text-sm mb-3">{{ town.country }}</p>
             }
 
-            <div class="town-card__meta">
+            <div class="flex items-center justify-between text-sm text-on-surface-variant">
               <span>{{ town.treeCount }} {{ i18n.t('towns.trees') }}</span>
-              <span class="town-card__date">{{ formatDate(town.createdAt) }}</span>
+              <span class="text-xs">{{ formatDate(town.createdAt) }}</span>
             </div>
           </div>
         </a>
@@ -83,14 +92,20 @@
 
     <!-- Pagination -->
     @if (totalPages() > 1) {
-      <div class="pagination">
-        <button (click)="goToPage(currentPage() - 1)" [disabled]="currentPage() === 1">
+      <div class="flex justify-center items-center gap-2 mt-6">
+        <button
+          (click)="goToPage(currentPage() - 1)"
+          [disabled]="currentPage() === 1"
+          class="px-4 py-2 border border-border rounded-lg bg-surface hover:bg-surface-variant disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
           {{ i18n.t('common.previous') }}
         </button>
-        <span>
+        <span class="px-4 py-2 text-on-surface-variant">
           {{ i18n.t('common.pageOf', { page: currentPage(), total: totalPages() }) }}
         </span>
-        <button (click)="goToPage(currentPage() + 1)" [disabled]="currentPage() === totalPages()">
+        <button
+          (click)="goToPage(currentPage() + 1)"
+          [disabled]="currentPage() === totalPages()"
+          class="px-4 py-2 border border-border rounded-lg bg-surface hover:bg-surface-variant disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
           {{ i18n.t('common.next') }}
         </button>
       </div>
@@ -99,15 +114,17 @@
 
   <!-- Empty State -->
   @if (!loading() && towns().length === 0) {
-    <div class="empty-state">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div class="text-center py-12">
+      <svg class="mx-auto h-16 w-16 text-on-surface-variant/50 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
           d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
       </svg>
-      <h3>{{ i18n.t('towns.noTowns') }}</h3>
-      <p>{{ i18n.t('towns.noTownsDesc') }}</p>
+      <h3 class="text-lg font-medium text-on-surface mb-2">{{ i18n.t('towns.noTowns') }}</h3>
+      <p class="text-on-surface-variant mb-4">{{ i18n.t('towns.noTownsDesc') }}</p>
       @if (isSuperAdmin()) {
-        <button (click)="showCreateModal = true" class="btn btn--primary">
+        <button
+          (click)="showCreateModal = true"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors">
           {{ i18n.t('towns.createFirst') }}
         </button>
       }
@@ -116,79 +133,85 @@
 
   <!-- Create Modal -->
   @if (showCreateModal) {
-    <div class="modal-backdrop" (click)="showCreateModal = false">
-      <div class="modal" (click)="$event.stopPropagation()">
-        <div class="modal__content">
-          <h2 class="modal__title">{{ i18n.t('towns.createTitle') }}</h2>
+    <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" (click)="showCreateModal = false">
+      <div class="bg-surface rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
+        <div class="p-6">
+          <h2 class="text-xl font-semibold text-on-surface mb-4">{{ i18n.t('towns.createTitle') }}</h2>
 
-          <form (ngSubmit)="createTown()">
-            <div class="form-group">
-              <label class="form-label">{{ i18n.t('towns.name') }} *</label>
+          <form (ngSubmit)="createTown()" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-on-surface mb-1">{{ i18n.t('towns.name') }} *</label>
               <input
                 type="text"
                 [(ngModel)]="newTown.name"
                 name="name"
                 required
-                class="form-input">
+                class="w-full px-3 py-2 border border-border rounded-lg bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary">
             </div>
 
-            <div class="form-group">
-              <label class="form-label">{{ i18n.t('towns.nameEn') }}</label>
+            <div>
+              <label class="block text-sm font-medium text-on-surface mb-1">{{ i18n.t('towns.nameEn') }}</label>
               <input
                 type="text"
                 [(ngModel)]="newTown.nameEn"
                 name="nameEn"
-                class="form-input">
+                class="w-full px-3 py-2 border border-border rounded-lg bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary">
             </div>
 
-            <div class="form-group">
-              <label class="form-label">{{ i18n.t('towns.nameAr') }}</label>
+            <div>
+              <label class="block text-sm font-medium text-on-surface mb-1">{{ i18n.t('towns.nameAr') }}</label>
               <input
                 type="text"
                 [(ngModel)]="newTown.nameAr"
                 name="nameAr"
                 dir="rtl"
-                class="form-input">
+                class="w-full px-3 py-2 border border-border rounded-lg bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary">
             </div>
 
-            <div class="form-group">
-              <label class="form-label">{{ i18n.t('towns.nameLocal') }}</label>
+            <div>
+              <label class="block text-sm font-medium text-on-surface mb-1">{{ i18n.t('towns.nameLocal') }}</label>
               <input
                 type="text"
                 [(ngModel)]="newTown.nameLocal"
                 name="nameLocal"
-                class="form-input">
+                class="w-full px-3 py-2 border border-border rounded-lg bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary">
             </div>
 
-            <div class="form-group">
-              <label class="form-label">{{ i18n.t('towns.country') }}</label>
+            <div>
+              <label class="block text-sm font-medium text-on-surface mb-1">{{ i18n.t('towns.country') }}</label>
               <input
                 type="text"
                 [(ngModel)]="newTown.country"
                 name="country"
-                class="form-input">
+                class="w-full px-3 py-2 border border-border rounded-lg bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary">
             </div>
 
-            <div class="form-group">
-              <label class="form-label">{{ i18n.t('towns.description') }}</label>
+            <div>
+              <label class="block text-sm font-medium text-on-surface mb-1">{{ i18n.t('towns.description') }}</label>
               <textarea
                 [(ngModel)]="newTown.description"
                 name="description"
                 rows="3"
-                class="form-textarea"></textarea>
+                class="w-full px-3 py-2 border border-border rounded-lg bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary resize-y"></textarea>
             </div>
 
             @if (createError()) {
-              <div class="error-message">
+              <div class="bg-error/10 border border-error/30 text-error px-3 py-2 rounded-lg text-sm">
                 {{ createError() }}
               </div>
             }
 
-            <div class="modal__actions">
-              <button type="button" (click)="showCreateModal = false" class="btn btn--outline">
+            <div class="flex gap-3 pt-2">
+              <button
+                type="button"
+                (click)="showCreateModal = false"
+                class="flex-1 px-4 py-2 border border-border rounded-lg bg-surface hover:bg-surface-variant transition-colors">
                 {{ i18n.t('common.cancel') }}
               </button>
-              <button type="submit" [disabled]="creating()" class="btn btn--primary">
+              <button
+                type="submit"
+                [disabled]="creating()"
+                class="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 transition-colors">
                 {{ creating() ? i18n.t('common.creating') : i18n.t('common.create') }}
               </button>
             </div>
@@ -200,73 +223,78 @@
 
   <!-- Import Modal -->
   @if (showImportModal) {
-    <div class="modal-backdrop" (click)="showImportModal = false">
-      <div class="modal modal--lg" (click)="$event.stopPropagation()">
-        <div class="modal__content">
-          <h2 class="modal__title">{{ i18n.t('towns.importTitle') }}</h2>
+    <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" (click)="showImportModal = false">
+      <div class="bg-surface rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
+        <div class="p-6">
+          <h2 class="text-xl font-semibold text-on-surface mb-4">{{ i18n.t('towns.importTitle') }}</h2>
 
-          <div class="import-info">
-            <p>{{ i18n.t('towns.importDesc') }}</p>
-            <code>name,name_en,name_ar,name_local,country</code>
+          <div class="mb-4">
+            <p class="text-sm text-on-surface-variant mb-2">{{ i18n.t('towns.importDesc') }}</p>
+            <code class="block bg-surface-variant p-2 rounded text-xs font-mono">name,name_en,name_ar,name_local,country</code>
           </div>
 
           <div
-            class="dropzone"
-            [class.dropzone--active]="isDragging"
+            class="border-2 border-dashed rounded-lg p-8 text-center mb-4 transition-colors"
+            [class.border-primary]="isDragging"
+            [class.border-border]="!isDragging"
+            [class.bg-green-50]="isDragging"
             (dragover)="onDragOver($event)"
             (dragleave)="isDragging = false"
             (drop)="onDrop($event)">
             @if (selectedFile) {
-              <div class="file-selected">
-                <svg class="success-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="flex items-center justify-center gap-2">
+                <svg class="w-6 h-6 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
-                <span>{{ selectedFile.name }}</span>
-                <button (click)="selectedFile = null" class="remove-btn">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <span class="text-on-surface">{{ selectedFile.name }}</span>
+                <button (click)="selectedFile = null" class="text-error hover:text-error/80 p-1">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                   </svg>
                 </button>
               </div>
             } @else {
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="mx-auto h-12 w-12 text-on-surface-variant/50 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
               </svg>
-              <p>{{ i18n.t('towns.dropFile') }}</p>
-              <label class="file-input-label">
+              <p class="text-on-surface-variant mb-2">{{ i18n.t('towns.dropFile') }}</p>
+              <label class="cursor-pointer text-primary hover:text-primary-dark">
                 {{ i18n.t('towns.browseFile') }}
-                <input type="file" accept=".csv" (change)="onFileSelected($event)">
+                <input type="file" accept=".csv" (change)="onFileSelected($event)" class="hidden">
               </label>
             }
           </div>
 
           @if (importResult()) {
-            <div class="import-result" [class.import-result--success]="importResult()!.errors === 0" [class.import-result--warning]="importResult()!.errors > 0">
-              <p>{{ i18n.t('towns.importResult') }}</p>
-              <ul>
+            <div class="mb-4 p-4 rounded-lg" [ngClass]="importResult()!.errors === 0 ? 'bg-green-100' : 'bg-yellow-100'">
+              <p class="font-medium mb-2">{{ i18n.t('towns.importResult') }}</p>
+              <ul class="text-sm space-y-1">
                 <li>{{ i18n.t('towns.importCreated', { count: importResult()!.created }) }}</li>
                 <li>{{ i18n.t('towns.importSkipped', { count: importResult()!.skipped }) }}</li>
                 @if (importResult()!.errors > 0) {
-                  <li class="error-text">{{ i18n.t('towns.importErrors', { count: importResult()!.errors }) }}</li>
+                  <li class="text-error">{{ i18n.t('towns.importErrors', { count: importResult()!.errors }) }}</li>
                 }
               </ul>
             </div>
           }
 
           @if (importError()) {
-            <div class="error-message">
+            <div class="bg-error/10 border border-error/30 text-error px-3 py-2 rounded-lg mb-4 text-sm">
               {{ importError() }}
             </div>
           }
 
-          <div class="modal__actions">
-            <button type="button" (click)="closeImportModal()" class="btn btn--outline">
+          <div class="flex gap-3">
+            <button
+              type="button"
+              (click)="closeImportModal()"
+              class="flex-1 px-4 py-2 border border-border rounded-lg bg-surface hover:bg-surface-variant transition-colors">
               {{ i18n.t('common.close') }}
             </button>
             <button
               (click)="importTowns()"
               [disabled]="!selectedFile || importing()"
-              class="btn btn--primary">
+              class="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 transition-colors">
               {{ importing() ? i18n.t('common.importing') : i18n.t('towns.import') }}
             </button>
           </div>

@@ -1,11 +1,11 @@
 @use '@angular/material' as mat;
 
 // ============================================
-// TAILWIND CSS
+// TAILWIND CSS - DISABLED (conflicts with Angular Material form fields)
 // ============================================
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+// @tailwind base;
+// @tailwind components;
+// @tailwind utilities;
 
 // ============================================
 // NUBIAN THEME IMPORT

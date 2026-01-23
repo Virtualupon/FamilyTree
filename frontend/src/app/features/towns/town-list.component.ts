@@ -11,7 +11,8 @@ import { TownListItem, CreateTownRequest, PagedResult } from '../../core/models/
   selector: 'app-town-list',
   standalone: true,
   imports: [CommonModule, RouterModule, FormsModule],
-  templateUrl: './town-list.component.html'
+  templateUrl: './town-list.component.html',
+  styleUrls: ['./town-list.component.scss']
 })
 export class TownListComponent implements OnInit {
   private townService = inject(TownService);

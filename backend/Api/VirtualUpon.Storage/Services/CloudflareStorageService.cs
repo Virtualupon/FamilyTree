@@ -292,5 +292,85 @@ namespace VirtualUpon.Storage.Services
                 };
             }
         }
+
+        #region Signed URL Methods
+
+        /// <summary>
+        /// Generates a pre-signed URL for secure file access from Cloudflare R2.
+        /// </summary>
+        public Task<SignedUrlResponseDto> GetSignedUrlAsync(string filePath, int expiresInSeconds = 3600)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(filePath))
+                {
+                    return Task.FromResult(new SignedUrlResponseDto
+                    {
+                        IsSuccessful = false,
+                        ErrorMessage = "File path cannot be null or empty."
+                    });
+                }
+
+                // Enforce maximum expiration of 24 hours
+                const int maxExpirationSeconds = 86400;
+                expiresInSeconds = Math.Min(Math.Max(expiresInSeconds, 1), maxExpirationSeconds);
+
+                // Extract the key from the file path
+                string key = StorageFilePath.ExtractKeyFromFileName(filePath, _serviceURL, _bucketName);
+
+                // If key doesn't contain the base path, prepend it
+                if (!string.IsNullOrEmpty(_basePath) && !key.StartsWith(_basePath))
+                {
+                    key = $"{_basePath.TrimEnd('/')}/{key}";
+                }
+
+                var request = new GetPreSignedUrlRequest
+                {
+                    BucketName = _bucketName,
+                    Key = key,
+                    Expires = DateTime.UtcNow.AddSeconds(expiresInSeconds),
+                    Verb = HttpVerb.GET
+                };
+
+                string url = _s3Client.GetPreSignedURL(request);
+                string contentType = MediaTypeHelper.GetContentType(filePath);
+
+                return Task.FromResult(new SignedUrlResponseDto
+                {
+                    IsSuccessful = true,
+                    Url = url,
+                    ExpiresAt = DateTime.UtcNow.AddSeconds(expiresInSeconds),
+                    ContentType = contentType
+                });
+            }
+            catch (AmazonS3Exception ex)
+            {
+                return Task.FromResult(new SignedUrlResponseDto
+                {
+                    IsSuccessful = false,
+                    ErrorMessage = $"Cloudflare R2 error generating signed URL: {ex.Message}"
+                });
+            }
+            catch (Exception ex)
+            {
+                return Task.FromResult(new SignedUrlResponseDto
+                {
+                    IsSuccessful = false,
+                    ErrorMessage = $"Failed to generate signed URL: {ex.Message}"
+                });
+            }
+        }
+
+        /// <summary>
+        /// Not applicable for Cloudflare R2 storage. Always returns false.
+        /// </summary>
+        public bool ValidateSignedToken(string fileName, string token, long expires) => false;
+
+        /// <summary>
+        /// Not applicable for Cloudflare R2 storage. Always returns null.
+        /// </summary>
+        public string? GetLocalFilePath(string fileName) => null;
+
+        #endregion
     }
 }

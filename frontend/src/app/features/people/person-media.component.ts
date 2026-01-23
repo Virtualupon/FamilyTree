@@ -90,9 +90,6 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
   isSearching = signal(false);
   private searchSubject = new Subject<string>();
 
-  // Upload state
-  private objectUrls: string[] = [];
-
   // Accept all media types
   acceptTypes = this.mediaService.getAllAllowedMimeTypes();
 
@@ -112,8 +109,7 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    // Clean up object URLs
-    this.objectUrls.forEach(url => URL.revokeObjectURL(url));
+    // No object URL cleanup needed - browser manages signed URL cache
     this.searchSubject.complete();
   }
 
@@ -460,11 +456,16 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
     return `${birth} - ${death}`;
   }
 
+  /**
+   * Load media using signed URL for display.
+   * The signed URL can be used directly in <img>, <audio>, <video> src.
+   * Browser will cache the content via HTTP headers.
+   */
   loadFullMedia(media: PersonMediaListItem) {
-    this.mediaService.getMediaById(media.mediaId).subscribe({
-      next: (response) => {
-        const url = this.mediaService.createObjectUrl(response.base64Data, response.mimeType || 'application/octet-stream');
-        this.objectUrls.push(url);
+    this.mediaService.getSignedUrl(media.mediaId).subscribe({
+      next: (signedUrl) => {
+        // Use signed URL directly - browser handles caching
+        const url = signedUrl.url;
 
         if (media.mediaKind === 'Image') {
           this.loadedImages.update(imgs => ({ ...imgs, [media.mediaId]: url }));
@@ -492,19 +493,34 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
     this.lightboxImage.set(null);
   }
 
+  /**
+   * Download media file.
+   * Uses signed URL to trigger browser download.
+   */
   downloadMedia(media: PersonMediaListItem) {
-    this.mediaService.getMediaById(media.mediaId).subscribe({
-      next: (response) => {
-        const blob = this.mediaService.base64ToBlob(response.base64Data, response.mimeType || 'application/octet-stream');
-        const url = URL.createObjectURL(blob);
-
+    this.mediaService.getSignedUrl(media.mediaId).subscribe({
+      next: (signedUrl) => {
+        // Use signed URL for download
         const a = document.createElement('a');
-        a.href = url;
+        a.href = signedUrl.url;
         a.download = media.fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        // For cross-origin URLs, we need to fetch and create blob
+        fetch(signedUrl.url)
+          .then(response => response.blob())
+          .then(blob => {
+            const blobUrl = URL.createObjectURL(blob);
+            a.href = blobUrl;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(blobUrl);
+          })
+          .catch(() => {
+            // Fallback: direct link (may not trigger download for some content types)
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+          });
       },
       error: (err) => {
         console.error('Download error:', err);

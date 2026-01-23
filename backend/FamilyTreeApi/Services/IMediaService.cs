@@ -1,4 +1,5 @@
 using FamilyTreeApi.Models;
+using VirtualUpon.Storage.Dto;
 
 namespace FamilyTreeApi.Services;
 
@@ -20,4 +21,9 @@ public interface IMediaService
     Task<bool> DeleteMediaAsync(Guid mediaId);
 
     Task<IEnumerable<Media>> GetPersonMediaAsync(Guid personId);
+
+    /// <summary>
+    /// Get a signed URL for secure media streaming.
+    /// </summary>
+    Task<SignedUrlResponseDto> GetSignedUrlAsync(Guid mediaId, int expiresInSeconds = 3600);
 }

@@ -1,7 +1,7 @@
 <div class="avatar-container" [class]="size">
   <div class="avatar" [class.has-image]="displayUrl()">
     @if (displayUrl()) {
-      <img [src]="displayUrl()" [alt]="displayName" (error)="onImageError()">
+      <img [src]="displayUrl()" [alt]="displayName" (error)="onImageError()" loading="lazy">
     } @else if (isLoading()) {
       <mat-spinner [diameter]="spinnerSize"></mat-spinner>
     } @else {

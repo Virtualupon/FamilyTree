@@ -94,6 +94,30 @@ public class TownImageController : ControllerBase
         return File(data, mimeType);
     }
 
+    /// <summary>
+    /// Get a signed URL for secure image streaming (public)
+    /// </summary>
+    [HttpGet("{imageId}/signed-url")]
+    [AllowAnonymous]
+    public async Task<ActionResult<SignedMediaUrlDto>> GetSignedUrl(Guid imageId, [FromQuery] int expiresInSeconds = 3600)
+    {
+        // Clamp expiration to max 24 hours
+        expiresInSeconds = Math.Clamp(expiresInSeconds, 60, 86400);
+
+        var result = await _townImageService.GetSignedUrlAsync(imageId, expiresInSeconds);
+        if (!result.IsSuccessful)
+        {
+            return NotFound(new { message = result.ErrorMessage ?? "Image not found" });
+        }
+
+        return Ok(new SignedMediaUrlDto
+        {
+            Url = result.Url!,
+            ExpiresAt = result.ExpiresAt!.Value,
+            ContentType = result.ContentType ?? "image/webp"
+        });
+    }
+
     // ========================================================================
     // AUTHENTICATED ENDPOINTS
     // ========================================================================

@@ -1,11 +1,41 @@
+// Avatar size variables - CSS pixels (browser will use 2x/3x for high-DPI)
+// Stored at 512x512 to support up to 4x DPI at xlarge size (160px * 4 = 640)
+$avatar-small: 32px;
+$avatar-medium: 64px;
+$avatar-large: 120px;
+$avatar-xlarge: 160px;
+
 .avatar-container {
   position: relative;
   display: inline-block;
 
-  &.small .avatar { width: 32px; height: 32px; font-size: 12px; }
-  &.medium .avatar { width: 64px; height: 64px; font-size: 20px; }
-  &.large .avatar { width: 120px; height: 120px; font-size: 36px; }
-  &.xlarge .avatar { width: 160px; height: 160px; font-size: 48px; }
+  // Size variants
+  &.small .avatar {
+    width: $avatar-small;
+    height: $avatar-small;
+    font-size: 12px;
+    border-width: 1px;
+  }
+
+  &.medium .avatar {
+    width: $avatar-medium;
+    height: $avatar-medium;
+    font-size: 20px;
+  }
+
+  &.large .avatar {
+    width: $avatar-large;
+    height: $avatar-large;
+    font-size: 36px;
+    border-width: 3px;
+  }
+
+  &.xlarge .avatar {
+    width: $avatar-xlarge;
+    height: $avatar-xlarge;
+    font-size: 48px;
+    border-width: 3px;
+  }
 }
 
 .avatar {
@@ -18,8 +48,21 @@
   position: relative;
   border: 2px solid var(--ft-outline-variant, #ccc);
 
-  img { width: 100%; height: 100%; object-fit: cover; }
-  .initials { color: var(--ft-on-surface-variant, #666); font-weight: 500; text-transform: uppercase; }
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    // Hint browser to decode image off main thread
+    image-rendering: auto;
+  }
+
+  .initials {
+    color: var(--ft-on-surface-variant, #666);
+    font-weight: 500;
+    text-transform: uppercase;
+    user-select: none;
+  }
+
   .loading-overlay {
     position: absolute;
     inset: 0;
@@ -44,7 +87,16 @@
     line-height: 28px;
     background: var(--ft-surface, white);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    mat-icon { font-size: 16px; width: 16px; height: 16px; line-height: 16px; }
-    &--delete { color: var(--ft-error, #d32f2f); }
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      line-height: 16px;
+    }
+
+    &--delete {
+      color: var(--ft-error, #d32f2f);
+    }
   }
 }

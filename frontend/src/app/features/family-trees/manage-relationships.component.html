@@ -1,0 +1,477 @@
+<div class="manage-relationships">
+  <!-- Header -->
+  <div class="manage-relationships__header">
+    <h1 class="manage-relationships__title">{{ 'relationship.manageRelationships' | translate }}</h1>
+    <p class="manage-relationships__subtitle">{{ 'relationship.manageSubtitle' | translate }}</p>
+  </div>
+
+  <!-- Search Panels -->
+  <div class="manage-relationships__search-panels">
+    <!-- Person A Panel -->
+    <div class="manage-relationships__panel">
+      <label class="manage-relationships__label">{{ 'relationship.personA' | translate }}</label>
+
+      @if (selectedPersonA()) {
+        <!-- Selected person chip -->
+        <div class="manage-relationships__person-chip manage-relationships__person-chip--removable" (click)="clearPersonA()">
+          <app-person-avatar [person]="selectedPersonA()" size="small"></app-person-avatar>
+          <div class="manage-relationships__person-info">
+            <span class="manage-relationships__person-name">{{ getPersonFullDisplayName(selectedPersonA()) }}</span>
+            @if (selectedPersonA()!.birthDate) {
+              <span class="manage-relationships__person-meta">{{ formatYear(selectedPersonA()!.birthDate) }}</span>
+            }
+          </div>
+          <i class="fa-solid fa-xmark manage-relationships__remove" aria-hidden="true"></i>
+        </div>
+      } @else {
+        <!-- Search input -->
+        <div class="manage-relationships__search">
+          <div class="ft-search">
+            <i class="fa-solid fa-magnifying-glass ft-search__icon" aria-hidden="true"></i>
+            <input
+              type="text"
+              class="ft-search__input"
+              [placeholder]="'people.searchPlaceholder' | translate"
+              [(ngModel)]="searchQueryA"
+              (ngModelChange)="onSearchChangeA($event)"
+              autocomplete="off">
+            @if (searchQueryA) {
+              <button class="ft-search__clear" (click)="clearSearchA()">
+                <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Search Results A -->
+        <div class="manage-relationships__results">
+          @if (searchingA()) {
+            <div class="manage-relationships__loading">
+              <mat-spinner diameter="24"></mat-spinner>
+              <span>{{ 'common.searching' | translate }}</span>
+            </div>
+          } @else if (searchResultsA().length > 0) {
+            <div class="manage-relationships__list">
+              @for (person of searchResultsA(); track person.id) {
+                <div
+                  class="manage-relationships__result-item"
+                  [class.disabled]="selectedPersonB()?.id === person.id"
+                  matRipple
+                  (click)="selectPersonA(person)">
+                  <app-person-avatar [person]="person" size="small"></app-person-avatar>
+                  <div class="manage-relationships__result-info">
+                    <div class="manage-relationships__result-name">{{ getPersonFullDisplayName(person) }}</div>
+                    <div class="manage-relationships__result-meta">
+                      @if (person.birthDate) {
+                        <span>{{ formatYear(person.birthDate) }}</span>
+                      }
+                      @if (person.birthDate && person.deathDate) {
+                        <span>-</span>
+                      }
+                      @if (person.deathDate) {
+                        <span>{{ formatYear(person.deathDate) }}</span>
+                      }
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          } @else if (searchQueryA && !searchingA()) {
+            <div class="manage-relationships__empty">
+              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+              <span>{{ 'common.noResults' | translate }}</span>
+            </div>
+          } @else {
+            <div class="manage-relationships__hint">
+              <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+              <span>{{ 'relationship.searchHint' | translate }}</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Swap Button -->
+    <div class="manage-relationships__swap">
+      <button
+        mat-icon-button
+        [disabled]="!selectedPersonA() && !selectedPersonB()"
+        (click)="swapPersons()"
+        [matTooltip]="'relationship.swapPersons' | translate">
+        <i class="fa-solid fa-arrow-right-arrow-left" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <!-- Person B Panel -->
+    <div class="manage-relationships__panel">
+      <label class="manage-relationships__label">{{ 'relationship.personB' | translate }}</label>
+
+      @if (selectedPersonB()) {
+        <!-- Selected person chip -->
+        <div class="manage-relationships__person-chip manage-relationships__person-chip--removable" (click)="clearPersonB()">
+          <app-person-avatar [person]="selectedPersonB()" size="small"></app-person-avatar>
+          <div class="manage-relationships__person-info">
+            <span class="manage-relationships__person-name">{{ getPersonFullDisplayName(selectedPersonB()) }}</span>
+            @if (selectedPersonB()!.birthDate) {
+              <span class="manage-relationships__person-meta">{{ formatYear(selectedPersonB()!.birthDate) }}</span>
+            }
+          </div>
+          <i class="fa-solid fa-xmark manage-relationships__remove" aria-hidden="true"></i>
+        </div>
+      } @else {
+        <!-- Search input -->
+        <div class="manage-relationships__search">
+          <div class="ft-search">
+            <i class="fa-solid fa-magnifying-glass ft-search__icon" aria-hidden="true"></i>
+            <input
+              type="text"
+              class="ft-search__input"
+              [placeholder]="'people.searchPlaceholder' | translate"
+              [(ngModel)]="searchQueryB"
+              (ngModelChange)="onSearchChangeB($event)"
+              autocomplete="off">
+            @if (searchQueryB) {
+              <button class="ft-search__clear" (click)="clearSearchB()">
+                <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Search Results B -->
+        <div class="manage-relationships__results">
+          @if (searchingB()) {
+            <div class="manage-relationships__loading">
+              <mat-spinner diameter="24"></mat-spinner>
+              <span>{{ 'common.searching' | translate }}</span>
+            </div>
+          } @else if (searchResultsB().length > 0) {
+            <div class="manage-relationships__list">
+              @for (person of searchResultsB(); track person.id) {
+                <div
+                  class="manage-relationships__result-item"
+                  [class.disabled]="selectedPersonA()?.id === person.id"
+                  matRipple
+                  (click)="selectPersonB(person)">
+                  <app-person-avatar [person]="person" size="small"></app-person-avatar>
+                  <div class="manage-relationships__result-info">
+                    <div class="manage-relationships__result-name">{{ getPersonFullDisplayName(person) }}</div>
+                    <div class="manage-relationships__result-meta">
+                      @if (person.birthDate) {
+                        <span>{{ formatYear(person.birthDate) }}</span>
+                      }
+                      @if (person.birthDate && person.deathDate) {
+                        <span>-</span>
+                      }
+                      @if (person.deathDate) {
+                        <span>{{ formatYear(person.deathDate) }}</span>
+                      }
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          } @else if (searchQueryB && !searchingB()) {
+            <div class="manage-relationships__empty">
+              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+              <span>{{ 'common.noResults' | translate }}</span>
+            </div>
+          } @else {
+            <div class="manage-relationships__hint">
+              <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+              <span>{{ 'relationship.searchHint' | translate }}</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Find Relationship Button -->
+  <div class="manage-relationships__actions">
+    <button
+      mat-flat-button
+      color="primary"
+      [disabled]="!canFindRelationship() || findingPath()"
+      (click)="findRelationship()">
+      @if (findingPath()) {
+        <mat-spinner diameter="20"></mat-spinner>
+      } @else {
+        <i class="fa-solid fa-link" aria-hidden="true"></i>
+      }
+      {{ 'relationship.findRelationship' | translate }}
+    </button>
+  </div>
+
+  <!-- Relationship Result -->
+  @if (relationshipPath()) {
+    <div class="manage-relationships__result">
+      @if (relationshipPath()!.pathFound) {
+        <!-- Relationship Found -->
+        <div class="manage-relationships__found">
+          <div class="manage-relationships__found-header">
+            <i class="fa-solid fa-check-circle" aria-hidden="true"></i>
+            <h2>{{ 'relationship.found' | translate }}</h2>
+          </div>
+
+          <div class="manage-relationships__relationship-label">
+            {{ relationshipPath()!.relationshipLabel }}
+          </div>
+
+          <!-- Path visualization -->
+          <div class="manage-relationships__path">
+            @for (node of relationshipPath()!.path; track node.id; let i = $index; let last = $last) {
+              <div class="manage-relationships__path-node">
+                <div
+                  class="manage-relationships__avatar"
+                  [class.manage-relationships__avatar--male]="node.sex === Sex.Male"
+                  [class.manage-relationships__avatar--female]="node.sex === Sex.Female">
+                  {{ getInitials(getPathNodeName(node)) }}
+                </div>
+                <span class="manage-relationships__path-name">{{ getPathNodeName(node) }}</span>
+              </div>
+              @if (!last) {
+                <div class="manage-relationships__path-edge">
+                  <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                  <span class="manage-relationships__edge-label">{{ getEdgeLabel(node.edgeToNext) }}</span>
+                </div>
+              }
+            }
+          </div>
+
+          <!-- Edit button (only for direct relationships) -->
+          @if (!isEditMode() && !isCreateMode() && relationshipPath()!.path.length === 2) {
+            <div class="manage-relationships__edit-actions">
+              <button
+                mat-stroked-button
+                color="primary"
+                [disabled]="loadingRelationshipDetails()"
+                (click)="startEditRelationship()">
+                @if (loadingRelationshipDetails()) {
+                  <mat-spinner diameter="18"></mat-spinner>
+                } @else {
+                  <i class="fa-solid fa-pen" aria-hidden="true"></i>
+                }
+                {{ 'relationship.editRelationship' | translate }}
+              </button>
+            </div>
+          }
+
+          <!-- Edit form -->
+          @if (isEditMode() && editableRelationship()) {
+            <div class="manage-relationships__edit-form">
+              <h3>{{ 'relationship.editRelationship' | translate }}</h3>
+
+              @if (editableRelationship()!.type === 'parent-child') {
+                <mat-form-field appearance="outline" class="manage-relationships__form-field">
+                  <mat-label>{{ 'relationship.type' | translate }}</mat-label>
+                  <mat-select
+                    [ngModel]="editableRelationship()!.relationshipType"
+                    (ngModelChange)="updateEditType($event)">
+                    <mat-option [value]="ParentChildRelationshipType.Biological">{{ getRelationshipTypeName(ParentChildRelationshipType.Biological) }}</mat-option>
+                    <mat-option [value]="ParentChildRelationshipType.Adopted">{{ getRelationshipTypeName(ParentChildRelationshipType.Adopted) }}</mat-option>
+                    <mat-option [value]="ParentChildRelationshipType.Step">{{ getRelationshipTypeName(ParentChildRelationshipType.Step) }}</mat-option>
+                    <mat-option [value]="ParentChildRelationshipType.Foster">{{ getRelationshipTypeName(ParentChildRelationshipType.Foster) }}</mat-option>
+                    <mat-option [value]="ParentChildRelationshipType.Guardian">{{ getRelationshipTypeName(ParentChildRelationshipType.Guardian) }}</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              }
+
+              @if (editableRelationship()!.type === 'union') {
+                <mat-form-field appearance="outline" class="manage-relationships__form-field">
+                  <mat-label>{{ 'relationship.type' | translate }}</mat-label>
+                  <mat-select
+                    [ngModel]="editableRelationship()!.relationshipType"
+                    (ngModelChange)="updateEditType($event)">
+                    <mat-option [value]="UnionType.Marriage">{{ getUnionTypeName(UnionType.Marriage) }}</mat-option>
+                    <mat-option [value]="UnionType.CivilUnion">{{ getUnionTypeName(UnionType.CivilUnion) }}</mat-option>
+                    <mat-option [value]="UnionType.DomesticPartnership">{{ getUnionTypeName(UnionType.DomesticPartnership) }}</mat-option>
+                    <mat-option [value]="UnionType.Engagement">{{ getUnionTypeName(UnionType.Engagement) }}</mat-option>
+                    <mat-option [value]="UnionType.Divorced">{{ getUnionTypeName(UnionType.Divorced) }}</mat-option>
+                    <mat-option [value]="UnionType.Separated">{{ getUnionTypeName(UnionType.Separated) }}</mat-option>
+                  </mat-select>
+                </mat-form-field>
+              }
+
+              <mat-form-field appearance="outline" class="manage-relationships__form-field">
+                <mat-label>{{ 'common.notes' | translate }}</mat-label>
+                <textarea
+                  matInput
+                  [ngModel]="editableRelationship()!.notes"
+                  (ngModelChange)="updateEditNotes($event)"
+                  rows="3"></textarea>
+              </mat-form-field>
+
+              <div class="manage-relationships__form-actions">
+                <button mat-button (click)="cancelEdit()">{{ 'common.cancel' | translate }}</button>
+                <button mat-flat-button color="primary" [disabled]="savingRelationship()" (click)="saveRelationship()">
+                  @if (savingRelationship()) {
+                    <mat-spinner diameter="20"></mat-spinner>
+                  }
+                  {{ 'common.save' | translate }}
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <!-- No Relationship Found -->
+        <div class="manage-relationships__not-found">
+          <div class="manage-relationships__not-found-header">
+            <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+            <h2>{{ 'relationship.notFound' | translate }}</h2>
+          </div>
+
+          <p class="manage-relationships__not-found-text">{{ 'relationship.notFoundDesc' | translate }}</p>
+
+          @if (!isCreateMode()) {
+            <button mat-flat-button color="primary" (click)="startCreateRelationship()">
+              <i class="fa-solid fa-plus" aria-hidden="true"></i>
+              {{ 'relationship.createRelationship' | translate }}
+            </button>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Error message -->
+  @if (relationshipError()) {
+    <div class="manage-relationships__error">
+      <i class="fa-solid fa-exclamation-triangle" aria-hidden="true"></i>
+      <span>{{ relationshipError() }}</span>
+    </div>
+  }
+
+  <!-- Create Relationship Form -->
+  @if (isCreateMode()) {
+    <div class="manage-relationships__create-form">
+      <h3>{{ 'relationship.createRelationship' | translate }}</h3>
+
+      <!-- Category selection -->
+      @if (!newRelationshipCategory()) {
+        <div class="manage-relationships__category-selection">
+          <p>{{ 'relationship.selectCategory' | translate }}</p>
+          <div class="manage-relationships__category-buttons">
+            <button
+              mat-stroked-button
+              (click)="selectRelationshipCategory('parent-child')"
+              class="manage-relationships__category-btn">
+              <i class="fa-solid fa-user-group" aria-hidden="true"></i>
+              <span>{{ 'relationship.parentChild' | translate }}</span>
+              <small>{{ 'relationship.parentChildDesc' | translate }}</small>
+            </button>
+            <button
+              mat-stroked-button
+              (click)="selectRelationshipCategory('union')"
+              class="manage-relationships__category-btn">
+              <i class="fa-solid fa-heart" aria-hidden="true"></i>
+              <span>{{ 'relationship.union' | translate }}</span>
+              <small>{{ 'relationship.unionDesc' | translate }}</small>
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- Parent-Child form -->
+      @if (newRelationshipCategory() === 'parent-child') {
+        <div class="manage-relationships__create-details">
+          <!-- Direction selector -->
+          <div class="manage-relationships__direction-selector">
+            <p class="manage-relationships__direction-label">{{ 'relationship.selectDirection' | translate }}</p>
+            <div class="manage-relationships__direction-options">
+              <button
+                mat-stroked-button
+                [class.active]="parentChildDirection() === 'a-is-parent'"
+                (click)="setParentChildDirection('a-is-parent')"
+                class="manage-relationships__direction-btn">
+                <div class="manage-relationships__direction-content">
+                  <span class="manage-relationships__direction-person">{{ getPersonDisplayName(selectedPersonA()) }}</span>
+                  <i class="fa-solid fa-arrow-down" aria-hidden="true"></i>
+                  <span class="manage-relationships__direction-role">{{ 'relationship.parent' | translate }}</span>
+                </div>
+                <div class="manage-relationships__direction-of">{{ 'relationship.of' | translate }}</div>
+                <div class="manage-relationships__direction-content">
+                  <span class="manage-relationships__direction-person">{{ getPersonDisplayName(selectedPersonB()) }}</span>
+                  <i class="fa-solid fa-arrow-up" aria-hidden="true"></i>
+                  <span class="manage-relationships__direction-role">{{ 'relationship.child' | translate }}</span>
+                </div>
+              </button>
+              <button
+                mat-stroked-button
+                [class.active]="parentChildDirection() === 'b-is-parent'"
+                (click)="setParentChildDirection('b-is-parent')"
+                class="manage-relationships__direction-btn">
+                <div class="manage-relationships__direction-content">
+                  <span class="manage-relationships__direction-person">{{ getPersonDisplayName(selectedPersonB()) }}</span>
+                  <i class="fa-solid fa-arrow-down" aria-hidden="true"></i>
+                  <span class="manage-relationships__direction-role">{{ 'relationship.parent' | translate }}</span>
+                </div>
+                <div class="manage-relationships__direction-of">{{ 'relationship.of' | translate }}</div>
+                <div class="manage-relationships__direction-content">
+                  <span class="manage-relationships__direction-person">{{ getPersonDisplayName(selectedPersonA()) }}</span>
+                  <i class="fa-solid fa-arrow-up" aria-hidden="true"></i>
+                  <span class="manage-relationships__direction-role">{{ 'relationship.child' | translate }}</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <mat-form-field appearance="outline" class="manage-relationships__form-field">
+            <mat-label>{{ 'relationship.type' | translate }}</mat-label>
+            <mat-select [ngModel]="newParentChildType()" (ngModelChange)="newParentChildType.set($event)">
+              <mat-option [value]="ParentChildRelationshipType.Biological">{{ getRelationshipTypeName(ParentChildRelationshipType.Biological) }}</mat-option>
+              <mat-option [value]="ParentChildRelationshipType.Adopted">{{ getRelationshipTypeName(ParentChildRelationshipType.Adopted) }}</mat-option>
+              <mat-option [value]="ParentChildRelationshipType.Step">{{ getRelationshipTypeName(ParentChildRelationshipType.Step) }}</mat-option>
+              <mat-option [value]="ParentChildRelationshipType.Foster">{{ getRelationshipTypeName(ParentChildRelationshipType.Foster) }}</mat-option>
+              <mat-option [value]="ParentChildRelationshipType.Guardian">{{ getRelationshipTypeName(ParentChildRelationshipType.Guardian) }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="manage-relationships__form-field">
+            <mat-label>{{ 'common.notes' | translate }}</mat-label>
+            <textarea matInput [ngModel]="newRelationshipNotes()" (ngModelChange)="newRelationshipNotes.set($event)" rows="3"></textarea>
+          </mat-form-field>
+        </div>
+      }
+
+      <!-- Union form -->
+      @if (newRelationshipCategory() === 'union') {
+        <div class="manage-relationships__create-details">
+          <p class="manage-relationships__create-summary">
+            <strong>{{ getPersonDisplayName(selectedPersonA()) }}</strong>
+            {{ 'relationship.and' | translate }}
+            <strong>{{ getPersonDisplayName(selectedPersonB()) }}</strong>
+          </p>
+
+          <mat-form-field appearance="outline" class="manage-relationships__form-field">
+            <mat-label>{{ 'relationship.type' | translate }}</mat-label>
+            <mat-select [ngModel]="newUnionType()" (ngModelChange)="newUnionType.set($event)">
+              <mat-option [value]="UnionType.Marriage">{{ getUnionTypeName(UnionType.Marriage) }}</mat-option>
+              <mat-option [value]="UnionType.CivilUnion">{{ getUnionTypeName(UnionType.CivilUnion) }}</mat-option>
+              <mat-option [value]="UnionType.DomesticPartnership">{{ getUnionTypeName(UnionType.DomesticPartnership) }}</mat-option>
+              <mat-option [value]="UnionType.Engagement">{{ getUnionTypeName(UnionType.Engagement) }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="manage-relationships__form-field">
+            <mat-label>{{ 'common.notes' | translate }}</mat-label>
+            <textarea matInput [ngModel]="newRelationshipNotes()" (ngModelChange)="newRelationshipNotes.set($event)" rows="3"></textarea>
+          </mat-form-field>
+        </div>
+      }
+
+      @if (newRelationshipCategory()) {
+        <div class="manage-relationships__form-actions">
+          <button mat-button (click)="cancelCreate()">{{ 'common.cancel' | translate }}</button>
+          <button mat-flat-button color="primary" [disabled]="creatingRelationship()" (click)="createRelationship()">
+            @if (creatingRelationship()) {
+              <mat-spinner diameter="20"></mat-spinner>
+            }
+            {{ 'relationship.createRelationship' | translate }}
+          </button>
+        </div>
+      }
+    </div>
+  }
+</div>

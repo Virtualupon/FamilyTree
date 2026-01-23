@@ -5,7 +5,7 @@
       <div
         class="carousel-slide"
         [class.active]="i === currentSlide()"
-        [class.loading]="img.loadingBase64"
+        [class.loading]="img.isLoading"
         [style.background-image]="img.displayUrl ? 'url(' + img.displayUrl + ')' : 'none'"
       ></div>
     }

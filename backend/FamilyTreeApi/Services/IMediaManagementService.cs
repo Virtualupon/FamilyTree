@@ -41,4 +41,13 @@ public interface IMediaManagementService
         Guid id,
         UserContext userContext,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get a signed URL for secure media streaming.
+    /// </summary>
+    Task<ServiceResult<SignedMediaUrlDto>> GetSignedUrlAsync(
+        Guid id,
+        int expiresInSeconds,
+        UserContext userContext,
+        CancellationToken cancellationToken = default);
 }

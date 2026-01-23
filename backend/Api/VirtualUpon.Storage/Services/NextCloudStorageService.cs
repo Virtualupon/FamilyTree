@@ -253,6 +253,33 @@ namespace VirtualUpon.Storage.Services
                 };
             }
         }
+
+        #region Signed URL Methods
+
+        /// <summary>
+        /// Signed URLs are not natively supported by NextCloud/WebDAV.
+        /// Use NextCloud's share link API for similar functionality.
+        /// </summary>
+        public Task<SignedUrlResponseDto> GetSignedUrlAsync(string filePath, int expiresInSeconds = 3600)
+        {
+            return Task.FromResult(new SignedUrlResponseDto
+            {
+                IsSuccessful = false,
+                ErrorMessage = "Signed URLs are not supported for NextCloud storage. Use NextCloud's share link API instead."
+            });
+        }
+
+        /// <summary>
+        /// Not applicable for NextCloud storage. Always returns false.
+        /// </summary>
+        public bool ValidateSignedToken(string fileName, string token, long expires) => false;
+
+        /// <summary>
+        /// Not applicable for NextCloud storage. Always returns null.
+        /// </summary>
+        public string? GetLocalFilePath(string fileName) => null;
+
+        #endregion
     }
 }
 

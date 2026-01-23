@@ -112,6 +112,9 @@ public class MediaResponse
     public string? MetadataJson { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+
+    /// <summary>Persons linked to this media (populated via projection)</summary>
+    public List<LinkedPersonDto> LinkedPersons { get; set; } = new();
 }
 
 // ============================================
@@ -272,4 +275,33 @@ public class LinkPersonsToMediaDto
     /// <summary>Person IDs to link</summary>
     [Required]
     public List<Guid> PersonIds { get; set; } = new();
+}
+
+// ============================================
+// Signed URL DTOs
+// ============================================
+
+/// <summary>
+/// Response for signed URL generation.
+/// Contains the URL, expiration time, and content type for secure media streaming.
+/// </summary>
+public class SignedMediaUrlDto
+{
+    /// <summary>The signed URL for secure access</summary>
+    public string Url { get; set; } = string.Empty;
+
+    /// <summary>When the URL expires</summary>
+    public DateTime ExpiresAt { get; set; }
+
+    /// <summary>The content type of the media (e.g., "image/webp", "video/mp4")</summary>
+    public string ContentType { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Request for getting a signed URL
+/// </summary>
+public class SignedUrlRequest
+{
+    /// <summary>Expiration time in seconds (default: 3600 = 1 hour, max: 86400 = 24 hours)</summary>
+    public int ExpiresInSeconds { get; set; } = 3600;
 }

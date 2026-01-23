@@ -2,10 +2,6 @@
    NUBIAN LOGIN PAGE STYLES
    ============================================ */
 
-// TODO: ::ng-deep is deprecated. Consider using component styles with ViewEncapsulation.None
-// or restructuring styles to avoid deep selectors.
-// See: https://angular.io/guide/component-styles#deprecated-deep--and-ng-deep
-
 .nubian-auth {
   min-height: 100vh;
   min-height: 100dvh;
@@ -17,42 +13,12 @@
   padding: 1rem;
   position: relative;
   overflow: hidden;
-
-  /* Animated pattern background */
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    opacity: 0.06;
-    background-image:
-      repeating-linear-gradient(45deg, transparent, transparent 35px, #C17E3E 35px, #C17E3E 37px),
-      repeating-linear-gradient(-45deg, transparent, transparent 35px, #187573 35px, #187573 37px);
-    background-size: 80px 80px;
-    animation: floatPattern 60s linear infinite;
-    z-index: 0;
-  }
-
-  > * {
-    position: relative;
-    z-index: 1;
-  }
-}
-
-@keyframes floatPattern {
-  0% { transform: translate(0, 0) rotate(0deg); }
-  100% { transform: translate(-50px, -50px) rotate(360deg); }
 }
 
 .nubian-auth__language {
   position: absolute;
   top: 1.5rem;
-  right: 1.5rem;
-}
-
-:host-context([dir="rtl"]) .nubian-auth__language {
-  right: auto;
-  left: 1.5rem;
+  inset-inline-end: 1.5rem;
 }
 
 .language-select {
@@ -66,18 +32,12 @@
     background: rgba(255, 255, 255, 0.9);
     border-radius: 12px;
   }
-
-  i {
-    color: #C17E3E;
-    margin-right: 8px;
-  }
 }
 
 .nubian-auth__card {
   width: 100%;
   max-width: 440px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
+  background: #FFFFFF;
   border-radius: 24px;
   box-shadow: 0 20px 40px rgba(45, 45, 45, 0.15);
   overflow: hidden;
@@ -143,9 +103,10 @@
     margin-bottom: 0.5rem;
   }
 
-  i[matPrefix] {
+  // Style the prefix icon color
+  ::ng-deep .mat-mdc-form-field-icon-prefix > i,
+  ::ng-deep [matPrefix] {
     color: #C17E3E;
-    margin-right: 8px;
   }
 }
 
@@ -171,10 +132,6 @@
 
   &:disabled {
     opacity: 0.7;
-  }
-
-  mat-spinner {
-    margin-right: 0.5rem;
   }
 }
 

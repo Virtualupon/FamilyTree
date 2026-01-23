@@ -164,6 +164,20 @@ export class MediaValidationError extends Error {
 }
 
 // ============================================
+// Signed URL Response
+// ============================================
+
+/**
+ * Response from signed URL endpoint
+ * Used for secure media streaming with browser caching
+ */
+export interface SignedMediaUrl {
+  url: string;
+  expiresAt: string;  // ISO date string
+  contentType: string;
+}
+
+// ============================================
 // Legacy aliases (for backwards compatibility)
 // ============================================
 

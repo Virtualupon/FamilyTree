@@ -1,5 +1,6 @@
 using FamilyTreeApi.Models;
 using FamilyTreeApi.DTOs;
+using VirtualUpon.Storage.Dto;
 
 namespace FamilyTreeApi.Services;
 
@@ -82,4 +83,9 @@ public interface ITownImageService
     /// Toggle active status.
     /// </summary>
     Task<TownImage?> ToggleActiveAsync(Guid imageId, long updatedBy);
+
+    /// <summary>
+    /// Get a signed URL for secure image streaming.
+    /// </summary>
+    Task<SignedUrlResponseDto> GetSignedUrlAsync(Guid imageId, int expiresInSeconds = 3600);
 }

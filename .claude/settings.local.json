@@ -146,7 +146,12 @@
       "Bash(git -C \"B:/Development/Apps/repo/FamilyTree\" log --oneline -5)",
       "Bash(git -C \"B:/Development/Apps/repo/FamilyTree\" status --porcelain frontend/ngsw-config.json frontend/public/manifest.webmanifest frontend/src/app/core/services/network.service.ts frontend/src/app/core/services/update.service.ts)",
       "Bash(git -C \"B:/Development/Apps/repo/FamilyTree\" log --oneline -20)",
-      "Bash(git -C \"B:/Development/Apps/repo/FamilyTree\" log --oneline -10)"
+      "Bash(git -C \"B:/Development/Apps/repo/FamilyTree\" log --oneline -10)",
+      "Bash(npx tailwindcss init)",
+      "Bash(npm start)",
+      "Bash(npm uninstall:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)"
     ]
   }
 }

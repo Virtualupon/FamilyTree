@@ -17,7 +17,7 @@ import { CarouselImageDto } from '../../core/models/town-image.models';
 
 interface DisplayCarouselImage extends CarouselImageDto {
   displayUrl: string | null;
-  loadingBase64: boolean;
+  isLoading: boolean;
 }
 import { I18nService } from '../../core/i18n';
 import { TownInfo } from '../../core/models/auth.models';
@@ -67,8 +67,8 @@ export class TownSelectionComponent implements OnInit, OnDestroy {
     'https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=1920&q=80',
   ];
 
-  // Cache for loaded base64 images
-  private base64Cache = new Map<string, string>();
+  // Cache for signed URLs (browser also caches the actual images via HTTP headers)
+  private signedUrlCache = new Map<string, string>();
 
   ngOnInit(): void {
     const user = this.authService.getCurrentUser();
@@ -89,12 +89,12 @@ export class TownSelectionComponent implements OnInit, OnDestroy {
           this.carouselImages = images.map(img => ({
             ...img,
             displayUrl: null,
-            loadingBase64: true
+            isLoading: true
           }));
-          // Load base64 for each image
+          // Load signed URL for each image
           this.carouselImages.forEach(img => {
             if (!img.id.startsWith('default-')) {
-              this.loadImageBase64(img.id);
+              this.loadImageSignedUrl(img.id);
             }
           });
         } else {
@@ -105,7 +105,7 @@ export class TownSelectionComponent implements OnInit, OnDestroy {
             townName: '',
             imageUrl: url,
             displayUrl: url, // External URLs work directly
-            loadingBase64: false
+            isLoading: false
           }));
         }
         this.startCarousel();
@@ -118,27 +118,29 @@ export class TownSelectionComponent implements OnInit, OnDestroy {
           townName: '',
           imageUrl: url,
           displayUrl: url, // External URLs work directly
-          loadingBase64: false
+          isLoading: false
         }));
         this.startCarousel();
       }
     });
   }
 
-  private loadImageBase64(imageId: string): void {
+  /**
+   * Load signed URL for image display.
+   * Browser will cache the actual image via HTTP headers.
+   */
+  private loadImageSignedUrl(imageId: string): void {
     // Check cache first
-    if (this.base64Cache.has(imageId)) {
-      this.updateImageDisplayUrl(imageId, this.base64Cache.get(imageId)!);
+    if (this.signedUrlCache.has(imageId)) {
+      this.updateImageDisplayUrl(imageId, this.signedUrlCache.get(imageId)!);
       return;
     }
 
-    this.townImageService.getImageAsBase64(imageId).subscribe({
-      next: (response) => {
-        const base64Url = response.base64Data.startsWith('data:')
-          ? response.base64Data
-          : `data:image/webp;base64,${response.base64Data}`;
-        this.base64Cache.set(imageId, base64Url);
-        this.updateImageDisplayUrl(imageId, base64Url);
+    this.townImageService.getSignedUrl(imageId).subscribe({
+      next: (signedUrl) => {
+        // Use signed URL directly - browser handles caching
+        this.signedUrlCache.set(imageId, signedUrl.url);
+        this.updateImageDisplayUrl(imageId, signedUrl.url);
       },
       error: (err) => {
         console.error(`Failed to load carousel image ${imageId}:`, err);
@@ -154,7 +156,7 @@ export class TownSelectionComponent implements OnInit, OnDestroy {
       this.carouselImages[index] = {
         ...this.carouselImages[index],
         displayUrl,
-        loadingBase64: false
+        isLoading: false
       };
     }
   }

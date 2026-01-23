@@ -20,7 +20,8 @@ using FamilyTreeApi.Models.Configuration;
 using FamilyTreeApi.Models.Enums;
 using FamilyTreeApi.Repositories;
 using FamilyTreeApi.Services;
-using FamilyTreeApi.Storage;
+using VirtualUpon.Storage.Factories;
+using VirtualUpon.Storage.Utilities;
 using FamilyTreeApi.Extensions;
 
 // -------------------------------
@@ -294,29 +295,29 @@ services.AddAutoMapper(typeof(MappingProfile));
 // -------------------------------
 // STORAGE CONFIGURATION
 // -------------------------------
-// Storage abstraction using local FamilyTreeApi.Storage namespace
+// Storage abstraction using VirtualUpon.Storage library
 services.Configure<StorageConfiguration>(configuration.GetSection("StorageConfiguration"));
 services.AddSingleton(resolver => resolver.GetRequiredService<IOptions<StorageConfiguration>>().Value);
 
 // -------------------------------
-// STORAGE SERVICE FACTORY
+// STORAGE SERVICE FACTORY (VirtualUpon.Storage)
 // -------------------------------
-services.AddScoped<IStorageService>(provider =>
+services.AddScoped<VirtualUpon.Storage.Factories.IStorageService>(provider =>
 {
     var config = provider.GetRequiredService<IConfiguration>()
         .GetSection("StorageConfiguration").Get<StorageConfiguration>()
         ?? throw new InvalidOperationException("Storage configuration missing.");
 
-    int storageTypeInt = StorageTypeHelper.ConvertStorageTypeToInt(config.StorageType);
+    int storageTypeInt = VirtualUpon.Storage.Utilities.StorageTypeHelper.ConvertStorageTypeToInt(config.StorageType);
     var cache = provider.GetService<IDistributedCache>();
 
     return storageTypeInt switch
     {
-        1 => StorageServiceFactory.CreateLocalStorageService(config, cache),
-        2 => ValidateLinodeConfig(config) ? StorageServiceFactory.CreateLinodeStorageService(config, cache) : throw new InvalidOperationException("Invalid Linode config"),
-        3 => ValidateAwsConfig(config) ? StorageServiceFactory.CreateAwsStorageService(config, cache) : throw new InvalidOperationException("Invalid AWS config"),
-        4 => ValidateNextcloudConfig(config) ? StorageServiceFactory.CreateNextCloudStorageService(config, new WebDavClient(), new HttpClient(), cache) : throw new InvalidOperationException("Invalid Nextcloud config"),
-        5 => ValidateCloudflareConfig(config) ? StorageServiceFactory.CreateCloudflareStorageService(config, cache) : throw new InvalidOperationException("Invalid Cloudflare config"),
+        1 => VirtualUpon.Storage.Factories.StorageServiceFactory.CreateLocalStorageService(config, cache),
+        2 => ValidateLinodeConfig(config) ? VirtualUpon.Storage.Factories.StorageServiceFactory.CreateLinodeStorageService(config, cache) : throw new InvalidOperationException("Invalid Linode config"),
+        3 => ValidateAwsConfig(config) ? VirtualUpon.Storage.Factories.StorageServiceFactory.CreateAwsStorageService(config, cache) : throw new InvalidOperationException("Invalid AWS config"),
+        4 => ValidateNextcloudConfig(config) ? VirtualUpon.Storage.Factories.StorageServiceFactory.CreateNextCloudStorageService(config, new WebDavClient(), new HttpClient(), cache) : throw new InvalidOperationException("Invalid Nextcloud config"),
+        5 => ValidateCloudflareConfig(config) ? VirtualUpon.Storage.Factories.StorageServiceFactory.CreateCloudflareStorageService(config, cache) : throw new InvalidOperationException("Invalid Cloudflare config"),
         _ => throw new ArgumentException($"Unsupported storage type: {config.StorageType}")
     };
 });

@@ -9,11 +9,28 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { PersonService } from '../../../core/services/person.service';
 import { PersonMediaService } from '../../../core/services/person-media.service';
 import type { Person, PersonListItem } from '../../../core/models/person.models';
+import type { SearchPersonItem } from '../../../core/models/search.models';
 
-const MAX_AVATAR_SIZE_MB = 5;
-const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-const MAX_AVATAR_DIMENSION = 300; // Max width/height in pixels
-const AVATAR_QUALITY = 0.85; // JPEG quality (0-1)
+// Avatar upload constraints
+const MAX_AVATAR_SIZE_MB = 2; // 2MB max upload size
+const ALLOWED_AVATAR_TYPES = ['image/webp', 'image/jpeg', 'image/png'];
+const MAX_AVATAR_DIMENSION = 512; // Store at 512x512 for high-DPI displays
+const OUTPUT_QUALITY = 0.85; // WebP/JPEG quality (0-1)
+
+// Lazy-evaluated WebP support detection (SSR-safe)
+let webpSupported: boolean | null = null;
+function supportsWebP(): boolean {
+  if (webpSupported === null) {
+    if (typeof document === 'undefined') {
+      webpSupported = false;
+    } else {
+      webpSupported = document.createElement('canvas')
+        .toDataURL('image/webp')
+        .startsWith('data:image/webp');
+    }
+  }
+  return webpSupported;
+}
 
 @Component({
   selector: 'app-person-avatar',
@@ -34,7 +51,7 @@ export class PersonAvatarComponent implements OnChanges, OnDestroy {
   private mediaService = inject(PersonMediaService);
   private snackBar = inject(MatSnackBar);
 
-  @Input() person: Person | PersonListItem | null = null;
+  @Input() person: Person | PersonListItem | SearchPersonItem | null = null;
   @Input() size: 'small' | 'medium' | 'large' | 'xlarge' = 'medium';
   @Input() editable = false;
 
@@ -45,7 +62,6 @@ export class PersonAvatarComponent implements OnChanges, OnDestroy {
   isLoading = signal(false);
 
   private lastLoadedMediaId: string | null = null;
-  private objectUrl: string | null = null;
 
   readonly acceptTypes = ALLOWED_AVATAR_TYPES.join(',');
 
@@ -56,9 +72,7 @@ export class PersonAvatarComponent implements OnChanges, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    if (this.objectUrl) {
-      URL.revokeObjectURL(this.objectUrl);
-    }
+    // No cleanup needed - browser manages signed URL cache
   }
 
   private loadAvatar(): void {
@@ -82,26 +96,14 @@ export class PersonAvatarComponent implements OnChanges, OnDestroy {
       return;
     }
 
-    // Fetch avatar using existing Media system
+    // Fetch signed URL for avatar - browser will cache the image
     this.isLoading.set(true);
-    this.mediaService.getMediaById(mediaId).subscribe({
-      next: (media) => {
+    this.mediaService.getSignedUrl(mediaId).subscribe({
+      next: (signedUrl) => {
         this.isLoading.set(false);
         this.lastLoadedMediaId = mediaId;
-
-        // Clean up old object URL
-        if (this.objectUrl) {
-          URL.revokeObjectURL(this.objectUrl);
-        }
-
-        // Create new object URL from base64
-        if (media?.base64Data) {
-          this.objectUrl = this.mediaService.createObjectUrl(
-            media.base64Data,
-            media.mimeType || 'image/jpeg'
-          );
-          this.displayUrl.set(this.objectUrl);
-        }
+        // Use signed URL directly - browser handles caching via HTTP headers
+        this.displayUrl.set(signedUrl.url);
       },
       error: (err) => {
         this.isLoading.set(false);
@@ -141,13 +143,14 @@ export class PersonAvatarComponent implements OnChanges, OnDestroy {
 
     const file = input.files[0];
 
-    // Validate
+    // Validate file type
     if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
-      this.snackBar.open('Please select an image file (JPEG, PNG, GIF, or WebP)', 'Close', { duration: 4000 });
+      this.snackBar.open('Please select an image file (WebP, JPEG, PNG, or GIF)', 'Close', { duration: 4000 });
       input.value = '';
       return;
     }
 
+    // Validate file size
     if (file.size > MAX_AVATAR_SIZE_MB * 1024 * 1024) {
       this.snackBar.open(`Image must be less than ${MAX_AVATAR_SIZE_MB}MB`, 'Close', { duration: 4000 });
       input.value = '';
@@ -157,9 +160,10 @@ export class PersonAvatarComponent implements OnChanges, OnDestroy {
     this.uploading = true;
 
     try {
-      // Resize image before upload
-      const { blob, base64 } = await this.resizeImage(file);
-      const resizedFile = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
+      // Resize and convert to WebP (with JPEG fallback)
+      const { blob, base64, mimeType } = await this.resizeImage(file);
+      const extension = mimeType === 'image/webp' ? '.webp' : '.jpg';
+      const resizedFile = new File([blob], file.name.replace(/\.[^.]+$/, extension), { type: mimeType });
 
       // Prepare upload using existing Media system
       const payload = await this.mediaService.validateAndPrepareUpload(
@@ -208,10 +212,11 @@ export class PersonAvatarComponent implements OnChanges, OnDestroy {
   }
 
   /**
-   * Resize image to fit within MAX_AVATAR_DIMENSION while maintaining aspect ratio
-   * Returns both the blob (for upload) and base64 (for display)
+   * Resize image to fit within MAX_AVATAR_DIMENSION while maintaining aspect ratio.
+   * Outputs WebP format when browser supports it, otherwise falls back to JPEG.
+   * Returns blob (for upload), base64 (for display), and mimeType.
    */
-  private resizeImage(file: File): Promise<{ blob: Blob; base64: string }> {
+  private resizeImage(file: File): Promise<{ blob: Blob; base64: string; mimeType: string }> {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => {
@@ -245,6 +250,9 @@ export class PersonAvatarComponent implements OnChanges, OnDestroy {
         ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, width, height);
 
+        // Use WebP if supported, otherwise JPEG
+        const mimeType = supportsWebP() ? 'image/webp' : 'image/jpeg';
+
         // Convert to blob and base64
         canvas.toBlob(
           (blob) => {
@@ -253,11 +261,11 @@ export class PersonAvatarComponent implements OnChanges, OnDestroy {
               return;
             }
 
-            const base64 = canvas.toDataURL('image/jpeg', AVATAR_QUALITY);
-            resolve({ blob, base64 });
+            const base64 = canvas.toDataURL(mimeType, OUTPUT_QUALITY);
+            resolve({ blob, base64, mimeType });
           },
-          'image/jpeg',
-          AVATAR_QUALITY
+          mimeType,
+          OUTPUT_QUALITY
         );
       };
 
@@ -293,10 +301,6 @@ export class PersonAvatarComponent implements OnChanges, OnDestroy {
         (this.person as any).avatarMediaId = null;
         this.displayUrl.set(null);
         this.lastLoadedMediaId = null;
-        if (this.objectUrl) {
-          URL.revokeObjectURL(this.objectUrl);
-          this.objectUrl = null;
-        }
         this.avatarChanged.emit();
         this.snackBar.open('Avatar removed', 'Close', { duration: 2000 });
       },

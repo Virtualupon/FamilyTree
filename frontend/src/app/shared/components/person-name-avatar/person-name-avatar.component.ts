@@ -37,7 +37,6 @@ export class PersonNameAvatarComponent implements OnChanges, OnDestroy {
   isLoading = signal(false);
 
   private lastLoadedMediaId: string | null = null;
-  private objectUrl: string | null = null;
 
   get displayName(): string {
     if (!this.person) return this.i18n.t('common.unknown');
@@ -71,9 +70,7 @@ export class PersonNameAvatarComponent implements OnChanges, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    if (this.objectUrl) {
-      URL.revokeObjectURL(this.objectUrl);
-    }
+    // No cleanup needed - browser manages signed URL cache
   }
 
   private loadAvatar(): void {
@@ -89,23 +86,14 @@ export class PersonNameAvatarComponent implements OnChanges, OnDestroy {
       return;
     }
 
+    // Fetch signed URL for avatar - browser will cache the image
     this.isLoading.set(true);
-    this.mediaService.getMediaById(mediaId).subscribe({
-      next: (media) => {
+    this.mediaService.getSignedUrl(mediaId).subscribe({
+      next: (signedUrl) => {
         this.isLoading.set(false);
         this.lastLoadedMediaId = mediaId;
-
-        if (this.objectUrl) {
-          URL.revokeObjectURL(this.objectUrl);
-        }
-
-        if (media?.base64Data) {
-          this.objectUrl = this.mediaService.createObjectUrl(
-            media.base64Data,
-            media.mimeType || 'image/jpeg'
-          );
-          this.avatarUrl.set(this.objectUrl);
-        }
+        // Use signed URL directly - browser handles caching via HTTP headers
+        this.avatarUrl.set(signedUrl.url);
       },
       error: () => {
         this.isLoading.set(false);

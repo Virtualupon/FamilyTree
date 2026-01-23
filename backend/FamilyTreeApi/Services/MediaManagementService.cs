@@ -6,18 +6,19 @@ using FamilyTreeApi.Data;
 using FamilyTreeApi.DTOs;
 using FamilyTreeApi.Models;
 using FamilyTreeApi.Models.Enums;
-using FamilyTreeApi.Storage;
+using VirtualUpon.Storage.Factories;
+using VirtualUpon.Storage.Dto;
 
 namespace FamilyTreeApi.Services;
 
 /// <summary>
 /// Media management service implementation containing all business logic.
-/// Uses ApplicationDbContext for data access and IStorageService for file operations.
+/// Uses ApplicationDbContext for data access and VirtualUpon.Storage.IStorageService for file operations.
 /// </summary>
 public class MediaManagementService : IMediaManagementService
 {
     private readonly ApplicationDbContext _context;
-    private readonly IStorageService _storageService;
+    private readonly VirtualUpon.Storage.Factories.IStorageService _storageService;
     private readonly ILogger<MediaManagementService> _logger;
 
     private static readonly string[] AllowedImageTypes = { "image/jpeg", "image/png", "image/gif", "image/webp", "image/heic" };
@@ -28,7 +29,7 @@ public class MediaManagementService : IMediaManagementService
 
     public MediaManagementService(
         ApplicationDbContext context,
-        IStorageService storageService,
+        VirtualUpon.Storage.Factories.IStorageService storageService,
         ILogger<MediaManagementService> logger)
     {
         _context = context;
@@ -47,6 +48,21 @@ public class MediaManagementService : IMediaManagementService
     {
         try
         {
+            // Enforce maximum page size to prevent DoS
+            const int MaxPageSize = 100;
+            if (request.PageSize > MaxPageSize)
+            {
+                request.PageSize = MaxPageSize;
+            }
+            if (request.PageSize < 1)
+            {
+                request.PageSize = 20;
+            }
+            if (request.Page < 1)
+            {
+                request.Page = 1;
+            }
+
             if (userContext.OrgId == null)
             {
                 return ServiceResult<MediaSearchResponse>.Failure("You must be a member of an organization to view media.");
@@ -95,12 +111,13 @@ public class MediaManagementService : IMediaManagementService
             var totalCount = await query.CountAsync(cancellationToken);
             var totalPages = (int)Math.Ceiling(totalCount / (double)request.PageSize);
 
+            // CRITICAL: Pagination happens at DB level BEFORE projection
+            // LinkedPersons are projected inline to avoid N+1 queries
             var media = await query
                 .OrderByDescending(m => m.CaptureDate)
                 .ThenByDescending(m => m.CreatedAt)
                 .Skip((request.Page - 1) * request.PageSize)
                 .Take(request.PageSize)
-                .Include(m => m.CapturePlace)
                 .Select(m => new MediaResponse
                 {
                     Id = m.Id,
@@ -122,7 +139,19 @@ public class MediaManagementService : IMediaManagementService
                     ThumbnailPath = m.ThumbnailPath,
                     MetadataJson = m.MetadataJson,
                     CreatedAt = m.CreatedAt,
-                    UpdatedAt = m.UpdatedAt
+                    UpdatedAt = m.UpdatedAt,
+                    // Project linked persons inline - EF Core generates efficient JOIN
+                    LinkedPersons = m.PersonLinks
+                        .Select(pl => new LinkedPersonDto(
+                            pl.PersonId,
+                            pl.Person != null
+                                ? (pl.Person.PrimaryName ?? pl.Person.NameEnglish ?? pl.Person.NameArabic ?? "Unknown")
+                                : "Unknown",
+                            pl.IsPrimary,
+                            pl.Notes,
+                            pl.LinkedAt
+                        ))
+                        .ToList()
                 })
                 .ToListAsync(cancellationToken);
 
@@ -413,7 +442,11 @@ public class MediaManagementService : IMediaManagementService
 
             try
             {
-                await _storageService.DeleteFileAsync(media.Url);
+                var deleteResult = await _storageService.DeleteFileAsync(media.Url);
+                if (!deleteResult.IsSuccessful)
+                {
+                    _logger.LogWarning("Failed to delete media file from storage: {Error}", deleteResult.ErrorMessage);
+                }
             }
             catch (Exception ex)
             {
@@ -461,7 +494,7 @@ public class MediaManagementService : IMediaManagementService
             {
                 var response = await _storageService.DownloadFileAsync(media.Url);
 
-                if (response.FileData == null)
+                if (!response.IsSuccessful || response.FileData == null)
                 {
                     return ServiceResult<(byte[] Data, string ContentType, string FileName)>.NotFound("Media file data not found");
                 }
@@ -481,6 +514,51 @@ public class MediaManagementService : IMediaManagementService
         {
             _logger.LogError(ex, "Error downloading media {MediaId}", id);
             return ServiceResult<(byte[] Data, string ContentType, string FileName)>.InternalError("Error downloading media");
+        }
+    }
+
+    // ============================================================================
+    // SIGNED URL METHODS
+    // ============================================================================
+
+    public async Task<ServiceResult<SignedMediaUrlDto>> GetSignedUrlAsync(
+        Guid id,
+        int expiresInSeconds,
+        UserContext userContext,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (userContext.OrgId == null)
+            {
+                return ServiceResult<SignedMediaUrlDto>.Failure("You must be a member of an organization.");
+            }
+
+            var media = await _context.MediaFiles
+                .FirstOrDefaultAsync(m => m.Id == id && m.OrgId == userContext.OrgId.Value, cancellationToken);
+
+            if (media == null)
+            {
+                return ServiceResult<SignedMediaUrlDto>.NotFound("Media not found");
+            }
+
+            var result = await _storageService.GetSignedUrlAsync(media.Url, expiresInSeconds);
+            if (!result.IsSuccessful)
+            {
+                return ServiceResult<SignedMediaUrlDto>.Failure(result.ErrorMessage ?? "Failed to generate signed URL");
+            }
+
+            return ServiceResult<SignedMediaUrlDto>.Success(new SignedMediaUrlDto
+            {
+                Url = result.Url!,
+                ExpiresAt = result.ExpiresAt!.Value,
+                ContentType = result.ContentType ?? media.MimeType ?? "application/octet-stream"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating signed URL for media {MediaId}", id);
+            return ServiceResult<SignedMediaUrlDto>.InternalError("Error generating signed URL");
         }
     }
 

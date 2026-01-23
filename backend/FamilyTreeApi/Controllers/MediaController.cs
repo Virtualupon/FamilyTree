@@ -132,6 +132,21 @@ public class MediaController : ControllerBase
         return File(data, contentType, fileName);
     }
 
+    /// <summary>
+    /// Get a signed URL for secure media streaming
+    /// </summary>
+    [HttpGet("{id}/signed-url")]
+    public async Task<ActionResult<SignedMediaUrlDto>> GetSignedUrl(Guid id, [FromQuery] int expiresInSeconds = 3600)
+    {
+        // Clamp expiration to max 24 hours
+        expiresInSeconds = Math.Clamp(expiresInSeconds, 60, 86400);
+
+        var userContext = BuildUserContext();
+        var result = await _mediaManagementService.GetSignedUrlAsync(id, expiresInSeconds, userContext);
+
+        return HandleResult(result);
+    }
+
     // ============================================================================
     // PRIVATE HELPER METHODS
     // ============================================================================

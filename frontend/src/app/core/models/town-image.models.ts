@@ -96,3 +96,13 @@ export interface LandingPageImagesResponse {
 
 // Alias for backward compatibility with backend DTO naming
 export type TownCarouselImageDto = CarouselImageDto;
+
+/**
+ * Response from signed URL endpoint
+ * Used for secure image streaming with browser caching
+ */
+export interface SignedMediaUrl {
+  url: string;
+  expiresAt: string;  // ISO date string
+  contentType: string;
+}

@@ -1,6 +1,13 @@
 @use '@angular/material' as mat;
 
 // ============================================
+// TAILWIND CSS
+// ============================================
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+// ============================================
 // NUBIAN THEME IMPORT
 // ============================================
 @import 'styles/nubian-theme';

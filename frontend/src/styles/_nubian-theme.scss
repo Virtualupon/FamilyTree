@@ -151,11 +151,33 @@
   --mdc-filled-text-field-focus-active-indicator-color: #{$nubian-teal};
   --mdc-filled-text-field-focus-label-text-color: #{$nubian-teal};
   --mdc-filled-text-field-caret-color: #{$nubian-teal};
-  
+
   --mdc-outlined-text-field-outline-color: #{$nubian-beige};
   --mdc-outlined-text-field-focus-outline-color: #{$nubian-teal};
   --mdc-outlined-text-field-focus-label-text-color: #{$nubian-teal};
   --mdc-outlined-text-field-caret-color: #{$nubian-teal};
+
+  // Fix: Ensure outlined form fields have solid opaque backgrounds
+  // This prevents animated patterns or transparent overlays from showing through
+  --mdc-outlined-text-field-container-color: white;
+}
+
+// Simplified form field backgrounds - just ensure solid white backgrounds
+// without modifying borders or z-index which can break input functionality
+.mat-mdc-text-field-wrapper {
+  background-color: white !important;
+}
+
+.mdc-text-field--outlined {
+  background-color: white !important;
+}
+
+.mat-mdc-form-field-infix {
+  background-color: white !important;
+}
+
+.mat-mdc-form-field-flex {
+  background-color: white !important;
 }
 
 // Button customization

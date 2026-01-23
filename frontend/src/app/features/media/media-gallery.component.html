@@ -1,1 +1,295 @@
-<h1>{{ 'media.galleryComingSoon' | translate }}</h1>
+<div class="media-gallery">
+  <!-- Header -->
+  <div class="media-gallery__header">
+    <div class="media-gallery__title">
+      <h1>{{ 'media.gallery' | translate }}</h1>
+      @if (totalCount() > 0) {
+        <span class="media-gallery__count">
+          {{ totalCount() }} {{ 'media.items' | translate }}
+        </span>
+      }
+    </div>
+
+    <div class="media-gallery__actions">
+      <mat-button-toggle-group [value]="viewMode()" (change)="onViewModeChange($event.value)">
+        <mat-button-toggle value="grid">
+          <mat-icon>grid_view</mat-icon>
+        </mat-button-toggle>
+        <mat-button-toggle value="list">
+          <mat-icon>view_list</mat-icon>
+        </mat-button-toggle>
+      </mat-button-toggle-group>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="media-gallery__filters">
+    <mat-form-field appearance="outline" class="media-gallery__search">
+      <mat-label>{{ 'common.search' | translate }}</mat-label>
+      <input matInput [formControl]="searchControl" />
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="media-gallery__kind-filter">
+      <mat-label>{{ 'media.type' | translate }}</mat-label>
+      <mat-select [value]="kindFilter()" (selectionChange)="onKindFilterChange($event.value)">
+        <mat-option [value]="null">{{ 'common.all' | translate }}</mat-option>
+        <mat-option value="Image">{{ 'media.images' | translate }}</mat-option>
+        <mat-option value="Audio">{{ 'media.audio' | translate }}</mat-option>
+        <mat-option value="Video">{{ 'media.videos' | translate }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    @if (searchControl.value || kindFilter()) {
+      <button mat-stroked-button (click)="clearFilters()">
+        <mat-icon>clear</mat-icon>
+        {{ 'common.clear' | translate }}
+      </button>
+    }
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="media-gallery__loading">
+      <mat-spinner diameter="40"></mat-spinner>
+      <span>{{ 'common.loading' | translate }}</span>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (error() && !isLoading()) {
+    <div class="media-gallery__error">
+      <mat-icon color="warn">error_outline</mat-icon>
+      <p>{{ error() }}</p>
+      <button mat-raised-button color="primary" (click)="loadMedia()">
+        <mat-icon>refresh</mat-icon>
+        {{ 'common.retry' | translate }}
+      </button>
+    </div>
+  }
+
+  <!-- Empty State -->
+  @if (!isLoading() && !error() && !hasMedia()) {
+    <div class="media-gallery__empty">
+      <mat-icon>perm_media</mat-icon>
+      <h3>{{ 'media.noMedia' | translate }}</h3>
+      <p>{{ 'media.noMediaDesc' | translate }}</p>
+    </div>
+  }
+
+  <!-- Grid View -->
+  @if (!isLoading() && !error() && hasMedia() && viewMode() === 'grid') {
+    <div class="media-gallery__grid">
+      @for (item of media(); track item.id) {
+        <div class="media-card"
+             (click)="openLightbox(item)"
+             (mouseenter)="onMediaHover(item.id)"
+             tabindex="0"
+             role="button"
+             [attr.aria-label]="item.title || item.fileName">
+
+          <!-- Image/Video Thumbnail -->
+          @if (item.kind === 'Image' || item.kind === 'Video') {
+            <div class="media-card__preview">
+              <!-- Loading spinner -->
+              @if (isSignedUrlLoading(item.id)) {
+                <mat-spinner diameter="24"></mat-spinner>
+              }
+
+              <!-- Error state with retry -->
+              @if (hasSignedUrlError(item.id) && !isSignedUrlLoading(item.id)) {
+                <div class="media-card__error">
+                  <mat-icon>broken_image</mat-icon>
+                  <button mat-icon-button (click)="retrySignedUrl(item.id); $event.stopPropagation()">
+                    <mat-icon>refresh</mat-icon>
+                  </button>
+                </div>
+              }
+
+              <!-- Image -->
+              @if (getMediaUrl(item.id) && item.kind === 'Image') {
+                <img [src]="getMediaUrl(item.id)"
+                     [alt]="item.title || item.fileName"
+                     loading="lazy"
+                     (error)="retrySignedUrl(item.id)" />
+              }
+
+              <!-- Video thumbnail -->
+              @if (getMediaUrl(item.id) && item.kind === 'Video') {
+                <div class="media-card__video-thumb">
+                  <mat-icon>play_circle_outline</mat-icon>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Audio/Document Icon -->
+          @if (item.kind === 'Audio' || item.kind === 'Document') {
+            <div class="media-card__icon">
+              <mat-icon>{{ getKindIcon(item.kind) }}</mat-icon>
+            </div>
+          }
+
+          <!-- Card Footer -->
+          <div class="media-card__footer">
+            <span class="media-card__title">{{ item.title || item.fileName }}</span>
+            <div class="media-card__meta">
+              <span class="media-card__size">{{ formatFileSize(item.fileSize) }}</span>
+              <span class="media-card__kind">
+                <mat-icon>{{ getKindIcon(item.kind) }}</mat-icon>
+              </span>
+            </div>
+          </div>
+
+          <!-- Linked Persons Badge -->
+          @if (item.linkedPersons.length > 0) {
+            <div class="media-card__persons">
+              <mat-icon>people</mat-icon>
+              <span>{{ item.linkedPersons.length }}</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- List View -->
+  @if (!isLoading() && !error() && hasMedia() && viewMode() === 'list') {
+    <div class="media-gallery__list">
+      @for (item of media(); track item.id) {
+        <div class="media-list-item"
+             (click)="openLightbox(item)"
+             (mouseenter)="onMediaHover(item.id)">
+
+          <div class="media-list-item__icon">
+            <mat-icon>{{ getKindIcon(item.kind) }}</mat-icon>
+          </div>
+
+          <div class="media-list-item__info">
+            <span class="media-list-item__title">{{ item.title || item.fileName }}</span>
+            <span class="media-list-item__meta">
+              {{ formatFileSize(item.fileSize) }} &bull; {{ formatDate(item.createdAt) }}
+            </span>
+          </div>
+
+          @if (item.linkedPersons.length > 0) {
+            <div class="media-list-item__persons">
+              <mat-icon>people</mat-icon>
+              <span>{{ item.linkedPersons.length }}</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Paginator -->
+  @if (totalCount() > 0) {
+    <mat-paginator
+                   [length]="totalCount()"
+                   [pageIndex]="page() - 1"
+                   [pageSize]="pageSize()"
+                   [pageSizeOptions]="pageSizeOptions"
+                   (page)="onPageChange($event)"
+                   showFirstLastButtons>
+    </mat-paginator>
+  }
+</div>
+
+<!-- Lightbox -->
+@if (lightboxMedia()) {
+  <div class="media-lightbox"
+       (click)="onLightboxBackdropClick($event)"
+       (keydown)="onLightboxKeydown($event)"
+       tabindex="0"
+       role="dialog"
+       aria-modal="true">
+
+    <button class="media-lightbox__close" mat-icon-button (click)="closeLightbox()">
+      <mat-icon>close</mat-icon>
+    </button>
+
+    <div class="media-lightbox__content">
+      <!-- Loading -->
+      @if (!lightboxSignedUrl()) {
+        <mat-spinner diameter="48"></mat-spinner>
+      }
+
+      <!-- Image -->
+      @if (lightboxSignedUrl() && lightboxMedia()?.kind === 'Image') {
+        <img [src]="lightboxSignedUrl()"
+             [alt]="lightboxMedia()?.title || lightboxMedia()?.fileName" />
+      }
+
+      <!-- Video -->
+      @if (lightboxSignedUrl() && lightboxMedia()?.kind === 'Video') {
+        <video [src]="lightboxSignedUrl()"
+               controls
+               autoplay>
+          {{ 'media.browserNoVideo' | translate }}
+        </video>
+      }
+
+      <!-- Audio -->
+      @if (lightboxSignedUrl() && lightboxMedia()?.kind === 'Audio') {
+        <div class="media-lightbox__audio">
+          <mat-icon>audiotrack</mat-icon>
+          <audio [src]="lightboxSignedUrl()" controls autoplay>
+            {{ 'media.browserNoAudio' | translate }}
+          </audio>
+        </div>
+      }
+    </div>
+
+    <!-- Details Panel -->
+    @if (lightboxMedia(); as media) {
+      <div class="media-lightbox__details">
+        <h3>{{ media.title || media.fileName }}</h3>
+
+        @if (media.description) {
+          <p>{{ media.description }}</p>
+        }
+
+        <div class="media-lightbox__meta">
+          @if (media.captureDate) {
+            <div>
+              <strong>{{ 'media.captureDate' | translate }}:</strong>
+              {{ formatDate(media.captureDate) }}
+            </div>
+          }
+          @if (media.placeName) {
+            <div>
+              <strong>{{ 'media.location' | translate }}:</strong>
+              {{ media.placeName }}
+            </div>
+          }
+          <div>
+            <strong>{{ 'media.size' | translate }}:</strong>
+            {{ formatFileSize(media.fileSize) }}
+          </div>
+        </div>
+
+        <!-- Linked Persons -->
+        @if (media.linkedPersons.length > 0) {
+          <div class="media-lightbox__persons">
+            <h4>{{ 'media.taggedPeople' | translate }}</h4>
+            <div class="media-lightbox__person-list">
+              @for (person of media.linkedPersons; track person.personId) {
+                <a [routerLink]="['/people', person.personId]"
+                   class="media-lightbox__person"
+                   (click)="closeLightbox()">
+                  {{ person.personName || 'Unknown' }}
+                  @if (person.isPrimary) {
+                    <span class="media-lightbox__primary-badge">
+                      {{ 'media.primary' | translate }}
+                    </span>
+                  }
+                </a>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+}

@@ -4,7 +4,9 @@ using FamilyTreeApi.Data;
 using FamilyTreeApi.Models;
 using FamilyTreeApi.Models.Configuration;
 using FamilyTreeApi.DTOs;
-using FamilyTreeApi.Storage;
+using VirtualUpon.Storage.Factories;
+using VirtualUpon.Storage.Dto;
+using VirtualUpon.Storage.Utilities;
 
 namespace FamilyTreeApi.Services;
 
@@ -18,7 +20,7 @@ public class TownImageService : ITownImageService
     private readonly ILogger<TownImageService> _logger;
     private readonly IDistributedCache _cache;
     private readonly StorageConfiguration _storageConfig;
-    private readonly IStorageService _storageService;
+    private readonly VirtualUpon.Storage.Factories.IStorageService _storageService;
     private readonly int _currentStorageType;
 
     // Image validation constants
@@ -30,14 +32,14 @@ public class TownImageService : ITownImageService
         ILogger<TownImageService> logger,
         StorageConfiguration storageConfig,
         IDistributedCache cache,
-        IStorageService storageService)
+        VirtualUpon.Storage.Factories.IStorageService storageService)
     {
         _context = context;
         _logger = logger;
         _cache = cache;
         _storageConfig = storageConfig;
         _storageService = storageService;
-        _currentStorageType = StorageTypeHelper.ConvertStorageTypeToInt(storageConfig.StorageType);
+        _currentStorageType = VirtualUpon.Storage.Utilities.StorageTypeHelper.ConvertStorageTypeToInt(storageConfig.StorageType);
     }
 
     public async Task<TownImage> UploadImageAsync(
@@ -155,7 +157,7 @@ public class TownImageService : ITownImageService
             var storageService = GetStorageServiceByType(image.StorageType);
             var response = await storageService.DownloadFileAsync(image.ImageUrl);
 
-            if (response.FileData == null)
+            if (!response.IsSuccessful || response.FileData == null)
                 return null;
 
             return BytesToBase64(response.FileData);
@@ -181,7 +183,7 @@ public class TownImageService : ITownImageService
             var storageService = GetStorageServiceByType(image.StorageType);
             var response = await storageService.DownloadFileAsync(image.ImageUrl);
 
-            if (response.FileData == null)
+            if (!response.IsSuccessful || response.FileData == null)
                 return null;
 
             return (response.FileData, image.MimeType ?? "image/webp");
@@ -207,7 +209,11 @@ public class TownImageService : ITownImageService
                 try
                 {
                     var storageService = GetStorageServiceByType(image.StorageType);
-                    await storageService.DeleteFileAsync(image.ImageUrl);
+                    var deleteResult = await storageService.DeleteFileAsync(image.ImageUrl);
+                    if (!deleteResult.IsSuccessful)
+                    {
+                        _logger.LogWarning("Failed to delete town image file from storage: {Error}", deleteResult.ErrorMessage);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -365,19 +371,38 @@ public class TownImageService : ITownImageService
     // HELPER METHODS (same as MediaService)
     // ========================================================================
 
-    private IStorageService GetStorageServiceByType(int storageType)
+    private VirtualUpon.Storage.Factories.IStorageService GetStorageServiceByType(int storageType)
     {
         var cache = _cache;
 
         return storageType switch
         {
-            1 => StorageServiceFactory.CreateLocalStorageService(_storageConfig, cache),
-            2 => StorageServiceFactory.CreateLinodeStorageService(_storageConfig, cache),
-            3 => StorageServiceFactory.CreateAwsStorageService(_storageConfig, cache),
-            4 => StorageServiceFactory.CreateNextCloudStorageService(_storageConfig, new WebDav.WebDavClient(), new HttpClient(), cache),
-            5 => StorageServiceFactory.CreateCloudflareStorageService(_storageConfig, cache),
+            1 => VirtualUpon.Storage.Factories.StorageServiceFactory.CreateLocalStorageService(_storageConfig, cache),
+            2 => VirtualUpon.Storage.Factories.StorageServiceFactory.CreateLinodeStorageService(_storageConfig, cache),
+            3 => VirtualUpon.Storage.Factories.StorageServiceFactory.CreateAwsStorageService(_storageConfig, cache),
+            4 => VirtualUpon.Storage.Factories.StorageServiceFactory.CreateNextCloudStorageService(_storageConfig, new WebDav.WebDavClient(), new HttpClient(), cache),
+            5 => VirtualUpon.Storage.Factories.StorageServiceFactory.CreateCloudflareStorageService(_storageConfig, cache),
             _ => throw new ArgumentException($"Unsupported storage type: {storageType}")
         };
+    }
+
+    public async Task<VirtualUpon.Storage.Dto.SignedUrlResponseDto> GetSignedUrlAsync(Guid imageId, int expiresInSeconds = 3600)
+    {
+        var image = await _context.TownImages
+            .AsNoTracking()
+            .FirstOrDefaultAsync(i => i.Id == imageId);
+
+        if (image == null || string.IsNullOrEmpty(image.ImageUrl))
+        {
+            return new VirtualUpon.Storage.Dto.SignedUrlResponseDto
+            {
+                IsSuccessful = false,
+                ErrorMessage = "Town image not found"
+            };
+        }
+
+        var storageService = GetStorageServiceByType(image.StorageType);
+        return await storageService.GetSignedUrlAsync(image.ImageUrl, expiresInSeconds);
     }
 
     private static byte[] Base64ToBytes(string base64)

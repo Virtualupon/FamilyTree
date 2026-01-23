@@ -4,7 +4,9 @@ using FamilyTreeApi.Data;
 using FamilyTreeApi.Models;
 using FamilyTreeApi.Models.Configuration;
 using FamilyTreeApi.Models.Enums;
-using FamilyTreeApi.Storage;
+using VirtualUpon.Storage.Factories;
+using VirtualUpon.Storage.Dto;
+using VirtualUpon.Storage.Utilities;
 
 namespace FamilyTreeApi.Services;
 
@@ -14,7 +16,7 @@ public class MediaService : IMediaService
     private readonly ILogger<MediaService> _logger;
     private readonly IDistributedCache _cache;
     private readonly StorageConfiguration _storageConfig;
-    private readonly IStorageService _storageService;
+    private readonly VirtualUpon.Storage.Factories.IStorageService _storageService;
     private readonly int _currentStorageType;
 
     public MediaService(
@@ -22,14 +24,14 @@ public class MediaService : IMediaService
         ILogger<MediaService> logger,
         StorageConfiguration storageConfig,
         IDistributedCache cache,
-        IStorageService storageService)
+        VirtualUpon.Storage.Factories.IStorageService storageService)
     {
         _context = context;
         _logger = logger;
         _cache = cache;
         _storageConfig = storageConfig;
         _storageService = storageService;
-        _currentStorageType = StorageTypeHelper.ConvertStorageTypeToInt(storageConfig.StorageType);
+        _currentStorageType = VirtualUpon.Storage.Utilities.StorageTypeHelper.ConvertStorageTypeToInt(storageConfig.StorageType);
     }
 
     public async Task<Media> UploadMediaAsync(
@@ -128,7 +130,7 @@ public class MediaService : IMediaService
             var storageService = GetStorageServiceByType(media.StorageType);
             var response = await storageService.DownloadFileAsync(media.Url);
 
-            if (response.FileData == null)
+            if (!response.IsSuccessful || response.FileData == null)
                 return null;
 
             return BytesToBase64(response.FileData);
@@ -154,7 +156,7 @@ public class MediaService : IMediaService
             var storageService = GetStorageServiceByType(media.StorageType);
             var response = await storageService.DownloadFileAsync(media.Url);
 
-            if (response.FileData == null)
+            if (!response.IsSuccessful || response.FileData == null)
                 return null;
 
             return (response.FileData, media.MimeType ?? "application/octet-stream");
@@ -180,7 +182,11 @@ public class MediaService : IMediaService
                 try
                 {
                     var storageService = GetStorageServiceByType(media.StorageType);
-                    await storageService.DeleteFileAsync(media.Url);
+                    var deleteResult = await storageService.DeleteFileAsync(media.Url);
+                    if (!deleteResult.IsSuccessful)
+                    {
+                        _logger.LogWarning("Failed to delete media file from storage: {Error}", deleteResult.ErrorMessage);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -211,17 +217,36 @@ public class MediaService : IMediaService
             .ToListAsync();
     }
 
-    private IStorageService GetStorageServiceByType(int storageType)
+    public async Task<SignedUrlResponseDto> GetSignedUrlAsync(Guid mediaId, int expiresInSeconds = 3600)
+    {
+        var media = await _context.MediaFiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(m => m.Id == mediaId);
+
+        if (media == null || string.IsNullOrEmpty(media.Url))
+        {
+            return new SignedUrlResponseDto
+            {
+                IsSuccessful = false,
+                ErrorMessage = "Media not found"
+            };
+        }
+
+        var storageService = GetStorageServiceByType(media.StorageType);
+        return await storageService.GetSignedUrlAsync(media.Url, expiresInSeconds);
+    }
+
+    private VirtualUpon.Storage.Factories.IStorageService GetStorageServiceByType(int storageType)
     {
         var cache = _cache;
 
         return storageType switch
         {
-            1 => StorageServiceFactory.CreateLocalStorageService(_storageConfig, cache),
-            2 => StorageServiceFactory.CreateLinodeStorageService(_storageConfig, cache),
-            3 => StorageServiceFactory.CreateAwsStorageService(_storageConfig, cache),
-            4 => StorageServiceFactory.CreateNextCloudStorageService(_storageConfig, new WebDav.WebDavClient(), new HttpClient(), cache),
-            5 => StorageServiceFactory.CreateCloudflareStorageService(_storageConfig, cache),
+            1 => VirtualUpon.Storage.Factories.StorageServiceFactory.CreateLocalStorageService(_storageConfig, cache),
+            2 => VirtualUpon.Storage.Factories.StorageServiceFactory.CreateLinodeStorageService(_storageConfig, cache),
+            3 => VirtualUpon.Storage.Factories.StorageServiceFactory.CreateAwsStorageService(_storageConfig, cache),
+            4 => VirtualUpon.Storage.Factories.StorageServiceFactory.CreateNextCloudStorageService(_storageConfig, new WebDav.WebDavClient(), new HttpClient(), cache),
+            5 => VirtualUpon.Storage.Factories.StorageServiceFactory.CreateCloudflareStorageService(_storageConfig, cache),
             _ => throw new ArgumentException($"Unsupported storage type: {storageType}")
         };
     }

@@ -10,6 +10,11 @@ public class StorageConfiguration
     // Default = false
     public bool CompressionEnabled { get; set; } = false;
 
+    /// <summary>
+    /// When enabled, skips compression for already-compressed file types (media, images, archives).
+    /// </summary>
+    public bool SmartCompressionEnabled { get; set; } = false;
+
     [Required(ErrorMessage = "StorageCacheEnabled is required.")]
     public bool StorageCacheEnabled { get; set; } = false;
 
@@ -22,7 +27,27 @@ public class StorageConfiguration
 
 public class LocalStorageConfiguration
 {
+    /// <summary>
+    /// The base directory path where files are stored locally.
+    /// </summary>
     public string BasePath { get; set; }
+
+    /// <summary>
+    /// The base URL for generating signed URLs (e.g., "https://api.yourapp.com").
+    /// Required for signed URL generation.
+    /// </summary>
+    public string? BaseUrl { get; set; }
+
+    /// <summary>
+    /// Template for generating signed URLs. Placeholders: {fileName}, {token}, {expires}.
+    /// Example: "/media/stream/{fileName}?token={token}&amp;expires={expires}"
+    /// </summary>
+    public string? SignedUrlPathTemplate { get; set; }
+
+    /// <summary>
+    /// Secret key for HMAC token generation. Must be at least 32 characters.
+    /// </summary>
+    public string? TokenSecret { get; set; }
 }
 
 public class AWSConfiguration

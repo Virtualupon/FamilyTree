@@ -31,7 +31,7 @@ interface TownOption {
 
 interface ImageDisplayData extends TownImageDto {
   displayUrl: string | null;
-  loadingBase64: boolean;
+  isLoading: boolean;
 }
 
 @Component({
@@ -121,7 +121,7 @@ interface ImageDisplayData extends TownImageDto {
                 </div>
 
                 <div class="image-preview">
-                  @if (image.loadingBase64) {
+                  @if (image.isLoading) {
                     <div class="image-loading">
                       <mat-spinner diameter="24"></mat-spinner>
                     </div>
@@ -480,8 +480,8 @@ export class TownImagesComponent implements OnInit {
   towns = signal<TownOption[]>([]);
   selectedTownId: string | null = null;
 
-  // Cache loaded base64 data to avoid re-fetching
-  private base64Cache = new Map<string, string>();
+  // Cache signed URLs (browser also caches actual images via HTTP headers)
+  private signedUrlCache = new Map<string, string>();
 
   ngOnInit(): void {
     this.loadTowns();
@@ -511,16 +511,16 @@ export class TownImagesComponent implements OnInit {
         // Convert to ImageDisplayData with loading state
         const displayImages: ImageDisplayData[] = images.map(img => ({
           ...img,
-          displayUrl: this.base64Cache.get(img.id) || null,
-          loadingBase64: !this.base64Cache.has(img.id)
+          displayUrl: this.signedUrlCache.get(img.id) || null,
+          isLoading: !this.signedUrlCache.has(img.id)
         }));
         this.images.set(displayImages);
         this.loading.set(false);
 
-        // Load base64 for each image that's not cached
+        // Load signed URL for each image that's not cached
         displayImages.forEach(img => {
-          if (!this.base64Cache.has(img.id)) {
-            this.loadImageBase64(img.id);
+          if (!this.signedUrlCache.has(img.id)) {
+            this.loadImageSignedUrl(img.id);
           }
         });
       },
@@ -535,31 +535,32 @@ export class TownImagesComponent implements OnInit {
     });
   }
 
-  private loadImageBase64(imageId: string): void {
-    this.townImageService.getImageAsBase64(imageId).subscribe({
-      next: (response) => {
-        // Cache the base64 data
-        const base64Url = response.base64Data.startsWith('data:')
-          ? response.base64Data
-          : `data:image/webp;base64,${response.base64Data}`;
-        this.base64Cache.set(imageId, base64Url);
+  /**
+   * Load signed URL for image display.
+   * Browser will cache the actual image via HTTP headers.
+   */
+  private loadImageSignedUrl(imageId: string): void {
+    this.townImageService.getSignedUrl(imageId).subscribe({
+      next: (signedUrl) => {
+        // Cache the signed URL
+        this.signedUrlCache.set(imageId, signedUrl.url);
 
         // Update the specific image in the list
         const currentImages = this.images();
         const updatedImages = currentImages.map(img =>
           img.id === imageId
-            ? { ...img, displayUrl: base64Url, loadingBase64: false }
+            ? { ...img, displayUrl: signedUrl.url, isLoading: false }
             : img
         );
         this.images.set(updatedImages);
       },
       error: (err) => {
-        console.error(`Failed to load base64 for image ${imageId}:`, err);
+        console.error(`Failed to load signed URL for image ${imageId}:`, err);
         // Mark as failed (no displayUrl, not loading)
         const currentImages = this.images();
         const updatedImages = currentImages.map(img =>
           img.id === imageId
-            ? { ...img, displayUrl: null, loadingBase64: false }
+            ? { ...img, displayUrl: null, isLoading: false }
             : img
         );
         this.images.set(updatedImages);

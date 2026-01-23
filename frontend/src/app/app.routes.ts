@@ -53,6 +53,11 @@ export const routes: Routes = [
       },
       {
         path: 'pending-links',
+        canActivate: [adminGuard],
+        loadComponent: () => import('./features/family-trees/manage-relationships.component').then(m => m.ManageRelationshipsComponent)
+      },
+      {
+        path: 'cross-tree-links',
         loadComponent: () => import('./features/family-trees/pending-links.component').then(m => m.PendingLinksComponent)
       },
       {

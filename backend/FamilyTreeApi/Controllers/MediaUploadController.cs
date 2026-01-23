@@ -169,4 +169,35 @@ public class MediaUploadController : ControllerBase
             return StatusCode(500, new { error = "Failed to delete media" });
         }
     }
+
+    /// <summary>
+    /// Get a signed URL for secure media streaming
+    /// </summary>
+    [HttpGet("{mediaId}/signed-url")]
+    public async Task<IActionResult> GetSignedUrl(Guid mediaId, [FromQuery] int expiresInSeconds = 3600)
+    {
+        try
+        {
+            // Clamp expiration to max 24 hours
+            expiresInSeconds = Math.Clamp(expiresInSeconds, 60, 86400);
+
+            var result = await _mediaService.GetSignedUrlAsync(mediaId, expiresInSeconds);
+            if (!result.IsSuccessful)
+            {
+                return NotFound(new { error = result.ErrorMessage ?? "Media not found" });
+            }
+
+            return Ok(new SignedMediaUrlDto
+            {
+                Url = result.Url!,
+                ExpiresAt = result.ExpiresAt!.Value,
+                ContentType = result.ContentType ?? "application/octet-stream"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting signed URL for media {MediaId}", mediaId);
+            return StatusCode(500, new { error = "Failed to generate signed URL" });
+        }
+    }
 }

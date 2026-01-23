@@ -21,25 +21,9 @@
   padding: $spacing-md;
   position: relative;
   overflow: hidden;
-  
-  // Animated background pattern
-  &::before {
-    content: '';
-    @include absolute-fill;
-    pointer-events: none;
-    opacity: 0.06;
-    background-image: 
-      repeating-linear-gradient(45deg, transparent, transparent 35px, $nubian-gold 35px, $nubian-gold 37px),
-      repeating-linear-gradient(-45deg, transparent, transparent 35px, $nubian-teal 35px, $nubian-teal 37px);
-    background-size: 80px 80px;
-    animation: float 60s linear infinite;
-    z-index: 0;
-  }
-  
-  > * {
-    position: relative;
-    z-index: 1;
-  }
+
+  // Note: Animated background pattern removed - it was causing visual artifacts
+  // in form fields and preventing user input
   
   &__language {
     position: absolute;

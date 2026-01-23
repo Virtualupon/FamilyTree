@@ -14,6 +14,7 @@ import {
   MediaWithData,
   LinkedPerson,
   LinkPersonToMediaRequest,
+  SignedMediaUrl,
   MEDIA_UPLOAD_CONFIG,
   getConfigKey
 } from '../models/person-media.models';
@@ -67,6 +68,24 @@ export class PersonMediaService {
    */
   getLinkedPersons(mediaId: string): Observable<LinkedPerson[]> {
     return this.http.get<LinkedPerson[]>(`${this.apiUrl}/media/${mediaId}/persons`);
+  }
+
+  /**
+   * Get a signed URL for secure media streaming
+   * GET /api/media/{mediaId}/signed-url
+   *
+   * Use this for displaying images, audio, and video.
+   * The URL can be used directly in <img src>, <audio src>, <video src>.
+   * Browser will cache the media via HTTP headers.
+   *
+   * @param mediaId The media ID
+   * @param expiresInSeconds URL validity (default 1 hour, max 24 hours)
+   */
+  getSignedUrl(mediaId: string, expiresInSeconds = 3600): Observable<SignedMediaUrl> {
+    return this.http.get<SignedMediaUrl>(
+      `${this.apiUrl}/media/${mediaId}/signed-url`,
+      { params: { expiresInSeconds: expiresInSeconds.toString() } }
+    );
   }
 
   // ========================================================================

@@ -8,7 +8,8 @@ import {
   UploadTownImageRequest,
   UpdateTownImageRequest,
   ReorderTownImagesRequest,
-  LandingPageImagesResponse
+  LandingPageImagesResponse,
+  SignedMediaUrl
 } from '../models/town-image.models';
 
 @Injectable({ providedIn: 'root' })
@@ -38,6 +39,24 @@ export class TownImageService {
   /** Get download URL for image */
   getImageDownloadUrl(imageId: string): string {
     return `${this.apiUrl}/${imageId}/download`;
+  }
+
+  /**
+   * Get a signed URL for secure image streaming
+   * GET /town-images/{imageId}/signed-url
+   *
+   * Use this for displaying images in carousels and galleries.
+   * The URL can be used directly in <img src>.
+   * Browser will cache the image via HTTP headers.
+   *
+   * @param imageId The image ID
+   * @param expiresInSeconds URL validity (default 1 hour, max 24 hours)
+   */
+  getSignedUrl(imageId: string, expiresInSeconds = 3600): Observable<SignedMediaUrl> {
+    return this.http.get<SignedMediaUrl>(
+      `${this.apiUrl}/${imageId}/signed-url`,
+      { params: { expiresInSeconds: expiresInSeconds.toString() } }
+    );
   }
 
   // ========================================

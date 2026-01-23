@@ -1,5 +1,7 @@
 ﻿using System;
 using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Distributed;
 using VirtualUpon.Storage.Dto;
@@ -360,6 +362,195 @@ namespace VirtualUpon.Storage.Services
                 };
             }
         }
+
+        #region Signed URL Methods
+
+        /// <summary>
+        /// Generates a signed URL for secure file access.
+        /// </summary>
+        public Task<SignedUrlResponseDto> GetSignedUrlAsync(string filePath, int expiresInSeconds = 3600)
+        {
+            try
+            {
+                // Validate configuration
+                if (string.IsNullOrEmpty(_config.LocalStorage?.BaseUrl))
+                {
+                    return Task.FromResult(new SignedUrlResponseDto
+                    {
+                        IsSuccessful = false,
+                        ErrorMessage = "BaseUrl is not configured for local storage signed URLs."
+                    });
+                }
+
+                if (string.IsNullOrEmpty(_config.LocalStorage?.SignedUrlPathTemplate))
+                {
+                    return Task.FromResult(new SignedUrlResponseDto
+                    {
+                        IsSuccessful = false,
+                        ErrorMessage = "SignedUrlPathTemplate is not configured for local storage signed URLs."
+                    });
+                }
+
+                if (string.IsNullOrEmpty(_config.LocalStorage?.TokenSecret))
+                {
+                    return Task.FromResult(new SignedUrlResponseDto
+                    {
+                        IsSuccessful = false,
+                        ErrorMessage = "TokenSecret is not configured for local storage signed URLs."
+                    });
+                }
+
+                if (_config.LocalStorage.TokenSecret.Length < 32)
+                {
+                    return Task.FromResult(new SignedUrlResponseDto
+                    {
+                        IsSuccessful = false,
+                        ErrorMessage = "TokenSecret must be at least 32 characters long."
+                    });
+                }
+
+                if (string.IsNullOrEmpty(filePath))
+                {
+                    return Task.FromResult(new SignedUrlResponseDto
+                    {
+                        IsSuccessful = false,
+                        ErrorMessage = "File path cannot be null or empty."
+                    });
+                }
+
+                // Enforce maximum expiration of 24 hours
+                const int maxExpirationSeconds = 86400;
+                expiresInSeconds = Math.Min(Math.Max(expiresInSeconds, 1), maxExpirationSeconds);
+
+                // Calculate expiration timestamp (Unix epoch seconds)
+                var expiresAt = DateTime.UtcNow.AddSeconds(expiresInSeconds);
+                var expiresTimestamp = new DateTimeOffset(expiresAt).ToUnixTimeSeconds();
+
+                // Generate token
+                var token = GenerateToken(filePath, expiresTimestamp);
+
+                // URL-encode the file path for use in URL
+                var encodedFileName = Uri.EscapeDataString(filePath);
+
+                // Build URL from template
+                var path = _config.LocalStorage.SignedUrlPathTemplate
+                    .Replace("{fileName}", encodedFileName)
+                    .Replace("{token}", token)
+                    .Replace("{expires}", expiresTimestamp.ToString());
+
+                var url = _config.LocalStorage.BaseUrl.TrimEnd('/') + path;
+
+                // Get content type
+                var contentType = MediaTypeHelper.GetContentType(filePath);
+
+                return Task.FromResult(new SignedUrlResponseDto
+                {
+                    IsSuccessful = true,
+                    Url = url,
+                    ExpiresAt = expiresAt,
+                    ContentType = contentType
+                });
+            }
+            catch (Exception ex)
+            {
+                return Task.FromResult(new SignedUrlResponseDto
+                {
+                    IsSuccessful = false,
+                    ErrorMessage = $"Failed to generate signed URL: {ex.Message}"
+                });
+            }
+        }
+
+        /// <summary>
+        /// Validates a signed token for local storage streaming.
+        /// </summary>
+        public bool ValidateSignedToken(string fileName, string token, long expires)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(fileName) || string.IsNullOrEmpty(token))
+                    return false;
+
+                if (string.IsNullOrEmpty(_config.LocalStorage?.TokenSecret))
+                    return false;
+
+                // Check if token has expired
+                var expiresAt = DateTimeOffset.FromUnixTimeSeconds(expires).UtcDateTime;
+                if (DateTime.UtcNow > expiresAt)
+                    return false;
+
+                // Regenerate the expected token and compare
+                var expectedToken = GenerateToken(fileName, expires);
+
+                // Use constant-time comparison to prevent timing attacks
+                return CryptographicOperations.FixedTimeEquals(
+                    Encoding.UTF8.GetBytes(token),
+                    Encoding.UTF8.GetBytes(expectedToken));
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Gets the local file path for streaming with path traversal protection.
+        /// </summary>
+        public string? GetLocalFilePath(string fileName)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(fileName))
+                    return null;
+
+                // Decode URL-encoded file name
+                var decodedFileName = Uri.UnescapeDataString(fileName);
+
+                // Path traversal protection - reject any path with ..
+                if (decodedFileName.Contains(".."))
+                    return null;
+
+                // Build full path
+                var fullPath = Path.Combine(_basePath, decodedFileName);
+
+                // Normalize path and verify it's within base path
+                var normalizedPath = Path.GetFullPath(fullPath);
+                var normalizedBasePath = Path.GetFullPath(_basePath);
+
+                if (!normalizedPath.StartsWith(normalizedBasePath, StringComparison.OrdinalIgnoreCase))
+                    return null;
+
+                // Check if file exists
+                if (!File.Exists(normalizedPath))
+                    return null;
+
+                return normalizedPath;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Generates an HMACSHA256 token for signing URLs.
+        /// </summary>
+        private string GenerateToken(string fileName, long expires)
+        {
+            var message = $"{fileName}{expires}";
+            var secretBytes = Encoding.UTF8.GetBytes(_config.LocalStorage!.TokenSecret!);
+
+            using var hmac = new HMACSHA256(secretBytes);
+            var hashBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(message));
+
+            // Base64url encoding (URL-safe)
+            return Convert.ToBase64String(hashBytes)
+                .Replace('+', '-')
+                .Replace('/', '_')
+                .TrimEnd('=');
+        }
+
+        #endregion
     }
 }
 

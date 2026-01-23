@@ -19,12 +19,18 @@ export interface FamilyRelationshipTypeGrouped {
 }
 
 /**
- * Display language options for relationship types
+ * Display language options for relationship types (legacy format)
  */
 export type RelationshipLanguage = 'english' | 'arabic' | 'nubian';
 
 /**
- * Helper to get relationship name in specified language
+ * App language codes used by I18nService
+ */
+export type AppLanguage = 'en' | 'ar' | 'nob';
+
+/**
+ * Helper to get relationship name in specified language with fallback chain.
+ * Always falls back to English if the requested language is empty/null.
  */
 export function getRelationshipName(
   type: FamilyRelationshipType,
@@ -32,12 +38,31 @@ export function getRelationshipName(
 ): string {
   switch (language) {
     case 'arabic':
-      return type.nameArabic;
+      return type.nameArabic || type.nameEnglish || '';
     case 'nubian':
-      return type.nameNubian;
+      return type.nameNubian || type.nameEnglish || '';
     case 'english':
     default:
-      return type.nameEnglish;
+      return type.nameEnglish || '';
+  }
+}
+
+/**
+ * Helper to get relationship name using app language codes (en, ar, nob).
+ * Includes fallback chain: requested language -> English -> empty string
+ */
+export function getRelationshipNameByLang(
+  type: FamilyRelationshipType,
+  lang: AppLanguage
+): string {
+  switch (lang) {
+    case 'ar':
+      return type.nameArabic || type.nameEnglish || '';
+    case 'nob':
+      return type.nameNubian || type.nameEnglish || '';
+    case 'en':
+    default:
+      return type.nameEnglish || '';
   }
 }
 
@@ -58,10 +83,13 @@ export function getRelationshipDisplayName(
 
   // Show English with Arabic as secondary by default
   if (primaryLanguage === 'english') {
-    return `${primary} (${type.nameArabic})`;
+    const secondary = type.nameArabic || '';
+    return secondary ? `${primary} (${secondary})` : primary;
   } else if (primaryLanguage === 'arabic') {
-    return `${primary} (${type.nameEnglish})`;
+    const secondary = type.nameEnglish || '';
+    return secondary ? `${primary} (${secondary})` : primary;
   } else {
-    return `${primary} (${type.nameEnglish})`;
+    const secondary = type.nameEnglish || '';
+    return secondary ? `${primary} (${secondary})` : primary;
   }
 }

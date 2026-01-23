@@ -122,7 +122,7 @@ export class I18nService {
   /**
    * Get localized person name based on current language/script preference
    */
-  getPersonName(person: { 
+  getPersonName(person: {
     primaryName?: string | null;
     names?: Array<{ fullName: string; script?: string; nameType?: string }> | null;
   }): string {
@@ -131,7 +131,7 @@ export class I18nService {
     }
 
     const lang = this.currentLang();
-    
+
     // Try to find name in preferred script
     let preferredScript = 'Latin';
     if (lang === 'ar') preferredScript = 'Arabic';
@@ -153,5 +153,26 @@ export class I18nService {
 
     // Fall back to first name
     return person.names[0]?.fullName || person.primaryName || '';
+  }
+
+  /**
+   * Get localized relationship type name based on current language.
+   * Includes fallback chain: requested language -> English -> empty string
+   */
+  getRelationshipTypeName(type: {
+    nameEnglish: string;
+    nameArabic: string;
+    nameNubian: string
+  }): string {
+    const lang = this.currentLang();
+    switch (lang) {
+      case 'ar':
+        return type.nameArabic || type.nameEnglish || '';
+      case 'nob':
+        return type.nameNubian || type.nameEnglish || '';
+      case 'en':
+      default:
+        return type.nameEnglish || '';
+    }
   }
 }

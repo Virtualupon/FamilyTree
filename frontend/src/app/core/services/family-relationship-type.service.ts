@@ -6,8 +6,10 @@ import {
   FamilyRelationshipType,
   FamilyRelationshipTypeGrouped,
   RelationshipLanguage,
-  getRelationshipDisplayName
+  getRelationshipDisplayName,
+  getRelationshipNameByLang
 } from '../models/family-relationship-type.models';
+import { I18nService } from '../i18n';
 
 /**
  * Service for managing family relationship types with trilingual support.
@@ -18,6 +20,7 @@ import {
 })
 export class FamilyRelationshipTypeService {
   private readonly http = inject(HttpClient);
+  private readonly i18n = inject(I18nService);
   private readonly apiUrl = `${environment.apiUrl}/relationship-types`;
 
   // Cache the observable to avoid multiple requests
@@ -129,7 +132,7 @@ export class FamilyRelationshipTypeService {
   }
 
   /**
-   * Get display name for a relationship type
+   * Get display name for a relationship type (legacy method with explicit language)
    */
   getDisplayName(
     type: FamilyRelationshipType,
@@ -137,6 +140,14 @@ export class FamilyRelationshipTypeService {
     showSecondary: boolean = true
   ): string {
     return getRelationshipDisplayName(type, language, showSecondary);
+  }
+
+  /**
+   * Get localized name for a relationship type using the user's current language.
+   * Includes fallback chain: requested language -> English -> empty string
+   */
+  getLocalizedName(type: FamilyRelationshipType): string {
+    return getRelationshipNameByLang(type, this.i18n.currentLang());
   }
 
   /**

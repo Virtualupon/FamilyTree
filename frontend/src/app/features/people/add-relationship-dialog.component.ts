@@ -176,7 +176,16 @@ export class AddRelationshipDialogComponent implements OnInit {
 
   displayRelType(relType: FamilyRelationshipType | null): string {
     if (!relType) return '';
-    return `${relType.nameEnglish} (${relType.nameArabic})`;
+    const lang = this.i18n.currentLang();
+    switch (lang) {
+      case 'ar':
+        return relType.nameArabic || relType.nameEnglish || '';
+      case 'nob':
+        return relType.nameNubian || relType.nameEnglish || '';
+      case 'en':
+      default:
+        return relType.nameEnglish || '';
+    }
   }
 
   onRelTypeSelected(relType: FamilyRelationshipType) {

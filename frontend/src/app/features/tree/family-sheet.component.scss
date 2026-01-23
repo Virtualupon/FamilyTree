@@ -1,0 +1,379 @@
+.family-sheet {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 900px;
+  margin: 0 auto;
+
+  &__section {
+    background: var(--ft-surface, #fff);
+    border-radius: 12px;
+    overflow: hidden;
+
+    mat-card-header {
+      background: var(--ft-surface-variant, #FFF9F5);
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--ft-border, #F4E4D7);
+
+      mat-card-title {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--ft-on-surface, #2D2D2D);
+        margin: 0;
+
+        i {
+          color: var(--ft-primary, #187573);
+        }
+      }
+    }
+
+    mat-card-content {
+      padding: 1.5rem;
+    }
+
+    &--parents {
+      mat-card-header {
+        background: linear-gradient(135deg, rgba(24, 117, 115, 0.05), rgba(24, 117, 115, 0.1));
+      }
+    }
+
+    &--own {
+      mat-card-header {
+        background: linear-gradient(135deg, rgba(193, 126, 62, 0.05), rgba(193, 126, 62, 0.1));
+
+        mat-card-title i {
+          color: var(--ft-accent, #C17E3E);
+        }
+      }
+    }
+  }
+
+  &__parents-row {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  &__parent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 160px;
+    max-width: 200px;
+
+    &:hover {
+      background: var(--ft-surface-variant, #FFF9F5);
+      transform: translateY(-2px);
+    }
+
+    &--selected {
+      background: rgba(24, 117, 115, 0.1);
+      box-shadow: 0 0 0 2px var(--ft-primary, #187573);
+    }
+
+    &--current {
+      background: rgba(193, 126, 62, 0.1);
+    }
+  }
+
+  &__avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+    border: 3px solid transparent;
+    transition: border-color 0.2s ease;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    &--male {
+      background: linear-gradient(135deg, #E3F2FD, #BBDEFB);
+      color: #1976D2;
+      border-color: #64B5F6;
+    }
+
+    &--female {
+      background: linear-gradient(135deg, #FCE4EC, #F8BBD9);
+      color: #C2185B;
+      border-color: #F48FB1;
+    }
+
+    &--small {
+      width: 40px;
+      height: 40px;
+      font-size: 0.875rem;
+      margin-bottom: 0;
+      border-width: 2px;
+    }
+  }
+
+  &__person-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.25rem;
+  }
+
+  &__role {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--ft-on-surface-variant, #6B6B6B);
+    font-weight: 600;
+  }
+
+  &__name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--ft-on-surface, #2D2D2D);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  &__dates {
+    font-size: 0.8rem;
+    color: var(--ft-on-surface-variant, #6B6B6B);
+  }
+
+  &__current-badge {
+    color: var(--ft-accent, #C17E3E);
+    font-size: 0.9rem;
+  }
+
+  &__marriage-connector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 0.5rem;
+  }
+
+  &__marriage-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FFF8F0, #FFEDD5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ft-accent, #C17E3E);
+    font-size: 1.25rem;
+    border: 2px solid var(--ft-accent, #C17E3E);
+  }
+
+  &__marriage-date {
+    font-size: 0.75rem;
+    color: var(--ft-on-surface-variant, #6B6B6B);
+    margin-top: 0.5rem;
+    white-space: nowrap;
+  }
+
+  &__children {
+    margin-top: 1rem;
+  }
+
+  &__children-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--ft-on-surface, #2D2D2D);
+    margin: 0 0 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  &__children-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  &__child {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: var(--ft-surface-variant, #FFF9F5);
+    border: 1px solid transparent;
+
+    &:hover {
+      background: rgba(24, 117, 115, 0.05);
+      border-color: var(--ft-border, #F4E4D7);
+    }
+
+    &--selected {
+      background: rgba(24, 117, 115, 0.1);
+      border-color: var(--ft-primary, #187573);
+    }
+
+    &--current {
+      background: rgba(193, 126, 62, 0.1);
+      border-color: var(--ft-accent, #C17E3E);
+    }
+  }
+
+  &__child-number {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--ft-on-surface-variant, #6B6B6B);
+    min-width: 24px;
+  }
+
+  &__child-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__child-name {
+    font-weight: 500;
+    color: var(--ft-on-surface, #2D2D2D);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  &__child-dates {
+    font-size: 0.8rem;
+    color: var(--ft-on-surface-variant, #6B6B6B);
+  }
+
+  &__no-children {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    color: var(--ft-on-surface-variant, #6B6B6B);
+    gap: 0.5rem;
+
+    i {
+      font-size: 2rem;
+      opacity: 0.5;
+    }
+
+    span {
+      font-size: 0.9rem;
+    }
+  }
+
+  &__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    color: var(--ft-on-surface-variant, #6B6B6B);
+    gap: 1rem;
+
+    i {
+      font-size: 3rem;
+      opacity: 0.4;
+    }
+
+    p {
+      font-size: 1rem;
+      margin: 0;
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .family-sheet {
+    padding: 0.75rem;
+
+    &__section {
+      mat-card-header {
+        padding: 0.75rem 1rem;
+      }
+
+      mat-card-content {
+        padding: 1rem;
+      }
+    }
+
+    &__parents-row {
+      flex-direction: column;
+      align-items: center;
+    }
+
+    &__parent {
+      width: 100%;
+      max-width: none;
+      flex-direction: row;
+      gap: 1rem;
+      text-align: left;
+    }
+
+    &__person-info {
+      align-items: flex-start;
+    }
+
+    &__avatar {
+      width: 60px;
+      height: 60px;
+      font-size: 1.25rem;
+      margin-bottom: 0;
+    }
+
+    &__marriage-connector {
+      flex-direction: row;
+      gap: 0.5rem;
+      padding: 0.5rem 0;
+    }
+
+    &__marriage-icon {
+      width: 32px;
+      height: 32px;
+      font-size: 0.875rem;
+    }
+
+    &__marriage-date {
+      margin-top: 0;
+    }
+  }
+}
+
+// RTL support
+:host-context([dir="rtl"]) {
+  .family-sheet {
+    &__child {
+      flex-direction: row-reverse;
+    }
+
+    &__child-info {
+      text-align: right;
+    }
+
+    &__person-info {
+      text-align: right;
+    }
+  }
+}

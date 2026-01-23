@@ -12,6 +12,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { MatBottomSheet, MatBottomSheetModule } from '@angular/material/bottom-sheet';
+import { MatDividerModule } from '@angular/material/divider';
 
 import { TreeService } from '../../core/services/tree.service';
 import { PersonService } from '../../core/services/person.service';
@@ -26,6 +27,8 @@ import { RelationshipPathResponse } from '../../core/models/relationship-path.mo
 import { LoadingComponent, EmptyStateComponent } from '../../shared/components';
 import { PersonSelectorComponent } from './person-selector.component';
 import { D3FamilyTreeComponent } from './d3-family-tree.component';
+import { TimelineViewComponent } from './timeline-view.component';
+import { FamilySheetComponent } from './family-sheet.component';
 import { RelationshipFinderDialogComponent, RelationshipFinderDialogResult } from './relationship-finder-dialog.component';
 import { AddRelationshipDialogComponent, RelationshipDialogData, RelationshipDialogType } from '../people/add-relationship-dialog.component';
 import { RelationshipPathViewComponent } from './relationship-path-view.component';
@@ -42,10 +45,13 @@ import { RelationshipPathViewComponent } from './relationship-path-view.componen
     MatMenuModule,
     MatTooltipModule,
     MatBottomSheetModule,
+    MatDividerModule,
     TranslatePipe,
     LoadingComponent,
     EmptyStateComponent,
     D3FamilyTreeComponent,
+    TimelineViewComponent,
+    FamilySheetComponent,
     RelationshipPathViewComponent
   ],
   templateUrl: './tree-view.component.html',
@@ -54,6 +60,7 @@ import { RelationshipPathViewComponent } from './relationship-path-view.componen
 export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('treeContainer') treeContainer!: ElementRef;
   @ViewChild('d3Tree') d3TreeComponent!: D3FamilyTreeComponent;
+  @ViewChild('timelineView') timelineViewComponent!: TimelineViewComponent;
   
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -79,7 +86,7 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
   treeData = signal<TreePersonNode | null>(null);
   crossTreeLinks = signal<TreeLinksSummary | null>(null);
   loading = signal(false);
-  viewMode = signal<'pedigree' | 'descendants' | 'hourglass'>('pedigree');
+  viewMode = signal<'pedigree' | 'descendants' | 'hourglass' | 'timeline' | 'familySheet'>('pedigree');
 
   // Signal for selected person avatar
   selectedPersonAvatarUrl = signal<string | null>(null);
@@ -186,18 +193,38 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
     });
   }
   
-  setViewMode(mode: 'pedigree' | 'descendants' | 'hourglass'): void {
+  setViewMode(mode: 'pedigree' | 'descendants' | 'hourglass' | 'timeline' | 'familySheet'): void {
     this.viewMode.set(mode);
-    this.loadTree();
+    // Only reload tree for tree-based views, not for timeline/familySheet
+    if (mode !== 'timeline' && mode !== 'familySheet') {
+      this.loadTree();
+    }
   }
-  
+
   getViewModeLabel(): string {
-    const labels = {
+    const labels: Record<string, string> = {
       pedigree: this.i18n.t('tree.pedigree'),
       descendants: this.i18n.t('tree.descendants'),
-      hourglass: this.i18n.t('tree.hourglass')
+      hourglass: this.i18n.t('tree.hourglass'),
+      timeline: this.i18n.t('tree.timeline'),
+      familySheet: this.i18n.t('tree.familySheet')
     };
     return labels[this.viewMode()];
+  }
+
+  // Check if current view mode is a tree-based view
+  isTreeView(): boolean {
+    const mode = this.viewMode();
+    return mode === 'pedigree' || mode === 'descendants' || mode === 'hourglass';
+  }
+
+  // Get the tree-compatible view mode for D3 component
+  getTreeViewMode(): 'pedigree' | 'descendants' | 'hourglass' {
+    const mode = this.viewMode();
+    if (mode === 'pedigree' || mode === 'descendants' || mode === 'hourglass') {
+      return mode;
+    }
+    return 'pedigree'; // Default fallback
   }
   
   onSettingsChange(): void {

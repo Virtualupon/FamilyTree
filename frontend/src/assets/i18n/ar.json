@@ -1125,7 +1125,36 @@
     "oldest": "الأكبر سناً",
     "youngest": "الأصغر سناً",
     "recentlyAdded": "أُضيف مؤخراً",
-    "recentlyUpdated": "تم تحديثه مؤخراً"
+    "recentlyUpdated": "تم تحديثه مؤخراً",
+    "timeline": "الجدول الزمني",
+    "familySheet": "صحيفة العائلة"
+  },
+  "timeline": {
+    "title": "عرض الجدول الزمني",
+    "yearsOld": "سنة",
+    "noDates": "لا توجد تواريخ مسجلة",
+    "legend": "الأجيال",
+    "rootPerson": "الشخص المحدد",
+    "parents": "الوالدان",
+    "grandparents": "الأجداد",
+    "children": "الأبناء",
+    "grandchildren": "الأحفاد"
+  },
+  "familySheet": {
+    "title": "صحيفة المجموعة العائلية",
+    "husband": "الزوج",
+    "wife": "الزوجة",
+    "father": "الأب",
+    "mother": "الأم",
+    "marriage": "الزواج",
+    "children": "الأبناء",
+    "notes": "ملاحظات",
+    "sources": "المصادر",
+    "born": "ولد",
+    "died": "توفي",
+    "married": "تزوج",
+    "noChildren": "لا يوجد أبناء مسجلين",
+    "childNumber": "طفل"
   },
   "filter": {
     "allGenders": "كل الأجناس",

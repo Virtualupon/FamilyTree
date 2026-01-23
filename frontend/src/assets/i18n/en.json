@@ -982,7 +982,36 @@
     "oldest": "Oldest",
     "youngest": "Youngest",
     "recentlyAdded": "Recently Added",
-    "recentlyUpdated": "Recently Updated"
+    "recentlyUpdated": "Recently Updated",
+    "timeline": "Timeline",
+    "familySheet": "Family Sheet"
+  },
+  "timeline": {
+    "title": "Timeline View",
+    "yearsOld": "years old",
+    "noDates": "No dates recorded",
+    "legend": "Generations",
+    "rootPerson": "Selected Person",
+    "parents": "Parents",
+    "grandparents": "Grandparents",
+    "children": "Children",
+    "grandchildren": "Grandchildren"
+  },
+  "familySheet": {
+    "title": "Family Group Sheet",
+    "husband": "Husband",
+    "wife": "Wife",
+    "father": "Father",
+    "mother": "Mother",
+    "marriage": "Marriage",
+    "children": "Children",
+    "notes": "Notes",
+    "sources": "Sources",
+    "born": "Born",
+    "died": "Died",
+    "married": "Married",
+    "noChildren": "No children recorded",
+    "childNumber": "Child"
   },
   "filter": {
     "allGenders": "All Genders",

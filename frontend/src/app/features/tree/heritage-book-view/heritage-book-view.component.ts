@@ -1,5 +1,6 @@
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, inject, signal, computed } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, OnDestroy, SimpleChanges, inject, signal, computed, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TreePersonNode, TreeUnionNode } from '../../../core/models/tree.models';
 import { Sex } from '../../../core/models/person.models';
 import { I18nService, TranslatePipe } from '../../../core/i18n';
@@ -32,7 +33,7 @@ interface HeritageFamilyUnit {
   templateUrl: './heritage-book-view.component.html',
   styleUrls: ['./heritage-book-view.component.scss']
 })
-export class HeritageBookViewComponent implements OnChanges {
+export class HeritageBookViewComponent implements OnChanges, OnDestroy {
   @Input() treeData: TreePersonNode | null = null;
   @Input() selectedPersonId: string | null = null;
 
@@ -41,6 +42,7 @@ export class HeritageBookViewComponent implements OnChanges {
 
   private readonly i18n = inject(I18nService);
   private readonly mediaService = inject(PersonMediaService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly Sex = Sex;
 
@@ -160,11 +162,11 @@ export class HeritageBookViewComponent implements OnChanges {
     }
 
     // If root has children directly (from tree data), include siblings from same generation
-    // Sort by birth date
+    // Sort by birth date with validation
     const children = Array.from(childrenSet.values());
     children.sort((a, b) => {
-      const aYear = a.birthDate ? new Date(a.birthDate).getFullYear() : 9999;
-      const bYear = b.birthDate ? new Date(b.birthDate).getFullYear() : 9999;
+      const aYear = this.parseYearForSort(a.birthDate);
+      const bYear = this.parseYearForSort(b.birthDate);
       return aYear - bYear;
     });
 
@@ -246,25 +248,60 @@ export class HeritageBookViewComponent implements OnChanges {
     return `${birthYear} - ${deathYear}`;
   }
 
+  /**
+   * Parse year for sorting purposes.
+   * Returns 9999 for invalid/missing dates to sort them last.
+   */
+  private parseYearForSort(dateStr: string | undefined | null): number {
+    if (!dateStr) return 9999;
+    try {
+      const date = new Date(dateStr);
+      const year = date.getFullYear();
+      if (isNaN(year) || year < 1000 || year > 2200) {
+        return 9999;
+      }
+      return year;
+    } catch {
+      return 9999;
+    }
+  }
+
+  /**
+   * Safely parse and format year from date string.
+   * Returns empty string if invalid.
+   */
   formatYear(dateStr: string | undefined): string {
     if (!dateStr) return '';
     try {
-      return new Date(dateStr).getFullYear().toString();
+      const date = new Date(dateStr);
+      const year = date.getFullYear();
+      // Validate: NaN check and reasonable year range
+      if (isNaN(year) || year < 1000 || year > 2200) {
+        return '';
+      }
+      return year.toString();
     } catch {
       return '';
     }
   }
 
+  /**
+   * Safely format full date string with validation.
+   */
   formatDate(dateStr: string | null | undefined): string {
     if (!dateStr) return '';
     try {
       const date = new Date(dateStr);
+      const year = date.getFullYear();
+      // Validate: NaN check and reasonable year range
+      if (isNaN(year) || year < 1000 || year > 2200) {
+        return '';
+      }
       const day = date.getDate();
       const month = date.toLocaleDateString(this.i18n.currentLang() === 'ar' ? 'ar-EG' : 'en-US', { month: 'short' });
-      const year = date.getFullYear();
       return `${day} ${month} ${year}`;
     } catch {
-      return dateStr;
+      return '';
     }
   }
 
@@ -280,6 +317,9 @@ export class HeritageBookViewComponent implements OnChanges {
     return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
   }
 
+  /**
+   * Load avatar with subscription cleanup via takeUntilDestroyed.
+   */
   private loadAvatar(personId: string, avatarMediaId: string, target: 'father' | 'mother'): void {
     // Check cache first
     if (this.avatarCache.has(personId)) {
@@ -292,7 +332,9 @@ export class HeritageBookViewComponent implements OnChanges {
       return;
     }
 
-    this.mediaService.getMediaById(avatarMediaId).subscribe({
+    this.mediaService.getMediaById(avatarMediaId).pipe(
+      takeUntilDestroyed(this.destroyRef) // Auto-unsubscribe on destroy
+    ).subscribe({
       next: (media) => {
         const objectUrl = this.mediaService.createObjectUrl(
           media.base64Data,
@@ -308,6 +350,7 @@ export class HeritageBookViewComponent implements OnChanges {
       },
       error: () => {
         // Silently fail - will show initials instead
+        console.warn(`Failed to load avatar for person ${personId}`);
       }
     });
   }

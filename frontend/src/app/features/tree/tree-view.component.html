@@ -26,6 +26,20 @@
           (click)="setViewMode('hourglass')">
           {{ 'tree.hourglass' | translate }}
         </button>
+        <button
+          mat-stroked-button
+          [class.active]="viewMode() === 'timeline'"
+          (click)="setViewMode('timeline')">
+          <i class="fa-solid fa-timeline" aria-hidden="true"></i>
+          {{ 'tree.timeline' | translate }}
+        </button>
+        <button
+          mat-stroked-button
+          [class.active]="viewMode() === 'familySheet'"
+          (click)="setViewMode('familySheet')">
+          <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
+          {{ 'tree.familySheet' | translate }}
+        </button>
       </div>
 
       <!-- Mobile View Mode Menu -->
@@ -45,6 +59,15 @@
         <button mat-menu-item (click)="setViewMode('hourglass')">
           <i class="fa-solid fa-arrows-up-down" aria-hidden="true"></i>
           {{ 'tree.hourglass' | translate }}
+        </button>
+        <mat-divider></mat-divider>
+        <button mat-menu-item (click)="setViewMode('timeline')">
+          <i class="fa-solid fa-timeline" aria-hidden="true"></i>
+          {{ 'tree.timeline' | translate }}
+        </button>
+        <button mat-menu-item (click)="setViewMode('familySheet')">
+          <i class="fa-solid fa-file-lines" aria-hidden="true"></i>
+          {{ 'tree.familySheet' | translate }}
         </button>
       </mat-menu>
 
@@ -119,12 +142,45 @@
           {{ 'common.search' | translate }}
         </button>
       </app-empty-state>
+    } @else if (viewMode() === 'timeline' && treeData()) {
+      <!-- Timeline View -->
+      <app-timeline-view
+        #timelineView
+        [treeData]="treeData()"
+        [selectedPersonId]="selectedPerson()?.id || null"
+        (personSelected)="onD3NodeClick($event)"
+        (personDoubleClicked)="onD3NodeDoubleClick($event)">
+      </app-timeline-view>
+
+      <!-- Zoom Controls for Timeline -->
+      <div class="tree-zoom-controls">
+        <button mat-icon-button (click)="timelineViewComponent?.zoomIn()" [matTooltip]="'tree.zoomIn' | translate">
+          <i class="fa-solid fa-plus" aria-hidden="true"></i>
+        </button>
+        <button mat-icon-button (click)="timelineViewComponent?.zoomOut()" [matTooltip]="'tree.zoomOut' | translate">
+          <i class="fa-solid fa-minus" aria-hidden="true"></i>
+        </button>
+        <button mat-icon-button (click)="timelineViewComponent?.resetZoom()" [matTooltip]="'tree.resetView' | translate">
+          <i class="fa-solid fa-crosshairs" aria-hidden="true"></i>
+        </button>
+        <button mat-icon-button (click)="timelineViewComponent?.fitToScreen()" [matTooltip]="'tree.fitToScreen' | translate">
+          <i class="fa-solid fa-expand" aria-hidden="true"></i>
+        </button>
+      </div>
+    } @else if (viewMode() === 'familySheet' && treeData()) {
+      <!-- Family Group Sheet View -->
+      <app-family-sheet
+        [person]="treeData()"
+        [selectedPersonId]="selectedPerson()?.id || null"
+        (personSelected)="onD3NodeClick($event)"
+        (personDoubleClicked)="onD3NodeDoubleClick($event)">
+      </app-family-sheet>
     } @else if (treeData()) {
       <!-- D3 Tree Visualization -->
       <app-d3-family-tree
         #d3Tree
         [treeData]="treeData()"
-        [viewMode]="viewMode()"
+        [viewMode]="getTreeViewMode()"
         [generations]="generations"
         [includeSpouses]="includeSpouses"
         [selectedPersonId]="selectedPerson()?.id || null"

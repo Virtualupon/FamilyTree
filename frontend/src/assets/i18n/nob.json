@@ -672,5 +672,36 @@
       "uncertain": "ⲙⲓⲛⲛⲁ ⲧⲁⲱⲁⲕⲕⲟⲇ",
       "uncertainDesc": "ⲧⲁⲙⲁⲙ ⲗⲁⲍⲓⲙ"
     }
+  },
+  "tree": {
+    "timeline": "ⲧⲁⲣⲓⲭ ⲗⲁⲓⲛ",
+    "familySheet": "ⲛⲟ̄ⲅ ⲱⲁⲣⲁⲕ"
+  },
+  "timeline": {
+    "title": "ⲧⲁⲣⲓⲭ ⲗⲁⲓⲛ ⲅⲓⲣⲣ",
+    "yearsOld": "ⲥⲁⲛⲁ",
+    "noDates": "ⲧⲁⲣⲓⲭ ⲙⲓⲛⲛⲁ",
+    "legend": "ⲛⲁⲥⲁⲗ",
+    "rootPerson": "ⲓⲇⲇⲓ ⲥⲟⲗⲗ",
+    "parents": "ⲁⲃⲃⲓ ⲓⲛⲛⲓ",
+    "grandparents": "ⲇⲁⲇⲁ",
+    "children": "ⲓⲇⲇⲓ ⲧⲟⲣⲣⲓ",
+    "grandchildren": "ⲓⲇⲇⲓ ⲧⲟⲣⲣⲓ ⲧⲟⲣⲣⲓ"
+  },
+  "familySheet": {
+    "title": "ⲛⲟ̄ⲅ ⲱⲁⲣⲁⲕ",
+    "husband": "ⲟⲣⲥⲟⲛ",
+    "wife": "ⲕⲁⲣⲃⲓ",
+    "father": "ⲁⲃⲃⲓ",
+    "mother": "ⲓⲛⲛⲓ",
+    "marriage": "ⲁⲱⲓⲣ",
+    "children": "ⲓⲇⲇⲓ ⲧⲟⲣⲣⲓ",
+    "notes": "ⲛⲟ̄ⲧ",
+    "sources": "ⲙⲁⲥⲇⲁⲣ",
+    "born": "ⲕⲁⲇⲇ",
+    "died": "ⲙⲟⲥⲥ",
+    "married": "ⲁⲱⲓⲣ",
+    "noChildren": "ⲓⲇⲇⲓ ⲧⲟⲣⲣⲓ ⲙⲓⲛⲛⲁ",
+    "childNumber": "ⲓⲇⲇⲓ"
   }
 }

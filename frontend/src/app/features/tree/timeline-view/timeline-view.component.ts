@@ -10,13 +10,16 @@ import {
   inject,
   signal,
   ViewChild,
-  ElementRef
+  ElementRef,
+  DestroyRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatButtonModule } from '@angular/material/button';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { from, mergeMap, of } from 'rxjs';
 
 import * as d3 from 'd3';
 
@@ -53,6 +56,13 @@ export class TimelineViewComponent implements AfterViewInit, OnChanges, OnDestro
 
   private readonly i18n = inject(I18nService);
   private readonly mediaService = inject(PersonMediaService);
+  private readonly destroyRef = inject(DestroyRef);
+
+  // Avatar loading concurrency limit
+  private readonly AVATAR_CONCURRENCY = 5;
+
+  // Unique counter for SVG element IDs to prevent collisions
+  private svgIdCounter = 0;
 
   // Configuration
   selectedGeneration = signal<number | 'all'>('all');
@@ -77,6 +87,18 @@ export class TimelineViewComponent implements AfterViewInit, OnChanges, OnDestro
   private readonly rightMargin = 60;
   private readonly topMargin = 50;
   private readonly bottomMargin = 30;
+
+  /**
+   * Maximum ancestor generations to display (negative direction from root).
+   * Prevents performance issues with very deep family trees.
+   */
+  private readonly MAX_ANCESTOR_GENERATIONS = 4;
+
+  /**
+   * Maximum descendant generations to display (positive direction from root).
+   * Prevents performance issues with very deep family trees.
+   */
+  private readonly MAX_DESCENDANT_GENERATIONS = 5;
 
   // Color scheme by generation
   private readonly generationColors: Array<{ main: string; light: string }> = [
@@ -182,14 +204,13 @@ export class TimelineViewComponent implements AfterViewInit, OnChanges, OnDestro
     colorIndex: number
   ): TimelineNode {
     const currentYear = new Date().getFullYear();
-    const birthYear = person.birthDate
-      ? new Date(person.birthDate).getFullYear()
-      : currentYear - 50;
+    const birthYear = this.parseYear(person.birthDate) ?? (currentYear - 50);
 
     let deathYear: number | null = null;
     if (person.deathDate) {
-      deathYear = new Date(person.deathDate).getFullYear();
-    } else if (!person.isLiving) {
+      deathYear = this.parseYear(person.deathDate);
+    }
+    if (deathYear === null && !person.isLiving) {
       deathYear = birthYear + 70;
     }
 
@@ -212,6 +233,25 @@ export class TimelineViewComponent implements AfterViewInit, OnChanges, OnDestro
     };
   }
 
+  /**
+   * Safely parse a date string to extract year.
+   * Returns null if invalid or unparseable.
+   */
+  private parseYear(dateStr: string | undefined | null): number | null {
+    if (!dateStr) return null;
+    try {
+      const date = new Date(dateStr);
+      const year = date.getFullYear();
+      // Check for Invalid Date (NaN) and unreasonable years
+      if (isNaN(year) || year < 1000 || year > 2200) {
+        return null;
+      }
+      return year;
+    } catch {
+      return null;
+    }
+  }
+
   private processAncestors(
     parents: TreePersonNode[] | undefined,
     nodes: TimelineNode[],
@@ -219,7 +259,7 @@ export class TimelineViewComponent implements AfterViewInit, OnChanges, OnDestro
     childId: string,
     colorIndex: number
   ): void {
-    if (!parents || generation < -4) return;
+    if (!parents || generation < -this.MAX_ANCESTOR_GENERATIONS) return;
 
     parents.forEach((parent, index) => {
       const node = this.createTimelineNode(parent, generation, childId, Math.abs(generation));
@@ -237,7 +277,7 @@ export class TimelineViewComponent implements AfterViewInit, OnChanges, OnDestro
     parentId: string,
     colorIndex: number
   ): void {
-    if (!children || generation > 5) return;
+    if (!children || generation > this.MAX_DESCENDANT_GENERATIONS) return;
 
     children.forEach((child, index) => {
       const node = this.createTimelineNode(child, generation, parentId, generation);
@@ -293,8 +333,9 @@ export class TimelineViewComponent implements AfterViewInit, OnChanges, OnDestro
   private setupSvg(): void {
     if (!this.svgRef?.nativeElement) return;
 
-    // Clear previous
+    // Clear previous and reset ID counter
     d3.select(this.svgRef.nativeElement).selectAll('*').remove();
+    this.svgIdCounter = 0;
 
     const config = this.calculateTimelineConfig();
     const height = this.topMargin +
@@ -459,7 +500,7 @@ export class TimelineViewComponent implements AfterViewInit, OnChanges, OnDestro
 
       // Living indicator (fade at end)
       if (node.isLiving) {
-        const gradientId = `living-gradient-${node.id.replace(/[^a-zA-Z0-9]/g, '')}`;
+        const gradientId = `living-gradient-${this.svgIdCounter++}`;
 
         const defs = this.svg!.select('defs').empty()
           ? this.svg!.append('defs')
@@ -591,11 +632,24 @@ export class TimelineViewComponent implements AfterViewInit, OnChanges, OnDestro
       });
   }
 
+  /**
+   * Load avatars with concurrency limiting to prevent HTTP connection exhaustion.
+   * Uses mergeMap with concurrency parameter and takeUntilDestroyed for cleanup.
+   */
   private loadAvatars(): void {
-    this.timelineNodes.forEach(node => {
-      if (node.person.avatarMediaId && !this.avatarCache.has(node.id)) {
-        this.mediaService.getMediaById(node.person.avatarMediaId).subscribe({
-          next: (media) => {
+    const nodesToLoad = this.timelineNodes.filter(
+      node => node.person.avatarMediaId && !this.avatarCache.has(node.id)
+    );
+
+    if (nodesToLoad.length === 0) return;
+
+    from(nodesToLoad).pipe(
+      mergeMap(node => {
+        if (!node.person.avatarMediaId) {
+          return of(null);
+        }
+        return this.mediaService.getMediaById(node.person.avatarMediaId).pipe(
+          mergeMap(media => {
             const objectUrl = this.mediaService.createObjectUrl(
               media.base64Data,
               media.mimeType || 'image/jpeg'
@@ -603,9 +657,15 @@ export class TimelineViewComponent implements AfterViewInit, OnChanges, OnDestro
             this.avatarCache.set(node.id, objectUrl);
             node.avatarUrl = objectUrl;
             this.updateAvatarInSvg(node);
-          },
-          error: () => { /* Keep initials */ }
-        });
+            return of(node);
+          })
+        );
+      }, this.AVATAR_CONCURRENCY), // Limit concurrent requests
+      takeUntilDestroyed(this.destroyRef) // Auto-unsubscribe on destroy
+    ).subscribe({
+      error: (err) => {
+        // Log warning but keep initials as fallback
+        console.warn('Failed to load timeline avatars:', err?.message || err);
       }
     });
   }
@@ -620,18 +680,17 @@ export class TimelineViewComponent implements AfterViewInit, OnChanges, OnDestro
     const y = this.topMargin + (node.yIndex * (this.barHeight + this.barSpacing));
     const startX = this.xScale!(node.birthYear);
 
-    // Add clip path
-    const clipId = `avatar-clip-${node.id.replace(/[^a-zA-Z0-9]/g, '')}`;
+    // Add clip path with unique ID
+    const clipId = `avatar-clip-${this.svgIdCounter++}`;
     const defs = this.svg!.select('defs').empty()
       ? this.svg!.append('defs')
       : this.svg!.select('defs');
 
-    if (defs.select(`#${clipId}`).empty()) {
-      defs.append('clipPath')
-        .attr('id', clipId)
-        .append('circle')
-        .attr('r', this.avatarRadius - 2);
-    }
+    // Always create new clip path with unique ID
+    defs.append('clipPath')
+      .attr('id', clipId)
+      .append('circle')
+      .attr('r', this.avatarRadius - 2);
 
     // Remove initials and add image
     barGroup.select('.avatar-initials').remove();
@@ -655,6 +714,10 @@ export class TimelineViewComponent implements AfterViewInit, OnChanges, OnDestro
     this.personDoubleClicked.emit(node.person);
   }
 
+  /**
+   * Show tooltip with safe text content (prevents XSS).
+   * Uses textContent instead of innerHTML to prevent script injection.
+   */
   private showTooltip(event: MouseEvent, node: TimelineNode): void {
     if (!this.tooltipRef?.nativeElement) return;
 
@@ -663,11 +726,35 @@ export class TimelineViewComponent implements AfterViewInit, OnChanges, OnDestro
       ? `${node.birthYear} - ${node.deathYear} (${node.deathYear - node.birthYear} ${this.i18n.t('timeline.yearsOld')})`
       : `${node.birthYear} - (${this.i18n.t('timeline.living')})`;
 
-    tooltip.innerHTML = `
-      <div class="tooltip-name">${node.displayName}</div>
-      <div class="tooltip-dates">${lifespan}</div>
-      ${node.descendantCount > 0 ? `<div class="tooltip-descendants"><i class="fa-solid fa-users"></i> ${node.descendantCount} ${this.i18n.t('timeline.totalDescendants')}</div>` : ''}
-    `;
+    // Clear previous content safely
+    tooltip.textContent = '';
+
+    // Create elements safely using DOM APIs (prevents XSS)
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'tooltip-name';
+    nameDiv.textContent = node.displayName; // Safe: textContent escapes HTML
+    tooltip.appendChild(nameDiv);
+
+    const datesDiv = document.createElement('div');
+    datesDiv.className = 'tooltip-dates';
+    datesDiv.textContent = lifespan;
+    tooltip.appendChild(datesDiv);
+
+    if (node.descendantCount > 0) {
+      const descendantsDiv = document.createElement('div');
+      descendantsDiv.className = 'tooltip-descendants';
+
+      const icon = document.createElement('i');
+      icon.className = 'fa-solid fa-users';
+      icon.setAttribute('aria-hidden', 'true');
+      descendantsDiv.appendChild(icon);
+
+      const text = document.createTextNode(
+        ` ${node.descendantCount} ${this.i18n.t('timeline.totalDescendants')}`
+      );
+      descendantsDiv.appendChild(text);
+      tooltip.appendChild(descendantsDiv);
+    }
 
     tooltip.style.display = 'block';
     tooltip.style.left = `${event.pageX + 10}px`;

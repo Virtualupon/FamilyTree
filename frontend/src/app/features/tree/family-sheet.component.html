@@ -1,0 +1,294 @@
+<div class="family-sheet">
+  @if (person) {
+    <!-- Parent's Family Section -->
+    @if (parentFamilyData()) {
+      <mat-card class="family-sheet__section family-sheet__section--parents">
+        <mat-card-header>
+          <mat-card-title>
+            <i class="fa-solid fa-users" aria-hidden="true"></i>
+            {{ 'familySheet.title' | translate }} - {{ 'timeline.parents' | translate }}
+          </mat-card-title>
+        </mat-card-header>
+
+        <mat-card-content>
+          <!-- Parents Row -->
+          <div class="family-sheet__parents-row">
+            <!-- Father -->
+            <div class="family-sheet__parent"
+                 [class.family-sheet__parent--selected]="parentFamilyData()!.husband?.id === selectedPersonId"
+                 (click)="parentFamilyData()!.husband && onPersonClick(parentFamilyData()!.husband!)"
+                 (dblclick)="parentFamilyData()!.husband && onPersonDoubleClick(parentFamilyData()!.husband!)">
+              <div class="family-sheet__avatar family-sheet__avatar--male">
+                @if (parentFamilyData()!.husband && getAvatarUrl(parentFamilyData()!.husband!.id)) {
+                  <img [src]="getAvatarUrl(parentFamilyData()!.husband!.id)" [alt]="getDisplayName(parentFamilyData()!.husband)">
+                } @else {
+                  {{ getInitials(parentFamilyData()!.husband) }}
+                }
+              </div>
+              <div class="family-sheet__person-info">
+                <span class="family-sheet__role">{{ 'familySheet.father' | translate }}</span>
+                <span class="family-sheet__name">{{ getDisplayName(parentFamilyData()!.husband) }}</span>
+                @if (parentFamilyData()!.husband?.birthDate) {
+                  <span class="family-sheet__dates">
+                    {{ 'familySheet.born' | translate }}: {{ formatDate(parentFamilyData()!.husband?.birthDate) }}
+                  </span>
+                }
+                @if (parentFamilyData()!.husband?.deathDate) {
+                  <span class="family-sheet__dates">
+                    {{ 'familySheet.died' | translate }}: {{ formatDate(parentFamilyData()!.husband?.deathDate) }}
+                  </span>
+                }
+              </div>
+            </div>
+
+            <!-- Marriage Connector -->
+            <div class="family-sheet__marriage-connector">
+              <div class="family-sheet__marriage-icon">
+                <i class="fa-solid fa-rings-wedding" aria-hidden="true"></i>
+              </div>
+              @if (parentFamilyData()!.union?.startDate) {
+                <span class="family-sheet__marriage-date">
+                  {{ formatDate(parentFamilyData()!.union?.startDate) }}
+                </span>
+              }
+            </div>
+
+            <!-- Mother -->
+            <div class="family-sheet__parent"
+                 [class.family-sheet__parent--selected]="parentFamilyData()!.wife?.id === selectedPersonId"
+                 (click)="parentFamilyData()!.wife && onPersonClick(parentFamilyData()!.wife!)"
+                 (dblclick)="parentFamilyData()!.wife && onPersonDoubleClick(parentFamilyData()!.wife!)">
+              <div class="family-sheet__avatar family-sheet__avatar--female">
+                @if (parentFamilyData()!.wife && getAvatarUrl(parentFamilyData()!.wife!.id)) {
+                  <img [src]="getAvatarUrl(parentFamilyData()!.wife!.id)" [alt]="getDisplayName(parentFamilyData()!.wife)">
+                } @else {
+                  {{ getInitials(parentFamilyData()!.wife) }}
+                }
+              </div>
+              <div class="family-sheet__person-info">
+                <span class="family-sheet__role">{{ 'familySheet.mother' | translate }}</span>
+                <span class="family-sheet__name">{{ getDisplayName(parentFamilyData()!.wife) }}</span>
+                @if (parentFamilyData()!.wife?.birthDate) {
+                  <span class="family-sheet__dates">
+                    {{ 'familySheet.born' | translate }}: {{ formatDate(parentFamilyData()!.wife?.birthDate) }}
+                  </span>
+                }
+                @if (parentFamilyData()!.wife?.deathDate) {
+                  <span class="family-sheet__dates">
+                    {{ 'familySheet.died' | translate }}: {{ formatDate(parentFamilyData()!.wife?.deathDate) }}
+                  </span>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Siblings -->
+          @if (parentFamilyData()!.children.length > 0) {
+            <mat-divider></mat-divider>
+            <div class="family-sheet__children">
+              <h4 class="family-sheet__children-title">
+                {{ 'familySheet.children' | translate }} ({{ parentFamilyData()!.children.length }})
+              </h4>
+              <div class="family-sheet__children-list">
+                @for (child of parentFamilyData()!.children; track child.id; let i = $index) {
+                  <div class="family-sheet__child"
+                       [class.family-sheet__child--selected]="child.id === selectedPersonId"
+                       [class.family-sheet__child--current]="child.id === person?.id"
+                       (click)="onPersonClick(child)"
+                       (dblclick)="onPersonDoubleClick(child)">
+                    <span class="family-sheet__child-number">{{ i + 1 }}.</span>
+                    <div class="family-sheet__avatar family-sheet__avatar--small"
+                         [class.family-sheet__avatar--male]="child.sex === Sex.Male"
+                         [class.family-sheet__avatar--female]="child.sex === Sex.Female">
+                      @if (getAvatarUrl(child.id)) {
+                        <img [src]="getAvatarUrl(child.id)" [alt]="getDisplayName(child)">
+                      } @else {
+                        {{ getInitials(child) }}
+                      }
+                    </div>
+                    <div class="family-sheet__child-info">
+                      <span class="family-sheet__child-name">
+                        {{ getDisplayName(child) }}
+                        @if (child.id === person?.id) {
+                          <span class="family-sheet__current-badge">★</span>
+                        }
+                      </span>
+                      <span class="family-sheet__child-dates">
+                        @if (child.birthDate) {
+                          {{ formatYear(child.birthDate) }}
+                        }
+                        @if (child.birthDate && child.deathDate) {
+                          -
+                        }
+                        @if (child.deathDate) {
+                          {{ formatYear(child.deathDate) }}
+                        }
+                        @if (child.isLiving && child.birthDate) {
+                          ({{ calculateAge(child.birthDate, undefined) }} {{ 'timeline.yearsOld' | translate }})
+                        }
+                      </span>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+    }
+
+    <!-- Person's Own Family Section -->
+    @if (familyData()) {
+      <mat-card class="family-sheet__section family-sheet__section--own">
+        <mat-card-header>
+          <mat-card-title>
+            <i class="fa-solid fa-house-chimney-user" aria-hidden="true"></i>
+            {{ 'familySheet.title' | translate }}
+          </mat-card-title>
+        </mat-card-header>
+
+        <mat-card-content>
+          <!-- Spouse Row -->
+          <div class="family-sheet__parents-row">
+            <!-- Husband -->
+            <div class="family-sheet__parent"
+                 [class.family-sheet__parent--selected]="familyData()!.husband?.id === selectedPersonId"
+                 [class.family-sheet__parent--current]="familyData()!.husband?.id === person?.id"
+                 (click)="familyData()!.husband && onPersonClick(familyData()!.husband!)"
+                 (dblclick)="familyData()!.husband && onPersonDoubleClick(familyData()!.husband!)">
+              <div class="family-sheet__avatar family-sheet__avatar--male">
+                @if (familyData()!.husband && getAvatarUrl(familyData()!.husband!.id)) {
+                  <img [src]="getAvatarUrl(familyData()!.husband!.id)" [alt]="getDisplayName(familyData()!.husband)">
+                } @else {
+                  {{ getInitials(familyData()!.husband) }}
+                }
+              </div>
+              <div class="family-sheet__person-info">
+                <span class="family-sheet__role">{{ 'familySheet.husband' | translate }}</span>
+                <span class="family-sheet__name">
+                  {{ getDisplayName(familyData()!.husband) }}
+                  @if (familyData()!.husband?.id === person?.id) {
+                    <span class="family-sheet__current-badge">★</span>
+                  }
+                </span>
+                @if (familyData()!.husband?.birthDate) {
+                  <span class="family-sheet__dates">
+                    {{ 'familySheet.born' | translate }}: {{ formatDate(familyData()!.husband?.birthDate) }}
+                  </span>
+                }
+                @if (familyData()!.husband?.deathDate) {
+                  <span class="family-sheet__dates">
+                    {{ 'familySheet.died' | translate }}: {{ formatDate(familyData()!.husband?.deathDate) }}
+                  </span>
+                }
+              </div>
+            </div>
+
+            <!-- Marriage Connector -->
+            <div class="family-sheet__marriage-connector">
+              <div class="family-sheet__marriage-icon">
+                <i class="fa-solid fa-rings-wedding" aria-hidden="true"></i>
+              </div>
+              @if (familyData()!.union?.startDate) {
+                <span class="family-sheet__marriage-date">
+                  {{ formatDate(familyData()!.union?.startDate) }}
+                </span>
+              }
+            </div>
+
+            <!-- Wife -->
+            <div class="family-sheet__parent"
+                 [class.family-sheet__parent--selected]="familyData()!.wife?.id === selectedPersonId"
+                 [class.family-sheet__parent--current]="familyData()!.wife?.id === person?.id"
+                 (click)="familyData()!.wife && onPersonClick(familyData()!.wife!)"
+                 (dblclick)="familyData()!.wife && onPersonDoubleClick(familyData()!.wife!)">
+              <div class="family-sheet__avatar family-sheet__avatar--female">
+                @if (familyData()!.wife && getAvatarUrl(familyData()!.wife!.id)) {
+                  <img [src]="getAvatarUrl(familyData()!.wife!.id)" [alt]="getDisplayName(familyData()!.wife)">
+                } @else {
+                  {{ getInitials(familyData()!.wife) }}
+                }
+              </div>
+              <div class="family-sheet__person-info">
+                <span class="family-sheet__role">{{ 'familySheet.wife' | translate }}</span>
+                <span class="family-sheet__name">
+                  {{ getDisplayName(familyData()!.wife) }}
+                  @if (familyData()!.wife?.id === person?.id) {
+                    <span class="family-sheet__current-badge">★</span>
+                  }
+                </span>
+                @if (familyData()!.wife?.birthDate) {
+                  <span class="family-sheet__dates">
+                    {{ 'familySheet.born' | translate }}: {{ formatDate(familyData()!.wife?.birthDate) }}
+                  </span>
+                }
+                @if (familyData()!.wife?.deathDate) {
+                  <span class="family-sheet__dates">
+                    {{ 'familySheet.died' | translate }}: {{ formatDate(familyData()!.wife?.deathDate) }}
+                  </span>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Children -->
+          @if (familyData()!.children.length > 0) {
+            <mat-divider></mat-divider>
+            <div class="family-sheet__children">
+              <h4 class="family-sheet__children-title">
+                {{ 'familySheet.children' | translate }} ({{ familyData()!.children.length }})
+              </h4>
+              <div class="family-sheet__children-list">
+                @for (child of familyData()!.children; track child.id; let i = $index) {
+                  <div class="family-sheet__child"
+                       [class.family-sheet__child--selected]="child.id === selectedPersonId"
+                       (click)="onPersonClick(child)"
+                       (dblclick)="onPersonDoubleClick(child)">
+                    <span class="family-sheet__child-number">{{ i + 1 }}.</span>
+                    <div class="family-sheet__avatar family-sheet__avatar--small"
+                         [class.family-sheet__avatar--male]="child.sex === Sex.Male"
+                         [class.family-sheet__avatar--female]="child.sex === Sex.Female">
+                      @if (getAvatarUrl(child.id)) {
+                        <img [src]="getAvatarUrl(child.id)" [alt]="getDisplayName(child)">
+                      } @else {
+                        {{ getInitials(child) }}
+                      }
+                    </div>
+                    <div class="family-sheet__child-info">
+                      <span class="family-sheet__child-name">{{ getDisplayName(child) }}</span>
+                      <span class="family-sheet__child-dates">
+                        @if (child.birthDate) {
+                          {{ formatYear(child.birthDate) }}
+                        }
+                        @if (child.birthDate && child.deathDate) {
+                          -
+                        }
+                        @if (child.deathDate) {
+                          {{ formatYear(child.deathDate) }}
+                        }
+                        @if (child.isLiving && child.birthDate) {
+                          ({{ calculateAge(child.birthDate, undefined) }} {{ 'timeline.yearsOld' | translate }})
+                        }
+                      </span>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          } @else {
+            <mat-divider></mat-divider>
+            <div class="family-sheet__no-children">
+              <i class="fa-solid fa-child" aria-hidden="true"></i>
+              <span>{{ 'familySheet.noChildren' | translate }}</span>
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+    }
+  } @else {
+    <div class="family-sheet__empty">
+      <i class="fa-solid fa-users-slash" aria-hidden="true"></i>
+      <p>{{ 'tree.selectPerson' | translate }}</p>
+    </div>
+  }
+</div>

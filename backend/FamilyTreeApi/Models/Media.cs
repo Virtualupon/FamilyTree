@@ -41,7 +41,14 @@ public class Media
     [MaxLength(200)]
     public string? Title { get; set; }
 
+    /// <summary>Description in English (or original input language)</summary>
     public string? Description { get; set; }
+
+    /// <summary>Description in Arabic (auto-translated)</summary>
+    public string? DescriptionAr { get; set; }
+
+    /// <summary>Description in Nobiin (auto-translated)</summary>
+    public string? DescriptionNob { get; set; }
 
     public DateTime? CaptureDate { get; set; }
     public Guid? CapturePlaceId { get; set; }

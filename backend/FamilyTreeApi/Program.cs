@@ -262,6 +262,7 @@ services.AddScoped<IFamilyRelationshipTypeService, FamilyRelationshipTypeService
 services.AddScoped<IFamilyService, FamilyService>();  // Family groups (Town->Org->Family->Person)
 services.AddScoped<IFileStorageService, LocalFileStorageService>();
 services.AddScoped<INameTransliterationService, NameTransliterationService>();
+services.AddScoped<IMediaTranslationService, MediaTranslationService>();
 services.AddScoped<ICountryService, CountryService>();
 services.AddScoped<ICarouselImageService, CarouselImageService>();
 services.AddScoped<ITownImageService, TownImageService>();

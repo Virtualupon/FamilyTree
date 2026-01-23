@@ -552,14 +552,20 @@ i.fa-solid.primary-badge {
   margin-right: 8px;
 }
 
-.description-field {
+.description-field,
+.notes-field {
   width: 100%;
   margin-top: 16px;
 }
 
-.description-field textarea {
+.description-field textarea,
+.notes-field textarea {
   resize: vertical;
   min-height: 60px;
+}
+
+.notes-field textarea {
+  min-height: 48px;
 }
 
 .media-description {

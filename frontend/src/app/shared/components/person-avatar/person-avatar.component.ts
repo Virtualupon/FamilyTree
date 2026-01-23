@@ -12,7 +12,8 @@ import type { Person, PersonListItem } from '../../../core/models/person.models'
 import type { SearchPersonItem } from '../../../core/models/search.models';
 
 // Avatar upload constraints
-const MAX_AVATAR_SIZE_MB = 2; // 2MB max upload size
+const MAX_INPUT_SIZE_MB = 20; // Allow up to 20MB input (will be resized)
+const MAX_OUTPUT_SIZE_MB = 2; // 2MB max after resize (for backend)
 const ALLOWED_AVATAR_TYPES = ['image/webp', 'image/jpeg', 'image/png'];
 const MAX_AVATAR_DIMENSION = 512; // Store at 512x512 for high-DPI displays
 const OUTPUT_QUALITY = 0.85; // WebP/JPEG quality (0-1)
@@ -138,49 +139,80 @@ export class PersonAvatarComponent implements OnChanges, OnDestroy {
   }
 
   async onFileSelected(event: Event): Promise<void> {
+    console.log('[AvatarUpload] onFileSelected triggered');
     const input = event.target as HTMLInputElement;
-    if (!input.files?.length || !this.person) return;
+    if (!input.files?.length || !this.person) {
+      console.warn('[AvatarUpload] No files or no person:', { files: input.files?.length, person: !!this.person });
+      return;
+    }
 
     const file = input.files[0];
+    console.log('[AvatarUpload] File selected:', { name: file.name, size: file.size, type: file.type });
 
     // Validate file type
     if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
+      console.warn('[AvatarUpload] Invalid file type:', file.type);
       this.snackBar.open('Please select an image file (WebP, JPEG, PNG, or GIF)', 'Close', { duration: 4000 });
       input.value = '';
       return;
     }
 
-    // Validate file size
-    if (file.size > MAX_AVATAR_SIZE_MB * 1024 * 1024) {
-      this.snackBar.open(`Image must be less than ${MAX_AVATAR_SIZE_MB}MB`, 'Close', { duration: 4000 });
+    // Validate input file size (generous limit since we'll resize)
+    if (file.size > MAX_INPUT_SIZE_MB * 1024 * 1024) {
+      console.warn('[AvatarUpload] File too large:', file.size);
+      this.snackBar.open(`Image must be less than ${MAX_INPUT_SIZE_MB}MB`, 'Close', { duration: 4000 });
       input.value = '';
       return;
     }
 
     this.uploading = true;
+    console.log('[AvatarUpload] Starting upload process for person:', this.person.id);
 
     try {
       // Resize and convert to WebP (with JPEG fallback)
+      console.log('[AvatarUpload] Resizing image...');
       const { blob, base64, mimeType } = await this.resizeImage(file);
+      console.log('[AvatarUpload] Image resized:', { blobSize: blob.size, mimeType });
+
+      // Verify resized image is within backend limits
+      if (blob.size > MAX_OUTPUT_SIZE_MB * 1024 * 1024) {
+        console.error('[AvatarUpload] Resized image still too large:', blob.size);
+        this.snackBar.open('Image could not be compressed enough. Try a smaller image.', 'Close', { duration: 4000 });
+        this.uploading = false;
+        input.value = '';
+        return;
+      }
+
       const extension = mimeType === 'image/webp' ? '.webp' : '.jpg';
       const resizedFile = new File([blob], file.name.replace(/\.[^.]+$/, extension), { type: mimeType });
 
       // Prepare upload using existing Media system
+      console.log('[AvatarUpload] Preparing upload payload...');
       const payload = await this.mediaService.validateAndPrepareUpload(
         resizedFile,
         [this.person.id],
         'Avatar',
         undefined
       );
+      console.log('[AvatarUpload] Payload prepared:', {
+        fileName: payload.fileName,
+        mimeType: payload.mimeType,
+        sizeBytes: payload.sizeBytes,
+        base64Length: payload.base64Data?.length || 0
+      });
 
       // Upload media
+      console.log('[AvatarUpload] Uploading media to server...');
       this.mediaService.uploadMedia(payload).subscribe({
         next: (media) => {
+          console.log('[AvatarUpload] Media uploaded successfully:', media);
           // Update person's avatarMediaId
+          console.log('[AvatarUpload] Updating person avatarMediaId...');
           this.personService.updatePerson(this.person!.id, {
             avatarMediaId: media.id
           }).subscribe({
             next: () => {
+              console.log('[AvatarUpload] Person avatarMediaId updated successfully');
               this.uploading = false;
               (this.person as any).avatarMediaId = media.id;
               // Update display with resized base64 for immediate feedback
@@ -191,20 +223,22 @@ export class PersonAvatarComponent implements OnChanges, OnDestroy {
             },
             error: (err) => {
               this.uploading = false;
-              console.error('Failed to set avatar:', err);
+              console.error('[AvatarUpload] Failed to update person avatarMediaId:', err);
+              console.error('[AvatarUpload] Error details:', { status: err.status, error: err.error });
               this.snackBar.open('Failed to set avatar', 'Close', { duration: 4000 });
             }
           });
         },
         error: (err) => {
           this.uploading = false;
-          console.error('Avatar upload failed:', err);
+          console.error('[AvatarUpload] Media upload failed:', err);
+          console.error('[AvatarUpload] Error details:', { status: err.status, statusText: err.statusText, error: err.error });
           this.snackBar.open('Failed to upload avatar', 'Close', { duration: 4000 });
         }
       });
     } catch (err) {
       this.uploading = false;
-      console.error('Image resize/upload failed:', err);
+      console.error('[AvatarUpload] Exception during image processing:', err);
       this.snackBar.open('Failed to process image', 'Close', { duration: 4000 });
     }
 

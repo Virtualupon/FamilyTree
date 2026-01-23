@@ -76,9 +76,9 @@
                   <p class="file-meta">
                     {{ formatFileSize(media.fileSize) }} &bull; {{ formatDate(media.linkedAt) }}
                   </p>
-                  <!-- Description -->
-                  @if (media.description) {
-                    <p class="media-description">{{ media.description }}</p>
+                  <!-- Description (localized) -->
+                  @if (getLocalizedDescription(media)) {
+                    <p class="media-description">{{ getLocalizedDescription(media) }}</p>
                   }
                   <!-- Linked persons -->
                   @if (media.linkedPersons && media.linkedPersons.length > 1) {
@@ -133,9 +133,9 @@
                       <p class="file-meta">
                         {{ formatFileSize(media.fileSize) }} &bull; {{ formatDate(media.linkedAt) }}
                       </p>
-                      <!-- Description -->
-                      @if (media.description) {
-                        <p class="media-description">{{ media.description }}</p>
+                      <!-- Description (localized) -->
+                      @if (getLocalizedDescription(media)) {
+                        <p class="media-description">{{ getLocalizedDescription(media) }}</p>
                       }
                       <!-- Linked persons -->
                       @if (media.linkedPersons && media.linkedPersons.length > 1) {
@@ -192,9 +192,9 @@
                       <p class="file-meta">
                         {{ formatFileSize(media.fileSize) }} &bull; {{ formatDate(media.linkedAt) }}
                       </p>
-                      <!-- Description -->
-                      @if (media.description) {
-                        <p class="media-description">{{ media.description }}</p>
+                      <!-- Description (localized) -->
+                      @if (getLocalizedDescription(media)) {
+                        <p class="media-description">{{ getLocalizedDescription(media) }}</p>
                       }
                       <!-- Linked persons -->
                       @if (media.linkedPersons && media.linkedPersons.length > 1) {
@@ -285,6 +285,17 @@
                         rows="3"
                         maxlength="500"></textarea>
               <mat-hint align="end">{{ mediaDescription.length }}/500</mat-hint>
+            </mat-form-field>
+
+            <!-- Notes field -->
+            <mat-form-field appearance="outline" class="notes-field">
+              <mat-label>{{ 'media.notesOptional' | translate }}</mat-label>
+              <textarea matInput
+                        [(ngModel)]="mediaNotes"
+                        [placeholder]="'media.notesPlaceholder' | translate"
+                        rows="2"
+                        maxlength="300"></textarea>
+              <mat-hint align="end">{{ mediaNotes.length }}/300</mat-hint>
             </mat-form-field>
           }
 

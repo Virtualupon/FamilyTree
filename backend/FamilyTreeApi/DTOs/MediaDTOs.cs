@@ -191,6 +191,8 @@ public record LinkedPersonDto(
     string? PersonName,
     bool IsPrimary,
     string? Notes,
+    string? NotesAr,
+    string? NotesNob,
     DateTime LinkedAt
 );
 
@@ -205,6 +207,8 @@ public record MediaWithPersonsDto(
     string MediaKind,
     string? Title,
     string? Description,
+    string? DescriptionAr,
+    string? DescriptionNob,
     string? ThumbnailPath,
     DateTime CreatedAt,
     DateTime UpdatedAt,
@@ -222,6 +226,8 @@ public record MediaWithDataDto(
     string MediaKind,
     string? Title,
     string? Description,
+    string? DescriptionAr,
+    string? DescriptionNob,
     string Base64Data,
     DateTime CreatedAt,
     List<LinkedPersonDto> LinkedPersons
@@ -238,6 +244,8 @@ public record PersonMediaListItemDto(
     string MediaKind,
     string? Title,
     string? Description,
+    string? DescriptionAr,
+    string? DescriptionNob,
     string? ThumbnailPath,
     bool IsPrimary,
     int SortOrder,

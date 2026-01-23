@@ -149,6 +149,8 @@ public class MediaManagementService : IMediaManagementService
                                 : "Unknown",
                             pl.IsPrimary,
                             pl.Notes,
+                            pl.NotesAr,
+                            pl.NotesNob,
                             pl.LinkedAt
                         ))
                         .ToList()

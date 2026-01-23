@@ -13,6 +13,7 @@ public class PersonMediaService : IPersonMediaService
     private readonly IPersonMediaRepository _personMediaRepository;
     private readonly IFileStorageService _fileStorage;
     private readonly IMediaService _mediaService;
+    private readonly IMediaTranslationService _translationService;
     private readonly ILogger<PersonMediaService> _logger;
 
     // Allowed MIME types per media kind
@@ -45,11 +46,13 @@ public class PersonMediaService : IPersonMediaService
         IPersonMediaRepository personMediaRepository,
         IFileStorageService fileStorage,
         IMediaService mediaService,
+        IMediaTranslationService translationService,
         ILogger<PersonMediaService> logger)
     {
         _personMediaRepository = personMediaRepository;
         _fileStorage = fileStorage;
         _mediaService = mediaService;
+        _translationService = translationService;
         _logger = logger;
     }
 
@@ -129,6 +132,39 @@ public class PersonMediaService : IPersonMediaService
                 return ServiceResult<MediaWithPersonsDto>.InternalError("Failed to upload media");
             }
 
+            // Translate description to all languages if provided
+            string? descriptionAr = null;
+            string? descriptionNob = null;
+            if (!string.IsNullOrWhiteSpace(dto.Description))
+            {
+                try
+                {
+                    var translation = await _translationService.TranslateTextAsync(dto.Description, cancellationToken);
+                    if (translation.Success)
+                    {
+                        // Update the media entity with translations
+                        mediaResult.Description = translation.English ?? dto.Description;
+                        mediaResult.DescriptionAr = translation.Arabic;
+                        mediaResult.DescriptionNob = translation.Nobiin;
+                        descriptionAr = translation.Arabic;
+                        descriptionNob = translation.Nobiin;
+
+                        _logger.LogInformation(
+                            "Translated media description: EN='{En}', AR='{Ar}'",
+                            translation.English?.Length > 30 ? translation.English[..30] + "..." : translation.English,
+                            translation.Arabic?.Length > 30 ? translation.Arabic[..30] + "..." : translation.Arabic);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Failed to translate description: {Error}", translation.ErrorMessage);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error translating media description, continuing without translation");
+                }
+            }
+
             // Create PersonMedia links for all specified persons
             var linkedPersons = new List<LinkedPersonDto>();
             for (int i = 0; i < dto.PersonIds.Count; i++)
@@ -150,6 +186,8 @@ public class PersonMediaService : IPersonMediaService
                     null, // Will be populated when querying
                     link.IsPrimary,
                     link.Notes,
+                    link.NotesAr,
+                    link.NotesNob,
                     link.LinkedAt
                 ));
             }
@@ -167,7 +205,9 @@ public class PersonMediaService : IPersonMediaService
                 mediaResult.FileSize,
                 mediaKind.ToString(),
                 dto.Title,
-                dto.Description,
+                mediaResult.Description ?? dto.Description,
+                descriptionAr,
+                descriptionNob,
                 mediaResult.ThumbnailPath,
                 DateTime.UtcNow,
                 DateTime.UtcNow,
@@ -217,6 +257,8 @@ public class PersonMediaService : IPersonMediaService
                         pl.Person?.PrimaryName,
                         pl.IsPrimary,
                         pl.Notes,
+                        pl.NotesAr,
+                        pl.NotesNob,
                         pl.LinkedAt
                     )).ToList()
                     : new List<LinkedPersonDto>();
@@ -229,6 +271,8 @@ public class PersonMediaService : IPersonMediaService
                     link.Media.Kind.ToString(),
                     link.Media.Title,
                     link.Media.Description,
+                    link.Media.DescriptionAr,
+                    link.Media.DescriptionNob,
                     link.Media.ThumbnailPath,
                     link.IsPrimary,
                     link.SortOrder,
@@ -305,6 +349,8 @@ public class PersonMediaService : IPersonMediaService
                 pl.Person?.PrimaryName,
                 pl.IsPrimary,
                 pl.Notes,
+                pl.NotesAr,
+                pl.NotesNob,
                 pl.LinkedAt
             )).ToList();
 
@@ -316,6 +362,8 @@ public class PersonMediaService : IPersonMediaService
                 media.Kind.ToString(),
                 media.Title,
                 media.Description,
+                media.DescriptionAr,
+                media.DescriptionNob,
                 base64Data,
                 media.CreatedAt,
                 linkedPersons
@@ -349,6 +397,8 @@ public class PersonMediaService : IPersonMediaService
                 pl.Person?.PrimaryName,
                 pl.IsPrimary,
                 pl.Notes,
+                pl.NotesAr,
+                pl.NotesNob,
                 pl.LinkedAt
             ));
 

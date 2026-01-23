@@ -86,6 +86,7 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
   selectedPersons = signal<SearchPersonItem[]>([]);
   personSearchQuery = '';
   mediaDescription = '';
+  mediaNotes = '';  // Notes about the tagged people in the media
   personSearchResults = signal<SearchPersonItem[]>([]);
   isSearching = signal(false);
   private searchSubject = new Subject<string>();
@@ -156,12 +157,15 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
 
   // Hidden file input handler (for dialog)
   async onFileSelected(event: Event) {
+    console.log('[MediaUpload] onFileSelected triggered');
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
+    console.log('[MediaUpload] File selected:', file ? { name: file.name, size: file.size, type: file.type } : 'none');
     if (!file) return;
 
     // Validate file type
     const mediaKind = this.mediaService.detectMediaKind(file.type);
+    console.log('[MediaUpload] Detected media kind:', mediaKind);
     if (!mediaKind) {
       this.snackBar.open(this.i18n.t('media.unsupportedFileType', { type: file.type }), this.i18n.t('common.close'), { duration: 5000 });
       input.value = '';
@@ -169,6 +173,7 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
     }
 
     this.selectedFile.set(file);
+    console.log('[MediaUpload] File set to selectedFile signal');
     input.value = '';
   }
 
@@ -279,19 +284,25 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
     this.selectedPersons.set([]);
     this.personSearchQuery = '';
     this.mediaDescription = '';
+    this.mediaNotes = '';
     this.personSearchResults.set([]);
   }
 
   triggerFileInput() {
-    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    // Use more specific selector to find the file input within this component
+    const input = document.querySelector('.person-media-container input[type="file"]') as HTMLInputElement;
+    console.log('[MediaUpload] triggerFileInput - input found:', !!input);
     if (input) {
       input.click();
+    } else {
+      console.error('[MediaUpload] File input not found!');
     }
   }
 
   clearSelectedFile() {
     this.selectedFile.set(null);
     this.mediaDescription = '';
+    this.mediaNotes = '';
   }
 
   onSearchQueryChange(query: string) {
@@ -388,26 +399,45 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
   }
 
   async performUpload() {
+    console.log('[MediaUpload] performUpload called');
     const file = this.selectedFile();
-    if (!file || this.selectedPersons().length === 0) return;
+    const persons = this.selectedPersons();
+    console.log('[MediaUpload] File:', file ? { name: file.name, size: file.size, type: file.type } : 'none');
+    console.log('[MediaUpload] Selected persons:', persons.length, persons.map(p => p.id));
+
+    if (!file || persons.length === 0) {
+      console.warn('[MediaUpload] Aborting: no file or no persons selected');
+      return;
+    }
 
     try {
       this.isUploading.set(true);
       this.uploadingFileName.set(file.name);
 
-      const personIds = this.selectedPersons().map(p => p.id);
+      const personIds = persons.map(p => p.id);
+      console.log('[MediaUpload] Person IDs for upload:', personIds);
 
       // Validate and prepare upload
+      console.log('[MediaUpload] Validating and preparing upload...');
       const payload = await this.mediaService.validateAndPrepareUpload(
         file,
         personIds,
         undefined, // title
         this.mediaDescription.trim() || undefined  // description
       );
+      console.log('[MediaUpload] Payload prepared:', {
+        fileName: payload.fileName,
+        mimeType: payload.mimeType,
+        sizeBytes: payload.sizeBytes,
+        personIds: payload.personIds,
+        base64Length: payload.base64Data?.length || 0
+      });
 
       // Upload
+      console.log('[MediaUpload] Sending upload request to server...');
       this.mediaService.uploadMedia(payload).subscribe({
-        next: () => {
+        next: (result) => {
+          console.log('[MediaUpload] Upload successful:', result);
           const linkedCount = personIds.length;
           const message = linkedCount > 1
             ? this.i18n.t('media.uploadedLinked', { count: linkedCount })
@@ -418,12 +448,19 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
           this.loadMedia(); // Refresh list
         },
         error: (err) => {
-          console.error('Upload error:', err);
+          console.error('[MediaUpload] Upload error:', err);
+          console.error('[MediaUpload] Error details:', {
+            status: err.status,
+            statusText: err.statusText,
+            message: err.message,
+            error: err.error
+          });
           this.snackBar.open(err.error?.message || this.i18n.t('media.uploadFailed'), this.i18n.t('common.close'), { duration: 5000 });
           this.isUploading.set(false);
         }
       });
     } catch (err) {
+      console.error('[MediaUpload] Exception during upload preparation:', err);
       if (err instanceof MediaValidationError) {
         this.snackBar.open(err.message, this.i18n.t('common.close'), { duration: 5000 });
       } else {
@@ -454,6 +491,23 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
     if (birth === '?' && death === '') return '';
     if (death === '') return `b. ${birth}`;
     return `${birth} - ${death}`;
+  }
+
+  /**
+   * Get localized description based on current language.
+   * Falls back to English description if translation not available.
+   */
+  getLocalizedDescription(media: PersonMediaListItem): string | null {
+    const lang = this.i18n.currentLang();
+
+    if (lang === 'ar' && media.descriptionAr) {
+      return media.descriptionAr;
+    }
+    if (lang === 'nob' && media.descriptionNob) {
+      return media.descriptionNob;
+    }
+    // Default to English/original description
+    return media.description;
   }
 
   /**

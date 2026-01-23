@@ -45,6 +45,8 @@ export interface LinkedPerson {
   personName: string | null;
   isPrimary: boolean;
   notes: string | null;
+  notesAr: string | null;
+  notesNob: string | null;
   linkedAt: string;
 }
 
@@ -63,6 +65,8 @@ export interface PersonMediaListItem {
   mediaKind: MediaKind;
   title: string | null;
   description: string | null;
+  descriptionAr: string | null;
+  descriptionNob: string | null;
   thumbnailPath: string | null;
   isPrimary: boolean;
   sortOrder: number;
@@ -81,6 +85,8 @@ export interface MediaWithData {
   mediaKind: MediaKind;
   title: string | null;
   description: string | null;
+  descriptionAr: string | null;
+  descriptionNob: string | null;
   base64Data: string;
   createdAt: string;
   linkedPersons: LinkedPerson[];
@@ -97,6 +103,8 @@ export interface MediaWithPersons {
   mediaKind: MediaKind;
   title: string | null;
   description: string | null;
+  descriptionAr: string | null;
+  descriptionNob: string | null;
   thumbnailPath: string | null;
   createdAt: string;
   updatedAt: string;

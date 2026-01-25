@@ -27,6 +27,10 @@ export interface Person {
   nationality: string | null;
   ethnicity: string | null;
   notes: string | null;
+  /** Notes in Arabic */
+  notesAr: string | null;
+  /** Notes in Nobiin */
+  notesNob: string | null;
   isVerified: boolean;
   needsReview: boolean;
   hasConflict: boolean;
@@ -128,6 +132,10 @@ export interface CreatePersonRequest {
   nationality?: string;
   ethnicity?: string;
   notes?: string;
+  /** Notes in Arabic */
+  notesAr?: string;
+  /** Notes in Nobiin */
+  notesNob?: string;
   /** @deprecated Use nameArabic, nameEnglish, nameNobiin directly */
   names?: CreatePersonNameRequest[];
 }
@@ -156,6 +164,10 @@ export interface UpdatePersonRequest {
   nationality?: string;
   ethnicity?: string;
   notes?: string;
+  /** Notes in Arabic */
+  notesAr?: string;
+  /** Notes in Nobiin */
+  notesNob?: string;
   isVerified?: boolean;
   needsReview?: boolean;
   /** Avatar/profile picture media ID. Set to null to remove avatar. */
@@ -198,3 +210,25 @@ export interface PagedResult<T> {
 }
 
 export type PersonSearchResponse = PagedResult<PersonListItem>;
+
+// ========================================================================
+// AVATAR TYPES
+// ========================================================================
+
+/**
+ * Request to upload an avatar atomically (creates media + sets AvatarMediaId in one call)
+ */
+export interface UploadAvatarRequest {
+  base64Data: string;
+  fileName: string;
+  mimeType: string;
+}
+
+/**
+ * Response after successful avatar upload
+ */
+export interface UploadAvatarResponse {
+  personId: string;
+  mediaId: string;
+  thumbnailUrl?: string;
+}

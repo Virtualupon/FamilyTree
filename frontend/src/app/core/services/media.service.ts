@@ -31,6 +31,7 @@ export class MediaService {
     if (params.captureDateTo) httpParams = httpParams.set('captureDateTo', params.captureDateTo);
     if (params.capturePlaceId) httpParams = httpParams.set('capturePlaceId', params.capturePlaceId);
     if (params.searchTerm) httpParams = httpParams.set('searchTerm', params.searchTerm);
+    if (params.excludeAvatars !== undefined) httpParams = httpParams.set('excludeAvatars', params.excludeAvatars.toString());
     if (params.page) httpParams = httpParams.set('page', params.page.toString());
     if (params.pageSize) httpParams = httpParams.set('pageSize', params.pageSize.toString());
 

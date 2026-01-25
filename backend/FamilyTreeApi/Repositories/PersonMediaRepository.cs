@@ -94,4 +94,25 @@ public class PersonMediaRepository : Repository<PersonMedia>, IPersonMediaReposi
             .Where(pm => mediaIdList.Contains(pm.MediaId))
             .ToListAsync(cancellationToken);
     }
+
+    /// <inheritdoc />
+    public async Task UpdateMediaTranslationsAsync(
+        Guid mediaId,
+        string? description,
+        string? descriptionAr,
+        string? descriptionNob,
+        CancellationToken cancellationToken = default)
+    {
+        var media = await _context.MediaFiles
+            .FirstOrDefaultAsync(m => m.Id == mediaId, cancellationToken);
+
+        if (media != null)
+        {
+            media.Description = description;
+            media.DescriptionAr = descriptionAr;
+            media.DescriptionNob = descriptionNob;
+            media.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+    }
 }

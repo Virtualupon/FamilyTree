@@ -38,6 +38,28 @@ public class MediaManagementService : IMediaManagementService
     }
 
     // ============================================================================
+    // HELPER METHODS
+    // ============================================================================
+
+    /// <summary>
+    /// Get the effective organization ID for a user.
+    /// First checks the token claim, then falls back to looking up OrgUser records.
+    /// </summary>
+    private async Task<Guid?> GetEffectiveOrgIdAsync(UserContext userContext, CancellationToken cancellationToken = default)
+    {
+        if (userContext.OrgId.HasValue)
+        {
+            return userContext.OrgId.Value;
+        }
+
+        // Fall back to looking up user's organization from OrgUser records
+        return await _context.OrgUsers
+            .Where(ou => ou.UserId == userContext.UserId)
+            .Select(ou => ou.OrgId)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    // ============================================================================
     // MEDIA OPERATIONS
     // ============================================================================
 
@@ -63,16 +85,27 @@ public class MediaManagementService : IMediaManagementService
                 request.Page = 1;
             }
 
-            if (userContext.OrgId == null)
+            // Get orgId from context, or fall back to looking up user's organization
+            var orgId = await GetEffectiveOrgIdAsync(userContext, cancellationToken);
+
+            if (orgId == null)
             {
                 return ServiceResult<MediaSearchResponse>.Failure("You must be a member of an organization to view media.");
             }
 
-            var orgId = userContext.OrgId.Value;
+            var effectiveOrgId = orgId.Value;
 
             var query = _context.MediaFiles
-                .Where(m => m.OrgId == orgId)
+                .Where(m => m.OrgId == effectiveOrgId)
                 .AsQueryable();
+
+            // Exclude avatar media by default (media used as person profile pictures)
+            // Uses NOT EXISTS pattern for efficient query execution
+            if (request.ExcludeAvatars)
+            {
+                query = query.Where(m => !_context.People
+                    .Any(p => p.OrgId == effectiveOrgId && p.AvatarMediaId == m.Id));
+            }
 
             if (request.Kind.HasValue)
             {
@@ -182,15 +215,14 @@ public class MediaManagementService : IMediaManagementService
     {
         try
         {
-            if (userContext.OrgId == null)
+            var orgId = await GetEffectiveOrgIdAsync(userContext, cancellationToken);
+            if (orgId == null)
             {
                 return ServiceResult<MediaResponse>.Failure("You must be a member of an organization to view media.");
             }
 
-            var orgId = userContext.OrgId.Value;
-
             var media = await _context.MediaFiles
-                .Where(m => m.Id == id && m.OrgId == orgId)
+                .Where(m => m.Id == id && m.OrgId == orgId.Value)
                 .Include(m => m.CapturePlace)
                 .Select(m => new MediaResponse
                 {
@@ -244,12 +276,11 @@ public class MediaManagementService : IMediaManagementService
 
         try
         {
-            if (userContext.OrgId == null)
+            var orgId = await GetEffectiveOrgIdAsync(userContext, cancellationToken);
+            if (orgId == null)
             {
                 return ServiceResult<MediaResponse>.Failure("You must be a member of an organization to upload media.");
             }
-
-            var orgId = userContext.OrgId.Value;
 
             if (file == null || file.Length == 0)
             {
@@ -269,10 +300,12 @@ public class MediaManagementService : IMediaManagementService
                 return ServiceResult<MediaResponse>.Failure("File type not allowed");
             }
 
+            var effectiveOrgId = orgId.Value;
+
             if (request.CapturePlaceId.HasValue)
             {
                 var placeExists = await _context.Places.AnyAsync(
-                    p => p.Id == request.CapturePlaceId.Value && p.OrgId == orgId,
+                    p => p.Id == request.CapturePlaceId.Value && p.OrgId == effectiveOrgId,
                     cancellationToken);
 
                 if (!placeExists)
@@ -296,7 +329,7 @@ public class MediaManagementService : IMediaManagementService
                 var uniqueFileName = $"{mediaKind.Value}_{Guid.NewGuid()}{extension}";
 
                 // Define storage path
-                string[] pathSegments = new[] { "family-tree", "orgs", orgId.ToString(), mediaKind.Value.ToString().ToLower() };
+                string[] pathSegments = new[] { "family-tree", "orgs", effectiveOrgId.ToString(), mediaKind.Value.ToString().ToLower() };
 
                 // Upload to VirtualUpon.Storage
                 var savedMediaInfo = await _storageService.UploadFileAsync(pathSegments, uniqueFileName, fileBytes);
@@ -313,7 +346,7 @@ public class MediaManagementService : IMediaManagementService
             var media = new Media
             {
                 Id = Guid.NewGuid(),
-                OrgId = orgId,
+                OrgId = effectiveOrgId,
                 Kind = mediaKind.Value,
                 Url = fileUrl,
                 StorageKey = storageKey,
@@ -334,10 +367,10 @@ public class MediaManagementService : IMediaManagementService
             _context.MediaFiles.Add(media);
             await _context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Media uploaded: {MediaId} in Org: {OrgId}", media.Id, orgId);
+            _logger.LogInformation("Media uploaded: {MediaId} in Org: {OrgId}", media.Id, effectiveOrgId);
 
             // Reload with includes for response
-            var response = await GetMediaDtoAsync(media.Id, orgId, cancellationToken);
+            var response = await GetMediaDtoAsync(media.Id, effectiveOrgId, cancellationToken);
 
             return ServiceResult<MediaResponse>.Success(response!);
         }
@@ -361,15 +394,16 @@ public class MediaManagementService : IMediaManagementService
 
         try
         {
-            if (userContext.OrgId == null)
+            var orgId = await GetEffectiveOrgIdAsync(userContext, cancellationToken);
+            if (orgId == null)
             {
                 return ServiceResult<MediaResponse>.Failure("You must be a member of an organization to update media.");
             }
 
-            var orgId = userContext.OrgId.Value;
+            var effectiveOrgId = orgId.Value;
 
             var media = await _context.MediaFiles.FirstOrDefaultAsync(
-                m => m.Id == id && m.OrgId == orgId,
+                m => m.Id == id && m.OrgId == effectiveOrgId,
                 cancellationToken);
 
             if (media == null)
@@ -380,7 +414,7 @@ public class MediaManagementService : IMediaManagementService
             if (request.CapturePlaceId.HasValue)
             {
                 var placeExists = await _context.Places.AnyAsync(
-                    p => p.Id == request.CapturePlaceId.Value && p.OrgId == orgId,
+                    p => p.Id == request.CapturePlaceId.Value && p.OrgId == effectiveOrgId,
                     cancellationToken);
 
                 if (!placeExists)
@@ -403,7 +437,7 @@ public class MediaManagementService : IMediaManagementService
 
             _logger.LogInformation("Media updated: {MediaId}", id);
 
-            var response = await GetMediaDtoAsync(media.Id, orgId, cancellationToken);
+            var response = await GetMediaDtoAsync(media.Id, effectiveOrgId, cancellationToken);
 
             return ServiceResult<MediaResponse>.Success(response!);
         }
@@ -426,15 +460,14 @@ public class MediaManagementService : IMediaManagementService
 
         try
         {
-            if (userContext.OrgId == null)
+            var orgId = await GetEffectiveOrgIdAsync(userContext, cancellationToken);
+            if (orgId == null)
             {
                 return ServiceResult.Failure("You must be a member of an organization to delete media.");
             }
 
-            var orgId = userContext.OrgId.Value;
-
             var media = await _context.MediaFiles.FirstOrDefaultAsync(
-                m => m.Id == id && m.OrgId == orgId,
+                m => m.Id == id && m.OrgId == orgId.Value,
                 cancellationToken);
 
             if (media == null)
@@ -476,15 +509,14 @@ public class MediaManagementService : IMediaManagementService
     {
         try
         {
-            if (userContext.OrgId == null)
+            var orgId = await GetEffectiveOrgIdAsync(userContext, cancellationToken);
+            if (orgId == null)
             {
                 return ServiceResult<(byte[] Data, string ContentType, string FileName)>.Failure("You must be a member of an organization to download media.");
             }
 
-            var orgId = userContext.OrgId.Value;
-
             var media = await _context.MediaFiles.FirstOrDefaultAsync(
-                m => m.Id == id && m.OrgId == orgId,
+                m => m.Id == id && m.OrgId == orgId.Value,
                 cancellationToken);
 
             if (media == null)
@@ -531,13 +563,14 @@ public class MediaManagementService : IMediaManagementService
     {
         try
         {
-            if (userContext.OrgId == null)
+            var orgId = await GetEffectiveOrgIdAsync(userContext, cancellationToken);
+            if (orgId == null)
             {
                 return ServiceResult<SignedMediaUrlDto>.Failure("You must be a member of an organization.");
             }
 
             var media = await _context.MediaFiles
-                .FirstOrDefaultAsync(m => m.Id == id && m.OrgId == userContext.OrgId.Value, cancellationToken);
+                .FirstOrDefaultAsync(m => m.Id == id && m.OrgId == orgId.Value, cancellationToken);
 
             if (media == null)
             {

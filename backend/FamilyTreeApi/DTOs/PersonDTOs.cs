@@ -49,6 +49,8 @@ public record PersonResponseDto(
     string? Nationality,
     string? Ethnicity,
     string? Notes,
+    string? NotesAr,
+    string? NotesNob,
     bool IsVerified,
     bool NeedsReview,
     bool HasConflict,
@@ -80,6 +82,8 @@ public class CreatePersonDto
     public string? Nationality { get; set; }
     public string? Ethnicity { get; set; }
     public string? Notes { get; set; }
+    public string? NotesAr { get; set; }
+    public string? NotesNob { get; set; }
 }
 
 public class UpdatePersonDto
@@ -103,6 +107,8 @@ public class UpdatePersonDto
     public string? Nationality { get; set; }
     public string? Ethnicity { get; set; }
     public string? Notes { get; set; }
+    public string? NotesAr { get; set; }
+    public string? NotesNob { get; set; }
     public bool? IsVerified { get; set; }
     public bool? NeedsReview { get; set; }
     /// <summary>Avatar/profile picture media ID. Set to null to remove avatar.</summary>

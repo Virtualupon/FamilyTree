@@ -363,7 +363,9 @@
     "uploadedLinked": "تم رفع الوسائط وربطها بـ {{count}} أشخاص",
     "uploadedSuccess": "تم رفع الوسائط بنجاح",
     "cannotBeUndone": "لا يمكن التراجع عن هذا الإجراء.",
-    "galleryComingSoon": "معرض الوسائط - قريباً"
+    "galleryComingSoon": "معرض الوسائط - قريباً",
+    "documents": "المستندات",
+    "openDocument": "فتح المستند"
   },
   "family": {
     "title": "شجرة العائلة",
@@ -605,6 +607,10 @@
     "religion": "الديانة",
     "nationality": "الجنسية",
     "notes": "ملاحظات",
+    "notesEnglish": "ملاحظات (الإنجليزية)",
+    "notesArabic": "ملاحظات (العربية)",
+    "notesNobiin": "ملاحظات (النوبية)",
+    "notesOptional": "اختياري - ملاحظات بهذه اللغة",
     "nameType": "نوع الاسم",
     "script": "الخط",
     "scriptLatin": "الإنجليزية (لاتيني)",
@@ -625,6 +631,17 @@
     "nobiinOptional": "اختياري - بالنوبية",
     "autoFillNames": "ملء تلقائي",
     "autoFillHint": "تحويل الأسماء تلقائياً إلى اللغات الأخرى",
+    "autoTranslateNotes": "ترجمة الملاحظات تلقائياً",
+    "autoTranslateNotesHint": "ترجمة الملاحظات إلى اللغات الأخرى باستخدام الذكاء الاصطناعي",
+    "notesAutoTranslateHint": "سيتم ترجمة الملاحظات تلقائياً إلى اللغات الأخرى عند الحفظ",
+    "translatingNotes": "جارٍ ترجمة الملاحظات...",
+    "translationComplete": "اكتملت الترجمة",
+    "translationFailed": "فشلت الترجمة، جارٍ حفظ النص الأصلي",
+    "savedWithTranslation": "تم حفظ الشخص مع الترجمات",
+    "saveFailed": "فشل حفظ الشخص",
+    "createSuccess": "تم إنشاء الشخص بنجاح",
+    "updateSuccess": "تم تحديث الشخص بنجاح",
+    "deleteSuccess": "تم حذف الشخص بنجاح",
     "family": "مجموعة العائلة",
     "noFamily": "بدون عائلة"
   },
@@ -1056,7 +1073,8 @@
     "failedAccept": "فشل في قبول الدعوة"
   },
   "towns": {
-    "title": "المدن",
+    "title": "المدن والقرى",
+    "subtitle": "استكشف المدن والقرى في المنطقة النوبية",
     "create": "إنشاء مدينة",
     "import": "استيراد CSV",
     "searchPlaceholder": "بحث عن المدن...",

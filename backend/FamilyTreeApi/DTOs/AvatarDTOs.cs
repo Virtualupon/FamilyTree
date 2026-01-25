@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace FamilyTreeApi.DTOs;
 
 /// <summary>
@@ -13,6 +15,36 @@ public class UploadAvatarDto
 
     /// <summary>MIME type (e.g., image/jpeg, image/png)</summary>
     public string MimeType { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Request for uploading an avatar and setting it on a person atomically
+/// </summary>
+public class UploadPersonAvatarRequest
+{
+    /// <summary>Base64 encoded image data (with or without data URL prefix)</summary>
+    [Required]
+    public string Base64Data { get; set; } = string.Empty;
+
+    /// <summary>Original filename</summary>
+    [Required]
+    [MaxLength(255)]
+    public string FileName { get; set; } = string.Empty;
+
+    /// <summary>MIME type (e.g., image/jpeg, image/png, image/webp)</summary>
+    [Required]
+    [MaxLength(100)]
+    public string MimeType { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Response after successful avatar upload
+/// </summary>
+public class UploadPersonAvatarResponse
+{
+    public Guid PersonId { get; set; }
+    public Guid MediaId { get; set; }
+    public string? ThumbnailUrl { get; set; }
 }
 
 /// <summary>

@@ -70,10 +70,15 @@
     transition: all 0.2s ease;
     min-width: 160px;
     max-width: 200px;
+    position: relative;
 
     &:hover {
       background: var(--ft-surface-variant, #FFF9F5);
       transform: translateY(-2px);
+
+      .family-sheet__edit-btn {
+        opacity: 1;
+      }
     }
 
     &--selected {
@@ -83,6 +88,26 @@
 
     &--current {
       background: rgba(193, 126, 62, 0.1);
+    }
+  }
+
+  &__edit-btn {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.25rem;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    width: 32px !important;
+    height: 32px !important;
+    line-height: 32px !important;
+
+    i {
+      font-size: 0.875rem;
+      color: var(--ft-primary, #187573);
+    }
+
+    &:hover {
+      background: rgba(24, 117, 115, 0.1);
     }
   }
 

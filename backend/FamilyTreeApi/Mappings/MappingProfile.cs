@@ -43,6 +43,8 @@ public class MappingProfile : Profile
             .ForCtorParam("Nationality", opt => opt.MapFrom(src => src.Nationality))
             .ForCtorParam("Ethnicity", opt => opt.MapFrom(src => src.Ethnicity))
             .ForCtorParam("Notes", opt => opt.MapFrom(src => src.Notes))
+            .ForCtorParam("NotesAr", opt => opt.MapFrom(src => src.NotesAr))
+            .ForCtorParam("NotesNob", opt => opt.MapFrom(src => src.NotesNob))
             .ForCtorParam("IsVerified", opt => opt.MapFrom(src => src.IsVerified))
             .ForCtorParam("NeedsReview", opt => opt.MapFrom(src => src.NeedsReview))
             .ForCtorParam("HasConflict", opt => opt.MapFrom(src => src.HasConflict))

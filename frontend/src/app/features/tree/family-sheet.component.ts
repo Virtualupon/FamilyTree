@@ -55,6 +55,7 @@ export class FamilySheetComponent implements OnChanges {
 
   @Output() personSelected = new EventEmitter<TreePersonNode>();
   @Output() personDoubleClicked = new EventEmitter<TreePersonNode>();
+  @Output() personEdit = new EventEmitter<TreePersonNode>();
 
   readonly Sex = Sex;
 
@@ -239,5 +240,10 @@ export class FamilySheetComponent implements OnChanges {
 
   onPersonDoubleClick(person: TreePersonNode): void {
     this.personDoubleClicked.emit(person);
+  }
+
+  onPersonEdit(person: TreePersonNode, event: Event): void {
+    event.stopPropagation(); // Prevent triggering click on parent
+    this.personEdit.emit(person);
   }
 }

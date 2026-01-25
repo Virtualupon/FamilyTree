@@ -99,33 +99,44 @@
 
 <!-- Person Selector -->
 <div class="tree-page__selector">
-<button
-  mat-stroked-button
-  class="person-selector-btn"
-  (click)="openPersonSelector()">
+  <button
+    mat-stroked-button
+    class="person-selector-btn"
+    (click)="openPersonSelector()">
+    @if (selectedPerson()) {
+      <ng-container>
+        <div
+          class="person-selector-btn__avatar"
+          [class.person-selector-btn__avatar--male]="selectedPerson()!.sex === Sex.Male"
+          [class.person-selector-btn__avatar--female]="selectedPerson()!.sex === Sex.Female"
+          [class.person-selector-btn__avatar--has-image]="selectedPersonAvatarUrl()">
+          @if (selectedPersonAvatarUrl()) {
+            <img [src]="selectedPersonAvatarUrl()" [alt]="getDisplayName(selectedPerson()!)" class="person-selector-btn__avatar-img">
+          } @else {
+            {{ getInitials(getDisplayName(selectedPerson()!)) }}
+          }
+        </div>
+        <span class="person-selector-btn__name">{{ getDisplayName(selectedPerson()!) }}</span>
+      </ng-container>
+    } @else {
+      <ng-container>
+        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+        <span>{{ 'tree.selectPerson' | translate }}</span>
+      </ng-container>
+    }
+    <i class="fa-solid fa-caret-down person-selector-btn__arrow" aria-hidden="true"></i>
+  </button>
+
+  <!-- Edit Button -->
   @if (selectedPerson()) {
-    <ng-container>
-      <div
-        class="person-selector-btn__avatar"
-        [class.person-selector-btn__avatar--male]="selectedPerson()!.sex === Sex.Male"
-        [class.person-selector-btn__avatar--female]="selectedPerson()!.sex === Sex.Female"
-        [class.person-selector-btn__avatar--has-image]="selectedPersonAvatarUrl()">
-        @if (selectedPersonAvatarUrl()) {
-          <img [src]="selectedPersonAvatarUrl()" [alt]="getDisplayName(selectedPerson()!)" class="person-selector-btn__avatar-img">
-        } @else {
-          {{ getInitials(getDisplayName(selectedPerson()!)) }}
-        }
-      </div>
-      <span class="person-selector-btn__name">{{ getDisplayName(selectedPerson()!) }}</span>
-    </ng-container>
-  } @else {
-    <ng-container>
-      <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-      <span>{{ 'tree.selectPerson' | translate }}</span>
-    </ng-container>
+    <button
+      mat-icon-button
+      class="person-edit-btn"
+      (click)="editSelectedPerson()"
+      [matTooltip]="'common.edit' | translate">
+      <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+    </button>
   }
-  <i class="fa-solid fa-caret-down person-selector-btn__arrow" aria-hidden="true"></i>
-</button>
 </div>
 
   <!-- Tree View Content -->
@@ -173,7 +184,8 @@
         [person]="treeData()"
         [selectedPersonId]="selectedPerson()?.id || null"
         (personSelected)="onD3NodeClick($event)"
-        (personDoubleClicked)="onD3NodeDoubleClick($event)">
+        (personDoubleClicked)="onD3NodeDoubleClick($event)"
+        (personEdit)="onPersonEdit($event)">
       </app-family-sheet>
     } @else if (treeData()) {
       <!-- D3 Tree Visualization -->

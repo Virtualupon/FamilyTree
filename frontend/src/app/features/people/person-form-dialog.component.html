@@ -205,10 +205,43 @@
             </mat-autocomplete>
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'personForm.notes' | translate }}</mat-label>
-            <textarea matInput formControlName="notes" rows="4"></textarea>
-          </mat-form-field>
+          <!-- Notes Section (Single field based on current language) -->
+          <div class="form-section">
+            <h4 class="form-section__title">
+              <i class="fa-solid fa-note-sticky" aria-hidden="true"></i>
+              {{ 'personForm.notes' | translate }}
+            </h4>
+
+            <!-- Single Notes Field (based on current UI language) -->
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>{{ getNotesLabelKey() | translate }}</mat-label>
+              <textarea matInput
+                        formControlName="currentNotes"
+                        rows="4"
+                        [dir]="isNotesRtl() ? 'rtl' : 'ltr'"></textarea>
+              <mat-hint>{{ 'personForm.notesAutoTranslateHint' | translate }}</mat-hint>
+            </mat-form-field>
+
+            <!-- Translation Status Indicator -->
+            @if (translationStatus() !== 'idle') {
+              <div class="translation-status" [class.translation-status--translating]="translationStatus() === 'translating'"
+                   [class.translation-status--success]="translationStatus() === 'success'"
+                   [class.translation-status--error]="translationStatus() === 'error'">
+                @if (translationStatus() === 'translating') {
+                  <mat-spinner diameter="16"></mat-spinner>
+                  <span>{{ 'personForm.translatingNotes' | translate }}</span>
+                }
+                @if (translationStatus() === 'success') {
+                  <i class="fa-solid fa-check-circle" aria-hidden="true"></i>
+                  <span>{{ 'personForm.translationComplete' | translate }}</span>
+                }
+                @if (translationStatus() === 'error') {
+                  <i class="fa-solid fa-exclamation-circle" aria-hidden="true"></i>
+                  <span>{{ 'personForm.translationFailed' | translate }}</span>
+                }
+              </div>
+            }
+          </div>
         </div>
       </mat-tab>
 

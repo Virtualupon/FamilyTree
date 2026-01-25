@@ -184,55 +184,29 @@ export class PersonAvatarComponent implements OnChanges, OnDestroy {
       }
 
       const extension = mimeType === 'image/webp' ? '.webp' : '.jpg';
-      const resizedFile = new File([blob], file.name.replace(/\.[^.]+$/, extension), { type: mimeType });
+      const fileName = file.name.replace(/\.[^.]+$/, extension);
 
-      // Prepare upload using existing Media system
-      console.log('[AvatarUpload] Preparing upload payload...');
-      const payload = await this.mediaService.validateAndPrepareUpload(
-        resizedFile,
-        [this.person.id],
-        'Avatar',
-        undefined
-      );
-      console.log('[AvatarUpload] Payload prepared:', {
-        fileName: payload.fileName,
-        mimeType: payload.mimeType,
-        sizeBytes: payload.sizeBytes,
-        base64Length: payload.base64Data?.length || 0
-      });
-
-      // Upload media
-      console.log('[AvatarUpload] Uploading media to server...');
-      this.mediaService.uploadMedia(payload).subscribe({
-        next: (media) => {
-          console.log('[AvatarUpload] Media uploaded successfully:', media);
-          // Update person's avatarMediaId
-          console.log('[AvatarUpload] Updating person avatarMediaId...');
-          this.personService.updatePerson(this.person!.id, {
-            avatarMediaId: media.id
-          }).subscribe({
-            next: () => {
-              console.log('[AvatarUpload] Person avatarMediaId updated successfully');
-              this.uploading = false;
-              (this.person as any).avatarMediaId = media.id;
-              // Update display with resized base64 for immediate feedback
-              this.displayUrl.set(base64);
-              this.lastLoadedMediaId = media.id;
-              this.avatarChanged.emit();
-              this.snackBar.open('Avatar updated', 'Close', { duration: 2000 });
-            },
-            error: (err) => {
-              this.uploading = false;
-              console.error('[AvatarUpload] Failed to update person avatarMediaId:', err);
-              console.error('[AvatarUpload] Error details:', { status: err.status, error: err.error });
-              this.snackBar.open('Failed to set avatar', 'Close', { duration: 4000 });
-            }
-          });
+      // Use atomic avatar upload endpoint (creates media + sets AvatarMediaId in one call)
+      console.log('[AvatarUpload] Using atomic avatar upload...');
+      this.personService.uploadAvatar(this.person!.id, {
+        base64Data: base64,
+        fileName: fileName,
+        mimeType: mimeType
+      }).subscribe({
+        next: (response) => {
+          console.log('[AvatarUpload] Avatar uploaded atomically:', response);
+          this.uploading = false;
+          (this.person as any).avatarMediaId = response.mediaId;
+          // Update display with resized base64 for immediate feedback
+          this.displayUrl.set(base64);
+          this.lastLoadedMediaId = response.mediaId;
+          this.avatarChanged.emit();
+          this.snackBar.open('Avatar updated', 'Close', { duration: 2000 });
         },
         error: (err) => {
           this.uploading = false;
-          console.error('[AvatarUpload] Media upload failed:', err);
-          console.error('[AvatarUpload] Error details:', { status: err.status, statusText: err.statusText, error: err.error });
+          console.error('[AvatarUpload] Atomic avatar upload failed:', err);
+          console.error('[AvatarUpload] Error details:', { status: err.status, error: err.error });
           this.snackBar.open('Failed to upload avatar', 'Close', { duration: 4000 });
         }
       });
@@ -317,20 +291,12 @@ export class PersonAvatarComponent implements OnChanges, OnDestroy {
 
   removeAvatar(): void {
     if (!this.person) return;
-    const oldMediaId = (this.person as any).avatarMediaId;
 
     this.uploading = true;
 
-    // Clear avatarMediaId on person
-    this.personService.updatePerson(this.person.id, {
-      avatarMediaId: null
-    }).subscribe({
+    // Use atomic avatar remove endpoint (clears AvatarMediaId + deletes media in one call)
+    this.personService.removeAvatar(this.person.id, true).subscribe({
       next: () => {
-        // Optionally delete the media file
-        if (oldMediaId) {
-          this.mediaService.deleteMedia(oldMediaId).subscribe();
-        }
-
         this.uploading = false;
         (this.person as any).avatarMediaId = null;
         this.displayUrl.set(null);

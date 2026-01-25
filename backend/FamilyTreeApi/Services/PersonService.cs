@@ -246,6 +246,8 @@ public class PersonService : IPersonService
         if (dto.Nationality != null) person.Nationality = dto.Nationality;
         if (dto.Ethnicity != null) person.Ethnicity = dto.Ethnicity;
         if (dto.Notes != null) person.Notes = dto.Notes;
+        if (dto.NotesAr != null) person.NotesAr = dto.NotesAr;
+        if (dto.NotesNob != null) person.NotesNob = dto.NotesNob;
         if (dto.IsVerified.HasValue) person.IsVerified = dto.IsVerified.Value;
         if (dto.NeedsReview.HasValue) person.NeedsReview = dto.NeedsReview.Value;
         if (dto.AvatarMediaId.HasValue) person.AvatarMediaId = dto.AvatarMediaId.Value == Guid.Empty ? null : dto.AvatarMediaId.Value;
@@ -306,6 +308,132 @@ public class PersonService : IPersonService
         _logger.LogInformation("Person deleted: {PersonId} with {ParentChildCount} parent-child links, {UnionCount} union memberships, and {TagCount} tags",
             id, parentChildRecords.Count, unionMemberships.Count, personTags.Count);
 
+        return ServiceResult.Success();
+    }
+
+    // ============================================================================
+    // AVATAR OPERATIONS
+    // ============================================================================
+
+    public async Task<ServiceResult<UploadPersonAvatarResponse>> UploadAvatarAsync(
+        Guid personId,
+        UploadPersonAvatarRequest request,
+        UserContext userContext,
+        CancellationToken cancellationToken = default)
+    {
+        if (!userContext.CanContribute())
+        {
+            return ServiceResult<UploadPersonAvatarResponse>.Forbidden();
+        }
+
+        // Validate MIME type
+        var allowedTypes = new[] { "image/jpeg", "image/png", "image/webp", "image/gif" };
+        if (!allowedTypes.Contains(request.MimeType.ToLower()))
+        {
+            return ServiceResult<UploadPersonAvatarResponse>.Failure(
+                $"Invalid image type. Allowed: {string.Join(", ", allowedTypes)}");
+        }
+
+        // Get person
+        var person = await _personRepository.FirstOrDefaultAsync(
+            p => p.Id == personId && p.OrgId == userContext.OrgId, cancellationToken);
+
+        if (person == null)
+        {
+            return ServiceResult<UploadPersonAvatarResponse>.NotFound("Person not found");
+        }
+
+        Guid? oldAvatarMediaId = person.AvatarMediaId;
+        Media? newMedia = null;
+
+        try
+        {
+            // Upload new avatar via MediaService (creates media record)
+            newMedia = await _mediaService.UploadMediaAsync(
+                personId,
+                request.Base64Data,
+                request.FileName,
+                request.MimeType,
+                caption: "Avatar");
+
+            // Update person's AvatarMediaId
+            person.AvatarMediaId = newMedia.Id;
+            person.UpdatedAt = DateTime.UtcNow;
+            await _personRepository.SaveChangesAsync(cancellationToken);
+
+            // Delete old avatar media if it existed (after successful update)
+            if (oldAvatarMediaId.HasValue)
+            {
+                await _mediaService.DeleteMediaAsync(oldAvatarMediaId.Value);
+            }
+
+            _logger.LogInformation("Avatar uploaded for person {PersonId}, media {MediaId}", personId, newMedia.Id);
+
+            return ServiceResult<UploadPersonAvatarResponse>.Success(new UploadPersonAvatarResponse
+            {
+                PersonId = personId,
+                MediaId = newMedia.Id,
+                ThumbnailUrl = newMedia.Url
+            });
+        }
+        catch (Exception ex)
+        {
+            // If we created new media but failed to update person, clean up
+            if (newMedia != null)
+            {
+                try
+                {
+                    await _mediaService.DeleteMediaAsync(newMedia.Id);
+                }
+                catch (Exception cleanupEx)
+                {
+                    _logger.LogError(cleanupEx, "Failed to cleanup media after avatar upload failure");
+                }
+            }
+
+            _logger.LogError(ex, "Failed to upload avatar for person {PersonId}", personId);
+            return ServiceResult<UploadPersonAvatarResponse>.InternalError("Failed to upload avatar");
+        }
+    }
+
+    public async Task<ServiceResult> RemoveAvatarAsync(
+        Guid personId,
+        bool deleteMedia,
+        UserContext userContext,
+        CancellationToken cancellationToken = default)
+    {
+        if (!userContext.CanEdit())
+        {
+            return ServiceResult.Forbidden();
+        }
+
+        var person = await _personRepository.FirstOrDefaultAsync(
+            p => p.Id == personId && p.OrgId == userContext.OrgId, cancellationToken);
+
+        if (person == null)
+        {
+            return ServiceResult.NotFound("Person not found");
+        }
+
+        if (!person.AvatarMediaId.HasValue)
+        {
+            return ServiceResult.Success(); // No avatar to remove
+        }
+
+        var mediaId = person.AvatarMediaId.Value;
+
+        // Clear AvatarMediaId first
+        person.AvatarMediaId = null;
+        person.UpdatedAt = DateTime.UtcNow;
+        await _personRepository.SaveChangesAsync(cancellationToken);
+
+        // Delete media if requested
+        if (deleteMedia)
+        {
+            await _mediaService.DeleteMediaAsync(mediaId);
+        }
+
+        _logger.LogInformation("Avatar removed for person {PersonId}", personId);
         return ServiceResult.Success();
     }
 

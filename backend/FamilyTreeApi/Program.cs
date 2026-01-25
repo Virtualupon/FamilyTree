@@ -14,15 +14,19 @@ using Serilog;
 using System.Text;
 using WebDav;
 using FamilyTreeApi.Data;
+using FamilyTreeApi.HealthChecks;
 using FamilyTreeApi.Mappings;
 using FamilyTreeApi.Models;
 using FamilyTreeApi.Models.Configuration;
 using FamilyTreeApi.Models.Enums;
 using FamilyTreeApi.Repositories;
 using FamilyTreeApi.Services;
+using FamilyTreeApi.Services.Translation;
 using VirtualUpon.Storage.Factories;
 using VirtualUpon.Storage.Utilities;
 using FamilyTreeApi.Extensions;
+using Polly;
+using Polly.Extensions.Http;
 
 // -------------------------------
 // BUILDER
@@ -206,6 +210,13 @@ if (redisConfig.GetValue<bool>("Enabled"))
     }
 }
 
+// Add LibreTranslate health check
+services.AddHealthChecks()
+    .AddCheck<LibreTranslateHealthCheck>(
+        name: "libretranslate",
+        failureStatus: HealthStatus.Degraded,
+        tags: new[] { "translation", "external" });
+
 // -------------------------------
 // CORS
 // -------------------------------
@@ -270,6 +281,42 @@ services.AddScoped<ITownImageService, TownImageService>();
 // Governance Model Services
 services.AddScoped<IAuditLogService, AuditLogService>();
 services.AddScoped<ISuggestionService, SuggestionService>();
+
+// -------------------------------
+// TRANSLATION SERVICES
+// -------------------------------
+// Configure LibreTranslate settings
+services.Configure<LibreTranslateConfiguration>(configuration.GetSection(LibreTranslateConfiguration.SectionName));
+
+// Get LibreTranslate config for HTTP client setup
+var libreTranslateConfig = configuration.GetSection(LibreTranslateConfiguration.SectionName)
+    .Get<LibreTranslateConfiguration>() ?? new LibreTranslateConfiguration();
+
+// Register LibreTranslate HTTP client with Polly resilience policies
+services.AddHttpClient<ILibreTranslateService, LibreTranslateService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(libreTranslateConfig.TimeoutSeconds);
+})
+.AddPolicyHandler(GetRetryPolicy(libreTranslateConfig.RetryCount))
+.AddPolicyHandler(GetCircuitBreakerPolicy(
+    libreTranslateConfig.CircuitBreakerFailureThreshold,
+    libreTranslateConfig.CircuitBreakerDurationSeconds));
+
+// Register translation services
+services.AddScoped<INobiinTranslationService, NobiinAITranslationService>();
+services.AddScoped<ITextTranslationService, TextTranslationService>();
+
+// Polly policy factory methods
+static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy(int retryCount) =>
+    HttpPolicyExtensions
+        .HandleTransientHttpError()
+        .WaitAndRetryAsync(retryCount, retryAttempt =>
+            TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
+
+static IAsyncPolicy<HttpResponseMessage> GetCircuitBreakerPolicy(int failureThreshold, int durationSeconds) =>
+    HttpPolicyExtensions
+        .HandleTransientHttpError()
+        .CircuitBreakerAsync(failureThreshold, TimeSpan.FromSeconds(durationSeconds));
 
 // -------------------------------
 // REPOSITORIES

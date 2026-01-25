@@ -133,6 +133,7 @@ public class PersonMediaService : IPersonMediaService
             }
 
             // Translate description to all languages if provided
+            string? descriptionEn = dto.Description;
             string? descriptionAr = null;
             string? descriptionNob = null;
             if (!string.IsNullOrWhiteSpace(dto.Description))
@@ -142,17 +143,22 @@ public class PersonMediaService : IPersonMediaService
                     var translation = await _translationService.TranslateTextAsync(dto.Description, cancellationToken);
                     if (translation.Success)
                     {
-                        // Update the media entity with translations
-                        mediaResult.Description = translation.English ?? dto.Description;
-                        mediaResult.DescriptionAr = translation.Arabic;
-                        mediaResult.DescriptionNob = translation.Nobiin;
+                        descriptionEn = translation.English ?? dto.Description;
                         descriptionAr = translation.Arabic;
                         descriptionNob = translation.Nobiin;
 
+                        // CRITICAL FIX: Persist translations to database
+                        await _personMediaRepository.UpdateMediaTranslationsAsync(
+                            mediaResult.Id,
+                            descriptionEn,
+                            descriptionAr,
+                            descriptionNob,
+                            cancellationToken);
+
                         _logger.LogInformation(
-                            "Translated media description: EN='{En}', AR='{Ar}'",
-                            translation.English?.Length > 30 ? translation.English[..30] + "..." : translation.English,
-                            translation.Arabic?.Length > 30 ? translation.Arabic[..30] + "..." : translation.Arabic);
+                            "Translated and saved media description: EN='{En}', AR='{Ar}'",
+                            descriptionEn?.Length > 30 ? descriptionEn[..30] + "..." : descriptionEn,
+                            descriptionAr?.Length > 30 ? descriptionAr[..30] + "..." : descriptionAr);
                     }
                     else
                     {
@@ -205,7 +211,7 @@ public class PersonMediaService : IPersonMediaService
                 mediaResult.FileSize,
                 mediaKind.ToString(),
                 dto.Title,
-                mediaResult.Description ?? dto.Description,
+                descriptionEn ?? dto.Description,
                 descriptionAr,
                 descriptionNob,
                 mediaResult.ThumbnailPath,

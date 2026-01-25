@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
@@ -12,10 +12,12 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 import { PersonService } from '../../core/services/person.service';
 import { CountriesService, Country } from '../../core/services/countries.service';
 import { TransliterationService } from '../../core/services/transliteration.service';
+import { TranslationService } from '../../core/services/translation.service';
 import { FamilyService } from '../../core/services/family.service';
 import { TreeContextService } from '../../core/services/tree-context.service';
 import { I18nService, TranslatePipe } from '../../core/i18n';
@@ -33,6 +35,7 @@ import {
 
 export interface PersonFormDialogData {
   person?: PersonListItem | Person;
+  treeId?: string;
 }
 
 @Component({
@@ -52,6 +55,7 @@ export interface PersonFormDialogData {
     MatTabsModule,
     MatProgressSpinnerModule,
     MatAutocompleteModule,
+    MatSnackBarModule,
     TranslatePipe
   ],
   templateUrl: './person-form-dialog.component.html',
@@ -61,10 +65,12 @@ export class PersonFormDialogComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly personService = inject(PersonService);
   private readonly transliterationService = inject(TransliterationService);
+  private readonly translationService = inject(TranslationService);
   private readonly familyService = inject(FamilyService);
   private readonly treeContext = inject(TreeContextService);
   private readonly countriesService = inject(CountriesService);
   private readonly i18n = inject(I18nService);
+  private readonly snackBar = inject(MatSnackBar);
   private readonly dialogRef = inject(MatDialogRef<PersonFormDialogComponent>);
   readonly data = inject<PersonFormDialogData>(MAT_DIALOG_DATA);
 
@@ -77,9 +83,28 @@ export class PersonFormDialogComponent implements OnInit {
   form!: FormGroup;
   saving = signal(false);
   transliterating = signal<'arabic' | 'english' | 'all' | null>(null);
+  translatingNotes = signal(false);
+  translationStatus = signal<'idle' | 'translating' | 'success' | 'error'>('idle');
   families = signal<FamilyListItem[]>([]);
   countries = signal<Country[]>([]);
   filteredCountries = signal<Country[]>([]);
+
+  // Get the notes field name based on current language
+  currentNotesField = computed(() => {
+    const lang = this.i18n.currentLang();
+    switch (lang) {
+      case 'ar': return 'notesAr';
+      case 'nob': return 'notesNob';
+      default: return 'notes';
+    }
+  });
+
+  // Get current notes value for display
+  currentNotesValue = computed(() => {
+    if (!this.form) return '';
+    const field = this.currentNotesField();
+    return this.form.get(field)?.value || '';
+  });
   
   ngOnInit(): void {
     this.initForm();
@@ -131,10 +156,15 @@ export class PersonFormDialogComponent implements OnInit {
       education: [''],
       religion: [''],
       nationality: [''],
-      notes: ['']
+      // Keep all three for backend compatibility
+      notes: [''],
+      notesAr: [''],
+      notesNob: [''],
+      // Single field for user input (based on current language)
+      currentNotes: ['']
     });
   }
-  
+
   private loadPersonDetails(): void {
     if (!this.data.person) return;
     
@@ -150,6 +180,20 @@ export class PersonFormDialogComponent implements OnInit {
   }
   
   private patchForm(person: Person): void {
+    // Get the notes value for the current language
+    const lang = this.i18n.currentLang();
+    let currentLangNotes = '';
+    switch (lang) {
+      case 'ar':
+        currentLangNotes = person.notesAr || person.notes || '';
+        break;
+      case 'nob':
+        currentLangNotes = person.notesNob || person.notes || '';
+        break;
+      default:
+        currentLangNotes = person.notes || '';
+    }
+
     this.form.patchValue({
       primaryName: person.primaryName || '',
       nameArabic: person.nameArabic || '',
@@ -169,10 +213,15 @@ export class PersonFormDialogComponent implements OnInit {
       education: person.education || '',
       religion: person.religion || '',
       nationality: person.nationality || '',
-      notes: person.notes || ''
+      // Store all notes but only display current language
+      notes: person.notes || '',
+      notesAr: person.notesAr || '',
+      notesNob: person.notesNob || '',
+      // Single notes field for current language
+      currentNotes: currentLangNotes
     });
   }
-  
+
   hasAnyNameToTransliterate(): boolean {
     const formValue = this.form.value;
     return !!(formValue.nameArabic || formValue.nameEnglish);
@@ -265,7 +314,56 @@ export class PersonFormDialogComponent implements OnInit {
       this.transliterateFromEnglish();
     }
   }
-  
+
+  /**
+   * Check if there are any notes to translate from
+   */
+  hasAnyNotesToTranslate(): boolean {
+    const formValue = this.form.value;
+    return !!(formValue.notes || formValue.notesAr || formValue.notesNob);
+  }
+
+  /**
+   * Auto-translate notes to all three languages using the translation service.
+   * Uses English as source if available, otherwise Arabic, otherwise Nobiin.
+   * Always overwrites the other two language fields with fresh translations.
+   */
+  autoTranslateNotes(): void {
+    const notes = this.form.get('notes')?.value?.trim();
+    const notesAr = this.form.get('notesAr')?.value?.trim();
+    const notesNob = this.form.get('notesNob')?.value?.trim();
+
+    // Determine source text - prefer English, then Arabic, then Nobiin
+    const sourceText = notes || notesAr || notesNob;
+    if (!sourceText) return;
+
+    // Determine which field is the source (to avoid overwriting it)
+    const sourceIsEnglish = !!notes;
+    const sourceIsArabic = !notes && !!notesAr;
+
+    this.translatingNotes.set(true);
+
+    this.translationService.translateToAll(sourceText).subscribe({
+      next: (result) => {
+        this.translatingNotes.set(false);
+
+        if (result.success) {
+          // Always fill target fields (don't overwrite the source field)
+          if (!sourceIsEnglish && result.english) {
+            this.form.patchValue({ notes: result.english });
+          }
+          if (!sourceIsArabic && result.arabic) {
+            this.form.patchValue({ notesAr: result.arabic });
+          }
+          if ((sourceIsEnglish || sourceIsArabic) && result.nobiin) {
+            this.form.patchValue({ notesNob: result.nobiin });
+          }
+        }
+      },
+      error: () => this.translatingNotes.set(false)
+    });
+  }
+
   onCancel(): void {
     this.dialogRef.close(false);
   }
@@ -276,6 +374,71 @@ export class PersonFormDialogComponent implements OnInit {
     this.saving.set(true);
     const formValue = this.form.value;
 
+    // First, sync currentNotes to the appropriate language field
+    const currentNotes = formValue.currentNotes?.trim();
+    const lang = this.i18n.currentLang();
+
+    // Update the correct notes field based on current language
+    switch (lang) {
+      case 'ar':
+        this.form.patchValue({ notesAr: currentNotes });
+        break;
+      case 'nob':
+        this.form.patchValue({ notesNob: currentNotes });
+        break;
+      default:
+        this.form.patchValue({ notes: currentNotes });
+    }
+
+    // If there are notes, translate to other languages in background
+    if (currentNotes) {
+      this.translateAndSave(formValue, currentNotes, lang);
+    } else {
+      this.savePersonDirectly(formValue);
+    }
+  }
+
+  /**
+   * Translate notes and save person
+   */
+  private translateAndSave(formValue: any, sourceText: string, sourceLang: string): void {
+    this.translationStatus.set('translating');
+
+    this.translationService.translateToAll(sourceText).subscribe({
+      next: (result) => {
+        if (result.success) {
+          // Update all language fields with translations
+          if (sourceLang !== 'en' && result.english) {
+            this.form.patchValue({ notes: result.english });
+          }
+          if (sourceLang !== 'ar' && result.arabic) {
+            this.form.patchValue({ notesAr: result.arabic });
+          }
+          if (sourceLang !== 'nob' && result.nobiin) {
+            this.form.patchValue({ notesNob: result.nobiin });
+          }
+          this.translationStatus.set('success');
+        }
+        // Save with updated values
+        this.savePersonDirectly(this.form.value);
+      },
+      error: () => {
+        // Translation failed, but still save with what we have
+        this.translationStatus.set('error');
+        this.snackBar.open(
+          this.i18n.t('personForm.translationFailed'),
+          this.i18n.t('common.close'),
+          { duration: 3000 }
+        );
+        this.savePersonDirectly(formValue);
+      }
+    });
+  }
+
+  /**
+   * Save person directly without translation
+   */
+  private savePersonDirectly(formValue: any): void {
     const operation = this.data.person
       ? this.personService.updatePerson(this.data.person.id, this.buildUpdateRequest(formValue))
       : this.personService.createPerson(this.buildCreateRequest(formValue));
@@ -283,11 +446,25 @@ export class PersonFormDialogComponent implements OnInit {
     operation.subscribe({
       next: (person) => {
         this.saving.set(false);
+        // Show success message with translation status
+        const statusKey = this.translationStatus() === 'success'
+          ? 'personForm.savedWithTranslation'
+          : (this.data.person ? 'personForm.updateSuccess' : 'personForm.createSuccess');
+        this.snackBar.open(
+          this.i18n.t(statusKey),
+          this.i18n.t('common.close'),
+          { duration: 3000 }
+        );
         this.dialogRef.close(person);
       },
       error: (error) => {
         console.error('Failed to save person:', error);
         this.saving.set(false);
+        this.snackBar.open(
+          this.i18n.t('personForm.saveFailed'),
+          this.i18n.t('common.close'),
+          { duration: 5000 }
+        );
       }
     });
   }
@@ -311,7 +488,9 @@ export class PersonFormDialogComponent implements OnInit {
       education: formValue.education || undefined,
       religion: formValue.religion || undefined,
       nationality: this.extractNationalityCode(formValue.nationality),
-      notes: formValue.notes || undefined
+      notes: formValue.notes || undefined,
+      notesAr: formValue.notesAr || undefined,
+      notesNob: formValue.notesNob || undefined
     };
   }
 
@@ -334,7 +513,9 @@ export class PersonFormDialogComponent implements OnInit {
       education: formValue.education || undefined,
       religion: formValue.religion || undefined,
       nationality: this.extractNationalityCode(formValue.nationality),
-      notes: formValue.notes || undefined
+      notes: formValue.notes || undefined,
+      notesAr: formValue.notesAr || undefined,
+      notesNob: formValue.notesNob || undefined
     };
   }
 
@@ -401,5 +582,24 @@ export class PersonFormDialogComponent implements OnInit {
       return this.getCountryFlag(value);
     }
     return '';
+  }
+
+  /**
+   * Get the notes label translation key based on current language
+   */
+  getNotesLabelKey(): string {
+    const lang = this.i18n.currentLang();
+    switch (lang) {
+      case 'ar': return 'personForm.notesArabic';
+      case 'nob': return 'personForm.notesNobiin';
+      default: return 'personForm.notesEnglish';
+    }
+  }
+
+  /**
+   * Check if notes field should use RTL direction
+   */
+  isNotesRtl(): boolean {
+    return this.i18n.currentLang() === 'ar';
   }
 }

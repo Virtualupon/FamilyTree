@@ -20,6 +20,8 @@ export interface MediaSearchParams {
   captureDateTo?: string;
   capturePlaceId?: string;
   searchTerm?: string;
+  /** Exclude media that are used as avatars (Person.AvatarMediaId) */
+  excludeAvatars?: boolean;
   page?: number;
   pageSize?: number;
 }

@@ -37,6 +37,7 @@
         <mat-option value="Image">{{ 'media.images' | translate }}</mat-option>
         <mat-option value="Audio">{{ 'media.audio' | translate }}</mat-option>
         <mat-option value="Video">{{ 'media.videos' | translate }}</mat-option>
+        <mat-option value="Document">{{ 'media.documents' | translate }}</mat-option>
       </mat-select>
     </mat-form-field>
 
@@ -139,10 +140,21 @@
                 <mat-icon>{{ getKindIcon(item.kind) }}</mat-icon>
               </span>
             </div>
+            <!-- Tagged persons names -->
+            @if (item.linkedPersons && item.linkedPersons.length > 0) {
+              <div class="media-card__tagged">
+                @for (person of item.linkedPersons.slice(0, 2); track person.personId) {
+                  <span class="media-card__person-name">{{ person.personName || 'Unknown' }}</span>
+                }
+                @if (item.linkedPersons.length > 2) {
+                  <span class="media-card__more">+{{ item.linkedPersons.length - 2 }}</span>
+                }
+              </div>
+            }
           </div>
 
           <!-- Linked Persons Badge -->
-          @if (item.linkedPersons.length > 0) {
+          @if (item.linkedPersons && item.linkedPersons.length > 0) {
             <div class="media-card__persons">
               <mat-icon>people</mat-icon>
               <span>{{ item.linkedPersons.length }}</span>
@@ -172,10 +184,14 @@
             </span>
           </div>
 
-          @if (item.linkedPersons.length > 0) {
-            <div class="media-list-item__persons">
-              <mat-icon>people</mat-icon>
-              <span>{{ item.linkedPersons.length }}</span>
+          @if (item.linkedPersons && item.linkedPersons.length > 0) {
+            <div class="media-list-item__tagged">
+              @for (person of item.linkedPersons.slice(0, 3); track person.personId) {
+                <span class="media-list-item__person-chip">{{ person.personName || 'Unknown' }}</span>
+              }
+              @if (item.linkedPersons.length > 3) {
+                <span class="media-list-item__more">+{{ item.linkedPersons.length - 3 }}</span>
+              }
             </div>
           }
         </div>
@@ -239,6 +255,31 @@
           </audio>
         </div>
       }
+
+      <!-- Document -->
+      @if (lightboxSignedUrl() && lightboxMedia()?.kind === 'Document') {
+        <div class="media-lightbox__document">
+          <mat-icon class="media-lightbox__document-icon">description</mat-icon>
+          <h3>{{ lightboxMedia()?.title || lightboxMedia()?.fileName }}</h3>
+          <p class="media-lightbox__document-size">{{ formatFileSize(lightboxMedia()?.fileSize || 0) }}</p>
+          <div class="media-lightbox__document-actions">
+            <a mat-raised-button
+               color="primary"
+               [href]="lightboxSignedUrl()"
+               target="_blank"
+               rel="noopener noreferrer">
+              <mat-icon>open_in_new</mat-icon>
+              {{ 'media.openDocument' | translate }}
+            </a>
+            <a mat-stroked-button
+               [href]="lightboxSignedUrl()"
+               [download]="lightboxMedia()?.fileName">
+              <mat-icon>download</mat-icon>
+              {{ 'media.download' | translate }}
+            </a>
+          </div>
+        </div>
+      }
     </div>
 
     <!-- Details Panel -->
@@ -270,7 +311,7 @@
         </div>
 
         <!-- Linked Persons -->
-        @if (media.linkedPersons.length > 0) {
+        @if (media.linkedPersons && media.linkedPersons.length > 0) {
           <div class="media-lightbox__persons">
             <h4>{{ 'media.taggedPeople' | translate }}</h4>
             <div class="media-lightbox__person-list">

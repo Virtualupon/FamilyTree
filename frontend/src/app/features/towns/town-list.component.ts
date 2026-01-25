@@ -2,6 +2,13 @@ import { Component, OnInit, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { TownService } from '../../core/services/town.service';
 import { AuthService } from '../../core/services/auth.service';
 import { I18nService } from '../../core/i18n/i18n.service';
@@ -10,8 +17,20 @@ import { TownListItem, CreateTownRequest, PagedResult } from '../../core/models/
 @Component({
   selector: 'app-town-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
-  templateUrl: './town-list.component.html'
+  imports: [
+    CommonModule,
+    RouterModule,
+    FormsModule,
+    MatButtonModule,
+    MatIconModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatProgressSpinnerModule,
+    MatTooltipModule
+  ],
+  templateUrl: './town-list.component.html',
+  styleUrls: ['./town-list.component.scss']
 })
 export class TownListComponent implements OnInit {
   private townService = inject(TownService);

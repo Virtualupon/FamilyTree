@@ -150,6 +150,11 @@ export class PersonDetailComponent implements OnInit {
     return !!(p?.nameArabic || p?.nameEnglish || p?.nameNobiin);
   }
 
+  hasAnyNotes(): boolean {
+    const p = this.person();
+    return !!(p?.notes || p?.notesAr || p?.notesNob);
+  }
+
   getParentDisplayName(parent: ParentChildResponse): string {
     const lang = this.i18n.currentLang();
     const unknown = this.i18n.t('common.unknown');

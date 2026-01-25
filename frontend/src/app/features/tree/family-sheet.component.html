@@ -182,6 +182,14 @@
                   </span>
                 }
               </div>
+              @if (familyData()!.husband) {
+                <button class="family-sheet__edit-btn"
+                        mat-icon-button
+                        (click)="onPersonEdit(familyData()!.husband!, $event)"
+                        [matTooltip]="'common.edit' | translate">
+                  <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+                </button>
+              }
             </div>
 
             <!-- Marriage Connector -->
@@ -228,6 +236,14 @@
                   </span>
                 }
               </div>
+              @if (familyData()!.wife) {
+                <button class="family-sheet__edit-btn"
+                        mat-icon-button
+                        (click)="onPersonEdit(familyData()!.wife!, $event)"
+                        [matTooltip]="'common.edit' | translate">
+                  <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+                </button>
+              }
             </div>
           </div>
 

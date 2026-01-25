@@ -97,6 +97,47 @@ public class PersonController : ControllerBase
     }
 
     // ============================================================================
+    // AVATAR OPERATIONS
+    // ============================================================================
+
+    /// <summary>
+    /// Upload avatar for a person (atomic: creates media + sets AvatarMediaId in one transaction)
+    /// </summary>
+    [HttpPost("{id}/avatar")]
+    [RequestSizeLimit(5 * 1024 * 1024)] // 5MB max for avatars
+    public async Task<ActionResult<UploadPersonAvatarResponse>> UploadAvatar(
+        Guid id,
+        [FromBody] UploadPersonAvatarRequest request)
+    {
+        var userContext = BuildUserContext();
+        var result = await _personService.UploadAvatarAsync(id, request, userContext);
+
+        if (!result.IsSuccess)
+        {
+            return HandleError(result);
+        }
+
+        return Ok(result.Data);
+    }
+
+    /// <summary>
+    /// Remove avatar from a person (clears AvatarMediaId, optionally deletes media)
+    /// </summary>
+    [HttpDelete("{id}/avatar")]
+    public async Task<IActionResult> RemoveAvatar(Guid id, [FromQuery] bool deleteMedia = true)
+    {
+        var userContext = BuildUserContext();
+        var result = await _personService.RemoveAvatarAsync(id, deleteMedia, userContext);
+
+        if (!result.IsSuccess)
+        {
+            return HandleError(result);
+        }
+
+        return NoContent();
+    }
+
+    // ============================================================================
     // PRIVATE HELPER METHODS
     // ============================================================================
 

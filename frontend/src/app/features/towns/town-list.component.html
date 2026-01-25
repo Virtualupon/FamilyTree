@@ -1,300 +1,317 @@
-<div class="max-w-6xl mx-auto p-4 md:p-6">
-  <!-- Header -->
-  <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
-    <h1 class="text-2xl font-bold text-on-surface">{{ i18n.t('towns.title') }}</h1>
+<div class="towns-page">
+  <!-- Decorative Header Banner -->
+  <div class="towns-page__banner">
+    <div class="towns-page__banner-pattern"></div>
+    <div class="towns-page__banner-content">
+      <div class="towns-page__banner-icon">
+        <mat-icon>location_city</mat-icon>
+      </div>
+      <h1 class="towns-page__title">{{ i18n.t('towns.title') }}</h1>
+      <p class="towns-page__subtitle">{{ i18n.t('towns.subtitle') || 'Explore towns and villages' }}</p>
+    </div>
+  </div>
+
+  <div class="towns-page__container">
+    <!-- Action Buttons -->
     @if (isSuperAdmin()) {
-      <div class="flex gap-2">
-        <button
-          (click)="showImportModal = true"
-          class="inline-flex items-center gap-2 px-4 py-2 border border-primary text-primary rounded-lg hover:bg-primary/5 transition-colors min-h-touch">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-          </svg>
-          {{ i18n.t('towns.import') }}
+      <div class="towns-page__actions">
+        <button mat-stroked-button color="primary" (click)="showImportModal = true" class="towns-page__action-btn">
+          <mat-icon>upload_file</mat-icon>
+          <span>{{ i18n.t('towns.import') }}</span>
         </button>
-        <button
-          (click)="showCreateModal = true"
-          class="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors min-h-touch">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-          </svg>
-          {{ i18n.t('towns.create') }}
+        <button mat-raised-button color="primary" (click)="showCreateModal = true" class="towns-page__action-btn">
+          <mat-icon>add_location_alt</mat-icon>
+          <span>{{ i18n.t('towns.create') }}</span>
         </button>
       </div>
     }
-  </div>
 
-  <!-- Search & Filters -->
-  <div class="flex flex-col sm:flex-row gap-4 mb-6">
-    <div class="flex-1">
-      <input
-        type="text"
-        [(ngModel)]="searchQuery"
-        (ngModelChange)="onSearchChange()"
-        class="w-full px-4 py-2 border border-border rounded-lg bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
-        [placeholder]="i18n.t('towns.searchPlaceholder')">
+    <!-- Search & Filters -->
+    <div class="towns-page__filters">
+      <mat-form-field appearance="outline" class="towns-page__search">
+        <mat-label>{{ i18n.t('towns.searchPlaceholder') }}</mat-label>
+        <mat-icon matPrefix>search</mat-icon>
+        <input matInput [(ngModel)]="searchQuery" (ngModelChange)="onSearchChange()">
+        @if (searchQuery) {
+          <button matSuffix mat-icon-button (click)="searchQuery = ''; onSearchChange()">
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="towns-page__country-filter">
+        <mat-label>{{ i18n.t('towns.country') }}</mat-label>
+        <mat-icon matPrefix>public</mat-icon>
+        <mat-select [(ngModel)]="selectedCountry" (ngModelChange)="loadTowns()">
+          <mat-option value="">{{ i18n.t('towns.allCountries') }}</mat-option>
+          @for (country of countries(); track country) {
+            <mat-option [value]="country">{{ country }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
     </div>
-    <select
-      [(ngModel)]="selectedCountry"
-      (ngModelChange)="loadTowns()"
-      class="px-4 py-2 border border-border rounded-lg bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary">
-      <option value="">{{ i18n.t('towns.allCountries') }}</option>
-      @for (country of countries(); track country) {
-        <option [value]="country">{{ country }}</option>
-      }
-    </select>
-  </div>
 
-  <!-- Loading -->
-  @if (loading()) {
-    <div class="flex justify-center py-12">
-      <div class="w-12 h-12 border-4 border-border border-t-primary rounded-full animate-spin"></div>
-    </div>
-  }
+    <!-- Loading -->
+    @if (loading()) {
+      <div class="towns-page__loading">
+        <mat-spinner diameter="48" color="primary"></mat-spinner>
+        <span>{{ i18n.t('common.loading') }}</span>
+      </div>
+    }
 
-  <!-- Error -->
-  @if (error()) {
-    <div class="bg-error/10 border border-error/30 text-error px-4 py-3 rounded-lg mb-4">
-      {{ error() }}
-    </div>
-  }
+    <!-- Error -->
+    @if (error()) {
+      <div class="towns-page__error">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ error() }}</span>
+        <button mat-button color="primary" (click)="loadTowns()">
+          <mat-icon>refresh</mat-icon>
+          {{ i18n.t('common.retry') }}
+        </button>
+      </div>
+    }
 
-  <!-- Town Grid -->
-  @if (!loading() && towns().length > 0) {
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-      @for (town of towns(); track town.id) {
-        <a
-          [routerLink]="['/towns', town.id]"
-          class="block bg-surface rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-          <!-- Cover -->
-          <div class="h-24 bg-gradient-to-br from-primary to-primary-light flex items-center justify-center">
-            <svg class="w-12 h-12 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-            </svg>
-          </div>
-
-          <!-- Content -->
-          <div class="p-4">
-            <h3 class="text-lg font-semibold text-on-surface mb-1">{{ getTownName(town) }}</h3>
-            @if (town.country) {
-              <p class="text-on-surface-variant text-sm mb-3">{{ town.country }}</p>
-            }
-
-            <div class="flex items-center justify-between text-sm text-on-surface-variant">
-              <span>{{ town.treeCount }} {{ i18n.t('towns.trees') }}</span>
-              <span class="text-xs">{{ formatDate(town.createdAt) }}</span>
+    <!-- Town Grid -->
+    @if (!loading() && towns().length > 0) {
+      <div class="towns-page__grid">
+        @for (town of towns(); track town.id) {
+          <a [routerLink]="['/towns', town.id]" class="town-card">
+            <!-- Card Header with Nubian Pattern -->
+            <div class="town-card__header">
+              <div class="town-card__pattern"></div>
+              <div class="town-card__icon">
+                <mat-icon>mosque</mat-icon>
+              </div>
             </div>
-          </div>
-        </a>
-      }
-    </div>
 
-    <!-- Pagination -->
-    @if (totalPages() > 1) {
-      <div class="flex justify-center items-center gap-2 mt-6">
-        <button
-          (click)="goToPage(currentPage() - 1)"
-          [disabled]="currentPage() === 1"
-          class="px-4 py-2 border border-border rounded-lg bg-surface hover:bg-surface-variant disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-          {{ i18n.t('common.previous') }}
-        </button>
-        <span class="px-4 py-2 text-on-surface-variant">
-          {{ i18n.t('common.pageOf', { page: currentPage(), total: totalPages() }) }}
-        </span>
-        <button
-          (click)="goToPage(currentPage() + 1)"
-          [disabled]="currentPage() === totalPages()"
-          class="px-4 py-2 border border-border rounded-lg bg-surface hover:bg-surface-variant disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-          {{ i18n.t('common.next') }}
-        </button>
+            <!-- Card Content -->
+            <div class="town-card__content">
+              <h3 class="town-card__name">{{ getTownName(town) }}</h3>
+
+              @if (town.country) {
+                <div class="town-card__location">
+                  <mat-icon>place</mat-icon>
+                  <span>{{ town.country }}</span>
+                </div>
+              }
+
+              <div class="town-card__stats">
+                <div class="town-card__stat">
+                  <mat-icon>account_tree</mat-icon>
+                  <span>{{ town.treeCount }} {{ i18n.t('towns.trees') }}</span>
+                </div>
+                <div class="town-card__stat town-card__stat--date">
+                  <mat-icon>calendar_today</mat-icon>
+                  <span>{{ formatDate(town.createdAt) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Hover Arrow -->
+            <div class="town-card__arrow">
+              <mat-icon>arrow_forward</mat-icon>
+            </div>
+          </a>
+        }
+      </div>
+
+      <!-- Pagination -->
+      @if (totalPages() > 1) {
+        <div class="towns-page__pagination">
+          <button mat-icon-button
+                  [disabled]="currentPage() === 1"
+                  (click)="goToPage(currentPage() - 1)"
+                  [matTooltip]="i18n.t('common.previous')">
+            <mat-icon>chevron_left</mat-icon>
+          </button>
+
+          <div class="towns-page__page-info">
+            <span class="towns-page__page-current">{{ currentPage() }}</span>
+            <span class="towns-page__page-separator">/</span>
+            <span class="towns-page__page-total">{{ totalPages() }}</span>
+          </div>
+
+          <button mat-icon-button
+                  [disabled]="currentPage() === totalPages()"
+                  (click)="goToPage(currentPage() + 1)"
+                  [matTooltip]="i18n.t('common.next')">
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+        </div>
+      }
+    }
+
+    <!-- Empty State -->
+    @if (!loading() && towns().length === 0) {
+      <div class="towns-page__empty">
+        <div class="towns-page__empty-icon">
+          <mat-icon>location_off</mat-icon>
+        </div>
+        <h3>{{ i18n.t('towns.noTowns') }}</h3>
+        <p>{{ i18n.t('towns.noTownsDesc') }}</p>
+        @if (isSuperAdmin()) {
+          <button mat-raised-button color="primary" (click)="showCreateModal = true">
+            <mat-icon>add_location_alt</mat-icon>
+            {{ i18n.t('towns.createFirst') }}
+          </button>
+        }
       </div>
     }
-  }
-
-  <!-- Empty State -->
-  @if (!loading() && towns().length === 0) {
-    <div class="text-center py-12">
-      <svg class="mx-auto h-16 w-16 text-on-surface-variant/50 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-      </svg>
-      <h3 class="text-lg font-medium text-on-surface mb-2">{{ i18n.t('towns.noTowns') }}</h3>
-      <p class="text-on-surface-variant mb-4">{{ i18n.t('towns.noTownsDesc') }}</p>
-      @if (isSuperAdmin()) {
-        <button
-          (click)="showCreateModal = true"
-          class="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors">
-          {{ i18n.t('towns.createFirst') }}
-        </button>
-      }
-    </div>
-  }
+  </div>
 
   <!-- Create Modal -->
   @if (showCreateModal) {
-    <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" (click)="showCreateModal = false">
-      <div class="bg-surface rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
-        <div class="p-6">
-          <h2 class="text-xl font-semibold text-on-surface mb-4">{{ i18n.t('towns.createTitle') }}</h2>
-
-          <form (ngSubmit)="createTown()" class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-on-surface mb-1">{{ i18n.t('towns.name') }} *</label>
-              <input
-                type="text"
-                [(ngModel)]="newTown.name"
-                name="name"
-                required
-                class="w-full px-3 py-2 border border-border rounded-lg bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary">
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-on-surface mb-1">{{ i18n.t('towns.nameEn') }}</label>
-              <input
-                type="text"
-                [(ngModel)]="newTown.nameEn"
-                name="nameEn"
-                class="w-full px-3 py-2 border border-border rounded-lg bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary">
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-on-surface mb-1">{{ i18n.t('towns.nameAr') }}</label>
-              <input
-                type="text"
-                [(ngModel)]="newTown.nameAr"
-                name="nameAr"
-                dir="rtl"
-                class="w-full px-3 py-2 border border-border rounded-lg bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary">
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-on-surface mb-1">{{ i18n.t('towns.nameLocal') }}</label>
-              <input
-                type="text"
-                [(ngModel)]="newTown.nameLocal"
-                name="nameLocal"
-                class="w-full px-3 py-2 border border-border rounded-lg bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary">
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-on-surface mb-1">{{ i18n.t('towns.country') }}</label>
-              <input
-                type="text"
-                [(ngModel)]="newTown.country"
-                name="country"
-                class="w-full px-3 py-2 border border-border rounded-lg bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary">
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-on-surface mb-1">{{ i18n.t('towns.description') }}</label>
-              <textarea
-                [(ngModel)]="newTown.description"
-                name="description"
-                rows="3"
-                class="w-full px-3 py-2 border border-border rounded-lg bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary resize-y"></textarea>
-            </div>
-
-            @if (createError()) {
-              <div class="bg-error/10 border border-error/30 text-error px-3 py-2 rounded-lg text-sm">
-                {{ createError() }}
-              </div>
-            }
-
-            <div class="flex gap-3 pt-2">
-              <button
-                type="button"
-                (click)="showCreateModal = false"
-                class="flex-1 px-4 py-2 border border-border rounded-lg bg-surface hover:bg-surface-variant transition-colors">
-                {{ i18n.t('common.cancel') }}
-              </button>
-              <button
-                type="submit"
-                [disabled]="creating()"
-                class="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 transition-colors">
-                {{ creating() ? i18n.t('common.creating') : i18n.t('common.create') }}
-              </button>
-            </div>
-          </form>
+    <div class="modal-backdrop" (click)="showCreateModal = false">
+      <div class="modal-container" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <mat-icon class="modal-header__icon">add_location_alt</mat-icon>
+          <h2>{{ i18n.t('towns.createTitle') }}</h2>
+          <button mat-icon-button (click)="showCreateModal = false" class="modal-close">
+            <mat-icon>close</mat-icon>
+          </button>
         </div>
+
+        <form (ngSubmit)="createTown()" class="modal-content">
+          <mat-form-field appearance="outline" class="modal-field">
+            <mat-label>{{ i18n.t('towns.name') }} *</mat-label>
+            <mat-icon matPrefix>badge</mat-icon>
+            <input matInput [(ngModel)]="newTown.name" name="name" required>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="modal-field">
+            <mat-label>{{ i18n.t('towns.nameEn') }}</mat-label>
+            <mat-icon matPrefix>translate</mat-icon>
+            <input matInput [(ngModel)]="newTown.nameEn" name="nameEn">
+            <mat-hint>English</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="modal-field">
+            <mat-label>{{ i18n.t('towns.nameAr') }}</mat-label>
+            <mat-icon matPrefix>translate</mat-icon>
+            <input matInput [(ngModel)]="newTown.nameAr" name="nameAr" dir="rtl">
+            <mat-hint>العربية</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="modal-field">
+            <mat-label>{{ i18n.t('towns.nameLocal') }}</mat-label>
+            <mat-icon matPrefix>language</mat-icon>
+            <input matInput [(ngModel)]="newTown.nameLocal" name="nameLocal">
+            <mat-hint>Nobiin</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="modal-field">
+            <mat-label>{{ i18n.t('towns.country') }}</mat-label>
+            <mat-icon matPrefix>public</mat-icon>
+            <input matInput [(ngModel)]="newTown.country" name="country">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="modal-field">
+            <mat-label>{{ i18n.t('towns.description') }}</mat-label>
+            <mat-icon matPrefix>description</mat-icon>
+            <textarea matInput [(ngModel)]="newTown.description" name="description" rows="3"></textarea>
+          </mat-form-field>
+
+          @if (createError()) {
+            <div class="modal-error">
+              <mat-icon>error</mat-icon>
+              <span>{{ createError() }}</span>
+            </div>
+          }
+
+          <div class="modal-actions">
+            <button mat-stroked-button type="button" (click)="showCreateModal = false">
+              {{ i18n.t('common.cancel') }}
+            </button>
+            <button mat-raised-button color="primary" type="submit" [disabled]="creating()">
+              @if (creating()) {
+                <mat-spinner diameter="20"></mat-spinner>
+              } @else {
+                <mat-icon>check</mat-icon>
+              }
+              {{ creating() ? i18n.t('common.creating') : i18n.t('common.create') }}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   }
 
   <!-- Import Modal -->
   @if (showImportModal) {
-    <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" (click)="showImportModal = false">
-      <div class="bg-surface rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" (click)="$event.stopPropagation()">
-        <div class="p-6">
-          <h2 class="text-xl font-semibold text-on-surface mb-4">{{ i18n.t('towns.importTitle') }}</h2>
+    <div class="modal-backdrop" (click)="showImportModal = false">
+      <div class="modal-container modal-container--lg" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <mat-icon class="modal-header__icon">upload_file</mat-icon>
+          <h2>{{ i18n.t('towns.importTitle') }}</h2>
+          <button mat-icon-button (click)="closeImportModal()" class="modal-close">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
 
-          <div class="mb-4">
-            <p class="text-sm text-on-surface-variant mb-2">{{ i18n.t('towns.importDesc') }}</p>
-            <code class="block bg-surface-variant p-2 rounded text-xs font-mono">name,name_en,name_ar,name_local,country</code>
+        <div class="modal-content">
+          <div class="import-info">
+            <mat-icon>info</mat-icon>
+            <div>
+              <p>{{ i18n.t('towns.importDesc') }}</p>
+              <code>name,name_en,name_ar,name_local,country</code>
+            </div>
           </div>
 
-          <div
-            class="border-2 border-dashed rounded-lg p-8 text-center mb-4 transition-colors"
-            [class.border-primary]="isDragging"
-            [class.border-border]="!isDragging"
-            [class.bg-green-50]="isDragging"
-            (dragover)="onDragOver($event)"
-            (dragleave)="isDragging = false"
-            (drop)="onDrop($event)">
+          <div class="import-dropzone"
+               [class.import-dropzone--active]="isDragging"
+               [class.import-dropzone--has-file]="selectedFile"
+               (dragover)="onDragOver($event)"
+               (dragleave)="isDragging = false"
+               (drop)="onDrop($event)">
             @if (selectedFile) {
-              <div class="flex items-center justify-center gap-2">
-                <svg class="w-6 h-6 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                <span class="text-on-surface">{{ selectedFile.name }}</span>
-                <button (click)="selectedFile = null" class="text-error hover:text-error/80 p-1">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                  </svg>
-                </button>
-              </div>
+              <mat-icon class="import-dropzone__icon import-dropzone__icon--success">check_circle</mat-icon>
+              <span class="import-dropzone__filename">{{ selectedFile.name }}</span>
+              <button mat-icon-button color="warn" (click)="selectedFile = null">
+                <mat-icon>delete</mat-icon>
+              </button>
             } @else {
-              <svg class="mx-auto h-12 w-12 text-on-surface-variant/50 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-              </svg>
-              <p class="text-on-surface-variant mb-2">{{ i18n.t('towns.dropFile') }}</p>
-              <label class="cursor-pointer text-primary hover:text-primary-dark">
+              <mat-icon class="import-dropzone__icon">cloud_upload</mat-icon>
+              <p class="import-dropzone__text">{{ i18n.t('towns.dropFile') }}</p>
+              <label class="import-dropzone__browse">
                 {{ i18n.t('towns.browseFile') }}
-                <input type="file" accept=".csv" (change)="onFileSelected($event)" class="hidden">
+                <input type="file" accept=".csv" (change)="onFileSelected($event)">
               </label>
             }
           </div>
 
           @if (importResult()) {
-            <div class="mb-4 p-4 rounded-lg" [ngClass]="importResult()!.errors === 0 ? 'bg-green-100' : 'bg-yellow-100'">
-              <p class="font-medium mb-2">{{ i18n.t('towns.importResult') }}</p>
-              <ul class="text-sm space-y-1">
-                <li>{{ i18n.t('towns.importCreated', { count: importResult()!.created }) }}</li>
-                <li>{{ i18n.t('towns.importSkipped', { count: importResult()!.skipped }) }}</li>
-                @if (importResult()!.errors > 0) {
-                  <li class="text-error">{{ i18n.t('towns.importErrors', { count: importResult()!.errors }) }}</li>
-                }
-              </ul>
+            <div class="import-result" [class.import-result--success]="importResult()!.errors === 0">
+              <mat-icon>{{ importResult()!.errors === 0 ? 'check_circle' : 'warning' }}</mat-icon>
+              <div class="import-result__details">
+                <p class="import-result__title">{{ i18n.t('towns.importResult') }}</p>
+                <ul>
+                  <li><mat-icon>add_circle</mat-icon> {{ i18n.t('towns.importCreated', { count: importResult()!.created }) }}</li>
+                  <li><mat-icon>skip_next</mat-icon> {{ i18n.t('towns.importSkipped', { count: importResult()!.skipped }) }}</li>
+                  @if (importResult()!.errors > 0) {
+                    <li class="import-result__error"><mat-icon>error</mat-icon> {{ i18n.t('towns.importErrors', { count: importResult()!.errors }) }}</li>
+                  }
+                </ul>
+              </div>
             </div>
           }
 
           @if (importError()) {
-            <div class="bg-error/10 border border-error/30 text-error px-3 py-2 rounded-lg mb-4 text-sm">
-              {{ importError() }}
+            <div class="modal-error">
+              <mat-icon>error</mat-icon>
+              <span>{{ importError() }}</span>
             </div>
           }
 
-          <div class="flex gap-3">
-            <button
-              type="button"
-              (click)="closeImportModal()"
-              class="flex-1 px-4 py-2 border border-border rounded-lg bg-surface hover:bg-surface-variant transition-colors">
+          <div class="modal-actions">
+            <button mat-stroked-button (click)="closeImportModal()">
               {{ i18n.t('common.close') }}
             </button>
-            <button
-              (click)="importTowns()"
-              [disabled]="!selectedFile || importing()"
-              class="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 transition-colors">
+            <button mat-raised-button color="primary" [disabled]="!selectedFile || importing()" (click)="importTowns()">
+              @if (importing()) {
+                <mat-spinner diameter="20"></mat-spinner>
+              } @else {
+                <mat-icon>upload</mat-icon>
+              }
               {{ importing() ? i18n.t('common.importing') : i18n.t('towns.import') }}
             </button>
           </div>

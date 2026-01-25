@@ -108,10 +108,28 @@
               }
             </div>
 
-            @if (person()!.notes) {
+            <!-- Notes in Different Languages -->
+            @if (hasAnyNotes()) {
               <div class="notes-section">
                 <h4>{{ 'personDetail.labels.notes' | translate }}</h4>
-                <p>{{ person()!.notes }}</p>
+                @if (person()!.notes) {
+                  <div class="note-item">
+                    <mat-chip>{{ 'languages.english' | translate }}</mat-chip>
+                    <p>{{ person()!.notes }}</p>
+                  </div>
+                }
+                @if (person()!.notesAr) {
+                  <div class="note-item">
+                    <mat-chip>{{ 'languages.arabic' | translate }}</mat-chip>
+                    <p class="notes-arabic" dir="rtl">{{ person()!.notesAr }}</p>
+                  </div>
+                }
+                @if (person()!.notesNob) {
+                  <div class="note-item">
+                    <mat-chip>{{ 'languages.nobiin' | translate }}</mat-chip>
+                    <p>{{ person()!.notesNob }}</p>
+                  </div>
+                }
               </div>
             }
 

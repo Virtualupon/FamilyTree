@@ -60,6 +60,28 @@ public interface IPersonService
         Guid? treeId,
         UserContext userContext,
         CancellationToken cancellationToken = default);
+
+    // ============================================================================
+    // AVATAR OPERATIONS
+    // ============================================================================
+
+    /// <summary>
+    /// Upload avatar for a person (atomic: creates media + sets AvatarMediaId in one transaction).
+    /// </summary>
+    Task<ServiceResult<UploadPersonAvatarResponse>> UploadAvatarAsync(
+        Guid personId,
+        UploadPersonAvatarRequest request,
+        UserContext userContext,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Remove avatar from a person (clears AvatarMediaId, optionally deletes media).
+    /// </summary>
+    Task<ServiceResult> RemoveAvatarAsync(
+        Guid personId,
+        bool deleteMedia,
+        UserContext userContext,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>

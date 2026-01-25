@@ -51,4 +51,14 @@ public interface IPersonMediaRepository : IRepository<PersonMedia>
     /// Gets all person links for multiple media items with Person details
     /// </summary>
     Task<IEnumerable<PersonMedia>> GetByMediaIdsWithPersonsAsync(IEnumerable<Guid> mediaIds, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Updates a Media entity's translation fields
+    /// </summary>
+    Task UpdateMediaTranslationsAsync(
+        Guid mediaId,
+        string? description,
+        string? descriptionAr,
+        string? descriptionNob,
+        CancellationToken cancellationToken = default);
 }

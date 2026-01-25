@@ -11,7 +11,9 @@ import type {
   UpdatePersonRequest,
   PersonName,
   PersonSearchRequest,
-  PagedResult
+  PagedResult,
+  UploadAvatarRequest,
+  UploadAvatarResponse
 } from '../models/person.models';
 
 import { Sex, DatePrecision, PrivacyLevel, NameType } from '../models/person.models';
@@ -167,6 +169,30 @@ export class PersonService {
     let params = new HttpParams();
     if (treeId) params = params.set('treeId', treeId);
     return this.http.delete<void>(`${this.apiUrl}/${personId}/names/${nameId}`, { params });
+  }
+
+  // ========================================================================
+  // AVATAR METHODS
+  // ========================================================================
+
+  /**
+   * Upload avatar atomically (creates media + sets AvatarMediaId in one call)
+   */
+  uploadAvatar(personId: string, request: UploadAvatarRequest): Observable<UploadAvatarResponse> {
+    return this.http.post<UploadAvatarResponse>(
+      `${this.apiUrl}/${personId}/avatar`,
+      request
+    );
+  }
+
+  /**
+   * Remove avatar from person
+   */
+  removeAvatar(personId: string, deleteMedia = true): Observable<void> {
+    return this.http.delete<void>(
+      `${this.apiUrl}/${personId}/avatar`,
+      { params: { deleteMedia: deleteMedia.toString() } }
+    );
   }
 
   // ========================================================================

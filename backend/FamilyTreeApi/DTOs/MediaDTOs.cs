@@ -134,6 +134,12 @@ public class MediaSearchRequest
     public string? SearchTerm { get; set; }
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 20;
+
+    /// <summary>
+    /// Exclude media files that are used as person avatars (profile pictures).
+    /// Defaults to true so Media Gallery shows only actual media, not profile pictures.
+    /// </summary>
+    public bool ExcludeAvatars { get; set; } = true;
 }
 
 /// <summary>

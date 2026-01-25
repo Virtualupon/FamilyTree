@@ -48,11 +48,18 @@
   }
 }
 
+.tree-page__selector {
+  display: flex;
+  align-items: center;
+  gap: var(--ft-spacing-xs);
+  padding: var(--ft-spacing-sm) var(--ft-spacing-md);
+}
+
 .person-selector-btn {
   display: flex;
   align-items: center;
   gap: var(--ft-spacing-sm);
-  width: 100%;
+  flex: 1;
   max-width: 400px;
   justify-content: flex-start;
   padding: var(--ft-spacing-sm) var(--ft-spacing-md);

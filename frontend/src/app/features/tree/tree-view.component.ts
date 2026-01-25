@@ -31,6 +31,7 @@ import { TimelineViewComponent } from './timeline-view.component';
 import { FamilySheetComponent } from './family-sheet.component';
 import { RelationshipFinderDialogComponent, RelationshipFinderDialogResult } from './relationship-finder-dialog.component';
 import { AddRelationshipDialogComponent, RelationshipDialogData, RelationshipDialogType } from '../people/add-relationship-dialog.component';
+import { PersonFormDialogComponent, PersonFormDialogData } from '../people/person-form-dialog.component';
 import { RelationshipPathViewComponent } from './relationship-path-view.component';
 
 @Component({
@@ -577,6 +578,88 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
 
   d3FitToScreen(): void {
     this.d3TreeComponent?.fitToScreen();
+  }
+
+  /**
+   * Open the edit dialog for the currently selected person
+   */
+  editSelectedPerson(): void {
+    const person = this.selectedPerson();
+    if (!person) return;
+
+    // First fetch the full person data
+    this.personService.getPerson(person.id).subscribe({
+      next: (fullPerson) => {
+        const dialogData: PersonFormDialogData = {
+          person: fullPerson,
+          treeId: this.treeContext.selectedTreeId() || ''
+        };
+
+        const dialogRef = this.dialog.open(PersonFormDialogComponent, {
+          data: dialogData,
+          width: '700px',
+          maxWidth: '95vw',
+          maxHeight: '90vh'
+        });
+
+        dialogRef.afterClosed().subscribe((result) => {
+          if (result) {
+            // Reload the tree to show updates
+            this.loadTree();
+
+            // Update the selected person display name
+            const updatedPerson: PersonListItem = {
+              ...person,
+              nameArabic: result.nameArabic,
+              nameEnglish: result.nameEnglish,
+              nameNobiin: result.nameNobiin,
+              primaryName: result.nameEnglish || result.nameArabic || result.nameNobiin || person.primaryName
+            };
+            this.setSelectedPerson(updatedPerson);
+
+            const message = this.i18n.t('personForm.updateSuccess');
+            this.snackBar.open(message, this.i18n.t('common.close'), { duration: 3000 });
+          }
+        });
+      },
+      error: () => {
+        this.snackBar.open(this.i18n.t('common.error'), this.i18n.t('common.close'), { duration: 3000 });
+      }
+    });
+  }
+
+  /**
+   * Open the edit dialog for a specific person (from Family Sheet)
+   */
+  onPersonEdit(node: TreePersonNode): void {
+    this.personService.getPerson(node.id).subscribe({
+      next: (fullPerson) => {
+        const dialogData: PersonFormDialogData = {
+          person: fullPerson,
+          treeId: this.treeContext.selectedTreeId() || ''
+        };
+
+        const dialogRef = this.dialog.open(PersonFormDialogComponent, {
+          data: dialogData,
+          width: '700px',
+          maxWidth: '95vw',
+          maxHeight: '90vh'
+        });
+
+        dialogRef.afterClosed().subscribe((result) => {
+          if (result) {
+            // Reload the tree to show updates
+            this.loadTree();
+
+            const message = this.i18n.t('personForm.updateSuccess');
+            this.snackBar.open(message, this.i18n.t('common.close'), { duration: 3000 });
+          }
+        });
+      },
+      error: () => {
+        this.snackBar.open(this.i18n.t('common.error'), this.i18n.t('common.close'), { duration: 3000 });
+      }
+    });
   }
 
   onCrossTreeLinkClick(link: PersonLinkSummary): void {

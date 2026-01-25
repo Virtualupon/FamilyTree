@@ -76,6 +76,10 @@ export class MediaGalleryComponent implements OnInit, OnDestroy {
   // Signed URL cache (maps mediaId -> CachedSignedUrl)
   signedUrls = signal<Map<string, CachedSignedUrl>>(new Map());
 
+  // Retry tracking for signed URLs (max 3 retries per media item)
+  private readonly MAX_RETRY_COUNT = 3;
+  private signedUrlRetryCount = new Map<string, number>();
+
   // Lightbox state
   lightboxMedia = signal<MediaItem | null>(null);
   lightboxSignedUrl = signal<string | null>(null);
@@ -88,7 +92,7 @@ export class MediaGalleryComponent implements OnInit, OnDestroy {
   readonly pageSizeOptions = [12, 24, 48, 96];
 
   // Media kind options for filter
-  readonly kindOptions: (MediaKind | null)[] = [null, 'Image', 'Audio', 'Video'];
+  readonly kindOptions: (MediaKind | null)[] = [null, 'Image', 'Audio', 'Video', 'Document'];
 
   // Hover preload throttling
   private hoverPreloadQueue = new Set<string>();
@@ -197,11 +201,18 @@ export class MediaGalleryComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Load signed URL for a media item with error handling and retry
+   * Load signed URL for a media item with error handling and retry limits
    */
   loadSignedUrl(mediaId: string): void {
     // Skip if already loading
     if (this.signedUrlLoading().get(mediaId)) return;
+
+    // Check retry limit
+    const retryCount = this.signedUrlRetryCount.get(mediaId) ?? 0;
+    if (retryCount >= this.MAX_RETRY_COUNT) {
+      console.warn(`Max retry count reached for media ${mediaId}`);
+      return;
+    }
 
     // Update loading state
     const loadingMap = new Map(this.signedUrlLoading());
@@ -221,13 +232,17 @@ export class MediaGalleryComponent implements OnInit, OnDestroy {
         urlMap.set(mediaId, cached);
         this.signedUrls.set(urlMap);
 
-        // Clear loading state
+        // Clear loading state and reset retry count on success
         const loadingMap = new Map(this.signedUrlLoading());
         loadingMap.delete(mediaId);
         this.signedUrlLoading.set(loadingMap);
+        this.signedUrlRetryCount.delete(mediaId);
       },
       error: (err) => {
         console.error(`Failed to load signed URL for ${mediaId}:`, err);
+
+        // Increment retry count
+        this.signedUrlRetryCount.set(mediaId, retryCount + 1);
 
         // Set error state
         const errorMap = new Map(this.signedUrlErrors());
@@ -243,11 +258,28 @@ export class MediaGalleryComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Retry loading signed URL after error
+   * Retry loading signed URL after error (respects retry limits)
    */
   retrySignedUrl(mediaId: string): void {
+    const retryCount = this.signedUrlRetryCount.get(mediaId) ?? 0;
+    if (retryCount >= this.MAX_RETRY_COUNT) {
+      // Max retries reached, show feedback
+      this.snackBar.open(
+        this.i18n.t('media.failedLoadMedia'),
+        this.i18n.t('common.close'),
+        { duration: 3000 }
+      );
+      return;
+    }
     this.mediaService.invalidateCache(mediaId);
     this.loadSignedUrl(mediaId);
+  }
+
+  /**
+   * Check if max retries reached for a media item
+   */
+  hasMaxRetriesReached(mediaId: string): boolean {
+    return (this.signedUrlRetryCount.get(mediaId) ?? 0) >= this.MAX_RETRY_COUNT;
   }
 
   /**
@@ -415,8 +447,23 @@ export class MediaGalleryComponent implements OnInit, OnDestroy {
       case 'Image': return this.i18n.t('media.images');
       case 'Audio': return this.i18n.t('media.audio');
       case 'Video': return this.i18n.t('media.videos');
+      case 'Document': return this.i18n.t('media.documents');
       default: return kind;
     }
+  }
+
+  /**
+   * Check if media item is a document (PDF, etc.)
+   */
+  isDocument(item: MediaItem): boolean {
+    return item.kind === 'Document';
+  }
+
+  /**
+   * Open document in new tab for viewing/download
+   */
+  openDocument(item: MediaItem, url: string): void {
+    window.open(url, '_blank');
   }
 
   formatDate(dateStr?: string): string {

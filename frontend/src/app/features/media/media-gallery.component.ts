@@ -161,7 +161,8 @@ export class MediaGalleryComponent implements OnInit, OnDestroy {
       page: this.page(),
       pageSize: this.pageSize(),
       kind: this.kindFilter() ?? undefined,
-      searchTerm: searchTerm || this.searchControl.value || undefined
+      searchTerm: searchTerm || this.searchControl.value || undefined,
+      excludeAvatars: true // Always exclude avatars from gallery view
     };
 
     return this.mediaService.searchMedia(params);

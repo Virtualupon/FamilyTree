@@ -318,4 +318,66 @@ public class MediaService : IMediaService
             _ => "application/octet-stream"
         };
     }
+
+    public async Task<int> DeletePersonAvatarsAsync(Guid personId, Guid? excludeMediaId = null)
+    {
+        try
+        {
+            // Find all avatar media for this person (Title contains "Avatar" and is an image)
+            var avatarMedia = await _context.MediaFiles
+                .Where(m => m.PersonId == personId &&
+                           m.Kind == MediaKind.Image &&
+                           m.Title != null &&
+                           EF.Functions.ILike(m.Title, "%Avatar%"))
+                .ToListAsync();
+
+            // Exclude the new avatar if specified
+            if (excludeMediaId.HasValue)
+            {
+                avatarMedia = avatarMedia.Where(m => m.Id != excludeMediaId.Value).ToList();
+            }
+
+            if (avatarMedia.Count == 0)
+            {
+                return 0;
+            }
+
+            var deletedCount = 0;
+            foreach (var media in avatarMedia)
+            {
+                try
+                {
+                    // Delete from storage
+                    if (!string.IsNullOrEmpty(media.Url))
+                    {
+                        var storageService = GetStorageServiceByType(media.StorageType);
+                        await storageService.DeleteFileAsync(media.Url);
+                    }
+
+                    // Delete from database
+                    _context.MediaFiles.Remove(media);
+                    deletedCount++;
+
+                    _logger.LogInformation("Deleted orphaned avatar media {MediaId} for person {PersonId}",
+                        media.Id, personId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to delete avatar media {MediaId}", media.Id);
+                }
+            }
+
+            if (deletedCount > 0)
+            {
+                await _context.SaveChangesAsync();
+            }
+
+            return deletedCount;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error cleaning up avatars for person {PersonId}", personId);
+            return 0;
+        }
+    }
 }

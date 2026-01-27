@@ -18,6 +18,7 @@ import {
   toPersonListItem
 } from '../models/search.models';
 import type { PersonListItem, PagedResult } from '../models/person.models';
+import { Sex } from '../models/person.models';
 
 /**
  * Service for efficient person search using Dapper + PostgreSQL functions.
@@ -66,15 +67,9 @@ export class PersonSearchService {
    * Advanced search with full filtering (POST /api/search/persons)
    */
   search(request: PersonSearchRequest): Observable<PersonSearchResult> {
-    // Convert sex if it's a number (for backward compatibility)
-    let sexValue = request.sex;
-    if (typeof request.sex === 'number') {
-      sexValue = this.sexToString(request.sex as number);
-    }
-
     const body = {
       ...request,
-      sex: sexValue,
+      sex: request.sex, // Sex is now a string enum
       treeId: request.treeId || this.treeContext.effectiveTreeId() || undefined,
       page: request.page || 1,
       pageSize: request.pageSize || 20
@@ -202,13 +197,10 @@ export class PersonSearchService {
   /**
    * Convert sex enum value to string for API
    */
-  private sexToString(sex?: number): string | undefined {
+  private sexToString(sex?: Sex): string | undefined {
     if (sex === undefined || sex === null) return undefined;
-    switch (sex) {
-      case 0: return 'Male';
-      case 1: return 'Female';
-      default: return undefined;
-    }
+    // Sex is now a string enum, return directly
+    return sex;
   }
 
   /**
@@ -219,7 +211,7 @@ export class PersonSearchService {
     nameQuery?: string;
     townId?: string;
     familyId?: string;
-    sex?: number;
+    sex?: Sex;
     page: number;
     pageSize: number;
   }): Observable<PagedResult<PersonListItem>> {

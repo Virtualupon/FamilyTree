@@ -1,4 +1,5 @@
 import { OrgRole } from './auth.models';
+import { Sex } from './person.models';
 
 // ============================================================================
 // FAMILY TREE
@@ -165,7 +166,7 @@ export interface ApprovePersonLinkRequest {
 export interface PersonLinkSearchResult {
   id: string;
   primaryName: string | null;
-  sex: number;
+  sex: Sex;
   birthDate: string | null;
   deathDate: string | null;
   treeId: string;

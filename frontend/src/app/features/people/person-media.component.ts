@@ -21,7 +21,7 @@ import { PersonMediaService } from '../../core/services/person-media.service';
 import { PersonService } from '../../core/services/person.service';
 import { PersonSearchService } from '../../core/services/person-search.service';
 import { I18nService, TranslatePipe } from '../../core/i18n';
-import { PersonListItem } from '../../core/models/person.models';
+import { PersonListItem, Sex } from '../../core/models/person.models';
 import { SearchPersonItem, getPrimaryName } from '../../core/models/search.models';
 import {
   PersonMediaListItem,
@@ -206,7 +206,7 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
       grandfatherNameArabic: null,
       grandfatherNameEnglish: null,
       grandfatherNameNobiin: null,
-      sex: 2, // Sex.Unknown
+      sex: Sex.Unknown,
       birthDate: null,
       deathDate: null,
       birthPlaceId: null,

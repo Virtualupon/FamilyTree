@@ -13,6 +13,7 @@ import { FamilyTreeListItem, CreateFamilyTreeRequest } from '../../core/models/f
 import { TownListItem } from '../../core/models/town.models';
 import { FamilyListItem, FamilyWithMembers } from '../../core/models/family.models';
 import { OrgRole, OrgRoleLabels } from '../../core/models/auth.models';
+import { Sex } from '../../core/models/person.models';
 import { GedcomImportDialogComponent } from './gedcom-import-dialog.component';
 
 @Component({
@@ -25,6 +26,9 @@ import { GedcomImportDialogComponent } from './gedcom-import-dialog.component';
 export class TreeListComponent implements OnInit {
   private readonly treeContext = inject(TreeContextService);
   private readonly familyService = inject(FamilyService);
+
+  // Expose Sex enum to template
+  readonly Sex = Sex;
 
   trees = signal<FamilyTreeListItem[]>([]);
   towns = signal<TownListItem[]>([]);

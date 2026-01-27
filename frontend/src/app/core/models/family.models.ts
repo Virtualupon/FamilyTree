@@ -3,6 +3,8 @@
 // Family groups within a family tree (Town -> Org -> Family -> Person)
 // ============================================================================
 
+import { Sex } from './person.models';
+
 /**
  * Full family response with all details
  */
@@ -86,7 +88,7 @@ export interface FamilyWithMembers extends Family {
 export interface FamilyMember {
   id: string;
   primaryName: string | null;
-  sex: number;
+  sex: Sex;
   birthDate: string | null;
   deathDate: string | null;
   isLiving: boolean;

@@ -79,9 +79,9 @@ export interface PersonName {
 }
 
 export enum Sex {
-  Male = 0,
-  Female = 1,
-  Unknown = 2
+  Male = 'Male',
+  Female = 'Female',
+  Unknown = 'Unknown'
 }
 
 export enum NameType {

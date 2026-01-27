@@ -1,8 +1,8 @@
 <span class="person-name-avatar" [class.clickable]="linkToProfile">
   <span
     class="avatar"
-    [class.avatar--male]="person?.sex === 1"
-    [class.avatar--female]="person?.sex === 2"
+    [class.avatar--male]="person?.sex === Sex.Male"
+    [class.avatar--female]="person?.sex === Sex.Female"
     [class.avatar--small]="size === 'small'"
     [class.avatar--medium]="size === 'medium'"
     [class.avatar--large]="size === 'large'">

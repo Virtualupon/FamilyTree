@@ -227,13 +227,13 @@ export class PersonSearchComponent implements OnInit, OnDestroy {
     return date.getFullYear().toString();
   }
 
-  getSexClass(sex: number | null | undefined): string {
+  getSexClass(sex: Sex | null | undefined): string {
     if (sex === Sex.Male) return 'male';
     if (sex === Sex.Female) return 'female';
     return '';
   }
 
-  getSexIcon(sex: number | null | undefined): string {
+  getSexIcon(sex: Sex | null | undefined): string {
     if (sex === Sex.Male) return 'fa-mars';
     if (sex === Sex.Female) return 'fa-venus';
     return 'fa-user';

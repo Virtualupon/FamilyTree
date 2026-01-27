@@ -28,6 +28,9 @@ export class PersonNameAvatarComponent implements OnChanges, OnDestroy {
   private mediaService = inject(PersonMediaService);
   private i18n = inject(I18nService);
 
+  // Expose Sex enum to template
+  readonly Sex = Sex;
+
   @Input() person: PersonNameAvatarData | null = null;
   @Input() size: 'small' | 'medium' | 'large' = 'medium';
   @Input() linkToProfile = false;

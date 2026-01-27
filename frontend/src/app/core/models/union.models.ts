@@ -1,4 +1,4 @@
-import { DatePrecision } from './person.models';
+import { DatePrecision, Sex } from './person.models';
 
 export interface Union {
   id: string;
@@ -18,7 +18,7 @@ export interface Union {
 export interface UnionMember {
   personId: string;
   personName: string;
-  sex: number;
+  sex: Sex;
   birthDate?: string;
   deathDate?: string;
 }

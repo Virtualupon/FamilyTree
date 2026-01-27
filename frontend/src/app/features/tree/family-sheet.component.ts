@@ -4,9 +4,9 @@ import {
   Output,
   EventEmitter,
   OnChanges,
+  OnDestroy,
   SimpleChanges,
   inject,
-  computed,
   signal
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -21,9 +21,12 @@ import { Sex } from '../../core/models/person.models';
 import { I18nService, TranslatePipe } from '../../core/i18n';
 import { PersonMediaService } from '../../core/services/person-media.service';
 
-interface FamilyData {
-  husband: TreePersonNode | null;
-  wife: TreePersonNode | null;
+/**
+ * Represents a couple (two partners) and their children
+ */
+interface CoupleData {
+  partner1: TreePersonNode | null;  // First partner (could be either sex)
+  partner2: TreePersonNode | null;  // Second partner (spouse)
   union: TreeUnionNode | null;
   children: TreePersonNode[];
 }
@@ -43,11 +46,11 @@ interface FamilyData {
   templateUrl: './family-sheet.component.html',
   styleUrls: ['./family-sheet.component.scss']
 })
-export class FamilySheetComponent implements OnChanges {
+export class FamilySheetComponent implements OnChanges, OnDestroy {
   private readonly i18n = inject(I18nService);
   private readonly mediaService = inject(PersonMediaService);
 
-  // Avatar cache: personId -> dataUrl
+  // Avatar cache: personId -> objectUrl (must be revoked on destroy)
   private avatarCache = new Map<string, string>();
 
   @Input() person: TreePersonNode | null = null;
@@ -59,9 +62,9 @@ export class FamilySheetComponent implements OnChanges {
 
   readonly Sex = Sex;
 
-  // Computed family data
-  familyData = signal<FamilyData | null>(null);
-  parentFamilyData = signal<FamilyData | null>(null);
+  // Family data signals
+  ownFamily = signal<CoupleData | null>(null);
+  parentFamily = signal<CoupleData | null>(null);
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['person'] && this.person) {
@@ -70,93 +73,166 @@ export class FamilySheetComponent implements OnChanges {
     }
   }
 
+  ngOnDestroy(): void {
+    // Revoke all object URLs to prevent memory leaks
+    this.avatarCache.forEach(url => {
+      URL.revokeObjectURL(url);
+    });
+    this.avatarCache.clear();
+  }
+
+  /**
+   * Check if a person is male
+   */
+  isMale(person: TreePersonNode | null | undefined): boolean {
+    if (!person) return false;
+    return person.sex === Sex.Male;
+  }
+
+  /**
+   * Check if a person is female
+   */
+  isFemale(person: TreePersonNode | null | undefined): boolean {
+    if (!person) return false;
+    return person.sex === Sex.Female;
+  }
+
+  /**
+   * Get the role label for a person (Husband/Wife/Father/Mother)
+   */
+  getRoleLabel(person: TreePersonNode | null | undefined, isParentContext: boolean): string {
+    if (!person) return this.i18n.t('common.unknown');
+
+    if (isParentContext) {
+      return this.isMale(person)
+        ? this.i18n.t('familySheet.father')
+        : this.i18n.t('familySheet.mother');
+    }
+    return this.isMale(person)
+      ? this.i18n.t('familySheet.husband')
+      : this.i18n.t('familySheet.wife');
+  }
+
   private buildFamilyData(): void {
     if (!this.person) {
-      this.familyData.set(null);
-      this.parentFamilyData.set(null);
+      this.ownFamily.set(null);
+      this.parentFamily.set(null);
       return;
     }
 
     // Build person's own family (with spouse and children)
+    this.buildOwnFamily();
+
+    // Build parent's family (where this person is a child)
+    this.buildParentFamily();
+  }
+
+  private buildOwnFamily(): void {
+    if (!this.person) return;
+
+    // Get children from person.children (populated in descendants/hourglass mode)
+    const children = this.person.children || [];
+
     if (this.person.unions && this.person.unions.length > 0) {
       const union = this.person.unions[0]; // Primary union
       const spouse = union.partners.find(p => p.id !== this.person!.id) || null;
 
-      let husband: TreePersonNode | null = null;
-      let wife: TreePersonNode | null = null;
+      // Order: Male first, then Female (for consistent display)
+      let partner1: TreePersonNode | null = null;
+      let partner2: TreePersonNode | null = null;
 
-      if (this.person.sex === Sex.Male) {
-        husband = this.person;
-        wife = spouse;
+      if (this.isMale(this.person)) {
+        partner1 = this.person;
+        partner2 = spouse;
+      } else if (this.isMale(spouse)) {
+        partner1 = spouse;
+        partner2 = this.person;
       } else {
-        wife = this.person;
-        husband = spouse;
+        // Neither is male, or unknown - put selected person first
+        partner1 = this.person;
+        partner2 = spouse;
       }
 
-      this.familyData.set({
-        husband,
-        wife,
+      this.ownFamily.set({
+        partner1,
+        partner2,
         union,
-        children: union.children || []
+        children
       });
     } else {
-      // No union, just show the person
-      this.familyData.set({
-        husband: this.person.sex === Sex.Male ? this.person : null,
-        wife: this.person.sex === Sex.Female ? this.person : null,
+      // No union - just show the person alone
+      this.ownFamily.set({
+        partner1: this.person,
+        partner2: null,
         union: null,
-        children: this.person.children || []
+        children
       });
     }
+  }
 
-    // Build parent's family (the family where this person is a child)
-    if (this.person.parents && this.person.parents.length > 0) {
-      const father = this.person.parents.find(p => p.sex === Sex.Male) || null;
-      const mother = this.person.parents.find(p => p.sex === Sex.Female) || null;
-
-      // Try to find siblings from parents' children
-      let siblings: TreePersonNode[] = [];
-      if (father && father.children) {
-        siblings = father.children;
-      } else if (mother && mother.children) {
-        siblings = mother.children;
-      }
-
-      // Get union from father or mother
-      let parentUnion: TreeUnionNode | null = null;
-      if (father && father.unions && father.unions.length > 0) {
-        parentUnion = father.unions.find(u =>
-          u.partners.some(p => p.id === mother?.id)
-        ) || father.unions[0];
-      } else if (mother && mother.unions && mother.unions.length > 0) {
-        parentUnion = mother.unions.find(u =>
-          u.partners.some(p => p.id === father?.id)
-        ) || mother.unions[0];
-      }
-
-      this.parentFamilyData.set({
-        husband: father,
-        wife: mother,
-        union: parentUnion,
-        children: siblings
-      });
-    } else {
-      this.parentFamilyData.set(null);
+  private buildParentFamily(): void {
+    if (!this.person || !this.person.parents || this.person.parents.length === 0) {
+      this.parentFamily.set(null);
+      return;
     }
+
+    // Find father and mother from parents
+    const father = this.person.parents.find(p => this.isMale(p)) || null;
+    const mother = this.person.parents.find(p => this.isFemale(p)) || null;
+
+    // If we can't determine sex, just use the first two parents
+    let parent1 = father;
+    let parent2 = mother;
+
+    if (!parent1 && !parent2 && this.person.parents.length > 0) {
+      parent1 = this.person.parents[0];
+      parent2 = this.person.parents.length > 1 ? this.person.parents[1] : null;
+    } else if (!parent1 && parent2) {
+      // Only mother found, swap to show in first position
+      parent1 = parent2;
+      parent2 = null;
+    }
+
+    // Try to find siblings from parents' children
+    let siblings: TreePersonNode[] = [];
+    if (father?.children && father.children.length > 0) {
+      siblings = father.children;
+    } else if (mother?.children && mother.children.length > 0) {
+      siblings = mother.children;
+    }
+
+    // Get union from either parent
+    let parentUnion: TreeUnionNode | null = null;
+    if (father?.unions && father.unions.length > 0) {
+      parentUnion = father.unions.find(u =>
+        u.partners.some(p => p.id === mother?.id)
+      ) || father.unions[0];
+    } else if (mother?.unions && mother.unions.length > 0) {
+      parentUnion = mother.unions.find(u =>
+        u.partners.some(p => p.id === father?.id)
+      ) || mother.unions[0];
+    }
+
+    this.parentFamily.set({
+      partner1: parent1,
+      partner2: parent2,
+      union: parentUnion,
+      children: siblings
+    });
   }
 
   private async loadAvatars(): Promise<void> {
     const people: TreePersonNode[] = [];
 
-    const familyData = this.familyData();
-    const parentFamilyData = this.parentFamilyData();
+    const ownFamily = this.ownFamily();
+    const parentFamily = this.parentFamily();
 
-    if (familyData?.husband) people.push(familyData.husband);
-    if (familyData?.wife) people.push(familyData.wife);
-    if (familyData?.children) people.push(...familyData.children);
-    if (parentFamilyData?.husband) people.push(parentFamilyData.husband);
-    if (parentFamilyData?.wife) people.push(parentFamilyData.wife);
-    if (parentFamilyData?.children) people.push(...parentFamilyData.children);
+    if (ownFamily?.partner1) people.push(ownFamily.partner1);
+    if (ownFamily?.partner2) people.push(ownFamily.partner2);
+    if (ownFamily?.children) people.push(...ownFamily.children);
+    if (parentFamily?.partner1) people.push(parentFamily.partner1);
+    if (parentFamily?.partner2) people.push(parentFamily.partner2);
+    if (parentFamily?.children) people.push(...parentFamily.children);
 
     for (const person of people) {
       if (person.avatarMediaId && !this.avatarCache.has(person.id)) {
@@ -176,7 +252,7 @@ export class FamilySheetComponent implements OnChanges {
     }
   }
 
-  getDisplayName(person: TreePersonNode | null): string {
+  getDisplayName(person: TreePersonNode | null | undefined): string {
     if (!person) return this.i18n.t('common.unknown');
     const lang = this.i18n.currentLang();
     const unknown = this.i18n.t('common.unknown');
@@ -189,7 +265,7 @@ export class FamilySheetComponent implements OnChanges {
     return person.nameEnglish || person.nameArabic || person.primaryName || unknown;
   }
 
-  getInitials(person: TreePersonNode | null): string {
+  getInitials(person: TreePersonNode | null | undefined): string {
     const name = this.getDisplayName(person);
     if (!name || name === this.i18n.t('common.unknown')) return '?';
     const parts = name.trim().split(/\s+/);
@@ -243,7 +319,7 @@ export class FamilySheetComponent implements OnChanges {
   }
 
   onPersonEdit(person: TreePersonNode, event: Event): void {
-    event.stopPropagation(); // Prevent triggering click on parent
+    event.stopPropagation();
     this.personEdit.emit(person);
   }
 }

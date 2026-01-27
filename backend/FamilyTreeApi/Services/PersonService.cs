@@ -357,14 +357,18 @@ public class PersonService : IPersonService
                 caption: "Avatar");
 
             // Update person's AvatarMediaId
+            // Note: Must call Update() because global NoTracking is enabled in DbContext
             person.AvatarMediaId = newMedia.Id;
             person.UpdatedAt = DateTime.UtcNow;
+            _personRepository.Update(person);
             await _personRepository.SaveChangesAsync(cancellationToken);
 
-            // Delete old avatar media if it existed (after successful update)
-            if (oldAvatarMediaId.HasValue)
+            // Delete ALL old avatar media for this person (cleanup orphaned avatars)
+            // This ensures only one avatar exists per person
+            var deletedCount = await _mediaService.DeletePersonAvatarsAsync(personId, excludeMediaId: newMedia.Id);
+            if (deletedCount > 0)
             {
-                await _mediaService.DeleteMediaAsync(oldAvatarMediaId.Value);
+                _logger.LogInformation("Cleaned up {Count} old avatar(s) for person {PersonId}", deletedCount, personId);
             }
 
             _logger.LogInformation("Avatar uploaded for person {PersonId}, media {MediaId}", personId, newMedia.Id);
@@ -423,8 +427,10 @@ public class PersonService : IPersonService
         var mediaId = person.AvatarMediaId.Value;
 
         // Clear AvatarMediaId first
+        // Note: Must call Update() because global NoTracking is enabled in DbContext
         person.AvatarMediaId = null;
         person.UpdatedAt = DateTime.UtcNow;
+        _personRepository.Update(person);
         await _personRepository.SaveChangesAsync(cancellationToken);
 
         // Delete media if requested

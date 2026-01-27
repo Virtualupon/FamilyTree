@@ -26,4 +26,10 @@ public interface IMediaService
     /// Get a signed URL for secure media streaming.
     /// </summary>
     Task<SignedUrlResponseDto> GetSignedUrlAsync(Guid mediaId, int expiresInSeconds = 3600);
+
+    /// <summary>
+    /// Delete all avatar media for a person, except the one specified by excludeMediaId.
+    /// This cleans up orphaned avatars that weren't properly linked.
+    /// </summary>
+    Task<int> DeletePersonAvatarsAsync(Guid personId, Guid? excludeMediaId = null);
 }

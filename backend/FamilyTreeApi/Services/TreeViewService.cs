@@ -25,6 +25,7 @@ public class TreeViewService : ITreeViewService
     private readonly IOrgRepository _orgRepository;
     private readonly IPersonSearchRepository _personSearchRepository;
     private readonly IMediaService _mediaService;
+    private readonly IRelationshipTypeMappingService _mappingService;
     private readonly IMapper _mapper;
     private readonly ILogger<TreeViewService> _logger;
 
@@ -34,6 +35,7 @@ public class TreeViewService : ITreeViewService
         IOrgRepository orgRepository,
         IPersonSearchRepository personSearchRepository,
         IMediaService mediaService,
+        IRelationshipTypeMappingService mappingService,
         IMapper mapper,
         ILogger<TreeViewService> logger)
     {
@@ -42,6 +44,7 @@ public class TreeViewService : ITreeViewService
         _orgRepository = orgRepository;
         _personSearchRepository = personSearchRepository;
         _mediaService = mediaService;
+        _mappingService = mappingService;
         _mapper = mapper;
         _logger = logger;
     }
@@ -836,18 +839,23 @@ public class TreeViewService : ITreeViewService
                 }
             }
 
+            // Get TypeId from mapping service
+            var typeId = _mappingService.GetTypeIdByKey(sqlResult.RelationshipNameKey);
+
             return ServiceResult<RelationshipPathResponse>.Success(new RelationshipPathResponse
             {
                 PathFound = true,
                 RelationshipType = sqlResult.RelationshipType,
                 RelationshipLabel = sqlResult.RelationshipLabel,
                 RelationshipNameKey = sqlResult.RelationshipNameKey,
+                RelationshipTypeId = typeId,
                 RelationshipDescription = sqlResult.RelationshipLabel,
                 Path = pathNodes,
                 PathLength = sqlResult.PathLength,
                 CommonAncestorId = finalCommonAncestorId,
                 CommonAncestors = commonAncestors,
-                PathIds = sqlResult.PathIds
+                PathIds = sqlResult.PathIds,
+                CacheVersion = _mappingService.GetCacheVersion()
             });
         }
         catch (Exception ex)
@@ -933,8 +941,9 @@ public class TreeViewService : ITreeViewService
             currentNode.RelationshipToNextKey = GetEdgeRelationshipKey(nextEdge, nextNode.Sex);
         }
 
-        // Calculate relationship name
-        var (relationshipKey, description) = RelationshipNamer.CalculateRelationship(path, pathNodes);
+        // Calculate relationship name using instance-based RelationshipNamer
+        var relationshipNamer = new RelationshipNamer(_mappingService);
+        var relationshipResult = relationshipNamer.CalculateRelationship(path, pathNodes);
 
         // Find common ancestors for blood relations
         var commonAncestors = await FindCommonAncestorsFromPathAsync(path, cancellationToken);
@@ -942,11 +951,13 @@ public class TreeViewService : ITreeViewService
         return ServiceResult<RelationshipPathResponse>.Success(new RelationshipPathResponse
         {
             PathFound = true,
-            RelationshipNameKey = relationshipKey,
-            RelationshipDescription = description,
+            RelationshipNameKey = relationshipResult.NameKey,
+            RelationshipTypeId = relationshipResult.TypeId,
+            RelationshipDescription = relationshipResult.Description,
             Path = pathNodes,
             CommonAncestors = commonAncestors,
-            PathLength = pathNodes.Count
+            PathLength = pathNodes.Count,
+            CacheVersion = _mappingService.GetCacheVersion()
         });
     }
 

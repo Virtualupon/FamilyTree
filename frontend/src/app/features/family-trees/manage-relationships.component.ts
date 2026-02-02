@@ -32,6 +32,7 @@ import { Sex } from '../../core/models/person.models';
 import { SearchPersonItem, getPrimaryName } from '../../core/models/search.models';
 import { RelationshipPathResponse, PathPersonNode, RelationshipEdgeType } from '../../core/models/relationship-path.models';
 import { FamilyRelationshipTypeGrouped } from '../../core/models/family-relationship-type.models';
+import { getRelationshipDisplayName as getRelationshipDisplayNameHelper } from '../../core/helpers/relationship-name.helper';
 
 type RelationshipCategory = 'parent-child' | 'union' | null;
 type PathViewMode = 'linear' | 'tree';
@@ -686,16 +687,17 @@ export class ManageRelationshipsComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Get a translated relationship label with fallback
-   * Returns empty string if key is empty or translation returns the key itself
+   * Get a translated relationship label with multi-level fallback.
+   * Uses the new helper that tries: DB type ID -> i18n key -> "Unknown"
    */
-  getRelationshipLabel(key: string | undefined | null): string {
-    if (!key || key.length === 0) return '';
-    // Use i18n service to get the translation
-    const translated = this.i18n.t(key);
-    // If translation returns the key itself, return empty (no translation found)
-    if (translated === key) return '';
-    return translated;
+  getRelationshipLabel(key: string | undefined | null, typeId?: number | null): string {
+    // Use the helper with multi-level fallback
+    return getRelationshipDisplayNameHelper(
+      typeId,
+      key,
+      this.relationshipTypeService,
+      this.i18n
+    );
   }
 
   /**
@@ -706,15 +708,33 @@ export class ManageRelationshipsComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Get the best available relationship label for a path node
-   * Tries: 1) translated relationshipToNextKey, 2) edge type label, 3) hardcoded fallback
+   * Get the best available relationship label for a path node.
+   * Uses multi-level fallback:
+   * 1) DB type ID (new system)
+   * 2) i18n key (legacy system)
+   * 3) Edge type label
+   * 4) Hardcoded fallback
    */
   getNodeRelationshipLabel(node: PathPersonNode): string {
-    // First try the specific relationship key (e.g., "father of", "mother of")
+    // First try the new DB-based system with type ID
+    if (node.relationshipTypeId != null && node.relationshipTypeId > 0) {
+      const name = this.relationshipTypeService.getLocalizedNameById(node.relationshipTypeId);
+      if (name && name !== 'Unknown' && name !== this.i18n.t('common.unknown')) {
+        return name;
+      }
+    }
+
+    // Try the specific relationship key (e.g., "father of", "mother of")
     if (node.relationshipToNextKey && node.relationshipToNextKey.length > 0) {
       const translated = this.i18n.t(node.relationshipToNextKey);
       if (translated && translated !== node.relationshipToNextKey) {
         return translated;
+      }
+
+      // Try to find type by i18n key pattern in DB
+      const type = this.relationshipTypeService.getTypeByI18nKey(node.relationshipToNextKey);
+      if (type) {
+        return this.relationshipTypeService.getLocalizedName(type);
       }
     }
 

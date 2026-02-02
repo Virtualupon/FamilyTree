@@ -38,6 +38,12 @@ public class RelationshipPathResponse
     public string RelationshipNameKey { get; set; } = string.Empty;
 
     /// <summary>
+    /// The database ID of the relationship type (for direct lookup from FamilyRelationshipTypes table)
+    /// Nullable for backward compatibility - will be null if type not found in DB
+    /// </summary>
+    public int? RelationshipTypeId { get; set; }
+
+    /// <summary>
     /// Human-readable relationship description template
     /// </summary>
     public string RelationshipDescription { get; set; } = string.Empty;
@@ -71,6 +77,12 @@ public class RelationshipPathResponse
     /// Error message if path finding failed
     /// </summary>
     public string? ErrorMessage { get; set; }
+
+    /// <summary>
+    /// Cache version for relationship types data.
+    /// Frontend can use this to validate its cached relationship types.
+    /// </summary>
+    public string? CacheVersion { get; set; }
 }
 
 /// <summary>
@@ -101,6 +113,12 @@ public class PathPersonNode
     /// The i18n key for the relationship to the next person (e.g., "relationship.fatherOf")
     /// </summary>
     public string RelationshipToNextKey { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The database ID of the relationship type to the next person.
+    /// Nullable for backward compatibility - will be null if type not found in DB.
+    /// </summary>
+    public int? RelationshipTypeId { get; set; }
 }
 
 /// <summary>

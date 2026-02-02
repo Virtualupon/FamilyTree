@@ -22,6 +22,8 @@ export interface RelationshipPathResponse {
   relationshipLabel: string;
   /** The i18n key for the relationship name (e.g., "relationship.father") */
   relationshipNameKey: string;
+  /** The database ID of the relationship type (for direct lookup) */
+  relationshipTypeId?: number;
   /** Human-readable relationship description template */
   relationshipDescription: string;
   /** The complete path from Person1 to Person2 */
@@ -36,6 +38,8 @@ export interface RelationshipPathResponse {
   pathIds: string[];
   /** Error message if path finding failed */
   errorMessage?: string;
+  /** Cache version for relationship types data (for frontend cache validation) */
+  cacheVersion?: string;
 }
 
 /**
@@ -59,6 +63,8 @@ export interface PathPersonNode {
   edgeToNext: RelationshipEdgeType;
   /** The i18n key for the relationship to the next person */
   relationshipToNextKey: string;
+  /** The database ID of the relationship type to the next person */
+  relationshipTypeId?: number;
 }
 
 /**

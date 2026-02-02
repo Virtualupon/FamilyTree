@@ -24,6 +24,7 @@ import {
   RelationshipEdgeType
 } from '../../core/models/relationship-path.models';
 import { Sex } from '../../core/models/person.models';
+import { FamilyRelationshipTypeService } from '../../core/services/family-relationship-type.service';
 
 type ViewMode = 'linear' | 'tree';
 
@@ -49,6 +50,7 @@ export class RelationshipPathViewComponent implements AfterViewInit, OnDestroy {
   @ViewChild('svg') svgRef!: ElementRef<SVGSVGElement>;
 
   private readonly i18n = inject(I18nService);
+  private readonly relationshipTypeService = inject(FamilyRelationshipTypeService);
 
   private svg!: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   private g!: d3.Selection<SVGGElement, unknown, null, undefined>;
@@ -218,7 +220,7 @@ export class RelationshipPathViewComponent implements AfterViewInit, OnDestroy {
       // Draw edge label
       const labelX = (x1 + x2) / 2;
       const labelY = y - 10;
-      const labelText = this.getEdgeLabel(path[i].relationshipToNextKey);
+      const labelText = this.getEdgeLabel(path[i].relationshipToNextKey, path[i].relationshipTypeId);
 
       // Label background
       this.g.append('rect')
@@ -343,7 +345,7 @@ export class RelationshipPathViewComponent implements AfterViewInit, OnDestroy {
       // Edge label
       const midX = (from.x + to.x) / 2 + this.nodeWidth / 2;
       const midY = (from.y + to.y) / 2 + this.nodeHeight / 2;
-      const labelText = this.getEdgeLabel(path[i].relationshipToNextKey);
+      const labelText = this.getEdgeLabel(path[i].relationshipToNextKey, path[i].relationshipTypeId);
 
       // Label background
       this.g.append('rect')
@@ -501,8 +503,30 @@ export class RelationshipPathViewComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  private getEdgeLabel(key: string): string {
-    // Use i18n service to translate, fallback to simple labels
+  private getEdgeLabel(key: string, typeId?: number): string {
+    // First try the DB-based system with type ID
+    if (typeId != null && typeId > 0) {
+      const name = this.relationshipTypeService.getLocalizedNameById(typeId);
+      if (name && name !== 'Unknown' && name !== this.i18n.t('common.unknown')) {
+        return name;
+      }
+    }
+
+    // Try i18n translation
+    if (key) {
+      const translated = this.i18n.t(key);
+      if (translated && translated !== key) {
+        return translated;
+      }
+
+      // Try to find type by i18n key pattern in DB
+      const type = this.relationshipTypeService.getTypeByI18nKey(key);
+      if (type) {
+        return this.relationshipTypeService.getLocalizedName(type);
+      }
+    }
+
+    // Fallback to simple labels
     const translations: Record<string, string> = {
       'relationship.fatherOf': 'Father',
       'relationship.motherOf': 'Mother',
@@ -513,7 +537,7 @@ export class RelationshipPathViewComponent implements AfterViewInit, OnDestroy {
       'relationship.spouseOf': 'Spouse'
     };
 
-    return translations[key] || key.replace('relationship.', '');
+    return translations[key] || key?.replace('relationship.', '') || 'Unknown';
   }
 
   private getInitials(name: string | null): string {

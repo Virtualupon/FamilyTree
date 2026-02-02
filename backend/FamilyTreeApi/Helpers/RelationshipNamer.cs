@@ -1,25 +1,46 @@
 using FamilyTreeApi.DTOs;
 using FamilyTreeApi.Models.Enums;
+using FamilyTreeApi.Services;
 
 namespace FamilyTreeApi.Helpers;
 
 /// <summary>
-/// Helper class for calculating and naming relationship types based on path analysis.
-/// Returns i18n keys for frontend localization.
+/// Result of relationship calculation containing i18n key, database type ID, and description
 /// </summary>
-public static class RelationshipNamer
+public record RelationshipResult(
+    string NameKey,
+    int? TypeId,
+    string Description
+);
+
+/// <summary>
+/// Helper class for calculating and naming relationship types based on path analysis.
+/// Returns i18n keys for frontend localization and database type IDs for direct lookup.
+/// </summary>
+public class RelationshipNamer
 {
+    private readonly IRelationshipTypeMappingService? _mappingService;
+    private readonly ILogger<RelationshipNamer>? _logger;
+
+    public RelationshipNamer(
+        IRelationshipTypeMappingService? mappingService = null,
+        ILogger<RelationshipNamer>? logger = null)
+    {
+        _mappingService = mappingService;
+        _logger = logger;
+    }
+
     /// <summary>
     /// Calculate the relationship type from a path between two people.
-    /// Returns i18n key and description template.
+    /// Returns i18n key, database type ID, and description template.
     /// </summary>
-    public static (string NameKey, string Description) CalculateRelationship(
+    public RelationshipResult CalculateRelationship(
         List<(Guid Id, RelationshipEdgeType Edge)> path,
         List<PathPersonNode> pathNodes)
     {
         if (path.Count <= 1)
         {
-            return ("relationship.samePerson", "Same person");
+            return CreateResult("relationship.samePerson", "Same person");
         }
 
         var person1 = pathNodes.First();
@@ -33,7 +54,7 @@ public static class RelationshipNamer
         {
             var name1 = person1.NameEnglish ?? person1.PrimaryName;
             var name2 = person2.NameEnglish ?? person2.PrimaryName;
-            return ("relationship.spouse", $"{name1} is married to {name2}");
+            return CreateResult("relationship.spouse", $"{name1} is married to {name2}");
         }
 
         // Check for in-law relationships (path includes spouse edge)
@@ -58,7 +79,35 @@ public static class RelationshipNamer
         return GetCollateralRelationship(analysis, person1, person2);
     }
 
-    private static PathAnalysis AnalyzePath(List<(Guid Id, RelationshipEdgeType Edge)> path)
+    /// <summary>
+    /// Static method for backward compatibility - creates instance with no mapping service
+    /// </summary>
+    public static (string NameKey, string Description) CalculateRelationshipStatic(
+        List<(Guid Id, RelationshipEdgeType Edge)> path,
+        List<PathPersonNode> pathNodes)
+    {
+        var namer = new RelationshipNamer();
+        var result = namer.CalculateRelationship(path, pathNodes);
+        return (result.NameKey, result.Description);
+    }
+
+    private RelationshipResult CreateResult(string key, string description)
+    {
+        int? typeId = null;
+
+        if (_mappingService != null)
+        {
+            typeId = _mappingService.GetTypeIdByKey(key);
+            if (typeId == null)
+            {
+                _logger?.LogDebug("No type ID found for key: {Key}", key);
+            }
+        }
+
+        return new RelationshipResult(key, typeId, description);
+    }
+
+    private PathAnalysis AnalyzePath(List<(Guid Id, RelationshipEdgeType Edge)> path)
     {
         int gen1 = 0; // Generations up from person1 (to common ancestor)
         int gen2 = 0; // Generations down to person2 (from common ancestor)
@@ -110,7 +159,7 @@ public static class RelationshipNamer
         };
     }
 
-    private static (string NameKey, string Description) GetDirectLineRelationship(
+    private RelationshipResult GetDirectLineRelationship(
         PathAnalysis analysis, PathPersonNode person1, PathPersonNode person2)
     {
         int generations = Math.Max(analysis.Gen1, analysis.Gen2);
@@ -128,7 +177,7 @@ public static class RelationshipNamer
                 3 => ("relationship.greatGrandchild", $"great-{GetGenderedTermName("grandchild", person2.Sex)}"),
                 _ => ($"relationship.greatGrandchild{generations - 2}", $"{generations - 2}x great-{GetGenderedTermName("grandchild", person2.Sex)}")
             };
-            return (key, $"{name2} is {name1}'s {term}");
+            return CreateResult(key, $"{name2} is {name1}'s {term}");
         }
         else
         {
@@ -140,19 +189,19 @@ public static class RelationshipNamer
                 3 => ("relationship.greatGrandparent", $"great-{GetGenderedTermName("grandparent", person2.Sex)}"),
                 _ => ($"relationship.greatGrandparent{generations - 2}", $"{generations - 2}x great-{GetGenderedTermName("grandparent", person2.Sex)}")
             };
-            return (key, $"{name2} is {name1}'s {term}");
+            return CreateResult(key, $"{name2} is {name1}'s {term}");
         }
     }
 
-    private static (string NameKey, string Description) GetSiblingRelationship(PathPersonNode person1, PathPersonNode person2)
+    private RelationshipResult GetSiblingRelationship(PathPersonNode person1, PathPersonNode person2)
     {
         var (key, term) = GetGenderedTerm("sibling", person2.Sex);
         var name1 = person1.NameEnglish ?? person1.PrimaryName;
         var name2 = person2.NameEnglish ?? person2.PrimaryName;
-        return (key, $"{name2} is {name1}'s {term}");
+        return CreateResult(key, $"{name2} is {name1}'s {term}");
     }
 
-    private static (string NameKey, string Description) GetCollateralRelationship(
+    private RelationshipResult GetCollateralRelationship(
         PathAnalysis analysis, PathPersonNode person1, PathPersonNode person2)
     {
         int gen1 = analysis.Gen1;
@@ -167,11 +216,11 @@ public static class RelationshipNamer
             var (key, term) = GetGenderedTerm("pibling", person2.Sex); // pibling = aunt/uncle
             if (greats == 0)
             {
-                return (key, $"{name2} is {name1}'s {term}");
+                return CreateResult(key, $"{name2} is {name1}'s {term}");
             }
             else
             {
-                return ($"relationship.greatPibling{greats}", $"{name2} is {name1}'s {GetGreatPrefix(greats)}{term}");
+                return CreateResult($"relationship.greatPibling{greats}", $"{name2} is {name1}'s {GetGreatPrefix(greats)}{term}");
             }
         }
 
@@ -182,11 +231,11 @@ public static class RelationshipNamer
             var (key, term) = GetGenderedTerm("nibling", person2.Sex); // nibling = niece/nephew
             if (greats == 0)
             {
-                return (key, $"{name2} is {name1}'s {term}");
+                return CreateResult(key, $"{name2} is {name1}'s {term}");
             }
             else
             {
-                return ($"relationship.greatNibling{greats}", $"{name2} is {name1}'s {GetGreatPrefix(greats)}{term}");
+                return CreateResult($"relationship.greatNibling{greats}", $"{name2} is {name1}'s {GetGreatPrefix(greats)}{term}");
             }
         }
 
@@ -198,11 +247,11 @@ public static class RelationshipNamer
         string removedText = removed > 0 ? $", {removed} time{(removed > 1 ? "s" : "")} removed" : "";
         string removedKey = removed > 0 ? $"{removed}xRemoved" : "";
 
-        return ($"relationship.cousin{cousinDegree}{removedKey}",
+        return CreateResult($"relationship.cousin{cousinDegree}{removedKey}",
             $"{name2} is {name1}'s {ordinal.ToLower()} cousin{removedText}");
     }
 
-    private static (string NameKey, string Description) GetInLawRelationship(
+    private RelationshipResult GetInLawRelationship(
         PathAnalysis analysis, PathPersonNode person1, PathPersonNode person2, List<PathPersonNode> pathNodes)
     {
         // Find spouse edge position to determine relationship type
@@ -220,25 +269,25 @@ public static class RelationshipNamer
         if (gen1 == 0 && gen2 == 1)
         {
             var (key, term) = GetGenderedTerm("parentInLaw", person2.Sex);
-            return (key, $"{name2} is {name1}'s {term}");
+            return CreateResult(key, $"{name2} is {name1}'s {term}");
         }
 
         // Child-in-law (child's spouse)
         if (gen1 == 1 && gen2 == 0)
         {
             var (key, term) = GetGenderedTerm("childInLaw", person2.Sex);
-            return (key, $"{name2} is {name1}'s {term}");
+            return CreateResult(key, $"{name2} is {name1}'s {term}");
         }
 
         // Sibling-in-law (spouse's sibling or sibling's spouse)
         if ((gen1 == 0 || gen1 == 1) && (gen2 == 0 || gen2 == 1) && analysis.PathLength <= 4)
         {
             var (key, term) = GetGenderedTerm("siblingInLaw", person2.Sex);
-            return (key, $"{name2} is {name1}'s {term}");
+            return CreateResult(key, $"{name2} is {name1}'s {term}");
         }
 
         // Generic in-law for complex relationships
-        return ("relationship.relatedByMarriage", $"{name2} is related to {name1} by marriage");
+        return CreateResult("relationship.relatedByMarriage", $"{name2} is related to {name1} by marriage");
     }
 
     private static (string Key, string Term) GetGenderedTerm(string baseTerm, Sex sex)

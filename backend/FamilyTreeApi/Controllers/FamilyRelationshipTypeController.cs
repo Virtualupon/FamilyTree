@@ -14,14 +14,30 @@ namespace FamilyTreeApi.Controllers;
 public class FamilyRelationshipTypeController : ControllerBase
 {
     private readonly IFamilyRelationshipTypeService _service;
+    private readonly IRelationshipTypeMappingService _mappingService;
     private readonly ILogger<FamilyRelationshipTypeController> _logger;
 
     public FamilyRelationshipTypeController(
         IFamilyRelationshipTypeService service,
+        IRelationshipTypeMappingService mappingService,
         ILogger<FamilyRelationshipTypeController> logger)
     {
         _service = service;
+        _mappingService = mappingService;
         _logger = logger;
+    }
+
+    /// <summary>
+    /// Get the cache version hash for relationship types.
+    /// Frontend can use this to detect when cached data needs refreshing.
+    /// </summary>
+    /// <returns>A version hash string</returns>
+    [HttpGet("version")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    public ActionResult<string> GetCacheVersion()
+    {
+        return Ok(_mappingService.GetCacheVersion());
     }
 
     /// <summary>

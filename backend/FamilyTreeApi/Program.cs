@@ -272,6 +272,7 @@ services.AddScoped<IAdminService, AdminService>();
 services.AddScoped<IMediaManagementService, MediaManagementService>();
 services.AddScoped<IPersonMediaService, PersonMediaService>();
 services.AddScoped<IFamilyRelationshipTypeService, FamilyRelationshipTypeService>();
+services.AddSingleton<IRelationshipTypeMappingService, RelationshipTypeMappingService>();
 services.AddScoped<IFamilyService, FamilyService>();  // Family groups (Town->Org->Family->Person)
 services.AddScoped<IFileStorageService, LocalFileStorageService>();
 services.AddScoped<INameTransliterationService, NameTransliterationService>();
@@ -409,6 +410,10 @@ using (var scope = app.Services.CreateScope())
         throw;
     }
 }
+
+// Initialize RelationshipTypeMappingService after database is ready
+var mappingService = app.Services.GetRequiredService<IRelationshipTypeMappingService>();
+await mappingService.InitializeAsync();
 
 // -------------------------------
 // MIDDLEWARE PIPELINE

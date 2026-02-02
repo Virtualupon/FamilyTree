@@ -4,6 +4,7 @@ using FamilyTreeApi.Data;
 using FamilyTreeApi.DTOs;
 using FamilyTreeApi.Models;
 using FamilyTreeApi.Models.Enums;
+using FamilyTreeApi.Services.Caching;
 
 namespace FamilyTreeApi.Services;
 
@@ -13,13 +14,16 @@ namespace FamilyTreeApi.Services;
 public class ParentChildService : IParentChildService
 {
     private readonly ApplicationDbContext _context;
+    private readonly ITreeCacheService _treeCache;
     private readonly ILogger<ParentChildService> _logger;
 
     public ParentChildService(
         ApplicationDbContext context,
+        ITreeCacheService treeCache,
         ILogger<ParentChildService> logger)
     {
         _context = context;
+        _treeCache = treeCache;
         _logger = logger;
     }
 
@@ -248,6 +252,10 @@ public class ParentChildService : IParentChildService
             _context.ParentChildren.Add(parentChild);
             await _context.SaveChangesAsync(cancellationToken);
 
+            // Invalidate cache for both parent and child
+            await _treeCache.InvalidatePersonAsync(parentId, effectiveOrgId, cancellationToken);
+            await _treeCache.InvalidatePersonAsync(childId, effectiveOrgId, cancellationToken);
+
             _logger.LogInformation("Parent-child relationship created: Parent {ParentId} -> Child {ChildId}", parentId, childId);
 
             var response = new ParentChildResponse
@@ -309,6 +317,11 @@ public class ParentChildService : IParentChildService
 
             await _context.SaveChangesAsync(cancellationToken);
 
+            // Invalidate cache for both parent and child
+            var orgId = relationship.Parent.OrgId;
+            await _treeCache.InvalidatePersonAsync(relationship.ParentId, orgId, cancellationToken);
+            await _treeCache.InvalidatePersonAsync(relationship.ChildId, orgId, cancellationToken);
+
             _logger.LogInformation("Parent-child relationship updated: {RelationshipId}", id);
 
             var response = new ParentChildResponse
@@ -362,8 +375,17 @@ public class ParentChildService : IParentChildService
                 return ServiceResult.NotFound("Relationship not found");
             }
 
+            // Get IDs before removing for cache invalidation
+            var parentId = relationship.ParentId;
+            var childId = relationship.ChildId;
+            var orgId = relationship.Parent.OrgId;
+
             _context.ParentChildren.Remove(relationship);
             await _context.SaveChangesAsync(cancellationToken);
+
+            // Invalidate cache for both parent and child
+            await _treeCache.InvalidatePersonAsync(parentId, orgId, cancellationToken);
+            await _treeCache.InvalidatePersonAsync(childId, orgId, cancellationToken);
 
             _logger.LogInformation("Parent-child relationship deleted: {RelationshipId}", id);
 
@@ -400,8 +422,15 @@ public class ParentChildService : IParentChildService
                 return ServiceResult.NotFound("Relationship not found");
             }
 
+            // Get orgId for cache invalidation before removing
+            var orgId = relationship.Parent.OrgId;
+
             _context.ParentChildren.Remove(relationship);
             await _context.SaveChangesAsync(cancellationToken);
+
+            // Invalidate cache for both parent and child
+            await _treeCache.InvalidatePersonAsync(parentId, orgId, cancellationToken);
+            await _treeCache.InvalidatePersonAsync(childId, orgId, cancellationToken);
 
             _logger.LogInformation("Parent removed: Parent {ParentId} from Child {ChildId}", parentId, childId);
 

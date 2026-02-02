@@ -25,6 +25,7 @@ using FamilyTreeApi.Services.Translation;
 using VirtualUpon.Storage.Factories;
 using VirtualUpon.Storage.Utilities;
 using FamilyTreeApi.Extensions;
+using FamilyTreeApi.Services.Caching;
 using Polly;
 using Polly.Extensions.Http;
 
@@ -168,17 +169,24 @@ services.AddAuthorization();
 // REDIS CACHE (Optional)
 // -------------------------------
 var redisConfig = configuration.GetSection("Redis");
-if (redisConfig.GetValue<bool>("Enabled"))
+var redisEnabled = redisConfig.GetValue<bool>("Enabled");
+var redisConnectionString = redisConfig.GetValue<string>("ConnectionString");
+var redisInstanceName = redisConfig.GetValue<string>("InstanceName");
+
+if (redisEnabled)
 {
+    Log.Information("Redis cache ENABLED - Configuring connection to {ConnectionString} with instance {InstanceName}",
+        redisConnectionString, redisInstanceName);
+
     services.AddStackExchangeRedisCache(options =>
     {
-        options.InstanceName = redisConfig.GetValue<string>("InstanceName");
-        options.Configuration = redisConfig.GetValue<string>("ConnectionString");
+        options.InstanceName = redisInstanceName;
+        options.Configuration = redisConnectionString;
     });
 }
 else
 {
-    // Use in-memory cache if Redis is disabled
+    Log.Information("Redis cache DISABLED - Using in-memory distributed cache");
     services.AddDistributedMemoryCache();
 }
 
@@ -284,6 +292,11 @@ services.AddScoped<ITownImageService, TownImageService>();
 // Governance Model Services
 services.AddScoped<IAuditLogService, AuditLogService>();
 services.AddScoped<ISuggestionService, SuggestionService>();
+
+// Cache Infrastructure Services
+services.AddSingleton<ICacheOptionsProvider, CacheOptionsProvider>();
+services.AddSingleton<IResilientCacheService, ResilientCacheService>();
+services.AddScoped<ITreeCacheService, TreeCacheService>();
 
 // -------------------------------
 // TRANSLATION SERVICES
@@ -414,6 +427,43 @@ using (var scope = app.Services.CreateScope())
 // Initialize RelationshipTypeMappingService after database is ready
 var mappingService = app.Services.GetRequiredService<IRelationshipTypeMappingService>();
 await mappingService.InitializeAsync();
+
+// -------------------------------
+// VERIFY REDIS CONNECTION
+// -------------------------------
+if (redisEnabled)
+{
+    try
+    {
+        var cache = app.Services.GetRequiredService<IDistributedCache>();
+        var testKey = "startup:connection-test";
+        var testValue = DateTime.UtcNow.ToString("O");
+
+        await cache.SetStringAsync(testKey, testValue, new DistributedCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(10)
+        });
+
+        var readBack = await cache.GetStringAsync(testKey);
+
+        if (readBack == testValue)
+        {
+            app.Logger.LogInformation("Redis connection VERIFIED - Successfully connected to {ConnectionString}",
+                redisConnectionString);
+        }
+        else
+        {
+            app.Logger.LogWarning("Redis connection PARTIAL - Write succeeded but read returned different value");
+        }
+
+        await cache.RemoveAsync(testKey);
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Redis connection FAILED - Could not connect to {ConnectionString}. Cache operations will fail until Redis is available.",
+            redisConnectionString);
+    }
+}
 
 // -------------------------------
 // MIDDLEWARE PIPELINE

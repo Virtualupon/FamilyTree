@@ -9,6 +9,7 @@ using FamilyTreeApi.Models;
 using FamilyTreeApi.Models.Enums;
 using FamilyTreeApi.Repositories;
 using FamilyTreeApi.Repositories.Interfaces;
+using FamilyTreeApi.Services.Caching;
 
 namespace FamilyTreeApi.Services;
 
@@ -26,6 +27,7 @@ public class TreeViewService : ITreeViewService
     private readonly IPersonSearchRepository _personSearchRepository;
     private readonly IMediaService _mediaService;
     private readonly IRelationshipTypeMappingService _mappingService;
+    private readonly ITreeCacheService _cache;
     private readonly IMapper _mapper;
     private readonly ILogger<TreeViewService> _logger;
 
@@ -36,6 +38,7 @@ public class TreeViewService : ITreeViewService
         IPersonSearchRepository personSearchRepository,
         IMediaService mediaService,
         IRelationshipTypeMappingService mappingService,
+        ITreeCacheService cache,
         IMapper mapper,
         ILogger<TreeViewService> logger)
     {
@@ -45,6 +48,7 @@ public class TreeViewService : ITreeViewService
         _personSearchRepository = personSearchRepository;
         _mediaService = mediaService;
         _mappingService = mappingService;
+        _cache = cache;
         _mapper = mapper;
         _logger = logger;
     }
@@ -69,6 +73,18 @@ public class TreeViewService : ITreeViewService
                 return ServiceResult<TreePersonNode>.Failure(error!);
             }
 
+            var generations = request.Generations ?? 4;
+
+            // Try cache first
+            var cached = await _cache.GetPedigreeAsync(request.PersonId, generations, orgId.Value, cancellationToken);
+            if (cached != null)
+            {
+                _logger.LogDebug("Pedigree cache HIT for person {PersonId}, org {OrgId}", request.PersonId, orgId);
+                return ServiceResult<TreePersonNode>.Success(cached);
+            }
+
+            _logger.LogDebug("Pedigree cache MISS for person {PersonId}, org {OrgId}", request.PersonId, orgId);
+
             var person = await _personRepository.QueryNoTracking()
                                 .Include(p => p.BirthPlace)
                 .Include(p => p.DeathPlace)
@@ -79,10 +95,11 @@ public class TreeViewService : ITreeViewService
                 return ServiceResult<TreePersonNode>.NotFound("Person not found");
             }
 
-            var generations = request.Generations ?? 4;
             var visited = new HashSet<Guid>();
-
             var rootNode = await BuildPedigreeHierarchy(person, orgId.Value, 0, generations, visited, cancellationToken);
+
+            // Cache successful result
+            await _cache.SetPedigreeAsync(request.PersonId, generations, orgId.Value, rootNode, cancellationToken);
 
             return ServiceResult<TreePersonNode>.Success(rootNode);
         }
@@ -110,6 +127,18 @@ public class TreeViewService : ITreeViewService
                 return ServiceResult<TreePersonNode>.Failure(error!);
             }
 
+            var generations = request.Generations ?? 4;
+
+            // Try cache first
+            var cached = await _cache.GetDescendantsAsync(request.PersonId, generations, orgId.Value, cancellationToken);
+            if (cached != null)
+            {
+                _logger.LogDebug("Descendants cache HIT for person {PersonId}, org {OrgId}", request.PersonId, orgId);
+                return ServiceResult<TreePersonNode>.Success(cached);
+            }
+
+            _logger.LogDebug("Descendants cache MISS for person {PersonId}, org {OrgId}", request.PersonId, orgId);
+
             var person = await _personRepository.QueryNoTracking()
                                 .Include(p => p.BirthPlace)
                 .Include(p => p.DeathPlace)
@@ -120,10 +149,11 @@ public class TreeViewService : ITreeViewService
                 return ServiceResult<TreePersonNode>.NotFound("Person not found");
             }
 
-            var generations = request.Generations ?? 4;
             var visited = new HashSet<Guid>();
-
             var rootNode = await BuildDescendantsHierarchy(person, orgId.Value, 0, generations, visited, cancellationToken);
+
+            // Cache successful result
+            await _cache.SetDescendantsAsync(request.PersonId, generations, orgId.Value, rootNode, cancellationToken);
 
             return ServiceResult<TreePersonNode>.Success(rootNode);
         }
@@ -151,6 +181,18 @@ public class TreeViewService : ITreeViewService
                 return ServiceResult<TreePersonNode>.Failure(error!);
             }
 
+            var generations = request.Generations ?? 3;
+
+            // Try cache first (use same generations for both ancestor and descendant)
+            var cached = await _cache.GetHourglassAsync(request.PersonId, generations, generations, orgId.Value, cancellationToken);
+            if (cached != null)
+            {
+                _logger.LogDebug("Hourglass cache HIT for person {PersonId}, org {OrgId}", request.PersonId, orgId);
+                return ServiceResult<TreePersonNode>.Success(cached);
+            }
+
+            _logger.LogDebug("Hourglass cache MISS for person {PersonId}, org {OrgId}", request.PersonId, orgId);
+
             var person = await _personRepository.QueryNoTracking()
                                 .Include(p => p.BirthPlace)
                 .Include(p => p.DeathPlace)
@@ -161,8 +203,6 @@ public class TreeViewService : ITreeViewService
                 return ServiceResult<TreePersonNode>.NotFound("Person not found");
             }
 
-            var generations = request.Generations ?? 3;
-
             // Build ancestors
             var visitedAncestors = new HashSet<Guid>();
             var rootNode = await BuildPedigreeHierarchy(person, orgId.Value, 0, generations, visitedAncestors, cancellationToken);
@@ -172,6 +212,9 @@ public class TreeViewService : ITreeViewService
             var descendants = await GetChildrenRecursive(person.Id, orgId.Value, 0, generations, visitedDescendants, cancellationToken);
             rootNode.Children = descendants;
             rootNode.HasMoreDescendants = descendants.Count > 0 && generations > 0;
+
+            // Cache successful result
+            await _cache.SetHourglassAsync(request.PersonId, generations, generations, orgId.Value, rootNode, cancellationToken);
 
             return ServiceResult<TreePersonNode>.Success(rootNode);
         }
@@ -755,6 +798,24 @@ public class TreeViewService : ITreeViewService
     {
         try
         {
+            // SECURITY: OrgId from authenticated context for cache key
+            var orgId = userContext.OrgId ?? Guid.Empty;
+
+            // Try cache first (only if we have a valid orgId)
+            if (orgId != Guid.Empty)
+            {
+                var cached = await _cache.GetRelationshipPathAsync(request.Person1Id, request.Person2Id, orgId, cancellationToken);
+                if (cached != null)
+                {
+                    _logger.LogDebug("Relationship path cache HIT for {Person1Id} <-> {Person2Id}, org {OrgId}",
+                        request.Person1Id, request.Person2Id, orgId);
+                    return ServiceResult<RelationshipPathResponse>.Success(cached);
+                }
+
+                _logger.LogDebug("Relationship path cache MISS for {Person1Id} <-> {Person2Id}, org {OrgId}",
+                    request.Person1Id, request.Person2Id, orgId);
+            }
+
             // Use optimized SQL function for fast relationship finding
             var sqlResult = await _personSearchRepository.FindRelationshipPathAsync(
                 new FamilyTreeApi.DTOs.Search.RelationshipPathRequest
@@ -842,7 +903,7 @@ public class TreeViewService : ITreeViewService
             // Get TypeId from mapping service
             var typeId = _mappingService.GetTypeIdByKey(sqlResult.RelationshipNameKey);
 
-            return ServiceResult<RelationshipPathResponse>.Success(new RelationshipPathResponse
+            var response = new RelationshipPathResponse
             {
                 PathFound = true,
                 RelationshipType = sqlResult.RelationshipType,
@@ -856,7 +917,15 @@ public class TreeViewService : ITreeViewService
                 CommonAncestors = commonAncestors,
                 PathIds = sqlResult.PathIds,
                 CacheVersion = _mappingService.GetCacheVersion()
-            });
+            };
+
+            // Cache successful result (only if we have a valid orgId)
+            if (orgId != Guid.Empty)
+            {
+                await _cache.SetRelationshipPathAsync(request.Person1Id, request.Person2Id, orgId, response, cancellationToken);
+            }
+
+            return ServiceResult<RelationshipPathResponse>.Success(response);
         }
         catch (Exception ex)
         {

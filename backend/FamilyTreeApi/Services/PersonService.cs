@@ -5,6 +5,7 @@ using FamilyTreeApi.DTOs;
 using FamilyTreeApi.Models;
 using FamilyTreeApi.Models.Enums;
 using FamilyTreeApi.Repositories;
+using FamilyTreeApi.Services.Caching;
 
 namespace FamilyTreeApi.Services;
 
@@ -20,6 +21,7 @@ public class PersonService : IPersonService
     private readonly IOrgRepository _orgRepository;
     private readonly INameTransliterationService? _transliterationService;
     private readonly IMediaService _mediaService;
+    private readonly ITreeCacheService _treeCache;
     private readonly IMapper _mapper;
     private readonly ILogger<PersonService> _logger;
 
@@ -27,6 +29,7 @@ public class PersonService : IPersonService
         IPersonRepository personRepository,
         IOrgRepository orgRepository,
         IMediaService mediaService,
+        ITreeCacheService treeCache,
         IMapper mapper,
         ILogger<PersonService> logger,
         INameTransliterationService? transliterationService = null)
@@ -34,6 +37,7 @@ public class PersonService : IPersonService
         _personRepository = personRepository;
         _orgRepository = orgRepository;
         _mediaService = mediaService;
+        _treeCache = treeCache;
         _mapper = mapper;
         _logger = logger;
         _transliterationService = transliterationService;
@@ -256,6 +260,9 @@ public class PersonService : IPersonService
 
         await _personRepository.SaveChangesAsync(cancellationToken);
 
+        // Invalidate cache after successful update
+        await _treeCache.InvalidatePersonAsync(id, orgId.Value, cancellationToken);
+
         _logger.LogInformation("Person updated: {PersonId}", id);
 
         var responseDto = _mapper.Map<PersonResponseDto>(person);
@@ -304,6 +311,9 @@ public class PersonService : IPersonService
 
         _personRepository.Remove(person);
         await _personRepository.SaveChangesAsync(cancellationToken);
+
+        // Invalidate cache after successful delete
+        await _treeCache.InvalidatePersonAsync(id, orgId.Value, cancellationToken);
 
         _logger.LogInformation("Person deleted: {PersonId} with {ParentChildCount} parent-child links, {UnionCount} union memberships, and {TagCount} tags",
             id, parentChildRecords.Count, unionMemberships.Count, personTags.Count);

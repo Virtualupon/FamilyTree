@@ -12,6 +12,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 
 import { PersonAvatarComponent } from '../../shared/components/person-avatar/person-avatar.component';
 import { PersonSearchService } from '../../core/services/person-search.service';
@@ -33,6 +34,7 @@ import { RelationshipPathResponse, PathPersonNode, RelationshipEdgeType } from '
 import { FamilyRelationshipTypeGrouped } from '../../core/models/family-relationship-type.models';
 
 type RelationshipCategory = 'parent-child' | 'union' | null;
+type PathViewMode = 'linear' | 'tree';
 
 interface EditableRelationship {
   type: 'parent-child' | 'union';
@@ -58,6 +60,7 @@ type ParentChildDirection = 'a-is-parent' | 'b-is-parent';
     MatInputModule,
     MatSnackBarModule,
     MatTooltipModule,
+    MatButtonToggleModule,
     TranslatePipe,
     PersonAvatarComponent
   ],
@@ -96,6 +99,9 @@ export class ManageRelationshipsComponent implements OnInit, OnDestroy {
   findingPath = signal(false);
   relationshipPath = signal<RelationshipPathResponse | null>(null);
   relationshipError = signal<string | null>(null);
+
+  // Path view mode (linear or tree)
+  pathViewMode = signal<PathViewMode>('linear');
 
   // Relationship types for creating/editing
   relationshipTypesGrouped = signal<FamilyRelationshipTypeGrouped[]>([]);
@@ -661,17 +667,110 @@ export class ManageRelationshipsComponent implements OnInit, OnDestroy {
     return node.nameEnglish || node.nameArabic || node.primaryName;
   }
 
-  getEdgeLabel(edgeType: RelationshipEdgeType): string {
-    switch (edgeType) {
+  getEdgeLabel(edgeType: RelationshipEdgeType | number | string): string {
+    // Handle both numeric and string enum values (JSON serialization can vary)
+    const numericType = typeof edgeType === 'string' ? parseInt(edgeType, 10) : edgeType;
+    switch (numericType) {
       case RelationshipEdgeType.Parent:
+      case 1:
         return this.i18n.t('relationship.parent');
       case RelationshipEdgeType.Child:
+      case 2:
         return this.i18n.t('relationship.child');
       case RelationshipEdgeType.Spouse:
+      case 3:
         return this.i18n.t('relationship.spouse');
       default:
         return '';
     }
+  }
+
+  /**
+   * Get a translated relationship label with fallback
+   * Returns empty string if key is empty or translation returns the key itself
+   */
+  getRelationshipLabel(key: string | undefined | null): string {
+    if (!key || key.length === 0) return '';
+    // Use i18n service to get the translation
+    const translated = this.i18n.t(key);
+    // If translation returns the key itself, return empty (no translation found)
+    if (translated === key) return '';
+    return translated;
+  }
+
+  /**
+   * Check if a relationship key has a valid value
+   */
+  hasRelationshipKey(key: string | undefined | null): boolean {
+    return !!key && key.length > 0 && key !== 'relationship.';
+  }
+
+  /**
+   * Get the best available relationship label for a path node
+   * Tries: 1) translated relationshipToNextKey, 2) edge type label, 3) hardcoded fallback
+   */
+  getNodeRelationshipLabel(node: PathPersonNode): string {
+    // First try the specific relationship key (e.g., "father of", "mother of")
+    if (node.relationshipToNextKey && node.relationshipToNextKey.length > 0) {
+      const translated = this.i18n.t(node.relationshipToNextKey);
+      if (translated && translated !== node.relationshipToNextKey) {
+        return translated;
+      }
+    }
+
+    // Fallback to generic edge type (e.g., "Parent", "Child", "Spouse")
+    const edgeLabel = this.getEdgeLabel(node.edgeToNext);
+    if (edgeLabel) {
+      return edgeLabel;
+    }
+
+    // Last resort - check if edgeToNext has any value and return hardcoded label
+    const edgeType = typeof node.edgeToNext === 'string' ? parseInt(node.edgeToNext as string, 10) : node.edgeToNext;
+    if (edgeType === 1) return 'Parent';
+    if (edgeType === 2) return 'Child';
+    if (edgeType === 3) return 'Spouse';
+
+    return '';
+  }
+
+  /**
+   * Get label describing what the CURRENT person is relative to the NEXT person.
+   * This is the inverse of getNodeRelationshipLabel, used for left branch labels.
+   *
+   * Example: If edgeToNext says "next is PARENT of current" (going UP),
+   * this returns what CURRENT is to NEXT: "Son Of" or "Daughter Of"
+   */
+  getInverseRelationshipLabel(node: PathPersonNode): string {
+    const edgeType = typeof node.edgeToNext === 'string' ? parseInt(node.edgeToNext as string, 10) : node.edgeToNext;
+
+    // edgeToNext == Parent (1): NEXT is parent of CURRENT → CURRENT is child of NEXT
+    if (edgeType === RelationshipEdgeType.Parent || edgeType === 1) {
+      // Return "Son Of" or "Daughter Of" based on CURRENT node's sex
+      if (node.sex === Sex.Male) {
+        return this.i18n.t('relationship.sonOf');
+      } else if (node.sex === Sex.Female) {
+        return this.i18n.t('relationship.daughterOf');
+      }
+      return this.i18n.t('relationship.childOf');
+    }
+
+    // edgeToNext == Child (2): NEXT is child of CURRENT → CURRENT is parent of NEXT
+    if (edgeType === RelationshipEdgeType.Child || edgeType === 2) {
+      // Return "Father Of" or "Mother Of" based on CURRENT node's sex
+      if (node.sex === Sex.Male) {
+        return this.i18n.t('relationship.fatherOf');
+      } else if (node.sex === Sex.Female) {
+        return this.i18n.t('relationship.motherOf');
+      }
+      return this.i18n.t('relationship.parentOf');
+    }
+
+    // edgeToNext == Spouse (3): Symmetric relationship
+    if (edgeType === RelationshipEdgeType.Spouse || edgeType === 3) {
+      return this.i18n.t('relationship.spouseOf');
+    }
+
+    return '';
   }
 
   // Swap persons A and B
@@ -681,5 +780,169 @@ export class ManageRelationshipsComponent implements OnInit, OnDestroy {
     this.selectedPersonA.set(personB);
     this.selectedPersonB.set(personA);
     this.clearRelationshipState();
+  }
+
+  // Set path view mode
+  setPathViewMode(mode: PathViewMode): void {
+    this.pathViewMode.set(mode);
+  }
+
+  /**
+   * Calculate tree layout positions for the path nodes
+   * Returns nodes positioned in a V-shape with common ancestor at top
+   */
+  getTreeLayoutNodes(): Array<{ node: PathPersonNode; x: number; y: number; level: number; isPeak: boolean }> {
+    const path = this.relationshipPath()?.path;
+    if (!path || path.length < 2) return [];
+
+    // Use the centralized peak detection
+    const peakIndex = this.getPeakIndex();
+
+    const nodeWidth = 100;
+    const horizontalGap = 40;
+    const verticalGap = 80;
+    const centerX = 50; // percentage
+
+    return path.map((node, i) => {
+      const isPeak = i === peakIndex;
+      const isLeftBranch = i < peakIndex;
+      const distFromPeak = Math.abs(i - peakIndex);
+
+      let x: number;
+      let y: number;
+
+      if (isPeak) {
+        x = centerX;
+        y = 0;
+      } else if (isLeftBranch) {
+        x = centerX - (distFromPeak * (nodeWidth + horizontalGap) / 2);
+        y = distFromPeak * verticalGap;
+      } else {
+        x = centerX + (distFromPeak * (nodeWidth + horizontalGap) / 2);
+        y = distFromPeak * verticalGap;
+      }
+
+      return { node, x, y, level: distFromPeak, isPeak };
+    });
+  }
+
+  /**
+   * Get the peak index (common ancestor) in the path
+   * First tries to use the commonAncestorId from backend response,
+   * then falls back to edge-based calculation.
+   *
+   * Edge types from backend (edgeToNext describes what NEXT person IS relative to current):
+   * - Parent (1): NEXT person IS the parent of current (going UP the tree)
+   * - Child (2): NEXT person IS the child of current (going DOWN the tree)
+   * - Spouse (3): Spouse relationship
+   */
+  getPeakIndex(): number {
+    const response = this.relationshipPath();
+    const path = response?.path;
+    if (!path || path.length < 2) return 0;
+
+    // First, try to use the commonAncestorId from the backend
+    if (response?.commonAncestorId) {
+      const ancestorIndex = path.findIndex(p => p.id === response.commonAncestorId);
+      if (ancestorIndex >= 0) {
+        return ancestorIndex;
+      }
+    }
+
+    // Also check commonAncestors array
+    if (response?.commonAncestors && response.commonAncestors.length > 0) {
+      const ancestorId = response.commonAncestors[0].personId;
+      const ancestorIndex = path.findIndex(p => p.id === ancestorId);
+      if (ancestorIndex >= 0) {
+        return ancestorIndex;
+      }
+    }
+
+    // Fallback: Find the transition point from going up to going down
+    //
+    // IMPORTANT: The backend sets edgeToNext to describe what the NEXT person IS relative to current:
+    // - edgeToNext == Parent: NEXT person IS the parent of current → we're going UP
+    // - edgeToNext == Child: NEXT person IS the child of current → we're going DOWN
+    //
+    // The peak is the last person we reach while going UP (Parent edges)
+    let peakIndex = 0;
+
+    for (let i = 0; i < path.length - 1; i++) {
+      const edge = path[i].edgeToNext;
+      const edgeNum = typeof edge === 'string' ? parseInt(edge, 10) : edge;
+
+      // If NEXT person IS the parent of current (Parent edge), we're going UP
+      // The NEXT person could be the peak
+      if (edgeNum === RelationshipEdgeType.Parent || edgeNum === 1) {
+        peakIndex = i + 1;
+      }
+      // Once NEXT person IS the child of current (Child edge), we're going DOWN - peak was found
+      else if (edgeNum === RelationshipEdgeType.Child || edgeNum === 2 ||
+               edgeNum === RelationshipEdgeType.Spouse || edgeNum === 3) {
+        break;
+      }
+    }
+
+    if (peakIndex === 0 && path.length > 2) {
+      peakIndex = Math.floor(path.length / 2);
+    }
+    return peakIndex;
+  }
+
+  /**
+   * Get the left branch of the tree (from Person A up to common ancestor, excluding peak)
+   */
+  getLeftBranch(): Array<{ node: PathPersonNode; index: number }> {
+    const path = this.relationshipPath()?.path;
+    if (!path || path.length < 2) return [];
+
+    const peakIndex = this.getPeakIndex();
+    // Return nodes from 0 to peakIndex-1 (Person A going up)
+    return path.slice(0, peakIndex).map((node, index) => ({ node, index }));
+  }
+
+  /**
+   * Get the peak node (common ancestor)
+   */
+  getPeakNode(): PathPersonNode | null {
+    const path = this.relationshipPath()?.path;
+    if (!path || path.length < 2) return null;
+
+    const peakIndex = this.getPeakIndex();
+    return path[peakIndex] || null;
+  }
+
+  /**
+   * Get the right branch of the tree (from common ancestor down to Person B, excluding peak)
+   */
+  getRightBranch(): Array<{ node: PathPersonNode; index: number }> {
+    const path = this.relationshipPath()?.path;
+    if (!path || path.length < 2) return [];
+
+    const peakIndex = this.getPeakIndex();
+    // Return nodes from peakIndex+1 to end (going down to Person B)
+    return path.slice(peakIndex + 1).map((node, index) => ({ node, index: peakIndex + 1 + index }));
+  }
+
+  /**
+   * Get the previous node in the right branch (for edge labels)
+   */
+  getPrevRightNode(rightBranchIndex: number): PathPersonNode | null {
+    const path = this.relationshipPath()?.path;
+    if (!path) return null;
+
+    const peakIndex = this.getPeakIndex();
+    const pathIndex = peakIndex + rightBranchIndex;
+    return path[pathIndex] || null;
+  }
+
+  /**
+   * Handle avatar image load error - hide the broken image
+   */
+  onAvatarError(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    if (img) {
+      img.style.display = 'none';
+    }
   }
 }

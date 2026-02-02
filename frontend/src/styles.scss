@@ -1564,6 +1564,17 @@ $breakpoints: (
   }
 }
 
+// Success snackbar for suggestion submission
+.success-snackbar {
+  --mdc-snackbar-container-color: #2D7A3E;
+  --mdc-snackbar-supporting-text-color: white;
+  --mat-snack-bar-button-color: white;
+
+  .mat-mdc-button {
+    color: white !important;
+  }
+}
+
 // =============================================================================
 // FIX: Material dropdown panels appearing behind custom modals
 // =============================================================================

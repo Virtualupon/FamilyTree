@@ -196,10 +196,9 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
   
   setViewMode(mode: 'pedigree' | 'descendants' | 'hourglass' | 'timeline' | 'familySheet'): void {
     this.viewMode.set(mode);
-    // Only reload tree for tree-based views, not for timeline/familySheet
-    if (mode !== 'timeline' && mode !== 'familySheet') {
-      this.loadTree();
-    }
+    // All views need to reload data
+    // Timeline and FamilySheet need hourglass data (both ancestors AND descendants)
+    this.loadTree();
   }
 
   getViewModeLabel(): string {
@@ -249,7 +248,8 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
     };
 
     let observable;
-    switch (this.viewMode()) {
+    const mode = this.viewMode();
+    switch (mode) {
       case 'descendants':
         observable = this.treeService.getDescendants({
           personId: person.id,
@@ -258,7 +258,10 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
           includeSpouses: this.includeSpouses
         });
         break;
+      case 'timeline':
       case 'hourglass':
+      case 'familySheet':
+        // Timeline and FamilySheet need both ancestors and descendants (hourglass data)
         observable = this.treeService.getHourglass({
           personId: person.id,
           treeId: treeId,
@@ -273,8 +276,8 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
 
     observable.subscribe({
       next: (data: any) => {
-        // Handle hourglass response format
-        if (this.viewMode() === 'hourglass' && data.rootPerson) {
+        // Handle hourglass response format (used by hourglass, timeline, and familySheet views)
+        if ((mode === 'hourglass' || mode === 'timeline' || mode === 'familySheet') && data.rootPerson) {
           const node = data.rootPerson as TreePersonNode;
           node.parents = data.ancestors || [];
           node.children = data.descendants || [];

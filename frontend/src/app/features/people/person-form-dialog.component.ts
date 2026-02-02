@@ -20,8 +20,12 @@ import { TransliterationService } from '../../core/services/transliteration.serv
 import { TranslationService } from '../../core/services/translation.service';
 import { FamilyService } from '../../core/services/family.service';
 import { TreeContextService } from '../../core/services/tree-context.service';
+import { AuthService } from '../../core/services/auth.service';
+import { SuggestionService } from '../../core/services/suggestion.service';
 import { I18nService, TranslatePipe } from '../../core/i18n';
 import { FamilyListItem } from '../../core/models/family.models';
+import { OrgRole } from '../../core/models/auth.models';
+import { SuggestionType, ConfidenceLevel } from '../../core/models/suggestion.models';
 import {
   Person,
   PersonListItem,
@@ -68,11 +72,24 @@ export class PersonFormDialogComponent implements OnInit {
   private readonly translationService = inject(TranslationService);
   private readonly familyService = inject(FamilyService);
   private readonly treeContext = inject(TreeContextService);
+  private readonly authService = inject(AuthService);
+  private readonly suggestionService = inject(SuggestionService);
   private readonly countriesService = inject(CountriesService);
   private readonly i18n = inject(I18nService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialogRef = inject(MatDialogRef<PersonFormDialogComponent>);
   readonly data = inject<PersonFormDialogData>(MAT_DIALOG_DATA);
+
+  // Computed: Check if user is a Viewer (read-only, can only create suggestions)
+  isViewer = computed(() => {
+    const user = this.authService.getCurrentUser();
+    if (!user) return true;
+    // System admins are never viewers - they can directly edit
+    if (user.systemRole === 'SuperAdmin' || user.systemRole === 'Admin') return false;
+    // Regular users: need Contributor or higher org role to directly edit
+    // If role is undefined or less than Contributor, they must use suggestions
+    return user.role === undefined || user.role === null || user.role < OrgRole.Contributor;
+  });
 
   // Expose enums to template
   readonly Sex = Sex;
@@ -390,12 +407,130 @@ export class PersonFormDialogComponent implements OnInit {
         this.form.patchValue({ notes: currentNotes });
     }
 
+    // If user is a viewer (can only suggest, not directly create/edit), route to suggestion system
+    if (this.isViewer()) {
+      this.saveAsSuggestion(this.form.value);
+      return;
+    }
+
     // If there are notes, translate to other languages in background
     if (currentNotes) {
       this.translateAndSave(formValue, currentNotes, lang);
     } else {
       this.savePersonDirectly(formValue);
     }
+  }
+
+  /**
+   * Save as a suggestion (for viewers who cannot directly add/edit persons)
+   */
+  private saveAsSuggestion(formValue: any): void {
+    const treeId = this.data.treeId || this.treeContext.effectiveTreeId();
+    if (!treeId) {
+      this.saving.set(false);
+      this.snackBar.open(
+        this.i18n.t('suggestion.noTreeSelected'),
+        this.i18n.t('common.close'),
+        { duration: 5000 }
+      );
+      return;
+    }
+
+    // Validate: at least one name must be provided
+    const hasName = formValue.primaryName?.trim() ||
+                    formValue.nameArabic?.trim() ||
+                    formValue.nameEnglish?.trim() ||
+                    formValue.nameNobiin?.trim();
+
+    if (!hasName) {
+      this.saving.set(false);
+      this.snackBar.open(
+        this.i18n.t('suggestion.validation.nameRequired'),
+        this.i18n.t('common.close'),
+        { duration: 5000 }
+      );
+      return;
+    }
+
+    // Determine if this is an update (existing person) or add (new person)
+    const isUpdate = !!this.data.person;
+    const suggestionType = isUpdate ? SuggestionType.UpdatePerson : SuggestionType.AddPerson;
+
+    // Build the proposed changes as notes
+    const proposedChanges = this.buildProposedChangesDescription(formValue);
+
+    const request = {
+      treeId,
+      type: suggestionType,
+      targetPersonId: isUpdate ? this.data.person!.id : undefined,
+      confidence: ConfidenceLevel.Probable,
+      submitterNotes: proposedChanges,
+      proposedValues: {
+        primaryName: formValue.primaryName?.trim() || undefined,
+        nameArabic: formValue.nameArabic?.trim() || undefined,
+        nameEnglish: formValue.nameEnglish?.trim() || undefined,
+        nameNobiin: formValue.nameNobiin?.trim() || undefined,
+        sex: formValue.sex || undefined,
+        birthDate: formValue.birthDate ? this.formatDateForApi(formValue.birthDate) : undefined,
+        deathDate: formValue.deathDate ? this.formatDateForApi(formValue.deathDate) : undefined,
+        notes: formValue.notes?.trim() || undefined
+      }
+    };
+
+    this.suggestionService.createSuggestion(request).subscribe({
+      next: (result) => {
+        this.saving.set(false);
+        // Show success message with person name
+        const personName = formValue.primaryName?.trim() ||
+                          formValue.nameArabic?.trim() ||
+                          formValue.nameEnglish?.trim() ||
+                          this.i18n.t('common.unknown');
+        this.snackBar.open(
+          this.i18n.t('suggestion.submitSuccess', { name: personName }),
+          this.i18n.t('common.close'),
+          { duration: 5000, panelClass: 'success-snackbar' }
+        );
+        this.dialogRef.close({ isSuggestion: true, result });
+      },
+      error: (err) => {
+        console.error('Failed to create suggestion:', err);
+        this.saving.set(false);
+        const errorMessage = err?.error?.message || this.i18n.t('suggestion.createError');
+        this.snackBar.open(
+          errorMessage,
+          this.i18n.t('common.close'),
+          { duration: 5000 }
+        );
+      }
+    });
+  }
+
+  /**
+   * Build a human-readable description of proposed changes
+   */
+  private buildProposedChangesDescription(formValue: any): string {
+    const parts: string[] = [];
+
+    if (formValue.primaryName) {
+      parts.push(`Name: ${formValue.primaryName}`);
+    }
+    if (formValue.nameArabic) {
+      parts.push(`Arabic: ${formValue.nameArabic}`);
+    }
+    if (formValue.nameEnglish) {
+      parts.push(`English: ${formValue.nameEnglish}`);
+    }
+    if (formValue.sex) {
+      parts.push(`Sex: ${formValue.sex}`);
+    }
+    if (formValue.birthDate) {
+      parts.push(`Birth: ${this.formatDateForApi(formValue.birthDate)}`);
+    }
+    if (formValue.deathDate) {
+      parts.push(`Death: ${this.formatDateForApi(formValue.deathDate)}`);
+    }
+
+    return parts.join(', ') || 'Person details';
   }
 
   /**

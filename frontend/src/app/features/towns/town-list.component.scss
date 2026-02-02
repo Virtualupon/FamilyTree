@@ -1,0 +1,782 @@
+// =============================================
+// TOWNS PAGE - NUBIAN THEME STYLING
+// =============================================
+
+.towns-page {
+  min-height: 100vh;
+  background: var(--ft-background, #FFF9F5);
+
+  // =============================================
+  // BANNER HEADER
+  // =============================================
+  &__banner {
+    position: relative;
+    background: linear-gradient(135deg, var(--ft-primary, #187573) 0%, #0D5654 100%);
+    padding: 3rem 1.5rem 4rem;
+    overflow: hidden;
+  }
+
+  &__banner-pattern {
+    position: absolute;
+    inset: 0;
+    opacity: 0.1;
+    background-image:
+      repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 10px,
+        rgba(255, 255, 255, 0.1) 10px,
+        rgba(255, 255, 255, 0.1) 20px
+      ),
+      repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 10px,
+        rgba(255, 255, 255, 0.05) 10px,
+        rgba(255, 255, 255, 0.05) 20px
+      );
+  }
+
+  &__banner-content {
+    position: relative;
+    max-width: 1200px;
+    margin: 0 auto;
+    text-align: center;
+    color: white;
+  }
+
+  &__banner-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    margin-bottom: 1rem;
+    backdrop-filter: blur(10px);
+
+    mat-icon {
+      font-size: 40px;
+      width: 40px;
+      height: 40px;
+    }
+  }
+
+  &__title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem;
+    font-family: 'Cinzel', serif;
+  }
+
+  &__subtitle {
+    font-size: 1rem;
+    opacity: 0.9;
+    margin: 0;
+  }
+
+  // =============================================
+  // CONTAINER
+  // =============================================
+  &__container {
+    max-width: 1200px;
+    margin: -2rem auto 0;
+    padding: 0 1rem 2rem;
+    position: relative;
+  }
+
+  // =============================================
+  // ACTION BUTTONS
+  // =============================================
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  &__action-btn {
+    display: flex !important;
+    align-items: center;
+    gap: 0.5rem;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  // =============================================
+  // FILTERS
+  // =============================================
+  &__filters {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    background: var(--ft-surface, #fff);
+    padding: 1.5rem;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(45, 45, 45, 0.08);
+  }
+
+  &__search {
+    flex: 1;
+    min-width: 250px;
+  }
+
+  &__country-filter {
+    min-width: 200px;
+  }
+
+  // =============================================
+  // LOADING STATE
+  // =============================================
+  &__loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 4rem 2rem;
+    color: var(--ft-on-surface-variant, #6B6B6B);
+  }
+
+  // =============================================
+  // ERROR STATE
+  // =============================================
+  &__error {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    background: rgba(232, 93, 53, 0.1);
+    border: 1px solid rgba(232, 93, 53, 0.3);
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    color: var(--ft-error, #E85D35);
+
+    mat-icon {
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+    }
+
+    span {
+      flex: 1;
+    }
+  }
+
+  // =============================================
+  // TOWN GRID
+  // =============================================
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+  }
+
+  // =============================================
+  // PAGINATION
+  // =============================================
+  &__pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding: 1rem;
+    background: var(--ft-surface, #fff);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(45, 45, 45, 0.06);
+  }
+
+  &__page-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+  }
+
+  &__page-current {
+    font-weight: 600;
+    color: var(--ft-primary, #187573);
+    background: rgba(24, 117, 115, 0.1);
+    padding: 0.25rem 0.75rem;
+    border-radius: 8px;
+  }
+
+  &__page-separator {
+    color: var(--ft-on-surface-variant, #6B6B6B);
+  }
+
+  &__page-total {
+    color: var(--ft-on-surface-variant, #6B6B6B);
+  }
+
+  // =============================================
+  // EMPTY STATE
+  // =============================================
+  &__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    text-align: center;
+    background: var(--ft-surface, #fff);
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(45, 45, 45, 0.08);
+  }
+
+  &__empty-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(24, 117, 115, 0.1), rgba(193, 126, 62, 0.1));
+    margin-bottom: 1.5rem;
+
+    mat-icon {
+      font-size: 48px;
+      width: 48px;
+      height: 48px;
+      color: var(--ft-on-surface-variant, #6B6B6B);
+    }
+  }
+
+  &__empty h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--ft-on-surface, #2D2D2D);
+    margin: 0 0 0.5rem;
+  }
+
+  &__empty p {
+    color: var(--ft-on-surface-variant, #6B6B6B);
+    margin: 0 0 1.5rem;
+  }
+}
+
+// =============================================
+// TOWN CARD
+// =============================================
+.town-card {
+  display: block;
+  background: var(--ft-surface, #fff);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(45, 45, 45, 0.08);
+  transition: all 0.3s ease;
+  text-decoration: none;
+  position: relative;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(24, 117, 115, 0.15);
+
+    .town-card__header {
+      background: linear-gradient(135deg, var(--ft-primary, #187573) 0%, #0D5654 100%);
+    }
+
+    .town-card__arrow {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  &__header {
+    position: relative;
+    height: 100px;
+    background: linear-gradient(135deg, var(--ft-primary, #187573) 0%, #136160 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s ease;
+  }
+
+  &__pattern {
+    position: absolute;
+    inset: 0;
+    opacity: 0.15;
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.3) 0%, transparent 50%),
+      radial-gradient(circle at 80% 70%, rgba(193, 126, 62, 0.3) 0%, transparent 50%);
+  }
+
+  &__icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+
+    mat-icon {
+      font-size: 32px;
+      width: 32px;
+      height: 32px;
+      color: white;
+    }
+  }
+
+  &__content {
+    padding: 1.25rem;
+  }
+
+  &__name {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--ft-on-surface, #2D2D2D);
+    margin: 0 0 0.5rem;
+    font-family: 'Cinzel', serif;
+  }
+
+  &__location {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    color: var(--ft-on-surface-variant, #6B6B6B);
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      color: var(--ft-accent, #C17E3E);
+    }
+  }
+
+  &__stats {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 1rem;
+    border-top: 1px solid var(--ft-border, #F4E4D7);
+  }
+
+  &__stat {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.8125rem;
+    color: var(--ft-on-surface-variant, #6B6B6B);
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      color: var(--ft-primary, #187573);
+    }
+
+    &--date mat-icon {
+      color: var(--ft-accent, #C17E3E);
+    }
+  }
+
+  &__arrow {
+    position: absolute;
+    right: 1rem;
+    bottom: 1rem;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--ft-primary, #187573);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: translateX(-8px);
+    transition: all 0.3s ease;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: white;
+    }
+  }
+}
+
+// =============================================
+// MODAL STYLES
+// =============================================
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(45, 45, 45, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  padding: 1rem;
+}
+
+.modal-container {
+  background: var(--ft-surface, #fff);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(45, 45, 45, 0.2);
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
+  &--lg {
+    max-width: 560px;
+  }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  background: linear-gradient(135deg, var(--ft-primary, #187573) 0%, #0D5654 100%);
+  color: white;
+
+  &__icon {
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+    opacity: 0.9;
+  }
+
+  h2 {
+    flex: 1;
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+    font-family: 'Cinzel', serif;
+  }
+
+  .modal-close {
+    color: rgba(255, 255, 255, 0.8);
+
+    &:hover {
+      color: white;
+      background: rgba(255, 255, 255, 0.1);
+    }
+  }
+}
+
+.modal-content {
+  padding: 1.5rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.modal-field {
+  width: 100%;
+}
+
+.modal-error {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: rgba(232, 93, 53, 0.1);
+  border: 1px solid rgba(232, 93, 53, 0.3);
+  border-radius: 8px;
+  color: var(--ft-error, #E85D35);
+  font-size: 0.875rem;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--ft-border, #F4E4D7);
+
+  button {
+    flex: 1;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+}
+
+// =============================================
+// IMPORT SPECIFIC STYLES
+// =============================================
+.import-info {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: rgba(24, 117, 115, 0.05);
+  border-radius: 12px;
+  color: var(--ft-on-surface-variant, #6B6B6B);
+
+  mat-icon {
+    color: var(--ft-primary, #187573);
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  p {
+    margin: 0 0 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  code {
+    display: block;
+    background: var(--ft-surface-variant, #FFF9F5);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-family: 'Monaco', 'Consolas', monospace;
+    overflow-x: auto;
+  }
+}
+
+.import-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2.5rem 1.5rem;
+  border: 2px dashed var(--ft-border, #F4E4D7);
+  border-radius: 12px;
+  background: var(--ft-surface-variant, #FFF9F5);
+  transition: all 0.3s ease;
+  text-align: center;
+
+  &--active {
+    border-color: var(--ft-primary, #187573);
+    background: rgba(24, 117, 115, 0.05);
+  }
+
+  &--has-file {
+    flex-direction: row;
+    padding: 1.5rem;
+    border-style: solid;
+    border-color: var(--ft-success, #2D7A3E);
+    background: rgba(45, 122, 62, 0.05);
+  }
+
+  &__icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    color: var(--ft-on-surface-variant, #6B6B6B);
+
+    &--success {
+      color: var(--ft-success, #2D7A3E);
+      font-size: 32px;
+      width: 32px;
+      height: 32px;
+    }
+  }
+
+  &__text {
+    margin: 0;
+    color: var(--ft-on-surface-variant, #6B6B6B);
+    font-size: 0.9rem;
+  }
+
+  &__filename {
+    flex: 1;
+    font-weight: 500;
+    color: var(--ft-on-surface, #2D2D2D);
+    text-align: left;
+  }
+
+  &__browse {
+    display: inline-block;
+    color: var(--ft-primary, #187573);
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: var(--ft-primary-dark, #0D5654);
+      text-decoration: underline;
+    }
+
+    input {
+      display: none;
+    }
+  }
+}
+
+.import-result {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: rgba(193, 126, 62, 0.1);
+  border-radius: 12px;
+  border: 1px solid rgba(193, 126, 62, 0.2);
+
+  > mat-icon {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+    color: var(--ft-warning, #C17E3E);
+    flex-shrink: 0;
+  }
+
+  &--success {
+    background: rgba(45, 122, 62, 0.1);
+    border-color: rgba(45, 122, 62, 0.2);
+
+    > mat-icon {
+      color: var(--ft-success, #2D7A3E);
+    }
+  }
+
+  &__details {
+    flex: 1;
+  }
+
+  &__title {
+    font-weight: 600;
+    margin: 0 0 0.5rem;
+    color: var(--ft-on-surface, #2D2D2D);
+  }
+
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.875rem;
+    color: var(--ft-on-surface-variant, #6B6B6B);
+    padding: 0.25rem 0;
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+      color: var(--ft-on-surface-variant, #6B6B6B);
+    }
+  }
+
+  &__error {
+    color: var(--ft-error, #E85D35) !important;
+
+    mat-icon {
+      color: var(--ft-error, #E85D35) !important;
+    }
+  }
+}
+
+// =============================================
+// RESPONSIVE
+// =============================================
+@media (max-width: 768px) {
+  .towns-page {
+    &__banner {
+      padding: 2rem 1rem 3rem;
+    }
+
+    &__banner-icon {
+      width: 60px;
+      height: 60px;
+
+      mat-icon {
+        font-size: 28px;
+        width: 28px;
+        height: 28px;
+      }
+    }
+
+    &__title {
+      font-size: 1.5rem;
+    }
+
+    &__container {
+      margin-top: -1.5rem;
+    }
+
+    &__actions {
+      justify-content: stretch;
+
+      button {
+        flex: 1;
+      }
+    }
+
+    &__filters {
+      flex-direction: column;
+      padding: 1rem;
+    }
+
+    &__search,
+    &__country-filter {
+      min-width: 100%;
+    }
+
+    &__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .town-card {
+    &__arrow {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  .modal-container {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 16px 16px 0 0;
+    margin-top: auto;
+  }
+}
+
+// =============================================
+// RTL SUPPORT
+// =============================================
+:host-context([dir="rtl"]) {
+  .town-card {
+    &__arrow {
+      right: auto;
+      left: 1rem;
+      transform: translateX(8px) rotate(180deg);
+
+      &:hover {
+        transform: translateX(0) rotate(180deg);
+      }
+    }
+  }
+
+  .modal-close {
+    margin-left: 0;
+    margin-right: auto;
+  }
+
+  .import-dropzone--has-file .import-dropzone__filename {
+    text-align: right;
+  }
+}

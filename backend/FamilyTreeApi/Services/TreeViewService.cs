@@ -24,6 +24,7 @@ public class TreeViewService : ITreeViewService
     private readonly IUnionRepository _unionRepository;
     private readonly IOrgRepository _orgRepository;
     private readonly IPersonSearchRepository _personSearchRepository;
+    private readonly IMediaService _mediaService;
     private readonly IMapper _mapper;
     private readonly ILogger<TreeViewService> _logger;
 
@@ -32,6 +33,7 @@ public class TreeViewService : ITreeViewService
         IUnionRepository unionRepository,
         IOrgRepository orgRepository,
         IPersonSearchRepository personSearchRepository,
+        IMediaService mediaService,
         IMapper mapper,
         ILogger<TreeViewService> logger)
     {
@@ -39,6 +41,7 @@ public class TreeViewService : ITreeViewService
         _unionRepository = unionRepository;
         _orgRepository = orgRepository;
         _personSearchRepository = personSearchRepository;
+        _mediaService = mediaService;
         _mapper = mapper;
         _logger = logger;
     }
@@ -783,6 +786,56 @@ public class TreeViewService : ITreeViewService
                 }
             }
 
+            // Set edge types and relationship keys between consecutive nodes
+            // Also calculate the common ancestor
+            Guid? calculatedCommonAncestorId = null;
+            int peakIndex = 0;
+
+            for (int i = 0; i < pathNodes.Count - 1; i++)
+            {
+                var currentNode = pathNodes[i];
+                var nextNode = pathNodes[i + 1];
+
+                // Determine the edge type by checking the parent-child relationship
+                var edgeType = await DetermineEdgeTypeAsync(currentNode.Id, nextNode.Id, cancellationToken);
+                currentNode.EdgeToNext = edgeType;
+                currentNode.RelationshipToNextKey = GetEdgeRelationshipKey(edgeType, nextNode.Sex);
+
+                // Track the peak (common ancestor) - it's the last node we reach while going UP
+                // EdgeToNext == Parent means NEXT person is the parent of current (going UP)
+                if (edgeType == RelationshipEdgeType.Parent)
+                {
+                    peakIndex = i + 1;
+                }
+            }
+
+            // The common ancestor is the person at peakIndex
+            if (peakIndex > 0 && peakIndex < pathNodes.Count)
+            {
+                calculatedCommonAncestorId = pathNodes[peakIndex].Id;
+            }
+
+            // Use the SQL-provided commonAncestorId if available, otherwise use calculated
+            var finalCommonAncestorId = sqlResult.CommonAncestorId ?? calculatedCommonAncestorId;
+
+            // Build common ancestors list
+            var commonAncestors = new List<CommonAncestorInfo>();
+            if (finalCommonAncestorId.HasValue)
+            {
+                var ancestorNode = pathNodes.FirstOrDefault(n => n.Id == finalCommonAncestorId.Value);
+                if (ancestorNode != null)
+                {
+                    var ancestorIndex = pathNodes.FindIndex(n => n.Id == finalCommonAncestorId.Value);
+                    commonAncestors.Add(new CommonAncestorInfo
+                    {
+                        PersonId = ancestorNode.Id,
+                        PrimaryName = ancestorNode.PrimaryName,
+                        GenerationsFromPerson1 = ancestorIndex,
+                        GenerationsFromPerson2 = pathNodes.Count - 1 - ancestorIndex
+                    });
+                }
+            }
+
             return ServiceResult<RelationshipPathResponse>.Success(new RelationshipPathResponse
             {
                 PathFound = true,
@@ -792,7 +845,8 @@ public class TreeViewService : ITreeViewService
                 RelationshipDescription = sqlResult.RelationshipLabel,
                 Path = pathNodes,
                 PathLength = sqlResult.PathLength,
-                CommonAncestorId = sqlResult.CommonAncestorId,
+                CommonAncestorId = finalCommonAncestorId,
+                CommonAncestors = commonAncestors,
                 PathIds = sqlResult.PathIds
             });
         }
@@ -911,6 +965,21 @@ public class TreeViewService : ITreeViewService
             return null;
         }
 
+        // Get avatar URL if person has an avatar
+        string? thumbnailUrl = null;
+        if (person.AvatarMediaId.HasValue)
+        {
+            try
+            {
+                var signedUrl = await _mediaService.GetSignedUrlAsync(person.AvatarMediaId.Value);
+                thumbnailUrl = signedUrl?.Url;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to get avatar URL for person {PersonId}", personId);
+            }
+        }
+
         return new PathPersonNode
         {
             Id = person.Id,
@@ -925,8 +994,53 @@ public class TreeViewService : ITreeViewService
             DeathPlace = person.DeathPlace?.Name,
             Occupation = person.Occupation,
             IsLiving = person.DeathDate == null,
-            ThumbnailUrl = null // TODO: Add media service to get thumbnail
+            ThumbnailUrl = thumbnailUrl
         };
+    }
+
+    /// <summary>
+    /// Determine the edge type between two consecutive people in the path.
+    /// Returns what the NEXT person IS relative to CURRENT:
+    /// - Parent: nextPerson IS the parent of currentPerson (going UP)
+    /// - Child: nextPerson IS the child of currentPerson (going DOWN)
+    /// - Spouse: They are spouses
+    /// </summary>
+    private async Task<RelationshipEdgeType> DetermineEdgeTypeAsync(
+        Guid currentPersonId,
+        Guid nextPersonId,
+        CancellationToken cancellationToken)
+    {
+        // Check if nextPerson is the PARENT of currentPerson (we're going UP)
+        var isNextParent = await _personRepository.QueryNoTracking()
+            .AnyAsync(p => p.Id == nextPersonId &&
+                          p.AsParent.Any(pc => pc.ChildId == currentPersonId),
+                      cancellationToken);
+        if (isNextParent)
+        {
+            return RelationshipEdgeType.Parent;
+        }
+
+        // Check if nextPerson is the CHILD of currentPerson (we're going DOWN)
+        var isNextChild = await _personRepository.QueryNoTracking()
+            .AnyAsync(p => p.Id == nextPersonId &&
+                          p.AsChild.Any(pc => pc.ParentId == currentPersonId),
+                      cancellationToken);
+        if (isNextChild)
+        {
+            return RelationshipEdgeType.Child;
+        }
+
+        // Check if they are spouses
+        var areSpouses = await _unionRepository.QueryNoTracking()
+            .AnyAsync(u => u.Members.Any(m => m.PersonId == currentPersonId) &&
+                          u.Members.Any(m => m.PersonId == nextPersonId),
+                      cancellationToken);
+        if (areSpouses)
+        {
+            return RelationshipEdgeType.Spouse;
+        }
+
+        return RelationshipEdgeType.None;
     }
 
     /// <summary>
@@ -962,41 +1076,48 @@ public class TreeViewService : ITreeViewService
     {
         // Find the pivot point where we go from ascending to descending
         // This is the common ancestor(s)
+        //
+        // Edge types in path[i].Edge describe the relationship of person i TO person i-1:
+        // - Parent: Person i IS the parent of person i-1 (we went UP to reach person i)
+        // - Child: Person i IS the child of person i-1 (we went DOWN to reach person i)
+        //
+        // The peak/common ancestor is the last person we reach while going UP (Parent edges),
+        // before we start going DOWN (Child edges)
         var commonAncestors = new List<CommonAncestorInfo>();
 
-        int ascending = 0;
-        int pivotIndex = -1;
+        int peakIndex = 0;
 
-        // Track generation changes
+        // Walk through the path starting from index 1 (index 0 has no incoming edge)
+        // Find the last index where we're still going UP
         for (int i = 1; i < path.Count; i++)
         {
             var edge = path[i].Edge;
 
+            // If person i IS the parent of person i-1, we went UP to reach them
+            // This person could be the peak
             if (edge == RelationshipEdgeType.Parent)
             {
-                ascending++;
+                peakIndex = i;
             }
-            else if (edge == RelationshipEdgeType.Child && ascending > 0)
+            // If person i IS the child of person i-1, we went DOWN - we've passed the peak
+            else if (edge == RelationshipEdgeType.Child)
             {
-                // Found pivot (first time going down after going up)
-                if (pivotIndex == -1)
-                {
-                    pivotIndex = i - 1; // The person before the first descent is the common ancestor
-                }
+                // The peak was the previous person (already set to peakIndex)
+                break;
             }
         }
 
-        if (pivotIndex > 0)
+        if (peakIndex > 0 && peakIndex < path.Count)
         {
-            var ancestorId = path[pivotIndex].Id;
+            var ancestorId = path[peakIndex].Id;
             var person = await _personRepository.QueryNoTracking()
                 .FirstOrDefaultAsync(p => p.Id == ancestorId, cancellationToken);
 
             if (person != null)
             {
                 // Count generations from each end
-                int gen1 = pivotIndex;
-                int gen2 = path.Count - 1 - pivotIndex;
+                int gen1 = peakIndex;
+                int gen2 = path.Count - 1 - peakIndex;
 
                 commonAncestors.Add(new CommonAncestorInfo
                 {

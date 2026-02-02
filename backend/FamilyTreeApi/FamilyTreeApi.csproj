@@ -46,13 +46,12 @@
     <PackageReference Include="Anthropic.SDK" Version="3.1.0" />
   </ItemGroup>
 
-
   <ItemGroup>
-    <Folder Include="Logs\" />
+    <ProjectReference Include="..\Api\VirtualUpon.Storage\VirtualUpon.Storage.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Api\VirtualUpon.Storage\VirtualUpon.Storage.csproj" />
+    <Folder Include="Logs\" />
   </ItemGroup>
 
 </Project>

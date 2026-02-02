@@ -134,7 +134,8 @@ export class FamilySheetComponent implements OnChanges, OnDestroy {
     const children = this.person.children || [];
 
     if (this.person.unions && this.person.unions.length > 0) {
-      const union = this.person.unions[0]; // Primary union
+      // Find the first union that has partners (spouse data)
+      const union = this.person.unions.find(u => u.partners && u.partners.length > 0) || this.person.unions[0];
       const spouse = union.partners.find(p => p.id !== this.person!.id) || null;
 
       // Order: Male first, then Female (for consistent display)

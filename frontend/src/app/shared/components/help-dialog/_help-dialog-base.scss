@@ -1,0 +1,499 @@
+// =============================================================================
+// Help Dialog Base Styles
+// Shared variables, mixins, and utilities for all help dialogs
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// Color Variables (WCAG AA Compliant)
+// -----------------------------------------------------------------------------
+
+// User theme (green)
+$user-primary: #388E3C;
+$user-primary-dark: #1B5E20;
+$user-primary-light: #E8F5E9;
+
+// Admin theme (blue)
+$admin-primary: #1976D2;
+$admin-primary-dark: #0D47A1;
+$admin-primary-light: #E3F2FD;
+
+// SuperAdmin theme (purple)
+$superadmin-primary: #7B1FA2;
+$superadmin-primary-dark: #4A148C;
+$superadmin-primary-light: #F3E5F5;
+
+// Neutral colors
+$text-primary: #212121;
+$text-secondary: #666666;
+$text-muted: #999999;
+$border-color: #E0E0E0;
+$background-light: #FAFAFA;
+$background-white: #FFFFFF;
+
+// -----------------------------------------------------------------------------
+// Spacing & Layout
+// -----------------------------------------------------------------------------
+
+$help-border-radius: 8px;
+$help-spacing-xs: 8px;
+$help-spacing-sm: 12px;
+$help-spacing: 16px;
+$help-spacing-lg: 24px;
+$help-spacing-xl: 32px;
+
+$help-transition: all 0.2s ease;
+
+// -----------------------------------------------------------------------------
+// Mixins
+// -----------------------------------------------------------------------------
+
+/// Creates a styled content box with optional border accent
+@mixin help-box($bg-color, $border-color: null) {
+  background: $bg-color;
+  border-radius: $help-border-radius;
+  padding: $help-spacing;
+
+  @if $border-color {
+    border-left: 4px solid $border-color;
+
+    :host-context([dir="rtl"]) & {
+      border-left: none;
+      border-right: 4px solid $border-color;
+    }
+  }
+}
+
+/// Focus visible outline for accessibility
+@mixin focus-visible {
+  &:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+}
+
+/// Scrollbar styling
+@mixin custom-scrollbar($thumb-color: #ccc) {
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: $thumb-color;
+    border-radius: 4px;
+
+    &:hover {
+      background: darken($thumb-color, 10%);
+    }
+  }
+
+  // Firefox
+  scrollbar-width: thin;
+  scrollbar-color: $thumb-color transparent;
+}
+
+/// Responsive font sizes
+@mixin responsive-text {
+  @media (max-width: 600px) {
+    font-size: 0.9em;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Base Dialog Structure
+// -----------------------------------------------------------------------------
+
+%help-dialog-base {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 80vh;
+  overflow: hidden;
+}
+
+%help-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $help-spacing $help-spacing-lg;
+  color: white;
+  flex-shrink: 0;
+
+  .help-title {
+    display: flex;
+    align-items: center;
+    gap: $help-spacing-sm;
+
+    h2 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 500;
+    }
+
+    mat-icon {
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+    }
+  }
+
+  .close-button {
+    color: white;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    @include focus-visible;
+  }
+}
+
+%help-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $help-spacing-xs;
+  padding: $help-spacing-sm $help-spacing-lg;
+  background: $background-light;
+  border-bottom: 1px solid $border-color;
+  flex-shrink: 0;
+
+  .tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: $help-spacing-xs $help-spacing-sm;
+    border: 1px solid $border-color;
+    border-radius: 20px;
+    background: $background-white;
+    color: $text-secondary;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: $help-transition;
+    white-space: nowrap;
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
+    &:hover:not(.active) {
+      background: darken($background-white, 3%);
+      border-color: darken($border-color, 10%);
+    }
+
+    @include focus-visible;
+
+    @media (max-width: 600px) {
+      padding: 6px 10px;
+      font-size: 0.8rem;
+
+      mat-icon {
+        font-size: 16px;
+        width: 16px;
+        height: 16px;
+      }
+    }
+  }
+}
+
+%help-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: $help-spacing-lg;
+  @include custom-scrollbar;
+
+  .tab-content {
+    animation: fadeIn 0.2s ease;
+
+    h3 {
+      margin: 0 0 $help-spacing-sm 0;
+      font-size: 1.25rem;
+      font-weight: 500;
+      color: $text-primary;
+    }
+
+    h4 {
+      margin: $help-spacing-lg 0 $help-spacing-sm 0;
+      font-size: 1rem;
+      font-weight: 500;
+      color: $text-primary;
+
+      &:first-child {
+        margin-top: 0;
+      }
+    }
+
+    p {
+      margin: 0 0 $help-spacing 0;
+      color: $text-secondary;
+      line-height: 1.6;
+    }
+
+    ul, ol {
+      margin: 0 0 $help-spacing 0;
+      padding-left: $help-spacing-lg;
+      color: $text-secondary;
+      line-height: 1.8;
+
+      :host-context([dir="rtl"]) & {
+        padding-left: 0;
+        padding-right: $help-spacing-lg;
+      }
+
+      li {
+        margin-bottom: $help-spacing-xs;
+      }
+    }
+  }
+}
+
+%help-footer {
+  display: flex;
+  justify-content: center;
+  padding: $help-spacing;
+  border-top: 1px solid $border-color;
+  background: $background-light;
+  flex-shrink: 0;
+}
+
+// -----------------------------------------------------------------------------
+// Content Boxes
+// -----------------------------------------------------------------------------
+
+%tip-box {
+  @include help-box(#FFF8E1, #FFC107);
+  margin: $help-spacing 0;
+
+  .tip-header {
+    display: flex;
+    align-items: center;
+    gap: $help-spacing-xs;
+    font-weight: 500;
+    color: #F57C00;
+    margin-bottom: $help-spacing-xs;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  p {
+    margin: 0;
+    color: $text-secondary;
+  }
+}
+
+%note-box {
+  @include help-box(#E3F2FD, #1976D2);
+  margin: $help-spacing 0;
+
+  .note-header {
+    display: flex;
+    align-items: center;
+    gap: $help-spacing-xs;
+    font-weight: 500;
+    color: #1565C0;
+    margin-bottom: $help-spacing-xs;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  p {
+    margin: 0;
+    color: $text-secondary;
+  }
+}
+
+%warning-box {
+  @include help-box(#FFEBEE, #F44336);
+  margin: $help-spacing 0;
+
+  .warning-header {
+    display: flex;
+    align-items: center;
+    gap: $help-spacing-xs;
+    font-weight: 500;
+    color: #C62828;
+    margin-bottom: $help-spacing-xs;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  p {
+    margin: 0;
+    color: $text-secondary;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Step Lists
+// -----------------------------------------------------------------------------
+
+%step-list {
+  list-style: none;
+  padding: 0;
+  margin: $help-spacing 0;
+  counter-reset: step-counter;
+
+  .step {
+    display: flex;
+    gap: $help-spacing;
+    margin-bottom: $help-spacing;
+    counter-increment: step-counter;
+
+    .step-number {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      font-weight: 500;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+
+      &::before {
+        content: counter(step-counter);
+      }
+    }
+
+    .step-content {
+      flex: 1;
+
+      .step-title {
+        font-weight: 500;
+        color: $text-primary;
+        margin-bottom: 4px;
+      }
+
+      .step-desc {
+        color: $text-secondary;
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Feature Cards
+// -----------------------------------------------------------------------------
+
+%feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: $help-spacing;
+  margin: $help-spacing 0;
+}
+
+%feature-card {
+  padding: $help-spacing;
+  background: $background-light;
+  border-radius: $help-border-radius;
+  border: 1px solid $border-color;
+
+  .feature-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-bottom: $help-spacing-sm;
+
+    mat-icon {
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+      color: white;
+    }
+  }
+
+  .feature-title {
+    font-weight: 500;
+    color: $text-primary;
+    margin-bottom: 4px;
+  }
+
+  .feature-desc {
+    color: $text-secondary;
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Keyboard Shortcuts
+// -----------------------------------------------------------------------------
+
+%kbd {
+  display: inline-block;
+  padding: 2px 8px;
+  font-family: monospace;
+  font-size: 0.85em;
+  background: $background-light;
+  border: 1px solid $border-color;
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+// -----------------------------------------------------------------------------
+// Animation
+// -----------------------------------------------------------------------------
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// RTL Base Support
+// -----------------------------------------------------------------------------
+
+%rtl-support {
+  :host-context([dir="rtl"]) & {
+    .help-header {
+      .help-title {
+        mat-icon {
+          margin-left: $help-spacing-sm;
+          margin-right: 0;
+        }
+      }
+    }
+
+    .help-tabs {
+      .tab-btn {
+        mat-icon {
+          margin-left: 6px;
+          margin-right: 0;
+        }
+      }
+    }
+
+    .step .step-number {
+      margin-left: $help-spacing;
+      margin-right: 0;
+    }
+  }
+}

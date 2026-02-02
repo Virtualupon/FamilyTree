@@ -1,0 +1,266 @@
+@use '../help-dialog-base' as base;
+
+// =============================================================================
+// Admin Help Dialog Styles
+// Theme: Blue (#1976D2)
+// =============================================================================
+
+.help-dialog {
+  @extend %help-dialog-base;
+}
+
+.help-header {
+  @extend %help-header;
+  background: linear-gradient(135deg, base.$admin-primary 0%, base.$admin-primary-dark 100%);
+}
+
+.help-tabs {
+  @extend %help-tabs;
+
+  .tab-btn {
+    &.active {
+      background: base.$admin-primary;
+      border-color: base.$admin-primary;
+      color: white;
+    }
+  }
+}
+
+.help-content {
+  @extend %help-content;
+
+  .feature-list {
+    li {
+      &::marker {
+        color: base.$admin-primary;
+      }
+    }
+  }
+}
+
+.help-footer {
+  @extend %help-footer;
+
+  button[color="primary"] {
+    background-color: base.$admin-primary;
+
+    &:hover {
+      background-color: base.$admin-primary-dark;
+    }
+  }
+}
+
+// Step list styling
+.step-list {
+  @extend %step-list;
+
+  .step-number {
+    background: base.$admin-primary-light;
+    color: base.$admin-primary;
+  }
+}
+
+// Tip box styling
+.tip-box {
+  @extend %tip-box;
+}
+
+// Note box styling
+.note-box {
+  @extend %note-box;
+}
+
+// Action list for suggestions
+.action-list {
+  display: flex;
+  flex-direction: column;
+  gap: base.$help-spacing-sm;
+  margin: base.$help-spacing 0;
+
+  .action-item {
+    display: flex;
+    align-items: center;
+    gap: base.$help-spacing-sm;
+    padding: base.$help-spacing-sm base.$help-spacing;
+    border-radius: base.$help-border-radius;
+    font-weight: 500;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    &.approve {
+      background: #E8F5E9;
+      color: #2E7D32;
+    }
+
+    &.reject {
+      background: #FFEBEE;
+      color: #C62828;
+    }
+
+    &.info {
+      background: base.$admin-primary-light;
+      color: base.$admin-primary;
+    }
+  }
+}
+
+// Role list
+.role-list {
+  display: flex;
+  flex-direction: column;
+  gap: base.$help-spacing-sm;
+  margin: base.$help-spacing 0;
+
+  .role-item {
+    display: flex;
+    align-items: center;
+    gap: base.$help-spacing-sm;
+    padding: base.$help-spacing-sm base.$help-spacing;
+    background: base.$background-light;
+    border-radius: base.$help-border-radius;
+    border: 1px solid base.$border-color;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      color: base.$admin-primary;
+    }
+  }
+}
+
+// Feature cards for tree view
+.feature-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: base.$help-spacing;
+  margin: base.$help-spacing 0;
+
+  .feature-card {
+    display: flex;
+    align-items: center;
+    gap: base.$help-spacing-sm;
+    padding: base.$help-spacing;
+    background: base.$admin-primary-light;
+    border-radius: base.$help-border-radius;
+    flex: 1;
+    min-width: 200px;
+
+    mat-icon {
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+      color: base.$admin-primary;
+    }
+
+    span {
+      color: base.$admin-primary-dark;
+      font-weight: 500;
+    }
+  }
+}
+
+// Tips grid
+.tips-grid {
+  @extend %feature-grid;
+}
+
+.tip-card {
+  @extend %feature-card;
+
+  .tip-icon {
+    background: base.$admin-primary;
+  }
+
+  .tip-title {
+    font-weight: 500;
+    color: base.$text-primary;
+    margin-bottom: 4px;
+  }
+
+  .tip-desc {
+    color: base.$text-secondary;
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+}
+
+// RTL Support
+:host-context([dir="rtl"]) {
+  .help-header {
+    .help-title {
+      mat-icon {
+        margin-left: base.$help-spacing-sm;
+        margin-right: 0;
+      }
+    }
+  }
+
+  .help-tabs {
+    .tab-btn {
+      mat-icon {
+        margin-left: 6px;
+        margin-right: 0;
+      }
+    }
+  }
+
+  .tip-box,
+  .note-box {
+    border-left: none;
+    border-right: 4px solid;
+  }
+
+  .tip-box {
+    border-right-color: #FFC107;
+  }
+
+  .note-box {
+    border-right-color: #1976D2;
+  }
+
+  .action-list .action-item,
+  .role-list .role-item,
+  .feature-cards .feature-card {
+    mat-icon {
+      margin-left: base.$help-spacing-sm;
+      margin-right: 0;
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 600px) {
+  .help-header {
+    padding: base.$help-spacing-sm base.$help-spacing;
+
+    .help-title h2 {
+      font-size: 1.1rem;
+    }
+  }
+
+  .help-tabs {
+    padding: base.$help-spacing-xs base.$help-spacing;
+    gap: 6px;
+  }
+
+  .help-content {
+    padding: base.$help-spacing;
+  }
+
+  .tips-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .feature-cards {
+    flex-direction: column;
+
+    .feature-card {
+      min-width: auto;
+    }
+  }
+}

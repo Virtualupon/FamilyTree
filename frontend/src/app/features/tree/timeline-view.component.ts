@@ -31,17 +31,40 @@ interface TimelineNode {
   avatarUrl?: string;
 }
 
-// Color palette for generations (MyHeritage-inspired)
-const GENERATION_COLORS = [
-  '#187573', // Root person (Nubian teal)
-  '#E85D35', // Gen 1 - Parents (Nubian orange)
-  '#C17E3E', // Gen 2 - Grandparents (Nubian gold)
-  '#2D7A3E', // Gen 3 - Great-grandparents (Nubian green)
-  '#6B6B6B', // Gen 4+ (gray)
-  '#9B59B6', // Gen 5
-  '#3498DB', // Gen 6
-  '#1ABC9C', // Gen 7
+// Color for root person
+const ROOT_COLOR = '#187573'; // Nubian teal
+
+// Ancestor colors (warm tones) - for parents, grandparents, etc.
+const ANCESTOR_COLORS = [
+  '#C17E3E', // Gen -1: Parents (Nubian gold)
+  '#B5651D', // Gen -2: Grandparents
+  '#8B4513', // Gen -3: Great-grandparents
+  '#6B4423', // Gen -4+
 ];
+
+// Descendant colors (cool tones) - for children, grandchildren, etc.
+const DESCENDANT_COLORS = [
+  '#2D7A3E', // Gen 1: Children (Nubian green)
+  '#228B22', // Gen 2: Grandchildren
+  '#006400', // Gen 3: Great-grandchildren
+  '#004D00', // Gen 4+
+];
+
+/**
+ * Get color for a generation.
+ * Root (0) = teal, ancestors (negative) = warm, descendants (positive) = cool
+ */
+function getColorForGeneration(generation: number): string {
+  if (generation === 0) {
+    return ROOT_COLOR;
+  }
+  if (generation < 0) {
+    const index = Math.min(Math.abs(generation) - 1, ANCESTOR_COLORS.length - 1);
+    return ANCESTOR_COLORS[index];
+  }
+  const index = Math.min(generation - 1, DESCENDANT_COLORS.length - 1);
+  return DESCENDANT_COLORS[index];
+}
 
 @Component({
   selector: 'app-timeline-view',
@@ -191,17 +214,17 @@ export class TimelineViewComponent implements AfterViewInit, OnChanges, OnDestro
 
     this.nodes.push(timelineNode);
 
-    // Collect ancestors (parents, grandparents, etc.)
+    // Collect ancestors (parents, grandparents, etc.) - negative generations
     if (node.parents) {
       for (const parent of node.parents) {
-        this.collectNodes(parent, generation + 1);
+        this.collectNodes(parent, generation - 1);
       }
     }
 
-    // Collect descendants (children, grandchildren, etc.)
+    // Collect descendants (children, grandchildren, etc.) - positive generations
     if (node.children) {
       for (const child of node.children) {
-        this.collectNodes(child, generation - 1);
+        this.collectNodes(child, generation + 1);
       }
     }
   }
@@ -326,7 +349,7 @@ export class TimelineViewComponent implements AfterViewInit, OnChanges, OnDestro
 
     this.nodes.forEach((node, index) => {
       const y = this.topPadding + index * this.rowHeight;
-      const color = GENERATION_COLORS[Math.abs(node.generation) % GENERATION_COLORS.length];
+      const color = getColorForGeneration(node.generation);
 
       // Row group
       const rowGroup = barsGroup.append('g')
@@ -468,16 +491,48 @@ export class TimelineViewComponent implements AfterViewInit, OnChanges, OnDestro
   private drawLegend(width: number): void {
     if (!this.container) return;
 
+    // Build legend items based on generations present in data
+    const presentGenerations = new Set(this.nodes.map(n => n.generation));
+    const hasAncestors = Array.from(presentGenerations).some(g => g < 0);
+    const hasDescendants = Array.from(presentGenerations).some(g => g > 0);
+
+    const generations: Array<{ label: string; color: string }> = [
+      { label: this.i18n.t('timeline.selectedPerson'), color: ROOT_COLOR },
+    ];
+
+    // Add ancestor labels if present
+    if (hasAncestors) {
+      if (presentGenerations.has(-1)) {
+        generations.push({ label: this.i18n.t('timeline.parents'), color: ANCESTOR_COLORS[0] });
+      }
+      if (presentGenerations.has(-2)) {
+        generations.push({ label: this.i18n.t('timeline.grandparents'), color: ANCESTOR_COLORS[1] });
+      }
+    }
+
+    // Add descendant labels if present
+    if (hasDescendants) {
+      if (presentGenerations.has(1)) {
+        generations.push({ label: this.i18n.t('timeline.children'), color: DESCENDANT_COLORS[0] });
+      }
+      if (presentGenerations.has(2)) {
+        generations.push({ label: this.i18n.t('timeline.grandchildren'), color: DESCENDANT_COLORS[1] });
+      }
+    }
+
+    // Calculate dynamic legend height
+    const legendHeight = 35 + generations.length * 18;
+
     const legendGroup = this.container.append('g')
       .attr('class', 'legend')
       .attr('transform', `translate(${width - 200}, 10)`);
 
-    // Legend background
+    // Legend background (dynamic height)
     legendGroup.append('rect')
       .attr('x', -10)
       .attr('y', -5)
       .attr('width', 190)
-      .attr('height', 90)
+      .attr('height', legendHeight)
       .attr('rx', 8)
       .attr('fill', 'rgba(255,255,255,0.95)')
       .attr('stroke', '#F4E4D7')
@@ -492,13 +547,6 @@ export class TimelineViewComponent implements AfterViewInit, OnChanges, OnDestro
       .attr('font-weight', '600')
       .attr('font-family', 'Inter, sans-serif')
       .text(this.i18n.t('timeline.legend'));
-
-    // Generation labels
-    const generations = [
-      { label: this.i18n.t('timeline.rootPerson'), color: GENERATION_COLORS[0] },
-      { label: this.i18n.t('timeline.parents'), color: GENERATION_COLORS[1] },
-      { label: this.i18n.t('timeline.grandparents'), color: GENERATION_COLORS[2] },
-    ];
 
     generations.forEach((gen, i) => {
       const y = 30 + i * 18;

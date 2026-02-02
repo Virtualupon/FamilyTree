@@ -1,0 +1,290 @@
+<div class="help-dialog" role="dialog" aria-labelledby="help-dialog-title">
+  <!-- Header -->
+  <div class="help-header">
+    <div class="help-title">
+      <mat-icon aria-hidden="true">security</mat-icon>
+      <h2 id="help-dialog-title">{{ 'HELP.SUPERADMIN.TITLE' | translate }}</h2>
+    </div>
+    <button
+      mat-icon-button
+      class="close-button"
+      (click)="close()"
+      [attr.aria-label]="'COMMON.CLOSE' | translate">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="help-tabs" role="tablist" [attr.aria-label]="'HELP.SECTIONS' | translate">
+    @for (tab of tabs; track tab.id) {
+      <button
+        class="tab-btn"
+        [class.active]="activeTab === tab.id"
+        (click)="setActiveTab(tab.id)"
+        (keydown)="onTabKeydown($event, tab.id)"
+        role="tab"
+        [attr.aria-selected]="activeTab === tab.id"
+        [attr.aria-controls]="'tabpanel-' + tab.id"
+        [id]="'tab-' + tab.id">
+        <mat-icon aria-hidden="true">{{ tab.icon }}</mat-icon>
+        <span>{{ tab.labelKey | translate }}</span>
+      </button>
+    }
+  </div>
+
+  <!-- Content Area -->
+  <div class="help-content">
+    <!-- Overview Tab -->
+    @if (activeTab === 'overview') {
+      <div class="tab-content" role="tabpanel" id="tabpanel-overview" aria-labelledby="tab-overview">
+        <h3>{{ 'HELP.SUPERADMIN.OVERVIEW.TITLE' | translate }}</h3>
+        <p>{{ 'HELP.SUPERADMIN.OVERVIEW.INTRO' | translate }}</p>
+
+        <h4>{{ 'HELP.SUPERADMIN.OVERVIEW.CAPABILITIES_TITLE' | translate }}</h4>
+        <ul class="feature-list">
+          <li>{{ 'HELP.SUPERADMIN.OVERVIEW.CAP_1' | translate }}</li>
+          <li>{{ 'HELP.SUPERADMIN.OVERVIEW.CAP_2' | translate }}</li>
+          <li>{{ 'HELP.SUPERADMIN.OVERVIEW.CAP_3' | translate }}</li>
+          <li>{{ 'HELP.SUPERADMIN.OVERVIEW.CAP_4' | translate }}</li>
+          <li>{{ 'HELP.SUPERADMIN.OVERVIEW.CAP_5' | translate }}</li>
+          <li>{{ 'HELP.SUPERADMIN.OVERVIEW.CAP_6' | translate }}</li>
+        </ul>
+      </div>
+    }
+
+    <!-- Admin Panel Tab -->
+    @if (activeTab === 'admin-panel') {
+      <div class="tab-content" role="tabpanel" id="tabpanel-admin-panel" aria-labelledby="tab-admin-panel">
+        <h3>{{ 'HELP.SUPERADMIN.ADMIN_PANEL.TITLE' | translate }}</h3>
+        <p>{{ 'HELP.SUPERADMIN.ADMIN_PANEL.INTRO' | translate }}</p>
+
+        <div class="panel-tabs">
+          <div class="panel-tab">
+            <mat-icon aria-hidden="true">people</mat-icon>
+            <span>{{ 'HELP.SUPERADMIN.ADMIN_PANEL.USERS_TAB' | translate }}</span>
+          </div>
+          <div class="panel-tab">
+            <mat-icon aria-hidden="true">assignment_ind</mat-icon>
+            <span>{{ 'HELP.SUPERADMIN.ADMIN_PANEL.ASSIGNMENTS_TAB' | translate }}</span>
+          </div>
+          <div class="panel-tab">
+            <mat-icon aria-hidden="true">forest</mat-icon>
+            <span>{{ 'HELP.SUPERADMIN.ADMIN_PANEL.TREES_TAB' | translate }}</span>
+          </div>
+          <div class="panel-tab">
+            <mat-icon aria-hidden="true">build</mat-icon>
+            <span>{{ 'HELP.SUPERADMIN.ADMIN_PANEL.TOOLS_TAB' | translate }}</span>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Countries Tab -->
+    @if (activeTab === 'countries') {
+      <div class="tab-content" role="tabpanel" id="tabpanel-countries" aria-labelledby="tab-countries">
+        <h3>{{ 'HELP.SUPERADMIN.COUNTRIES.TITLE' | translate }}</h3>
+        <p>{{ 'HELP.SUPERADMIN.COUNTRIES.INTRO' | translate }}</p>
+
+        <h4>{{ 'HELP.SUPERADMIN.COUNTRIES.ADD_TITLE' | translate }}</h4>
+        <p>{{ 'HELP.SUPERADMIN.COUNTRIES.ADD_DESC' | translate }}</p>
+
+        <h4>{{ 'HELP.SUPERADMIN.COUNTRIES.EDIT_TITLE' | translate }}</h4>
+        <p>{{ 'HELP.SUPERADMIN.COUNTRIES.EDIT_DESC' | translate }}</p>
+      </div>
+    }
+
+    <!-- Towns Tab -->
+    @if (activeTab === 'towns') {
+      <div class="tab-content" role="tabpanel" id="tabpanel-towns" aria-labelledby="tab-towns">
+        <h3>{{ 'HELP.SUPERADMIN.TOWNS.TITLE' | translate }}</h3>
+        <p>{{ 'HELP.SUPERADMIN.TOWNS.INTRO' | translate }}</p>
+
+        <h4>{{ 'HELP.SUPERADMIN.TOWNS.CREATE_TITLE' | translate }}</h4>
+        <p>{{ 'HELP.SUPERADMIN.TOWNS.CREATE_DESC' | translate }}</p>
+
+        <h4>{{ 'HELP.SUPERADMIN.TOWNS.ASSIGN_TITLE' | translate }}</h4>
+        <p>{{ 'HELP.SUPERADMIN.TOWNS.ASSIGN_DESC' | translate }}</p>
+      </div>
+    }
+
+    <!-- Carousel Tab -->
+    @if (activeTab === 'carousel') {
+      <div class="tab-content" role="tabpanel" id="tabpanel-carousel" aria-labelledby="tab-carousel">
+        <h3>{{ 'HELP.SUPERADMIN.CAROUSEL.TITLE' | translate }}</h3>
+        <p>{{ 'HELP.SUPERADMIN.CAROUSEL.INTRO' | translate }}</p>
+
+        <h4>{{ 'HELP.SUPERADMIN.CAROUSEL.ADD_TITLE' | translate }}</h4>
+        <p>{{ 'HELP.SUPERADMIN.CAROUSEL.ADD_DESC' | translate }}</p>
+
+        <h4>{{ 'HELP.SUPERADMIN.CAROUSEL.ORDER_TITLE' | translate }}</h4>
+        <p>{{ 'HELP.SUPERADMIN.CAROUSEL.ORDER_DESC' | translate }}</p>
+      </div>
+    }
+
+    <!-- Town Images Tab -->
+    @if (activeTab === 'town-images') {
+      <div class="tab-content" role="tabpanel" id="tabpanel-town-images" aria-labelledby="tab-town-images">
+        <h3>{{ 'HELP.SUPERADMIN.TOWN_IMAGES.TITLE' | translate }}</h3>
+        <p>{{ 'HELP.SUPERADMIN.TOWN_IMAGES.INTRO' | translate }}</p>
+
+        <h4>{{ 'HELP.SUPERADMIN.TOWN_IMAGES.UPLOAD_TITLE' | translate }}</h4>
+        <p>{{ 'HELP.SUPERADMIN.TOWN_IMAGES.UPLOAD_DESC' | translate }}</p>
+
+        <h4>{{ 'HELP.SUPERADMIN.TOWN_IMAGES.ORGANIZE_TITLE' | translate }}</h4>
+        <p>{{ 'HELP.SUPERADMIN.TOWN_IMAGES.ORGANIZE_DESC' | translate }}</p>
+      </div>
+    }
+
+    <!-- Users Tab -->
+    @if (activeTab === 'users') {
+      <div class="tab-content" role="tabpanel" id="tabpanel-users" aria-labelledby="tab-users">
+        <h3>{{ 'HELP.SUPERADMIN.USERS.TITLE' | translate }}</h3>
+        <p>{{ 'HELP.SUPERADMIN.USERS.INTRO' | translate }}</p>
+
+        <h4>{{ 'HELP.SUPERADMIN.USERS.CREATE_TITLE' | translate }}</h4>
+        <p>{{ 'HELP.SUPERADMIN.USERS.CREATE_DESC' | translate }}</p>
+
+        <h4>{{ 'HELP.SUPERADMIN.USERS.ROLES_TITLE' | translate }}</h4>
+        <div class="role-hierarchy">
+          <div class="role-item user">
+            <mat-icon aria-hidden="true">person</mat-icon>
+            <span>{{ 'HELP.SUPERADMIN.USERS.ROLE_USER' | translate }}</span>
+          </div>
+          <div class="role-arrow">
+            <mat-icon aria-hidden="true">arrow_upward</mat-icon>
+          </div>
+          <div class="role-item admin">
+            <mat-icon aria-hidden="true">admin_panel_settings</mat-icon>
+            <span>{{ 'HELP.SUPERADMIN.USERS.ROLE_ADMIN' | translate }}</span>
+          </div>
+          <div class="role-arrow">
+            <mat-icon aria-hidden="true">arrow_upward</mat-icon>
+          </div>
+          <div class="role-item superadmin">
+            <mat-icon aria-hidden="true">security</mat-icon>
+            <span>{{ 'HELP.SUPERADMIN.USERS.ROLE_SUPERADMIN' | translate }}</span>
+          </div>
+        </div>
+
+        <h4>{{ 'HELP.SUPERADMIN.USERS.ASSIGN_TITLE' | translate }}</h4>
+        <p>{{ 'HELP.SUPERADMIN.USERS.ASSIGN_DESC' | translate }}</p>
+      </div>
+    }
+
+    <!-- Suggestions Tab -->
+    @if (activeTab === 'suggestions') {
+      <div class="tab-content" role="tabpanel" id="tabpanel-suggestions" aria-labelledby="tab-suggestions">
+        <h3>{{ 'HELP.SUPERADMIN.SUGGESTIONS.TITLE' | translate }}</h3>
+        <p>{{ 'HELP.SUPERADMIN.SUGGESTIONS.INTRO' | translate }}</p>
+
+        <h4>{{ 'HELP.SUPERADMIN.SUGGESTIONS.FILTER_TITLE' | translate }}</h4>
+        <p>{{ 'HELP.SUPERADMIN.SUGGESTIONS.FILTER_DESC' | translate }}</p>
+
+        <div class="note-box" role="note">
+          <div class="note-header">
+            <mat-icon aria-hidden="true">visibility</mat-icon>
+            <span>{{ 'COMMON.NOTE' | translate }}</span>
+          </div>
+          <p>{{ 'HELP.SUPERADMIN.SUGGESTIONS.GLOBAL_VIEW' | translate }}</p>
+        </div>
+      </div>
+    }
+
+    <!-- Bulk Operations Tab -->
+    @if (activeTab === 'bulk-ops') {
+      <div class="tab-content" role="tabpanel" id="tabpanel-bulk-ops" aria-labelledby="tab-bulk-ops">
+        <h3>{{ 'HELP.SUPERADMIN.BULK_OPS.TITLE' | translate }}</h3>
+        <p>{{ 'HELP.SUPERADMIN.BULK_OPS.INTRO' | translate }}</p>
+
+        <h4>{{ 'HELP.SUPERADMIN.BULK_OPS.TRANSLITERATION_TITLE' | translate }}</h4>
+        <p>{{ 'HELP.SUPERADMIN.BULK_OPS.TRANSLITERATION_DESC' | translate }}</p>
+
+        <h4>{{ 'HELP.SUPERADMIN.BULK_OPS.REVIEW_TITLE' | translate }}</h4>
+        <p>{{ 'HELP.SUPERADMIN.BULK_OPS.REVIEW_DESC' | translate }}</p>
+
+        <div class="warning-box" role="alert">
+          <div class="warning-header">
+            <mat-icon aria-hidden="true">warning</mat-icon>
+            <span>{{ 'COMMON.WARNING' | translate }}</span>
+          </div>
+          <p>{{ 'HELP.SUPERADMIN.BULK_OPS.WARNING' | translate }}</p>
+        </div>
+      </div>
+    }
+
+    <!-- Statistics Tab -->
+    @if (activeTab === 'statistics') {
+      <div class="tab-content" role="tabpanel" id="tabpanel-statistics" aria-labelledby="tab-statistics">
+        <h3>{{ 'HELP.SUPERADMIN.STATISTICS.TITLE' | translate }}</h3>
+        <p>{{ 'HELP.SUPERADMIN.STATISTICS.INTRO' | translate }}</p>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <mat-icon aria-hidden="true">people</mat-icon>
+            <span>{{ 'HELP.SUPERADMIN.STATISTICS.USERS_STAT' | translate }}</span>
+          </div>
+          <div class="stat-card">
+            <mat-icon aria-hidden="true">person</mat-icon>
+            <span>{{ 'HELP.SUPERADMIN.STATISTICS.PEOPLE_STAT' | translate }}</span>
+          </div>
+          <div class="stat-card">
+            <mat-icon aria-hidden="true">forest</mat-icon>
+            <span>{{ 'HELP.SUPERADMIN.STATISTICS.TREES_STAT' | translate }}</span>
+          </div>
+          <div class="stat-card">
+            <mat-icon aria-hidden="true">rate_review</mat-icon>
+            <span>{{ 'HELP.SUPERADMIN.STATISTICS.SUGGESTIONS_STAT' | translate }}</span>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Tips Tab -->
+    @if (activeTab === 'tips') {
+      <div class="tab-content" role="tabpanel" id="tabpanel-tips" aria-labelledby="tab-tips">
+        <h3>{{ 'HELP.SUPERADMIN.TIPS.TITLE' | translate }}</h3>
+
+        <div class="tips-grid">
+          <div class="tip-card">
+            <div class="tip-icon">
+              <mat-icon aria-hidden="true">fact_check</mat-icon>
+            </div>
+            <div class="tip-title">{{ 'HELP.SUPERADMIN.TIPS.TIP1_TITLE' | translate }}</div>
+            <div class="tip-desc">{{ 'HELP.SUPERADMIN.TIPS.TIP1_DESC' | translate }}</div>
+          </div>
+
+          <div class="tip-card">
+            <div class="tip-icon">
+              <mat-icon aria-hidden="true">backup</mat-icon>
+            </div>
+            <div class="tip-title">{{ 'HELP.SUPERADMIN.TIPS.TIP2_TITLE' | translate }}</div>
+            <div class="tip-desc">{{ 'HELP.SUPERADMIN.TIPS.TIP2_DESC' | translate }}</div>
+          </div>
+
+          <div class="tip-card">
+            <div class="tip-icon">
+              <mat-icon aria-hidden="true">trending_up</mat-icon>
+            </div>
+            <div class="tip-title">{{ 'HELP.SUPERADMIN.TIPS.TIP3_TITLE' | translate }}</div>
+            <div class="tip-desc">{{ 'HELP.SUPERADMIN.TIPS.TIP3_DESC' | translate }}</div>
+          </div>
+
+          <div class="tip-card">
+            <div class="tip-icon">
+              <mat-icon aria-hidden="true">school</mat-icon>
+            </div>
+            <div class="tip-title">{{ 'HELP.SUPERADMIN.TIPS.TIP4_TITLE' | translate }}</div>
+            <div class="tip-desc">{{ 'HELP.SUPERADMIN.TIPS.TIP4_DESC' | translate }}</div>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Footer -->
+  <div class="help-footer">
+    <button mat-raised-button color="primary" (click)="close()">
+      {{ 'HELP.CLOSE_BUTTON' | translate }}
+    </button>
+  </div>
+</div>

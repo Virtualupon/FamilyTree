@@ -309,7 +309,33 @@
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--ft-primary);
+    margin-bottom: var(--ft-spacing-md);
+  }
+
+  // View toggle
+  &__view-toggle {
+    display: flex;
+    justify-content: center;
     margin-bottom: var(--ft-spacing-lg);
+
+    mat-button-toggle-group {
+      border-radius: var(--ft-radius-lg);
+      overflow: hidden;
+    }
+
+    mat-button-toggle {
+      .toggle-label {
+        margin-left: var(--ft-spacing-xs);
+
+        @media (max-width: 600px) {
+          display: none;
+        }
+      }
+
+      i.fa-solid {
+        font-size: 14px;
+      }
+    }
   }
 
   &__not-found-text {
@@ -360,10 +386,173 @@
   }
 
   &__edge-label {
-    font-size: 0.625rem;
-    text-transform: uppercase;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--ft-primary);
+    background: var(--ft-surface);
+    padding: 4px 8px;
+    border-radius: var(--ft-radius-sm);
+    border: 1px solid var(--ft-primary);
+    text-transform: capitalize;
+
+    // Hide when empty
+    &:empty {
+      display: none;
+    }
+  }
+
+  // Tree Path visualization
+  &__tree-path {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: var(--ft-spacing-xl);
+    margin-bottom: var(--ft-spacing-lg);
+    padding: var(--ft-spacing-xl);
+    background: var(--ft-surface-variant);
+    border-radius: var(--ft-radius-md);
+    min-height: 200px;
+    overflow-x: auto;
+
+    @media (max-width: 768px) {
+      flex-direction: column;
+      align-items: center;
+    }
+  }
+
+  &__tree-branch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--ft-spacing-sm);
+
+    &--left {
+      flex-direction: column-reverse; // Reverse so Person A is at bottom, going up
+    }
+
+    &--right {
+      flex-direction: column; // Person B is at bottom, coming from top
+    }
+  }
+
+  &__tree-level {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--ft-spacing-xs);
+  }
+
+  &__tree-peak {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 0;
+  }
+
+  &__tree-connector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--ft-spacing-xs);
+    color: var(--ft-on-surface-variant);
+    padding: var(--ft-spacing-xs) 0;
+
+    i.fa-solid {
+      font-size: 1rem;
+      color: var(--ft-primary);
+    }
+
+    &--up {
+      flex-direction: column;
+    }
+
+    &--down {
+      flex-direction: column;
+    }
+  }
+
+  &__tree-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--ft-spacing-xs);
+    padding: var(--ft-spacing-sm) var(--ft-spacing-md);
+    background: var(--ft-surface);
+    border-radius: var(--ft-radius-md);
+    box-shadow: var(--ft-shadow-sm);
+    min-width: 100px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--ft-shadow-md);
+    }
+
+    &--peak {
+      border: 2px solid var(--ft-primary);
+      background: linear-gradient(135deg, var(--ft-surface) 0%, rgba(var(--ft-primary-rgb), 0.05) 100%);
+    }
+
+    &--endpoint {
+      border: 2px solid var(--ft-success);
+    }
+  }
+
+  &__tree-name {
+    font-size: 0.8rem;
     font-weight: 500;
-    letter-spacing: 0.5px;
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
+  }
+
+  &__tree-avatar-img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+
+  &__path-avatar-img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+
+  &__peak-badge {
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--ft-primary);
+    background: rgba(var(--ft-primary-rgb), 0.1);
+    padding: 2px 6px;
+    border-radius: var(--ft-radius-sm);
+    letter-spacing: 0.3px;
+    margin-top: var(--ft-spacing-xs);
+  }
+
+  &__tree-edge-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--ft-primary);
+    background: var(--ft-surface);
+    padding: 4px 8px;
+    border-radius: var(--ft-radius-sm);
+    border: 1px solid var(--ft-primary);
+    white-space: nowrap;
+    min-width: 50px;
+    text-align: center;
+    text-transform: capitalize;
+
+    // Hide when empty
+    &:empty {
+      display: none;
+    }
   }
 
   // Edit actions

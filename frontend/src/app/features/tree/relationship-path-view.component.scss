@@ -33,8 +33,35 @@
   &__header {
     background: var(--ft-primary);
     color: white;
-    padding: var(--ft-spacing-lg) var(--ft-spacing-xl);
+    padding: var(--ft-spacing-md) var(--ft-spacing-xl);
     text-align: center;
+  }
+
+  &__view-toggle {
+    display: flex;
+    justify-content: center;
+    padding: var(--ft-spacing-md);
+    background: var(--ft-surface-variant);
+    border-bottom: 1px solid var(--ft-outline-variant);
+
+    mat-button-toggle-group {
+      border-radius: var(--ft-radius-lg);
+      overflow: hidden;
+    }
+
+    mat-button-toggle {
+      .toggle-label {
+        margin-left: var(--ft-spacing-xs);
+
+        @media (max-width: 600px) {
+          display: none;
+        }
+      }
+
+      i.fa-solid {
+        font-size: 14px;
+      }
+    }
   }
 
   &__header-content {
@@ -223,5 +250,18 @@
 
   .edge-label-bg {
     fill: white;
+    stroke: #e0e0e0;
+    stroke-width: 1px;
+  }
+
+  // Tree diagram specific styles
+  .tree-level-label {
+    font-size: 11px;
+    fill: #9CA3AF;
+    font-style: italic;
+  }
+
+  .peak-indicator {
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
   }
 }

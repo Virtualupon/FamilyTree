@@ -19,6 +19,7 @@ import { TreeContextService } from '../../core/services/tree-context.service';
 import { NetworkService } from '../../core/services/network.service';
 import { UpdateService } from '../../core/services/update.service';
 import { I18nService, TranslatePipe, Language, LanguageConfig } from '../../core/i18n';
+import { HelpDialogService } from '../../shared/components/help-dialog/help-dialog.service';
 
 interface NavItem {
   icon: string;
@@ -184,9 +185,18 @@ interface NavItem {
           
           <!-- Actions -->
           <div class="layout__actions">
+            <!-- Help Button -->
+            <button
+              mat-icon-button
+              (click)="openHelp()"
+              [matTooltip]="'HELP.BUTTON_TOOLTIP' | translate"
+              class="layout__help-btn">
+              <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
+            </button>
+
             <!-- Language Selector -->
-            <button 
-              mat-icon-button 
+            <button
+              mat-icon-button
               [matMenuTriggerFor]="langMenu"
               [matTooltip]="'Language'">
               <span class="layout__lang-flag">{{ getCurrentLangFlag() }}</span>
@@ -331,6 +341,15 @@ interface NavItem {
         <router-outlet></router-outlet>
       </main>
       
+      <!-- Floating Help Button (Mobile) -->
+      <button
+        class="layout__help-fab d-desktop-none"
+        (click)="openHelp()"
+        [attr.aria-label]="'HELP.BUTTON_TOOLTIP' | translate"
+        matRipple>
+        <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
+      </button>
+
       <!-- Mobile Bottom Navigation -->
       <nav class="layout__bottom-nav d-desktop-none">
         @for (item of bottomNavItems(); track item.route) {
@@ -430,34 +449,58 @@ interface NavItem {
 
       // Tree Selector
       &__tree-selector {
-        margin-inline-start: var(--ft-spacing-md);
+        margin-inline-start: var(--ft-spacing-xs);
+        flex-shrink: 0;
+
+        @media (min-width: 1200px) {
+          margin-inline-start: var(--ft-spacing-md);
+        }
       }
 
       &__tree-btn {
         display: flex;
         align-items: center;
-        gap: var(--ft-spacing-xs);
-        padding: var(--ft-spacing-xs) var(--ft-spacing-sm);
+        gap: 4px;
+        padding: 4px 8px;
         border-radius: var(--ft-radius-md);
         background: var(--ft-surface-variant);
         border: 1px solid var(--ft-border);
-        min-width: 160px;
-        max-width: 240px;
+        min-width: 100px;
+        max-width: 140px;
+
+        @media (min-width: 1200px) {
+          gap: var(--ft-spacing-xs);
+          padding: var(--ft-spacing-xs) var(--ft-spacing-sm);
+          min-width: 160px;
+          max-width: 240px;
+        }
 
         i.fa-solid:first-child {
           color: var(--ft-primary);
-          font-size: 1.125rem;
+          font-size: 1rem;
+
+          @media (min-width: 1200px) {
+            font-size: 1.125rem;
+          }
+        }
+
+        i.fa-caret-down {
+          font-size: 0.75rem;
         }
       }
 
       &__tree-name {
         flex: 1;
         text-align: start;
-        font-size: 0.875rem;
+        font-size: 0.75rem;
         font-weight: 500;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+
+        @media (min-width: 1200px) {
+          font-size: 0.875rem;
+        }
       }
 
       &__tree-loading,
@@ -586,26 +629,46 @@ interface NavItem {
       &__nav {
         display: flex;
         align-items: center;
-        gap: var(--ft-spacing-xs);
-        margin-inline-start: var(--ft-spacing-lg);
+        gap: 1px;
+        margin-inline-start: var(--ft-spacing-xs);
+        flex-shrink: 1;
+        min-width: 0;
+
+        @media (min-width: 1400px) {
+          gap: var(--ft-spacing-xs);
+          margin-inline-start: var(--ft-spacing-lg);
+        }
       }
-      
+
       &__nav-item {
         display: flex;
         align-items: center;
-        gap: var(--ft-spacing-xs);
-        padding: var(--ft-spacing-sm) var(--ft-spacing-md);
+        gap: 4px;
+        padding: 6px 8px;
         border-radius: var(--ft-radius-full);
         text-decoration: none;
         color: var(--ft-on-surface-variant);
         font-weight: 500;
-        font-size: 0.875rem;
+        font-size: 0.75rem;
         transition: all var(--ft-transition-fast);
+        white-space: nowrap;
+        flex-shrink: 0;
 
         i.fa-solid {
-          font-size: 1.125rem;
-          width: 20px;
+          font-size: 0.875rem;
+          width: 16px;
           text-align: center;
+        }
+
+        @media (min-width: 1400px) {
+          padding: var(--ft-spacing-sm) var(--ft-spacing-md);
+          font-size: 0.875rem;
+          gap: var(--ft-spacing-xs);
+
+          i.fa-solid {
+            font-size: 1.125rem;
+            width: 20px;
+          }
         }
 
         &:hover {
@@ -628,7 +691,19 @@ interface NavItem {
         align-items: center;
         gap: var(--ft-spacing-xs);
       }
-      
+
+      &__help-btn {
+        color: #187573; // $nubian-teal
+
+        &:hover {
+          background: rgba(24, 117, 115, 0.1);
+        }
+
+        i.fa-solid {
+          font-size: 1.25rem;
+        }
+      }
+
       &__lang-flag {
         font-size: 1.25rem;
         line-height: 1;
@@ -859,6 +934,55 @@ interface NavItem {
         }
       }
 
+      // Floating Help Button (Mobile FAB)
+      &__help-fab {
+        position: fixed;
+        bottom: calc(64px + env(safe-area-inset-bottom, 0) + 16px); // Above bottom nav
+        inset-inline-end: 16px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        border: none;
+        background: linear-gradient(135deg, #187573 0%, #0D5654 100%); // $nubian-teal gradient
+        color: white;
+        box-shadow: 0 4px 12px rgba(24, 117, 115, 0.4),
+                    0 2px 4px rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+        z-index: var(--ft-z-fixed);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+
+        i.fa-solid {
+          font-size: 1.5rem;
+        }
+
+        &:hover {
+          transform: scale(1.05);
+          box-shadow: 0 6px 16px rgba(24, 117, 115, 0.5),
+                      0 3px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        &:active {
+          transform: scale(0.95);
+        }
+
+        // Pulse animation on initial load
+        animation: helpFabPulse 2s ease-in-out 1;
+      }
+
+      @keyframes helpFabPulse {
+        0%, 100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.1);
+        }
+      }
+
       // Bottom Navigation
       &__bottom-nav {
         position: fixed;
@@ -926,6 +1050,7 @@ export class LayoutComponent implements OnInit {
   readonly treeContext = inject(TreeContextService);
   readonly networkService = inject(NetworkService);
   private readonly updateService = inject(UpdateService); // Initialized to check for updates
+  private readonly helpDialogService = inject(HelpDialogService);
 
   mobileMenuOpen = signal(false);
   currentUser = computed(() => this.authService.getCurrentUser());
@@ -1010,6 +1135,10 @@ export class LayoutComponent implements OnInit {
     this.authService.logout().subscribe(() => {
       this.router.navigate(['/login']);
     });
+  }
+
+  openHelp(): void {
+    this.helpDialogService.openHelp();
   }
 
   selectTree(treeId: string): void {

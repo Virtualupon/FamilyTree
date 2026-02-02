@@ -11,7 +11,18 @@ export enum SuggestionType {
   AddSpouse = 4,
   RemoveRelationship = 5,
   MergePerson = 6,
-  SplitPerson = 7
+  SplitPerson = 7,
+
+  // Phase 1: Delete and Union Management
+  DeletePerson = 8,
+  UpdateUnion = 9,
+  DeleteUnion = 10,
+
+  // Phase 2: Media Management
+  AddMedia = 11,
+  SetAvatar = 12,
+  RemoveMedia = 13,
+  LinkMediaToPerson = 14
 }
 
 export enum SuggestionStatus {
@@ -55,14 +66,23 @@ export enum UnionType {
 
 // Label mappings for UI
 export const SuggestionTypeLabels: Record<SuggestionType, string> = {
-  [SuggestionType.AddPerson]: 'suggestion.type.addPerson',
-  [SuggestionType.UpdatePerson]: 'suggestion.type.updatePerson',
-  [SuggestionType.AddParent]: 'suggestion.type.addParent',
-  [SuggestionType.AddChild]: 'suggestion.type.addChild',
-  [SuggestionType.AddSpouse]: 'suggestion.type.addSpouse',
-  [SuggestionType.RemoveRelationship]: 'suggestion.type.removeRelationship',
-  [SuggestionType.MergePerson]: 'suggestion.type.mergePerson',
-  [SuggestionType.SplitPerson]: 'suggestion.type.splitPerson'
+  [SuggestionType.AddPerson]: 'suggestion.types.addPerson',
+  [SuggestionType.UpdatePerson]: 'suggestion.types.updatePerson',
+  [SuggestionType.AddParent]: 'suggestion.types.addParent',
+  [SuggestionType.AddChild]: 'suggestion.types.addChild',
+  [SuggestionType.AddSpouse]: 'suggestion.types.addSpouse',
+  [SuggestionType.RemoveRelationship]: 'suggestion.types.removeRelationship',
+  [SuggestionType.MergePerson]: 'suggestion.types.mergePerson',
+  [SuggestionType.SplitPerson]: 'suggestion.types.splitPerson',
+  // Phase 1
+  [SuggestionType.DeletePerson]: 'suggestion.types.deletePerson',
+  [SuggestionType.UpdateUnion]: 'suggestion.types.updateUnion',
+  [SuggestionType.DeleteUnion]: 'suggestion.types.deleteUnion',
+  // Phase 2
+  [SuggestionType.AddMedia]: 'suggestion.types.addMedia',
+  [SuggestionType.SetAvatar]: 'suggestion.types.setAvatar',
+  [SuggestionType.RemoveMedia]: 'suggestion.types.removeMedia',
+  [SuggestionType.LinkMediaToPerson]: 'suggestion.types.linkMediaToPerson'
 };
 
 export const SuggestionStatusLabels: Record<SuggestionStatus, string> = {
@@ -99,6 +119,7 @@ export interface CreateSuggestionRequest {
   targetPersonId?: string;
   secondaryPersonId?: string;
   targetUnionId?: string;
+  targetMediaId?: string;
   proposedValues?: Record<string, any>;
   relationshipType?: RelationshipType;
   unionType?: UnionType;
@@ -193,6 +214,7 @@ export interface SuggestionDetail {
   secondaryPerson?: PersonSummary;
   targetUnionId?: string;
   targetUnion?: UnionSummary;
+  targetMediaId?: string;
   proposedValues: Record<string, any>;
   relationshipType?: RelationshipType;
   unionType?: UnionType;

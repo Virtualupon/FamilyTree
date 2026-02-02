@@ -176,3 +176,34 @@ mat-spinner {
   font-size: 1.2em;
   margin-right: 8px;
 }
+
+// Suggestion mode styles (for Viewer role users)
+.suggestion-badge {
+  display: inline-block;
+  background: var(--ft-primary-light, #E6F5F5);
+  color: var(--ft-primary, #187573);
+  font-size: 0.65em;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-inline-start: 8px;
+  vertical-align: middle;
+}
+
+.suggestion-notice {
+  display: flex;
+  align-items: center;
+  gap: var(--ft-spacing-sm);
+  padding: var(--ft-spacing-md);
+  margin: var(--ft-spacing-sm) var(--ft-spacing-md);
+  background: var(--ft-warning-light, #FEF3C7);
+  border: 1px solid var(--ft-warning, #F59E0B);
+  border-radius: var(--ft-radius-md, 8px);
+  color: var(--ft-warning-dark, #92400E);
+  font-size: 0.875rem;
+
+  i {
+    color: var(--ft-warning, #F59E0B);
+    font-size: 1.1em;
+  }
+}

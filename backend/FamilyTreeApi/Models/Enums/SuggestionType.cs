@@ -27,5 +27,35 @@ public enum SuggestionType
     MergePerson = 6,
 
     /// <summary>Suggest that one person record is actually two different people</summary>
-    SplitPerson = 7
+    SplitPerson = 7,
+
+    // ============================================================================
+    // Phase 1: Delete and Union Management
+    // ============================================================================
+
+    /// <summary>Suggest deleting a person (cascade removes all relationships)</summary>
+    DeletePerson = 8,
+
+    /// <summary>Suggest updating union/marriage details</summary>
+    UpdateUnion = 9,
+
+    /// <summary>Suggest deleting/ending a union</summary>
+    DeleteUnion = 10,
+
+    // ============================================================================
+    // Phase 2: Media Management
+    // ============================================================================
+
+    /// <summary>Suggest adding media to a person</summary>
+    AddMedia = 11,
+
+    /// <summary>Suggest setting a person's avatar</summary>
+    SetAvatar = 12,
+
+    /// <summary>Suggest removing media from a person</summary>
+    RemoveMedia = 13,
+
+    /// <summary>Suggest linking existing media to a person</summary>
+    LinkMediaToPerson = 14,
+
 }

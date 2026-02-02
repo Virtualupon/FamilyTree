@@ -142,9 +142,9 @@ public class PersonRepository : Repository<Person>, IPersonRepository
 
     public async Task<List<ParentChild>> GetParentChildRelationshipsAsync(Guid personId, CancellationToken cancellationToken = default)
     {
+        // Don't include navigation properties - we only need the relationship records for deletion
+        // Including Parent/Child would cause EF tracking conflicts when the person is already tracked
         return await _context.ParentChildren
-            .Include(pc => pc.Parent)
-            .Include(pc => pc.Child)
             .Where(pc => pc.ParentId == personId || pc.ChildId == personId)
             .ToListAsync(cancellationToken);
     }
@@ -162,17 +162,17 @@ public class PersonRepository : Repository<Person>, IPersonRepository
 
     public async Task<List<UnionMember>> GetUnionMembershipsAsync(Guid personId, Guid orgId, CancellationToken cancellationToken = default)
     {
+        // Join to filter by OrgId but don't materialize Union entity to avoid tracking conflicts
         return await _context.UnionMembers
-            .Include(um => um.Union)
-            .Where(um => um.PersonId == personId && um.Union.OrgId == orgId)
+            .Where(um => um.PersonId == personId && _context.Unions.Any(u => u.Id == um.UnionId && u.OrgId == orgId))
             .ToListAsync(cancellationToken);
     }
 
     public async Task<List<PersonTag>> GetPersonTagsAsync(Guid personId, Guid orgId, CancellationToken cancellationToken = default)
     {
+        // Join to filter by OrgId but don't materialize Tag entity to avoid tracking conflicts
         return await _context.PersonTags
-            .Include(pt => pt.Tag)
-            .Where(pt => pt.PersonId == personId && pt.Tag.OrgId == orgId)
+            .Where(pt => pt.PersonId == personId && _context.Tags.Any(t => t.Id == pt.TagId && t.OrgId == orgId))
             .ToListAsync(cancellationToken);
     }
 

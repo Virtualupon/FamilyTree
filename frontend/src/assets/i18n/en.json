@@ -229,6 +229,12 @@
     "zoomIn": "Zoom In",
     "zoomOut": "Zoom Out",
     "fitToScreen": "Fit to Screen",
+    "linearView": "Linear",
+    "treeView": "Tree",
+    "viewLinear": "View as linear path",
+    "viewTree": "View as tree diagram",
+    "commonAncestor": "Common Ancestor",
+    "generation": "Gen",
     "father": "Father",
     "mother": "Mother",
     "son": "Son",
@@ -999,18 +1005,35 @@
     "recentlyAdded": "Recently Added",
     "recentlyUpdated": "Recently Updated",
     "timeline": "Timeline",
-    "familySheet": "Family Sheet"
+    "familySheet": "Family Sheet",
+    "generation": {
+      "root": "Root",
+      "parents": "Parents",
+      "grandparents": "Grandparents",
+      "children": "Children",
+      "grandchildren": "Grandchildren"
+    }
   },
   "timeline": {
     "title": "Timeline View",
     "yearsOld": "years old",
     "noDates": "No dates recorded",
     "legend": "Generations",
+    "allGenerations": "All Generations",
+    "root": "Selected",
+    "ancestors": "Ancestors",
+    "descendants": "Descendants",
+    "selectedPerson": "Selected Person",
     "rootPerson": "Selected Person",
     "parents": "Parents",
     "grandparents": "Grandparents",
+    "greatGrandparents": "Great-Grandparents",
     "children": "Children",
-    "grandchildren": "Grandchildren"
+    "grandchildren": "Grandchildren",
+    "greatGrandchildren": "Great-Grandchildren",
+    "living": "Living",
+    "totalDescendants": "descendants",
+    "generation": "Generation"
   },
   "familySheet": {
     "title": "Family Group Sheet",
@@ -1305,7 +1328,11 @@
     "filterByTown": "Filter by Town",
     "filterByType": "Filter by Type",
     "createSuccess": "Suggestion submitted successfully!",
+    "submitSuccess": "Your suggestion for \"{{name}}\" has been submitted and is awaiting review.",
     "createError": "Failed to submit suggestion",
+    "validation": {
+      "nameRequired": "Please provide at least one name (Primary, Arabic, English, or Nobiin)"
+    },
     "approveSuccess": "Suggestion approved successfully",
     "approveError": "Failed to approve suggestion",
     "rejectSuccess": "Suggestion rejected",
@@ -1319,6 +1346,7 @@
       "pending": "Pending",
       "approved": "Approved",
       "rejected": "Rejected",
+      "needsInfo": "Needs Info",
       "needsMoreInfo": "Needs Info",
       "withdrawn": "Withdrawn"
     },
@@ -1329,12 +1357,30 @@
       "addChildDesc": "Suggest a child for an existing person",
       "addSpouse": "Add Spouse",
       "addSpouseDesc": "Suggest a marriage or partnership",
-      "addSibling": "Add Sibling",
-      "addSiblingDesc": "Suggest siblings are related",
-      "mergeDuplicate": "Merge Duplicate",
-      "mergeDuplicateDesc": "Suggest two profiles are the same person",
-      "correctInfo": "Correct Information",
-      "correctInfoDesc": "Suggest a correction to existing data"
+      "addPerson": "Add Person",
+      "addPersonDesc": "Suggest adding a new person to the tree",
+      "updatePerson": "Update Person",
+      "updatePersonDesc": "Suggest corrections to a person's information",
+      "deletePerson": "Delete Person",
+      "deletePersonDesc": "Suggest removing a person from the tree",
+      "mergePerson": "Merge Duplicate",
+      "mergePersonDesc": "Suggest two profiles are the same person",
+      "splitPerson": "Split Person",
+      "splitPersonDesc": "Suggest one profile is actually two different people",
+      "removeRelationship": "Remove Relationship",
+      "removeRelationshipDesc": "Suggest removing a connection between people",
+      "updateUnion": "Update Marriage",
+      "updateUnionDesc": "Suggest changes to marriage/union details",
+      "deleteUnion": "End Marriage",
+      "deleteUnionDesc": "Suggest removing a marriage/union record",
+      "addMedia": "Add Media",
+      "addMediaDesc": "Suggest adding a photo or document",
+      "setAvatar": "Set Avatar",
+      "setAvatarDesc": "Suggest a profile photo for someone",
+      "removeMedia": "Remove Media",
+      "removeMediaDesc": "Suggest removing a photo or document",
+      "linkMediaToPerson": "Link Media",
+      "linkMediaToPersonDesc": "Suggest connecting existing media to a person"
     },
     "labels": {
       "person": "Person",
@@ -1347,19 +1393,395 @@
       "keepPerson": "Person to Keep",
       "duplicatePerson": "Duplicate Person",
       "personToCorrect": "Person to Correct",
-      "relatedPerson": "Related Person"
+      "personToUpdate": "Person to Update",
+      "personToDelete": "Person to Delete",
+      "personToSplit": "Person to Split",
+      "firstPerson": "First Person",
+      "secondPerson": "Second Person",
+      "personForMedia": "Person for Media",
+      "relatedPerson": "Related Person",
+      "selectUnion": "Select Marriage/Union",
+      "selectMedia": "Select Media",
+      "newPerson": "(New Person)",
+      "proposedPerson": "Proposed Person"
     },
     "confidence": {
       "certain": "Certain",
       "certainDesc": "I have definitive proof",
-      "veryLikely": "Very Likely",
-      "veryLikelyDesc": "Strong evidence supports this",
-      "likely": "Likely",
-      "likelyDesc": "Good evidence, some uncertainty",
+      "probable": "Probable",
+      "probableDesc": "Strong evidence supports this",
       "possible": "Possible",
       "possibleDesc": "Limited evidence, reasonable guess",
       "uncertain": "Uncertain",
       "uncertainDesc": "Speculation, needs verification"
+    },
+    "warnings": {
+      "deletePerson": "⚠️ Deleting a person will also remove all their relationships. This cannot be undone.",
+      "deleteUnion": "⚠️ Deleting this union will disconnect the partners. This cannot be undone.",
+      "removeRelationship": "⚠️ Removing this relationship cannot be undone."
+    },
+    "submitterNotes": "Your Notes",
+    "submitterNotesPlaceholder": "Explain why you believe this information is correct...",
+    "submitterNotesHint": "Provide context about how you know this (at least 20 characters)"
+  },
+  "HELP": {
+    "BUTTON_TOOLTIP": "Help",
+    "CLOSE_BUTTON": "Got it!",
+    "SECTIONS": "Help Sections",
+    "USER": {
+      "TITLE": "Help Guide",
+      "TABS": {
+        "OVERVIEW": "Overview",
+        "ONBOARDING": "Getting Started",
+        "DASHBOARD": "Dashboard",
+        "TREES": "Family Trees",
+        "PEOPLE": "People",
+        "TREE_VIEW": "Tree View",
+        "MEDIA": "Media",
+        "SUGGESTIONS": "Suggestions",
+        "PROFILE": "My Profile",
+        "TIPS": "Tips"
+      },
+      "OVERVIEW": {
+        "TITLE": "Welcome to FamilyTree!",
+        "INTRO": "FamilyTree helps you explore and document your family history across the Nubian region.",
+        "FEATURES_TITLE": "What You Can Do",
+        "FEATURE_1": "Browse family trees in your town",
+        "FEATURE_2": "View family relationships and connections",
+        "FEATURE_3": "Explore photos and media of family members",
+        "FEATURE_4": "Suggest corrections or new relationships",
+        "FEATURE_5": "Switch between English, Arabic, and Nobiin languages"
+      },
+      "ONBOARDING": {
+        "TITLE": "Getting Started",
+        "INTRO": "Follow these steps to set up your account and start exploring.",
+        "STEP1_TITLE": "Select Your Language",
+        "STEP1_DESC": "Choose your preferred language for the interface. You can change this anytime from your profile.",
+        "STEP2_TITLE": "Choose Your Town",
+        "STEP2_DESC": "Select the town you want to browse. This determines which family trees you can view.",
+        "STEP3_TITLE": "Explore Family Trees",
+        "STEP3_DESC": "Browse available family trees and start discovering your family connections."
+      },
+      "DASHBOARD": {
+        "TITLE": "Dashboard Overview",
+        "INTRO": "Your dashboard is the central hub for accessing family trees in your selected town.",
+        "STATS_TITLE": "Quick Statistics",
+        "STATS_DESC": "View the number of people, families, and trees in your town at a glance.",
+        "TREES_TITLE": "Family Trees",
+        "TREES_DESC": "See all available family trees in your town. Click on any tree to explore it.",
+        "CHANGE_TOWN": "Change Town",
+        "CHANGE_TOWN_DESC": "Use the town selector in the header to switch to a different town."
+      },
+      "TREES": {
+        "TITLE": "Browsing Family Trees",
+        "INTRO": "Family trees show the relationships between people in a family lineage.",
+        "VIEW_TITLE": "Viewing a Tree",
+        "VIEW_DESC": "Click on any family tree card to open and explore it.",
+        "SEARCH_TITLE": "Search Trees",
+        "SEARCH_DESC": "Use the search bar to find specific family trees by name.",
+        "FILTER_TITLE": "Filter Options",
+        "FILTER_DESC": "Filter trees by town to narrow your search."
+      },
+      "PEOPLE": {
+        "TITLE": "Browsing People",
+        "INTRO": "The People section shows all family members in the current tree.",
+        "SEARCH_TITLE": "Search People",
+        "SEARCH_DESC": "Search by name in English, Arabic, or Nobiin script.",
+        "FILTER_TITLE": "Filter Options",
+        "FILTER_DESC": "Filter by gender, living/deceased status, or other criteria.",
+        "PROFILE_TITLE": "View Profile",
+        "PROFILE_DESC": "Click on a person to see their full profile, including relationships and photos."
+      },
+      "TREE_VIEW": {
+        "TITLE": "Tree Visualization",
+        "INTRO": "The interactive tree view shows family relationships in a visual format.",
+        "NAVIGATION_TITLE": "Navigation",
+        "ZOOM_IN": "Use + button or scroll to zoom in",
+        "ZOOM_OUT": "Use - button or scroll to zoom out",
+        "PAN": "Click and drag to move around the tree",
+        "FIT_SCREEN": "Click 'Fit' to see the entire tree",
+        "VIEWS_TITLE": "View Modes",
+        "PEDIGREE": "Pedigree - Shows ancestors (parents, grandparents)",
+        "DESCENDANTS": "Descendants - Shows children and grandchildren",
+        "HOURGLASS": "Hourglass - Shows both ancestors and descendants",
+        "CLICK_PERSON": "Click on any person to see their details or navigate to them."
+      },
+      "MEDIA": {
+        "TITLE": "Media Gallery",
+        "INTRO": "View photos, documents, and other media associated with family members.",
+        "BROWSE_TITLE": "Browsing Media",
+        "BROWSE_DESC": "Scroll through the gallery to see all available media.",
+        "FILTER_TITLE": "Filter by Type",
+        "FILTER_DESC": "Filter to show only images, documents, or other media types.",
+        "VIEW_TITLE": "Viewing Media",
+        "VIEW_DESC": "Click on any item to see it in full size with details."
+      },
+      "SUGGESTIONS": {
+        "TITLE": "Making Suggestions",
+        "INTRO": "Help improve the family tree by suggesting new relationships or corrections.",
+        "HOW_TITLE": "How Suggestions Work",
+        "HOW_DESC": "Your suggestions are reviewed by administrators before being added to the tree.",
+        "TYPES_TITLE": "Suggestion Types",
+        "TYPE_PARENT": "Add Parent - Suggest a parent for someone",
+        "TYPE_CHILD": "Add Child - Suggest a child for someone",
+        "TYPE_SPOUSE": "Add Spouse - Suggest a marriage or partnership",
+        "TYPE_CORRECTION": "Correction - Fix incorrect information",
+        "STATUS_TITLE": "Suggestion Status",
+        "STATUS_PENDING": "Pending - Waiting for review",
+        "STATUS_APPROVED": "Approved - Added to the tree",
+        "STATUS_REJECTED": "Rejected - Not added (with reason)"
+      },
+      "PROFILE": {
+        "TITLE": "Your Profile",
+        "INTRO": "Manage your account settings and preferences.",
+        "LANGUAGE_TITLE": "Language Settings",
+        "LANGUAGE_DESC": "Change your preferred language for the application.",
+        "TOWN_TITLE": "Town Selection",
+        "TOWN_DESC": "Change which town you are currently browsing."
+      },
+      "TIPS": {
+        "TITLE": "Tips & Best Practices",
+        "TIP1_TITLE": "Use Multiple Languages",
+        "TIP1_DESC": "Search for people using any script - English, Arabic, or Nobiin.",
+        "TIP2_TITLE": "Explore Connections",
+        "TIP2_DESC": "Use the relationship finder to discover how two people are connected.",
+        "TIP3_TITLE": "Submit Good Suggestions",
+        "TIP3_DESC": "Provide detailed rationale and sources when suggesting relationships.",
+        "TIP4_TITLE": "Check All Names",
+        "TIP4_DESC": "Many people have names in multiple scripts - check all variations.",
+        "TIP5_TITLE": "Offline Access",
+        "TIP5_DESC": "Install the app for offline access to previously viewed content."
+      }
+    },
+    "ADMIN": {
+      "TITLE": "Admin Help Guide",
+      "TABS": {
+        "OVERVIEW": "Overview",
+        "TOWNS": "Towns",
+        "TREES": "Trees",
+        "PEOPLE": "People",
+        "RELATIONSHIPS": "Relationships",
+        "SUGGESTIONS": "Suggestions",
+        "MEDIA": "Media",
+        "TREE_VIEW": "Tree View",
+        "USERS": "Users",
+        "TIPS": "Tips"
+      },
+      "OVERVIEW": {
+        "TITLE": "Admin Overview",
+        "INTRO": "As an administrator, you can manage family trees and data for your assigned towns.",
+        "RESPONSIBILITIES_TITLE": "Your Responsibilities",
+        "RESP_1": "Manage family trees in your assigned towns",
+        "RESP_2": "Add and edit people and relationships",
+        "RESP_3": "Review and process user suggestions",
+        "RESP_4": "Maintain data quality and accuracy",
+        "RESP_5": "Manage cross-tree relationship links"
+      },
+      "TOWNS": {
+        "TITLE": "Town Management",
+        "INTRO": "You can manage family trees within your assigned towns.",
+        "ASSIGNED_TITLE": "Your Assigned Towns",
+        "ASSIGNED_DESC": "View and switch between towns assigned to you by SuperAdmin.",
+        "SWITCH_TITLE": "Switching Towns",
+        "SWITCH_DESC": "Use the town selector in the header to switch between your assigned towns."
+      },
+      "TREES": {
+        "TITLE": "Tree Management",
+        "INTRO": "Create and manage family trees within your assigned towns.",
+        "CREATE_TITLE": "Creating a Tree",
+        "CREATE_DESC": "Click 'New Tree' to create a new family tree. Each tree must belong to a town.",
+        "SETTINGS_TITLE": "Tree Settings",
+        "SETTINGS_DESC": "Configure tree visibility, cross-tree linking, and other options.",
+        "MEMBERS_TITLE": "Tree Members",
+        "MEMBERS_DESC": "Invite users to collaborate on a tree with different permission levels."
+      },
+      "PEOPLE": {
+        "TITLE": "People Management",
+        "INTRO": "Add and edit family members within your trees.",
+        "ADD_TITLE": "Adding a Person",
+        "ADD_DESC": "Click 'Add Person' to create a new family member. Fill in names in all available languages.",
+        "EDIT_TITLE": "Editing a Person",
+        "EDIT_DESC": "Click on a person and use the edit button to modify their information.",
+        "NAMES_TITLE": "Multilingual Names",
+        "NAMES_DESC": "Enter names in English, Arabic, and Nobiin for better searchability."
+      },
+      "RELATIONSHIPS": {
+        "TITLE": "Relationship Management",
+        "INTRO": "Manage family relationships including parent-child and marriage connections.",
+        "ADD_TITLE": "Adding Relationships",
+        "ADD_DESC": "Use the 'Add Parent', 'Add Child', or 'Add Spouse' buttons on a person's profile.",
+        "PENDING_TITLE": "Pending Links",
+        "PENDING_DESC": "Review and approve cross-tree relationship links in the Pending Links section."
+      },
+      "SUGGESTIONS": {
+        "TITLE": "Suggestion Queue",
+        "INTRO": "Review and process suggestions submitted by users.",
+        "QUEUE_TITLE": "Review Queue",
+        "QUEUE_DESC": "View all pending suggestions for your assigned towns.",
+        "ACTIONS_TITLE": "Available Actions",
+        "ACTION_APPROVE": "Approve - Accept and apply the suggestion",
+        "ACTION_REJECT": "Reject - Decline with a reason",
+        "ACTION_INFO": "Request Info - Ask for more details",
+        "BEST_PRACTICE": "Always provide feedback when rejecting to help users improve future suggestions."
+      },
+      "MEDIA": {
+        "TITLE": "Media Management",
+        "INTRO": "Upload and manage photos and documents for family members.",
+        "UPLOAD_TITLE": "Uploading Media",
+        "UPLOAD_DESC": "Click 'Upload' on a person's profile to add photos or documents.",
+        "TAG_TITLE": "Tagging People",
+        "TAG_DESC": "Tag multiple people in shared photos to link them together.",
+        "PRIMARY_TITLE": "Primary Photo",
+        "PRIMARY_DESC": "Set a primary photo that will be shown as the person's avatar."
+      },
+      "TREE_VIEW": {
+        "TITLE": "Tree Visualization",
+        "INTRO": "Advanced tree view features for administrators.",
+        "EDIT_MODE": "Edit directly in the tree view by clicking on people.",
+        "QUICK_ADD": "Use quick-add buttons to add relatives directly from the tree."
+      },
+      "USERS": {
+        "TITLE": "User Management",
+        "INTRO": "Manage users and their access to trees in your towns.",
+        "INVITE_TITLE": "Inviting Users",
+        "INVITE_DESC": "Invite users to collaborate on specific trees with assigned roles.",
+        "ROLES_TITLE": "User Roles",
+        "ROLE_VIEWER": "Viewer - Can only view the tree",
+        "ROLE_CONTRIBUTOR": "Contributor - Can suggest changes",
+        "ROLE_EDITOR": "Editor - Can make direct edits"
+      },
+      "TIPS": {
+        "TITLE": "Admin Tips",
+        "TIP1_TITLE": "Verify Before Approving",
+        "TIP1_DESC": "Always verify suggestion sources and rationale before approving.",
+        "TIP2_TITLE": "Use Transliteration",
+        "TIP2_DESC": "Use the auto-transliterate feature to generate names in all scripts.",
+        "TIP3_TITLE": "Maintain Consistency",
+        "TIP3_DESC": "Use consistent naming conventions and date formats across the tree.",
+        "TIP4_TITLE": "Document Sources",
+        "TIP4_DESC": "Add notes about information sources for future reference."
+      }
+    },
+    "SUPERADMIN": {
+      "TITLE": "SuperAdmin Help Guide",
+      "TABS": {
+        "OVERVIEW": "Overview",
+        "ADMIN_PANEL": "Admin Panel",
+        "COUNTRIES": "Countries",
+        "TOWNS": "Towns",
+        "CAROUSEL": "Carousel",
+        "TOWN_IMAGES": "Town Images",
+        "USERS": "Users",
+        "SUGGESTIONS": "Suggestions",
+        "BULK_OPS": "Bulk Operations",
+        "STATISTICS": "Statistics",
+        "TIPS": "Tips"
+      },
+      "OVERVIEW": {
+        "TITLE": "SuperAdmin Overview",
+        "INTRO": "As SuperAdmin, you have full control over the entire platform.",
+        "CAPABILITIES_TITLE": "Your Capabilities",
+        "CAP_1": "Manage all towns and family trees",
+        "CAP_2": "Assign admins to towns",
+        "CAP_3": "Manage countries and geographic data",
+        "CAP_4": "Configure platform-wide settings",
+        "CAP_5": "Run bulk operations",
+        "CAP_6": "View platform statistics"
+      },
+      "ADMIN_PANEL": {
+        "TITLE": "Admin Panel",
+        "INTRO": "The central hub for platform administration.",
+        "USERS_TAB": "Users Tab - Manage all platform users",
+        "ASSIGNMENTS_TAB": "Assignments Tab - Assign admins to towns",
+        "TREES_TAB": "Trees Tab - View all family trees",
+        "TOOLS_TAB": "Tools Tab - Access bulk operations"
+      },
+      "COUNTRIES": {
+        "TITLE": "Countries Management",
+        "INTRO": "Manage the list of countries used throughout the platform.",
+        "ADD_TITLE": "Adding Countries",
+        "ADD_DESC": "Add new countries with codes, names in multiple languages, and regions.",
+        "EDIT_TITLE": "Editing Countries",
+        "EDIT_DESC": "Update country information or mark countries as inactive."
+      },
+      "TOWNS": {
+        "TITLE": "Town Management",
+        "INTRO": "Manage all towns across the platform.",
+        "CREATE_TITLE": "Creating Towns",
+        "CREATE_DESC": "Add new towns with names in English, Arabic, and local script.",
+        "ASSIGN_TITLE": "Town Assignments",
+        "ASSIGN_DESC": "Assign administrators to manage specific towns."
+      },
+      "CAROUSEL": {
+        "TITLE": "Carousel Images",
+        "INTRO": "Manage the homepage carousel images.",
+        "ADD_TITLE": "Adding Images",
+        "ADD_DESC": "Upload images for the town selection page carousel.",
+        "ORDER_TITLE": "Image Order",
+        "ORDER_DESC": "Drag and drop to reorder carousel images."
+      },
+      "TOWN_IMAGES": {
+        "TITLE": "Town Images",
+        "INTRO": "Manage gallery images for each town.",
+        "UPLOAD_TITLE": "Uploading Images",
+        "UPLOAD_DESC": "Add images specific to each town for display in town pages.",
+        "ORGANIZE_TITLE": "Organizing Images",
+        "ORGANIZE_DESC": "Set titles and descriptions for better organization."
+      },
+      "USERS": {
+        "TITLE": "User Management",
+        "INTRO": "Full platform user management.",
+        "CREATE_TITLE": "Creating Users",
+        "CREATE_DESC": "Create new users and assign their system role.",
+        "ROLES_TITLE": "System Roles",
+        "ROLE_USER": "User - Regular user with limited access",
+        "ROLE_ADMIN": "Admin - Can manage assigned towns",
+        "ROLE_SUPERADMIN": "SuperAdmin - Full platform access",
+        "ASSIGN_TITLE": "Town Assignments",
+        "ASSIGN_DESC": "Assign admins to specific towns they will manage."
+      },
+      "SUGGESTIONS": {
+        "TITLE": "Global Suggestions",
+        "INTRO": "View and manage suggestions across all towns.",
+        "FILTER_TITLE": "Filtering",
+        "FILTER_DESC": "Filter suggestions by town, status, or type.",
+        "GLOBAL_VIEW": "Unlike admins, you can see suggestions from all towns."
+      },
+      "BULK_OPS": {
+        "TITLE": "Bulk Operations",
+        "INTRO": "Run platform-wide bulk operations.",
+        "TRANSLITERATION_TITLE": "Bulk Transliteration",
+        "TRANSLITERATION_DESC": "Generate missing name transliterations for people across the platform.",
+        "REVIEW_TITLE": "Review Mappings",
+        "REVIEW_DESC": "Review and verify low-confidence name transliterations.",
+        "WARNING": "Bulk operations can affect many records. Always review before confirming."
+      },
+      "STATISTICS": {
+        "TITLE": "Platform Statistics",
+        "INTRO": "View platform-wide metrics and statistics.",
+        "USERS_STAT": "Total registered users",
+        "PEOPLE_STAT": "Total people in all trees",
+        "TREES_STAT": "Total family trees",
+        "SUGGESTIONS_STAT": "Pending suggestions"
+      },
+      "TIPS": {
+        "TITLE": "SuperAdmin Tips",
+        "TIP1_TITLE": "Regular Audits",
+        "TIP1_DESC": "Regularly review admin activity and suggestion processing.",
+        "TIP2_TITLE": "Backup Data",
+        "TIP2_DESC": "Ensure regular backups of the platform database.",
+        "TIP3_TITLE": "Monitor Growth",
+        "TIP3_DESC": "Track platform statistics to plan for scaling.",
+        "TIP4_TITLE": "Train Admins",
+        "TIP4_DESC": "Ensure admins understand best practices for data management."
+      }
     }
+  },
+  "COMMON": {
+    "TIP": "Tip",
+    "NOTE": "Note",
+    "WARNING": "Warning",
+    "BEST_PRACTICE": "Best Practice",
+    "CLOSE": "Close"
   }
 }

@@ -151,7 +151,8 @@
       "Bash(npm start)",
       "Bash(npm uninstall:*)",
       "Bash(netstat:*)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(ls -la \"C:\\\\Dev\\\\Repo\\\\FamilyTree\\\\frontend\\\\src\\\\assets\\\\fonts\\\\sophia-nubian\"\" 2>/dev/null || echo \"Directory not found \")"
     ]
   }
 }

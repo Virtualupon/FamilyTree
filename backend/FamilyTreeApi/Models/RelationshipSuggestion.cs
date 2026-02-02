@@ -36,6 +36,12 @@ public class RelationshipSuggestion
     public Union? TargetUnion { get; set; }
 
     /// <summary>
+    /// Target media ID for media-related suggestions
+    /// </summary>
+    public Guid? TargetMediaId { get; set; }
+    public Media? TargetMedia { get; set; }
+
+    /// <summary>
     /// JSON object containing proposed field values (names, dates, places, etc.)
     /// </summary>
     [Column(TypeName = "jsonb")]

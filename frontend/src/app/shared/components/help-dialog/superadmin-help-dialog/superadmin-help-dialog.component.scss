@@ -1,0 +1,296 @@
+@use '../help-dialog-base' as base;
+
+// =============================================================================
+// SuperAdmin Help Dialog Styles
+// Theme: Purple (#7B1FA2)
+// =============================================================================
+
+.help-dialog {
+  @extend %help-dialog-base;
+}
+
+.help-header {
+  @extend %help-header;
+  background: linear-gradient(135deg, base.$superadmin-primary 0%, base.$superadmin-primary-dark 100%);
+}
+
+.help-tabs {
+  @extend %help-tabs;
+
+  .tab-btn {
+    &.active {
+      background: base.$superadmin-primary;
+      border-color: base.$superadmin-primary;
+      color: white;
+    }
+  }
+}
+
+.help-content {
+  @extend %help-content;
+
+  .feature-list {
+    li {
+      &::marker {
+        color: base.$superadmin-primary;
+      }
+    }
+  }
+}
+
+.help-footer {
+  @extend %help-footer;
+
+  button[color="primary"] {
+    background-color: base.$superadmin-primary;
+
+    &:hover {
+      background-color: base.$superadmin-primary-dark;
+    }
+  }
+}
+
+// Tip box styling
+.tip-box {
+  @extend %tip-box;
+}
+
+// Note box styling
+.note-box {
+  @extend %note-box;
+}
+
+// Warning box styling
+.warning-box {
+  @extend %warning-box;
+}
+
+// Admin panel tabs display
+.panel-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: base.$help-spacing-sm;
+  margin: base.$help-spacing 0;
+
+  .panel-tab {
+    display: flex;
+    align-items: center;
+    gap: base.$help-spacing-sm;
+    padding: base.$help-spacing-sm base.$help-spacing;
+    background: base.$superadmin-primary-light;
+    border-radius: base.$help-border-radius;
+    color: base.$superadmin-primary-dark;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      color: base.$superadmin-primary;
+    }
+  }
+}
+
+// Role hierarchy display
+.role-hierarchy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: base.$help-spacing-xs;
+  margin: base.$help-spacing 0;
+  padding: base.$help-spacing;
+  background: base.$background-light;
+  border-radius: base.$help-border-radius;
+
+  .role-item {
+    display: flex;
+    align-items: center;
+    gap: base.$help-spacing-sm;
+    padding: base.$help-spacing-sm base.$help-spacing-lg;
+    border-radius: base.$help-border-radius;
+    font-weight: 500;
+    width: 100%;
+    max-width: 300px;
+    justify-content: center;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    &.user {
+      background: #E8F5E9;
+      color: #2E7D32;
+
+      mat-icon {
+        color: #388E3C;
+      }
+    }
+
+    &.admin {
+      background: #E3F2FD;
+      color: #1565C0;
+
+      mat-icon {
+        color: #1976D2;
+      }
+    }
+
+    &.superadmin {
+      background: base.$superadmin-primary-light;
+      color: base.$superadmin-primary-dark;
+
+      mat-icon {
+        color: base.$superadmin-primary;
+      }
+    }
+  }
+
+  .role-arrow {
+    color: base.$text-muted;
+
+    mat-icon {
+      font-size: 16px;
+      width: 16px;
+      height: 16px;
+    }
+  }
+}
+
+// Statistics grid
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: base.$help-spacing;
+  margin: base.$help-spacing 0;
+
+  .stat-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: base.$help-spacing-xs;
+    padding: base.$help-spacing;
+    background: base.$superadmin-primary-light;
+    border-radius: base.$help-border-radius;
+    text-align: center;
+
+    mat-icon {
+      font-size: 32px;
+      width: 32px;
+      height: 32px;
+      color: base.$superadmin-primary;
+    }
+
+    span {
+      color: base.$superadmin-primary-dark;
+      font-size: 0.85rem;
+    }
+  }
+}
+
+// Tips grid
+.tips-grid {
+  @extend %feature-grid;
+}
+
+.tip-card {
+  @extend %feature-card;
+
+  .tip-icon {
+    background: base.$superadmin-primary;
+  }
+
+  .tip-title {
+    font-weight: 500;
+    color: base.$text-primary;
+    margin-bottom: 4px;
+  }
+
+  .tip-desc {
+    color: base.$text-secondary;
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+}
+
+// RTL Support
+:host-context([dir="rtl"]) {
+  .help-header {
+    .help-title {
+      mat-icon {
+        margin-left: base.$help-spacing-sm;
+        margin-right: 0;
+      }
+    }
+  }
+
+  .help-tabs {
+    .tab-btn {
+      mat-icon {
+        margin-left: 6px;
+        margin-right: 0;
+      }
+    }
+  }
+
+  .tip-box,
+  .note-box,
+  .warning-box {
+    border-left: none;
+    border-right: 4px solid;
+  }
+
+  .tip-box {
+    border-right-color: #FFC107;
+  }
+
+  .note-box {
+    border-right-color: #1976D2;
+  }
+
+  .warning-box {
+    border-right-color: #F44336;
+  }
+
+  .panel-tabs .panel-tab,
+  .role-hierarchy .role-item {
+    mat-icon {
+      margin-left: base.$help-spacing-sm;
+      margin-right: 0;
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 600px) {
+  .help-header {
+    padding: base.$help-spacing-sm base.$help-spacing;
+
+    .help-title h2 {
+      font-size: 1.1rem;
+    }
+  }
+
+  .help-tabs {
+    padding: base.$help-spacing-xs base.$help-spacing;
+    gap: 6px;
+  }
+
+  .help-content {
+    padding: base.$help-spacing;
+  }
+
+  .tips-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .role-hierarchy {
+    .role-item {
+      padding: base.$help-spacing-xs base.$help-spacing;
+    }
+  }
+}

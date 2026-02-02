@@ -1,0 +1,513 @@
+// ============================================
+// Pending Links Component - Nubian Theme
+// ============================================
+
+// Nubian Color Palette
+$nubian-gold: #C17E3E;
+$nubian-gold-light: #D4A574;
+$nubian-gold-dark: #8B5A2B;
+$nubian-teal: #187573;
+$nubian-teal-light: #1a8a87;
+$nubian-cream: #FFF9F5;
+$nubian-beige: #F4E4D7;
+$nubian-charcoal: #2D2D2D;
+$nubian-gray: #6B6B6B;
+
+// Success/Error Colors (Nubian-inspired)
+$nubian-success: #2D8B5F;
+$nubian-success-light: #E8F5EE;
+$nubian-error: #B84A3C;
+$nubian-error-light: #FDF2F1;
+
+.pending-links {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+
+  // ==========================================
+  // Header Section
+  // ==========================================
+  &__header {
+    background: linear-gradient(135deg, $nubian-gold 0%, $nubian-teal 100%);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+
+    // Decorative pattern
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 40%;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0L60 30L30 60L0 30L30 0z' fill='rgba(255,255,255,0.05)'/%3E%3C/svg%3E") repeat;
+      opacity: 0.5;
+    }
+  }
+
+  &__title {
+    color: #fff;
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin: 0;
+    position: relative;
+    z-index: 1;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  &__subtitle {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.95rem;
+    margin-top: 0.5rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  // ==========================================
+  // Loading State
+  // ==========================================
+  &__loading {
+    display: flex;
+    justify-content: center;
+    padding: 4rem 2rem;
+  }
+
+  &__spinner {
+    width: 48px;
+    height: 48px;
+    border: 3px solid $nubian-beige;
+    border-top-color: $nubian-gold;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  // ==========================================
+  // Links List
+  // ==========================================
+  &__list {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(193, 126, 62, 0.12);
+    overflow: hidden;
+    border: 1px solid $nubian-beige;
+  }
+
+  // ==========================================
+  // Link Card
+  // ==========================================
+  &__card {
+    padding: 1.5rem;
+    border-bottom: 1px solid $nubian-beige;
+    transition: background-color 0.2s ease;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:hover {
+      background-color: $nubian-cream;
+    }
+  }
+
+  &__card-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1.5rem;
+  }
+
+  &__card-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  // ==========================================
+  // Link Type Badge & Confidence
+  // ==========================================
+  &__badges {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  &__type-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.375rem 0.75rem;
+    background: linear-gradient(135deg, rgba($nubian-gold, 0.15), rgba($nubian-gold, 0.08));
+    color: $nubian-gold-dark;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 20px;
+    border: 1px solid rgba($nubian-gold, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  &__confidence {
+    font-size: 0.8rem;
+    color: $nubian-gray;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+
+    &::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      background: $nubian-teal;
+      border-radius: 50%;
+    }
+  }
+
+  // ==========================================
+  // Person Cards Grid
+  // ==========================================
+  &__persons-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  &__person-card {
+    background: $nubian-cream;
+    border-radius: 12px;
+    padding: 1rem;
+    border: 1px solid $nubian-beige;
+  }
+
+  &__person-label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: $nubian-gray;
+    margin-bottom: 0.5rem;
+  }
+
+  &__person-name {
+    display: block;
+    font-size: 1rem;
+    font-weight: 600;
+    color: $nubian-charcoal;
+    margin-bottom: 0.25rem;
+  }
+
+  &__tree-name {
+    display: block;
+    font-size: 0.85rem;
+    color: $nubian-gray;
+  }
+
+  // ==========================================
+  // Notes Section
+  // ==========================================
+  &__notes {
+    background: linear-gradient(135deg, $nubian-cream 0%, rgba($nubian-beige, 0.5) 100%);
+    border-radius: 8px;
+    padding: 0.875rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+    color: $nubian-charcoal;
+    border-left: 3px solid $nubian-gold;
+  }
+
+  // ==========================================
+  // Meta Information
+  // ==========================================
+  &__meta {
+    font-size: 0.75rem;
+    color: $nubian-gray;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+
+    svg {
+      width: 14px;
+      height: 14px;
+      opacity: 0.7;
+    }
+  }
+
+  // ==========================================
+  // Action Buttons
+  // ==========================================
+  &__actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 100px;
+
+    &--approve {
+      background: $nubian-teal;
+      color: #fff;
+
+      &:hover {
+        background: $nubian-teal-light;
+        box-shadow: 0 4px 12px rgba($nubian-teal, 0.3);
+        transform: translateY(-1px);
+      }
+    }
+
+    &--reject {
+      background: $nubian-error;
+      color: #fff;
+
+      &:hover {
+        background: darken($nubian-error, 5%);
+        box-shadow: 0 4px 12px rgba($nubian-error, 0.3);
+        transform: translateY(-1px);
+      }
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+  }
+
+  // ==========================================
+  // Empty State
+  // ==========================================
+  &__empty {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(193, 126, 62, 0.12);
+    padding: 4rem 2rem;
+    text-align: center;
+    border: 1px solid $nubian-beige;
+  }
+
+  &__empty-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1.5rem;
+    background: linear-gradient(135deg, $nubian-cream 0%, $nubian-beige 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    svg {
+      width: 40px;
+      height: 40px;
+      color: $nubian-gold;
+    }
+  }
+
+  &__empty-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: $nubian-charcoal;
+    margin: 0 0 0.5rem;
+  }
+
+  &__empty-text {
+    font-size: 0.95rem;
+    color: $nubian-gray;
+    margin: 0;
+  }
+}
+
+// ============================================
+// Review Modal
+// ============================================
+.review-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+  backdrop-filter: blur(4px);
+
+  &__content {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+    width: 100%;
+    max-width: 28rem;
+    overflow: hidden;
+  }
+
+  &__header {
+    background: linear-gradient(135deg, $nubian-gold 0%, $nubian-teal 100%);
+    padding: 1.5rem;
+  }
+
+  &__title {
+    color: #fff;
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+  }
+
+  &__body {
+    padding: 1.5rem;
+  }
+
+  &__label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: $nubian-charcoal;
+    margin-bottom: 0.5rem;
+  }
+
+  &__textarea {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border: 2px solid $nubian-beige;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 100px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background: $nubian-cream;
+
+    &:focus {
+      outline: none;
+      border-color: $nubian-gold;
+      box-shadow: 0 0 0 3px rgba($nubian-gold, 0.15);
+    }
+
+    &::placeholder {
+      color: $nubian-gray;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+  }
+
+  &__btn {
+    flex: 1;
+    padding: 0.875rem 1.25rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &--cancel {
+      background: $nubian-cream;
+      color: $nubian-charcoal;
+      border: 2px solid $nubian-beige;
+
+      &:hover {
+        background: $nubian-beige;
+      }
+    }
+
+    &--approve {
+      background: $nubian-teal;
+      color: #fff;
+
+      &:hover:not(:disabled) {
+        background: $nubian-teal-light;
+        box-shadow: 0 4px 12px rgba($nubian-teal, 0.3);
+      }
+    }
+
+    &--reject {
+      background: $nubian-error;
+      color: #fff;
+
+      &:hover:not(:disabled) {
+        background: darken($nubian-error, 5%);
+        box-shadow: 0 4px 12px rgba($nubian-error, 0.3);
+      }
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+}
+
+// ============================================
+// Responsive Design
+// ============================================
+@media (max-width: 768px) {
+  .pending-links {
+    padding: 1rem;
+
+    &__header {
+      padding: 1.5rem;
+      border-radius: 12px;
+    }
+
+    &__title {
+      font-size: 1.5rem;
+    }
+
+    &__card {
+      padding: 1.25rem;
+    }
+
+    &__card-inner {
+      flex-direction: column;
+    }
+
+    &__persons-grid {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    &__actions {
+      flex-direction: row;
+      width: 100%;
+      margin-top: 1rem;
+    }
+
+    &__btn {
+      flex: 1;
+    }
+  }
+
+  .review-modal {
+    &__content {
+      margin: 1rem;
+      border-radius: 12px;
+    }
+
+    &__actions {
+      flex-direction: column;
+    }
+  }
+}

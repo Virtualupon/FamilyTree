@@ -1,0 +1,236 @@
+@use '../help-dialog-base' as base;
+
+// =============================================================================
+// User Help Dialog Styles
+// Theme: Green (#388E3C)
+// =============================================================================
+
+.help-dialog {
+  @extend %help-dialog-base;
+}
+
+.help-header {
+  @extend %help-header;
+  background: linear-gradient(135deg, base.$user-primary 0%, base.$user-primary-dark 100%);
+}
+
+.help-tabs {
+  @extend %help-tabs;
+
+  .tab-btn {
+    &.active {
+      background: base.$user-primary;
+      border-color: base.$user-primary;
+      color: white;
+    }
+  }
+}
+
+.help-content {
+  @extend %help-content;
+
+  .feature-list {
+    li {
+      &::marker {
+        color: base.$user-primary;
+      }
+    }
+  }
+}
+
+.help-footer {
+  @extend %help-footer;
+
+  button[color="primary"] {
+    background-color: base.$user-primary;
+
+    &:hover {
+      background-color: base.$user-primary-dark;
+    }
+  }
+}
+
+// Step list styling
+.step-list {
+  @extend %step-list;
+
+  .step-number {
+    background: base.$user-primary-light;
+    color: base.$user-primary;
+  }
+}
+
+// Tip box styling
+.tip-box {
+  @extend %tip-box;
+}
+
+// Note box styling
+.note-box {
+  @extend %note-box;
+}
+
+// Control list (keyboard shortcuts)
+.control-list {
+  list-style: none;
+  padding: 0;
+  margin: base.$help-spacing 0;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: base.$help-spacing-xs;
+    padding: base.$help-spacing-xs 0;
+    color: base.$text-secondary;
+  }
+
+  kbd {
+    @extend %kbd;
+  }
+}
+
+// Status list for suggestions
+.status-list {
+  display: flex;
+  flex-direction: column;
+  gap: base.$help-spacing-sm;
+  margin: base.$help-spacing 0;
+
+  .status-item {
+    display: flex;
+    align-items: center;
+    gap: base.$help-spacing-sm;
+    padding: base.$help-spacing-sm base.$help-spacing;
+    border-radius: base.$help-border-radius;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+
+    &.pending {
+      background: #FFF8E1;
+      color: #F57C00;
+    }
+
+    &.approved {
+      background: base.$user-primary-light;
+      color: base.$user-primary;
+    }
+
+    &.rejected {
+      background: #FFEBEE;
+      color: #C62828;
+    }
+  }
+}
+
+// Tips grid
+.tips-grid {
+  @extend %feature-grid;
+}
+
+.tip-card {
+  @extend %feature-card;
+
+  .tip-icon {
+    background: base.$user-primary;
+  }
+
+  .tip-title {
+    font-weight: 500;
+    color: base.$text-primary;
+    margin-bottom: 4px;
+  }
+
+  .tip-desc {
+    color: base.$text-secondary;
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+}
+
+// RTL Support
+:host-context([dir="rtl"]) {
+  .help-header {
+    .help-title {
+      mat-icon {
+        margin-left: base.$help-spacing-sm;
+        margin-right: 0;
+      }
+    }
+  }
+
+  .help-tabs {
+    .tab-btn {
+      mat-icon {
+        margin-left: 6px;
+        margin-right: 0;
+      }
+    }
+  }
+
+  .tip-box,
+  .note-box {
+    border-left: none;
+    border-right: 4px solid;
+  }
+
+  .tip-box {
+    border-right-color: #FFC107;
+  }
+
+  .note-box {
+    border-right-color: #1976D2;
+  }
+
+  .step-list .step {
+    .step-number {
+      margin-left: base.$help-spacing;
+      margin-right: 0;
+    }
+  }
+
+  .control-list {
+    li {
+      kbd {
+        margin-left: base.$help-spacing-xs;
+        margin-right: 0;
+      }
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 600px) {
+  .help-header {
+    padding: base.$help-spacing-sm base.$help-spacing;
+
+    .help-title h2 {
+      font-size: 1.1rem;
+    }
+  }
+
+  .help-tabs {
+    padding: base.$help-spacing-xs base.$help-spacing;
+    gap: 6px;
+  }
+
+  .help-content {
+    padding: base.$help-spacing;
+  }
+
+  .tips-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .step-list .step {
+    flex-direction: column;
+    gap: base.$help-spacing-xs;
+
+    .step-number {
+      align-self: flex-start;
+    }
+  }
+}

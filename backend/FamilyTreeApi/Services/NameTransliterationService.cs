@@ -823,8 +823,9 @@ Produce safe, production-grade output for genealogy records.";
 
         try
         {
-            // Get person
+            // Get person - must use AsTracking() since DbContext defaults to NoTracking globally
             var person = await _context.People
+                .AsTracking()
                 .FirstOrDefaultAsync(p => p.Id == personId && (!orgId.HasValue || p.OrgId == orgId));
 
             if (person == null)
@@ -1000,14 +1001,17 @@ Produce safe, production-grade output for genealogy records.";
             {
                 person.UpdatedAt = DateTime.UtcNow;
 
-                // Force EF to detect changes - THIS IS THE FIX!
-                _context.People.Update(person);
+                // Verify entity is being tracked (should be due to .AsTracking() on query)
+                var entry = _context.Entry(person);
+                _logger.LogDebug(
+                    "Entity state for person {PersonId} before save: {State}",
+                    personId, entry.State);
 
-                await _context.SaveChangesAsync();
+                var changedCount = await _context.SaveChangesAsync();
 
                 _logger.LogInformation(
-                    "Saved changes for person {PersonId}: English='{En}', Nobiin='{Nob}'",
-                    personId, person.NameEnglish, person.NameNobiin);
+                    "Saved changes for person {PersonId}: English='{En}', Nobiin='{Nob}', ChangedCount={Count}",
+                    personId, person.NameEnglish, person.NameNobiin, changedCount);
             }
 
             result.NamesGenerated = namesGenerated;
@@ -1205,7 +1209,9 @@ Produce safe, production-grade output for genealogy records.";
                     string.IsNullOrEmpty(p.NameNobiin));
             }
 
+            // Use AsNoTracking since we only need person IDs - the individual method will fetch with tracking
             var persons = await personsQuery
+                .AsNoTracking()
                 .Take(request.MaxPersons)
                 .ToListAsync();
 

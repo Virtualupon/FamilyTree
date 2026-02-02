@@ -164,16 +164,33 @@ public class ParentChildService : IParentChildService
     {
         try
         {
-            if (userContext.OrgId == null)
-            {
-                return ServiceResult<ParentChildResponse>.Failure("You must be a member of an organization to add relationships.");
-            }
-
+            // First, find the child person to determine the tree/org
             var child = await _context.People.FirstOrDefaultAsync(
-                p => p.Id == childId && p.OrgId == userContext.OrgId, cancellationToken);
+                p => p.Id == childId, cancellationToken);
             if (child == null)
             {
                 return ServiceResult<ParentChildResponse>.NotFound("Child not found");
+            }
+
+            // Determine the effective OrgId - either from token or from the child's tree
+            var effectiveOrgId = userContext.OrgId ?? child.OrgId;
+
+            // Verify user has permission to modify this tree
+            if (userContext.OrgId != null && userContext.OrgId != child.OrgId)
+            {
+                return ServiceResult<ParentChildResponse>.Failure("Child does not belong to your selected tree");
+            }
+
+            // Check if user is a member of this tree (has permission to add relationships)
+            var isMember = await _context.OrgUsers
+                .AnyAsync(ou => ou.UserId == userContext.UserId && ou.OrgId == effectiveOrgId, cancellationToken);
+
+            // Also check if user is a SuperAdmin (they can modify any tree)
+            var isSuperAdmin = userContext.SystemRole == "SuperAdmin";
+
+            if (!isMember && !isSuperAdmin)
+            {
+                return ServiceResult<ParentChildResponse>.Failure("You must be a member of this tree to add relationships");
             }
 
             var parent = await _context.People.FirstOrDefaultAsync(p => p.Id == parentId, cancellationToken);

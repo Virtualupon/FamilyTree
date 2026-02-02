@@ -82,7 +82,10 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
   private readonly nodeWidth = 160;
   private readonly nodeHeight = 80;
   private readonly horizontalSpacing = 40;
-  private readonly verticalSpacing = 100;
+  private readonly verticalSpacing = 180; // Increased for better level separation
+
+  // Track collapsed generations (by generation number)
+  private collapsedGenerations = new Set<number>();
 
   constructor() {
     // Watch for language changes and re-render the tree
@@ -160,11 +163,17 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
 
     // Load avatars then render
     this.loadAvatarsForNodes(nodes).then(() => {
-      // Draw links first (behind nodes)
+      // Draw generation bands first (behind everything)
+      this.drawGenerationBands(nodes);
+
+      // Draw links (behind nodes)
       this.drawLinks(links);
 
       // Draw nodes
       this.drawNodes(nodes);
+
+      // Draw generation labels (on top, fixed position)
+      this.drawGenerationLabels(nodes);
 
       // Center the view
       setTimeout(() => this.centerTree(), 100);
@@ -310,6 +319,10 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
   ): void {
     if (!person.parents || person.parents.length === 0 || depth > this.generations) return;
 
+    // Check if this generation is collapsed (ancestors have negative generation numbers)
+    const generationNumber = -depth;
+    if (this.collapsedGenerations.has(generationNumber)) return;
+
     const parentY = personNode.y - this.verticalSpacing;
     const parentSpacing = (this.nodeWidth + this.horizontalSpacing) * Math.pow(2, depth - 1);
     const startX = personNode.x - (parentSpacing / 2) * (person.parents.length - 1);
@@ -348,12 +361,15 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
   ): void {
     if (!person.children || person.children.length === 0 || depth > this.generations) return;
 
+    // Check if this generation is collapsed (descendants have positive generation numbers)
+    if (this.collapsedGenerations.has(depth)) return;
+
     const childY = personNode.y + this.verticalSpacing;
-    
+
     // Calculate width needed for all children including their descendants
     const childWidths = person.children.map(child => this.calculateSubtreeWidth(child, depth + 1));
     const totalWidth = childWidths.reduce((sum, w) => sum + w, 0) + (person.children.length - 1) * this.horizontalSpacing;
-    
+
     let currentX = personNode.x - totalWidth / 2;
 
     person.children.forEach((child, index) => {
@@ -362,7 +378,7 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
       const childWidth = childWidths[index];
       const childX = currentX + childWidth / 2;
       currentX += childWidth + this.horizontalSpacing;
-      
+
       const childNode = this.createD3Node(child, childX, childY, depth);
       nodes.push(childNode);
       nodeMap.set(child.id, childNode);
@@ -621,11 +637,15 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
           .text(this.getInitials(node.name));
       }
 
-      // Name
-      const displayName = node.name.length > 18 ? node.name.substring(0, 16) + '...' : node.name;
+      // Name - position after avatar (avatar ends at x=50, add padding)
+      const textStartX = 58;
+      const maxTextWidth = this.nodeWidth - textStartX - 12; // Leave padding on right
+      const avgCharWidth = 7.5; // ~7.5px per char for 12px bold font
+      const maxChars = Math.floor(maxTextWidth / avgCharWidth);
+      const displayName = node.name.length > maxChars ? node.name.substring(0, maxChars - 1) + '…' : node.name;
       g.append('text')
         .attr('class', 'node-name')
-        .attr('x', this.nodeWidth / 2 + 15)
+        .attr('x', textStartX)
         .attr('y', this.nodeHeight / 2 - 8)
         .text(displayName);
 
@@ -643,7 +663,7 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
       if (dateText) {
         g.append('text')
           .attr('class', 'node-dates')
-          .attr('x', this.nodeWidth / 2 + 15)
+          .attr('x', textStartX)
           .attr('y', this.nodeHeight / 2 + 12)
           .text(dateText);
       }
@@ -668,6 +688,197 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
       // Add relationship button (top-right corner, appears on hover)
       this.drawAddRelationshipButton(g, node);
     });
+  }
+
+  /**
+   * Draw horizontal bands for each generation level to visually separate them
+   */
+  private drawGenerationBands(nodes: D3Node[]): void {
+    if (!this.container || nodes.length === 0) return;
+
+    // Get unique generation levels and their Y positions
+    const generationMap = new Map<number, number>();
+    nodes.forEach(node => {
+      if (!generationMap.has(node.generation)) {
+        generationMap.set(node.generation, node.y);
+      }
+    });
+
+    // Sort generations by their Y position
+    const generations = Array.from(generationMap.entries())
+      .sort((a, b) => a[1] - b[1]);
+
+    if (generations.length === 0) return;
+
+    // Calculate bounds for the bands
+    const minX = Math.min(...nodes.map(n => n.x)) - this.nodeWidth - 100;
+    const maxX = Math.max(...nodes.map(n => n.x)) + this.nodeWidth + 100;
+    const bandWidth = maxX - minX + 200;
+
+    // Create bands group (behind everything)
+    const bandsGroup = this.container.insert('g', ':first-child')
+      .attr('class', 'generation-bands');
+
+    generations.forEach(([gen, y], index) => {
+      // Calculate band boundaries
+      const bandTop = y - this.verticalSpacing / 2;
+      const bandHeight = this.verticalSpacing;
+
+      // Alternate colors for visual distinction
+      const isEven = index % 2 === 0;
+      const fillColor = isEven ? 'rgba(206, 197, 176, 0.15)' : 'rgba(206, 197, 176, 0.05)'; // Nubian sand with opacity
+
+      bandsGroup.append('rect')
+        .attr('class', `generation-band gen-${gen}`)
+        .attr('x', minX - 100)
+        .attr('y', bandTop)
+        .attr('width', bandWidth)
+        .attr('height', bandHeight)
+        .attr('fill', fillColor)
+        .attr('stroke', 'none');
+    });
+  }
+
+  /**
+   * Draw generation labels on the left side of the tree
+   * Labels are larger and clickable to collapse/expand generations
+   */
+  private drawGenerationLabels(nodes: D3Node[]): void {
+    if (!this.container || nodes.length === 0) return;
+
+    // Get unique generation levels and their Y positions
+    const generationMap = new Map<number, number>();
+    const generationCounts = new Map<number, number>();
+    nodes.forEach(node => {
+      if (!generationMap.has(node.generation)) {
+        generationMap.set(node.generation, node.y);
+      }
+      generationCounts.set(node.generation, (generationCounts.get(node.generation) || 0) + 1);
+    });
+
+    // Calculate leftmost position - move further left to accommodate larger labels
+    const minX = Math.min(...nodes.map(n => n.x)) - this.nodeWidth / 2 - 130;
+
+    // Create labels group
+    const labelsGroup = this.container.append('g')
+      .attr('class', 'generation-labels');
+
+    const self = this;
+
+    generationMap.forEach((y, gen) => {
+      // Count people in this generation
+      const count = generationCounts.get(gen) || 0;
+      const isCollapsed = this.collapsedGenerations.has(gen);
+      const isRoot = gen === 0;
+
+      // Determine label text based on generation
+      let labelText: string;
+      if (gen === 0) {
+        labelText = this.i18n.t('tree.generation.root') || 'Root';
+      } else if (gen < 0) {
+        const absGen = Math.abs(gen);
+        if (absGen === 1) {
+          labelText = this.i18n.t('tree.generation.parents') || 'Parents';
+        } else if (absGen === 2) {
+          labelText = this.i18n.t('tree.generation.grandparents') || 'Grandparents';
+        } else {
+          labelText = `Gen -${absGen}`;
+        }
+      } else {
+        if (gen === 1) {
+          labelText = this.i18n.t('tree.generation.children') || 'Children';
+        } else if (gen === 2) {
+          labelText = this.i18n.t('tree.generation.grandchildren') || 'Grandchildren';
+        } else {
+          labelText = `Gen +${gen}`;
+        }
+      }
+
+      // Draw label with background - LARGER SIZE
+      const labelGroup = labelsGroup.append('g')
+        .attr('class', `generation-label-group ${!isRoot ? 'clickable' : ''}`)
+        .attr('transform', `translate(${minX}, ${y})`)
+        .style('cursor', isRoot ? 'default' : 'pointer');
+
+      // Background pill - larger
+      const pillWidth = 110;
+      const pillHeight = 44;
+      labelGroup.append('rect')
+        .attr('class', `generation-label-bg ${isCollapsed ? 'collapsed' : ''}`)
+        .attr('x', 0)
+        .attr('y', -pillHeight / 2)
+        .attr('width', pillWidth)
+        .attr('height', pillHeight)
+        .attr('rx', 8)
+        .attr('ry', 8)
+        .attr('fill', isCollapsed ? 'rgba(206, 197, 176, 0.4)' : 'rgba(255, 255, 255, 0.95)')
+        .attr('stroke', isRoot ? '#187573' : '#CEC5B0')
+        .attr('stroke-width', isRoot ? 2 : 1);
+
+      // Label text - larger font
+      labelGroup.append('text')
+        .attr('class', 'generation-label')
+        .attr('x', pillWidth / 2)
+        .attr('y', -6)
+        .attr('text-anchor', 'middle')
+        .style('font-size', '13px')
+        .style('font-weight', '600')
+        .text(labelText);
+
+      // Count badge
+      labelGroup.append('text')
+        .attr('class', 'generation-count')
+        .attr('x', pillWidth / 2)
+        .attr('y', 12)
+        .attr('text-anchor', 'middle')
+        .style('font-size', '11px')
+        .style('fill', '#6B6B6B')
+        .text(`(${count})`);
+
+      // Collapse/expand indicator (not for root)
+      if (!isRoot) {
+        const indicator = isCollapsed ? '▶' : '▼';
+        labelGroup.append('text')
+          .attr('class', 'collapse-indicator')
+          .attr('x', pillWidth - 12)
+          .attr('y', 0)
+          .attr('text-anchor', 'middle')
+          .attr('dominant-baseline', 'middle')
+          .style('font-size', '10px')
+          .style('fill', '#9CA3AF')
+          .text(indicator);
+
+        // Click handler to toggle collapse
+        labelGroup.on('click', function() {
+          self.toggleGenerationCollapse(gen);
+        });
+
+        // Hover effect
+        labelGroup.on('mouseenter', function() {
+          d3.select(this).select('.generation-label-bg')
+            .attr('stroke', '#187573')
+            .attr('stroke-width', 2);
+        });
+
+        labelGroup.on('mouseleave', function() {
+          d3.select(this).select('.generation-label-bg')
+            .attr('stroke', '#CEC5B0')
+            .attr('stroke-width', 1);
+        });
+      }
+    });
+  }
+
+  /**
+   * Toggle collapse state for a generation and re-render
+   */
+  private toggleGenerationCollapse(generation: number): void {
+    if (this.collapsedGenerations.has(generation)) {
+      this.collapsedGenerations.delete(generation);
+    } else {
+      this.collapsedGenerations.add(generation);
+    }
+    this.renderTree();
   }
 
   private drawFindRelationshipButton(

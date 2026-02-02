@@ -13,6 +13,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 
 import * as d3 from 'd3';
 
@@ -24,6 +25,8 @@ import {
 } from '../../core/models/relationship-path.models';
 import { Sex } from '../../core/models/person.models';
 
+type ViewMode = 'linear' | 'tree';
+
 @Component({
   selector: 'app-relationship-path-view',
   standalone: true,
@@ -31,6 +34,7 @@ import { Sex } from '../../core/models/person.models';
     CommonModule,
     MatButtonModule,
     MatTooltipModule,
+    MatButtonToggleModule,
     TranslatePipe
   ],
   templateUrl: './relationship-path-view.component.html',
@@ -50,10 +54,14 @@ export class RelationshipPathViewComponent implements AfterViewInit, OnDestroy {
   private g!: d3.Selection<SVGGElement, unknown, null, undefined>;
   private zoom!: d3.ZoomBehavior<SVGSVGElement, unknown>;
 
+  // View mode
+  viewMode = signal<ViewMode>('linear');
+
   // Node dimensions
   private readonly nodeWidth = 160;
   private readonly nodeHeight = 80;
   private readonly nodeSpacing = 80;
+  private readonly verticalSpacing = 120;
 
   ngAfterViewInit(): void {
     if (this.pathData.pathFound && this.pathData.path.length > 0) {
@@ -69,6 +77,11 @@ export class RelationshipPathViewComponent implements AfterViewInit, OnDestroy {
     this.closed.emit();
   }
 
+  setViewMode(mode: ViewMode): void {
+    this.viewMode.set(mode);
+    this.initChart();
+  }
+
   zoomIn(): void {
     this.svg.transition().duration(300).call(this.zoom.scaleBy, 1.3);
   }
@@ -81,12 +94,24 @@ export class RelationshipPathViewComponent implements AfterViewInit, OnDestroy {
     const container = this.containerRef.nativeElement;
     const pathLength = this.pathData.path.length;
 
-    const totalWidth = pathLength * (this.nodeWidth + this.nodeSpacing);
-    const totalHeight = this.nodeHeight + 100;
+    let totalWidth: number;
+    let totalHeight: number;
+
+    if (this.viewMode() === 'tree') {
+      // Tree view: width based on spread, height based on levels
+      const peakIndex = Math.floor(pathLength / 2);
+      const maxSpread = Math.max(peakIndex, pathLength - peakIndex - 1);
+      totalWidth = (maxSpread * 2 + 1) * (this.nodeWidth + 40) + 200;
+      totalHeight = (maxSpread + 1) * this.verticalSpacing + this.nodeHeight + 100;
+    } else {
+      // Linear view: width based on path length
+      totalWidth = pathLength * (this.nodeWidth + this.nodeSpacing);
+      totalHeight = this.nodeHeight + 100;
+    }
 
     const scaleX = container.clientWidth / totalWidth;
     const scaleY = container.clientHeight / totalHeight;
-    const scale = Math.min(scaleX, scaleY, 1) * 0.9;
+    const scale = Math.min(scaleX, scaleY, 1) * 0.85;
 
     const translateX = (container.clientWidth - totalWidth * scale) / 2;
     const translateY = (container.clientHeight - totalHeight * scale) / 2;
@@ -120,8 +145,12 @@ export class RelationshipPathViewComponent implements AfterViewInit, OnDestroy {
     // Add defs for gradients and shadows
     this.addDefs();
 
-    // Draw the path
-    this.drawPath();
+    // Draw based on view mode
+    if (this.viewMode() === 'tree') {
+      this.drawTreeDiagram();
+    } else {
+      this.drawPath();
+    }
 
     // Fit to screen initially
     setTimeout(() => this.fitToScreen(), 100);
@@ -217,7 +246,159 @@ export class RelationshipPathViewComponent implements AfterViewInit, OnDestroy {
     });
   }
 
-  private drawNode(person: PathPersonNode, x: number, y: number, isEndpoint: boolean): void {
+  /**
+   * Draw the relationship as a tree diagram with common ancestor at top
+   * This creates a V-shaped or inverted-V diagram showing the connection
+   */
+  private drawTreeDiagram(): void {
+    const path = this.pathData.path;
+    if (path.length < 2) return;
+
+    // Find the "peak" of the path - where we go from going up (parent) to going down (child)
+    // This represents the common ancestor or connection point
+    let peakIndex = 0;
+    let goingUp = true;
+
+    for (let i = 0; i < path.length - 1; i++) {
+      const edge = path[i].edgeToNext;
+      if (goingUp && (edge === RelationshipEdgeType.Child || edge === RelationshipEdgeType.Spouse)) {
+        peakIndex = i;
+        goingUp = false;
+      } else if (goingUp && edge === RelationshipEdgeType.Parent) {
+        peakIndex = i + 1;
+      }
+    }
+
+    // If no clear peak found (direct parent-child), use midpoint
+    if (peakIndex === 0 && path.length > 2) {
+      peakIndex = Math.floor(path.length / 2);
+    }
+
+    // Calculate positions for tree layout
+    interface TreeNode {
+      person: PathPersonNode;
+      x: number;
+      y: number;
+      level: number;
+    }
+
+    const treeNodes: TreeNode[] = [];
+    const centerX = 400; // Will be adjusted by fitToScreen
+    const topY = 50;
+
+    // Position nodes in a tree structure
+    // Left branch: from person1 up to common ancestor
+    // Right branch: from common ancestor down to person2
+
+    // Calculate levels (distance from peak)
+    path.forEach((person, i) => {
+      const level = Math.abs(i - peakIndex);
+      const isLeftBranch = i < peakIndex;
+      const isRightBranch = i > peakIndex;
+      const isPeak = i === peakIndex;
+
+      let x: number;
+      let y: number;
+
+      if (isPeak) {
+        // Common ancestor at top center
+        x = centerX;
+        y = topY;
+      } else if (isLeftBranch) {
+        // Left branch goes down and left
+        const distFromPeak = peakIndex - i;
+        x = centerX - (distFromPeak * (this.nodeWidth + 40));
+        y = topY + (distFromPeak * this.verticalSpacing);
+      } else {
+        // Right branch goes down and right
+        const distFromPeak = i - peakIndex;
+        x = centerX + (distFromPeak * (this.nodeWidth + 40));
+        y = topY + (distFromPeak * this.verticalSpacing);
+      }
+
+      treeNodes.push({ person, x, y, level });
+    });
+
+    // Draw connecting lines first (behind nodes)
+    for (let i = 0; i < treeNodes.length - 1; i++) {
+      const from = treeNodes[i];
+      const to = treeNodes[i + 1];
+      const edgeType = path[i].edgeToNext;
+
+      // Draw curved line connecting nodes
+      const pathData = this.createCurvedPath(
+        from.x + this.nodeWidth / 2,
+        from.y + this.nodeHeight,
+        to.x + this.nodeWidth / 2,
+        to.y
+      );
+
+      const edgeClass = edgeType === RelationshipEdgeType.Spouse ? 'edge-line-spouse' : 'edge-line-parent';
+
+      this.g.append('path')
+        .attr('class', `edge-line ${edgeClass}`)
+        .attr('d', pathData)
+        .attr('fill', 'none');
+
+      // Edge label
+      const midX = (from.x + to.x) / 2 + this.nodeWidth / 2;
+      const midY = (from.y + to.y) / 2 + this.nodeHeight / 2;
+      const labelText = this.getEdgeLabel(path[i].relationshipToNextKey);
+
+      // Label background
+      this.g.append('rect')
+        .attr('class', 'edge-label-bg')
+        .attr('x', midX - 35)
+        .attr('y', midY - 10)
+        .attr('width', 70)
+        .attr('height', 20)
+        .attr('rx', 10);
+
+      // Label text
+      this.g.append('text')
+        .attr('class', 'edge-label')
+        .attr('x', midX)
+        .attr('y', midY + 4)
+        .text(labelText);
+    }
+
+    // Draw nodes
+    treeNodes.forEach((node, i) => {
+      const isEndpoint = i === 0 || i === treeNodes.length - 1;
+      const isPeak = i === peakIndex;
+      this.drawNode(node.person, node.x, node.y, isEndpoint, isPeak);
+    });
+
+    // Add generation level labels
+    const levels = new Map<number, number>();
+    treeNodes.forEach(node => {
+      if (!levels.has(node.level)) {
+        levels.set(node.level, node.y);
+      }
+    });
+
+    levels.forEach((y, level) => {
+      const labelText = level === 0 ?
+        (this.i18n.t('relationship.commonAncestor') || 'Common Ancestor') :
+        `${this.i18n.t('relationship.generation') || 'Gen'} ${level}`;
+
+      this.g.append('text')
+        .attr('class', 'tree-level-label')
+        .attr('x', 20)
+        .attr('y', y + this.nodeHeight / 2)
+        .text(labelText);
+    });
+  }
+
+  /**
+   * Create a curved SVG path between two points
+   */
+  private createCurvedPath(x1: number, y1: number, x2: number, y2: number): string {
+    const midY = (y1 + y2) / 2;
+    return `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`;
+  }
+
+  private drawNode(person: PathPersonNode, x: number, y: number, isEndpoint: boolean, isPeak: boolean = false): void {
     const nodeGroup = this.g.append('g')
       .attr('class', 'path-node')
       .attr('transform', `translate(${x}, ${y})`);
@@ -242,6 +423,23 @@ export class RelationshipPathViewComponent implements AfterViewInit, OnDestroy {
     if (isEndpoint) {
       nodeGroup.select('.node-rect')
         .attr('stroke-width', 3);
+    }
+
+    // Peak/common ancestor indicator
+    if (isPeak) {
+      nodeGroup.select('.node-rect')
+        .attr('stroke', '#187573')
+        .attr('stroke-width', 3);
+
+      // Add crown/star icon for common ancestor
+      nodeGroup.append('text')
+        .attr('class', 'peak-indicator')
+        .attr('x', this.nodeWidth / 2)
+        .attr('y', -8)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#187573')
+        .attr('font-size', '16px')
+        .text('★');
     }
 
     // Avatar circle

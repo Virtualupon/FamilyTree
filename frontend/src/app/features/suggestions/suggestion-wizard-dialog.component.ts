@@ -473,41 +473,114 @@ export class SuggestionWizardDialogComponent implements OnInit {
 
   // Type options - using actual SuggestionType enum values
   suggestionTypes = [
+    // Relationship suggestions
     {
       value: SuggestionType.AddParent,
       icon: 'fa-arrow-up',
       labelKey: 'suggestion.types.addParent',
-      descKey: 'suggestion.types.addParentDesc'
+      descKey: 'suggestion.types.addParentDesc',
+      category: 'relationship'
     },
     {
       value: SuggestionType.AddChild,
       icon: 'fa-arrow-down',
       labelKey: 'suggestion.types.addChild',
-      descKey: 'suggestion.types.addChildDesc'
+      descKey: 'suggestion.types.addChildDesc',
+      category: 'relationship'
     },
     {
       value: SuggestionType.AddSpouse,
       icon: 'fa-heart',
       labelKey: 'suggestion.types.addSpouse',
-      descKey: 'suggestion.types.addSpouseDesc'
+      descKey: 'suggestion.types.addSpouseDesc',
+      category: 'relationship'
     },
+    {
+      value: SuggestionType.RemoveRelationship,
+      icon: 'fa-link-slash',
+      labelKey: 'suggestion.types.removeRelationship',
+      descKey: 'suggestion.types.removeRelationshipDesc',
+      category: 'relationship'
+    },
+    // Person suggestions
     {
       value: SuggestionType.AddPerson,
       icon: 'fa-user-plus',
       labelKey: 'suggestion.types.addPerson',
-      descKey: 'suggestion.types.addPersonDesc'
-    },
-    {
-      value: SuggestionType.MergePerson,
-      icon: 'fa-code-merge',
-      labelKey: 'suggestion.types.mergePerson',
-      descKey: 'suggestion.types.mergePersonDesc'
+      descKey: 'suggestion.types.addPersonDesc',
+      category: 'person'
     },
     {
       value: SuggestionType.UpdatePerson,
       icon: 'fa-pen',
       labelKey: 'suggestion.types.updatePerson',
-      descKey: 'suggestion.types.updatePersonDesc'
+      descKey: 'suggestion.types.updatePersonDesc',
+      category: 'person'
+    },
+    {
+      value: SuggestionType.DeletePerson,
+      icon: 'fa-user-minus',
+      labelKey: 'suggestion.types.deletePerson',
+      descKey: 'suggestion.types.deletePersonDesc',
+      category: 'person'
+    },
+    {
+      value: SuggestionType.MergePerson,
+      icon: 'fa-code-merge',
+      labelKey: 'suggestion.types.mergePerson',
+      descKey: 'suggestion.types.mergePersonDesc',
+      category: 'person'
+    },
+    {
+      value: SuggestionType.SplitPerson,
+      icon: 'fa-code-branch',
+      labelKey: 'suggestion.types.splitPerson',
+      descKey: 'suggestion.types.splitPersonDesc',
+      category: 'person'
+    },
+    // Union suggestions
+    {
+      value: SuggestionType.UpdateUnion,
+      icon: 'fa-rings-wedding',
+      labelKey: 'suggestion.types.updateUnion',
+      descKey: 'suggestion.types.updateUnionDesc',
+      category: 'union'
+    },
+    {
+      value: SuggestionType.DeleteUnion,
+      icon: 'fa-heart-crack',
+      labelKey: 'suggestion.types.deleteUnion',
+      descKey: 'suggestion.types.deleteUnionDesc',
+      category: 'union'
+    },
+    // Media suggestions
+    {
+      value: SuggestionType.AddMedia,
+      icon: 'fa-image',
+      labelKey: 'suggestion.types.addMedia',
+      descKey: 'suggestion.types.addMediaDesc',
+      category: 'media'
+    },
+    {
+      value: SuggestionType.SetAvatar,
+      icon: 'fa-user-circle',
+      labelKey: 'suggestion.types.setAvatar',
+      descKey: 'suggestion.types.setAvatarDesc',
+      category: 'media'
+    },
+    {
+      value: SuggestionType.RemoveMedia,
+      icon: 'fa-image-slash',
+      labelKey: 'suggestion.types.removeMedia',
+      descKey: 'suggestion.types.removeMediaDesc',
+      category: 'media'
+    },
+    {
+      value: SuggestionType.LinkMediaToPerson,
+      icon: 'fa-link',
+      labelKey: 'suggestion.types.linkMediaToPerson',
+      descKey: 'suggestion.types.linkMediaToPersonDesc',
+      category: 'media'
     }
   ];
 
@@ -581,7 +654,30 @@ export class SuggestionWizardDialogComponent implements OnInit {
     return type === SuggestionType.AddParent ||
            type === SuggestionType.AddChild ||
            type === SuggestionType.AddSpouse ||
-           type === SuggestionType.MergePerson;
+           type === SuggestionType.MergePerson ||
+           type === SuggestionType.RemoveRelationship;
+  }
+
+  requiresUnion(): boolean {
+    const type = this.typeForm.get('type')?.value;
+    return type === SuggestionType.UpdateUnion ||
+           type === SuggestionType.DeleteUnion;
+  }
+
+  requiresMedia(): boolean {
+    const type = this.typeForm.get('type')?.value;
+    return type === SuggestionType.AddMedia ||
+           type === SuggestionType.SetAvatar ||
+           type === SuggestionType.RemoveMedia ||
+           type === SuggestionType.LinkMediaToPerson;
+  }
+
+  isDestructiveAction(): boolean {
+    const type = this.typeForm.get('type')?.value;
+    return type === SuggestionType.DeletePerson ||
+           type === SuggestionType.DeleteUnion ||
+           type === SuggestionType.RemoveRelationship ||
+           type === SuggestionType.RemoveMedia;
   }
 
   getTargetPersonLabel(): string {
@@ -599,6 +695,16 @@ export class SuggestionWizardDialogComponent implements OnInit {
         return 'suggestion.labels.personToUpdate';
       case SuggestionType.AddPerson:
         return 'suggestion.labels.relatedPerson';
+      case SuggestionType.DeletePerson:
+        return 'suggestion.labels.personToDelete';
+      case SuggestionType.SplitPerson:
+        return 'suggestion.labels.personToSplit';
+      case SuggestionType.RemoveRelationship:
+        return 'suggestion.labels.firstPerson';
+      case SuggestionType.SetAvatar:
+      case SuggestionType.AddMedia:
+      case SuggestionType.LinkMediaToPerson:
+        return 'suggestion.labels.personForMedia';
       default:
         return 'suggestion.labels.person';
     }
@@ -615,6 +721,8 @@ export class SuggestionWizardDialogComponent implements OnInit {
         return 'suggestion.labels.spouseToAdd';
       case SuggestionType.MergePerson:
         return 'suggestion.labels.duplicatePerson';
+      case SuggestionType.RemoveRelationship:
+        return 'suggestion.labels.secondPerson';
       default:
         return 'suggestion.labels.relatedPerson';
     }

@@ -17,6 +17,7 @@ public record CreateSuggestionRequest(
     Guid? TargetPersonId,
     Guid? SecondaryPersonId,
     Guid? TargetUnionId,
+    Guid? TargetMediaId,
     Dictionary<string, object>? ProposedValues,
     RelationshipType? RelationshipType,
     UnionType? UnionType,

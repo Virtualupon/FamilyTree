@@ -2,12 +2,25 @@
   <!-- Header -->
   <div class="person-form-dialog__header">
     <h2 class="person-form-dialog__title">
-      {{ (data.person ? 'people.editPerson' : 'people.addPerson') | translate }}
+      @if (isViewer()) {
+        {{ (data.person ? 'suggestion.types.updatePerson' : 'suggestion.types.addPerson') | translate }}
+        <span class="suggestion-badge">{{ 'suggestion.mySuggestions' | translate }}</span>
+      } @else {
+        {{ (data.person ? 'people.editPerson' : 'people.addPerson') | translate }}
+      }
     </h2>
     <button mat-icon-button (click)="onCancel()">
       <i class="fa-solid fa-xmark" aria-hidden="true"></i>
     </button>
   </div>
+
+  <!-- Suggestion notice for viewers -->
+  @if (isViewer()) {
+    <div class="suggestion-notice">
+      <i class="fa-solid fa-lightbulb" aria-hidden="true"></i>
+      <span>{{ 'suggestion.viewerNotice' | translate }}</span>
+    </div>
+  }
 
   <!-- Form -->
   <form [formGroup]="form" class="person-form-dialog__content">
@@ -308,11 +321,12 @@
       [disabled]="saving() || form.invalid">
       @if (saving()) {
         <mat-spinner diameter="20"></mat-spinner>
+      } @else if (isViewer()) {
+        <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+        {{ 'suggestion.submit' | translate }}
       } @else {
-        <ng-container>
-          <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
-          {{ 'common.save' | translate }}
-        </ng-container>
+        <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+        {{ 'common.save' | translate }}
       }
     </button>
   </div>

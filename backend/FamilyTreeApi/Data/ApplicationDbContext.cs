@@ -575,6 +575,7 @@ public class ApplicationDbContext : IdentityDbContext<
             entity.HasIndex(e => e.Status);
             entity.HasIndex(e => e.SubmittedByUserId);
             entity.HasIndex(e => e.TargetPersonId);
+            entity.HasIndex(e => e.TargetMediaId);
             entity.HasIndex(e => e.CreatedAt);
             entity.HasIndex(e => new { e.TownId, e.Status, e.CreatedAt });
 
@@ -613,6 +614,12 @@ public class ApplicationDbContext : IdentityDbContext<
             entity.HasOne(e => e.TargetUnion)
                 .WithMany()
                 .HasForeignKey(e => e.TargetUnionId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Target media relationship (for media-related suggestions)
+            entity.HasOne(e => e.TargetMedia)
+                .WithMany()
+                .HasForeignKey(e => e.TargetMediaId)
                 .OnDelete(DeleteBehavior.SetNull);
 
             // Submitter relationship

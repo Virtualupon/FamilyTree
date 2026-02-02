@@ -1,16 +1,47 @@
+// =============================================================================
+// TREE LIST - NUBIAN/NOBIIN THEME
+// =============================================================================
+
+// Nubian Colors
+$nubian-gold: #C17E3E;
+$nubian-gold-light: #D4A574;
+$nubian-gold-dark: #8B5A2B;
+$nubian-teal: #187573;
+$nubian-teal-light: #2B9A97;
+$nubian-cream: #FFF9F5;
+$nubian-beige: #F4E4D7;
+$nubian-charcoal: #2D2D2D;
+$nubian-gray: #6B6B6B;
+
 .tree-list-page {
   padding: 24px;
   max-width: 1400px;
   margin: 0 auto;
+  font-family: var(--ft-font-family);
 }
 
-/* Greeting Header */
+/* Greeting Header - Nubian Gold Gradient */
 .greeting-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, $nubian-gold 0%, $nubian-gold-dark 50%, $nubian-teal 100%);
   border-radius: 16px;
   padding: 32px;
   margin-bottom: 32px;
   color: white;
+  box-shadow: 0 8px 32px rgba($nubian-gold, 0.3);
+  position: relative;
+  overflow: hidden;
+
+  // Decorative pattern overlay
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 40%;
+    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.08'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    opacity: 0.5;
+  }
 }
 
 .greeting-content {
@@ -19,12 +50,15 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 24px;
+  position: relative;
+  z-index: 1;
 }
 
 .greeting-text h1 {
   font-size: 28px;
   font-weight: 700;
   margin: 0 0 8px 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .greeting-subtitle {
@@ -64,6 +98,7 @@
 
   &:hover {
     background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.5);
   }
 
   span {
@@ -91,7 +126,8 @@
   margin-top: 8px;
   background: white;
   border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 40px rgba($nubian-gold, 0.2);
+  border: 1px solid $nubian-beige;
   z-index: 100;
   overflow: hidden;
   max-height: 300px;
@@ -103,16 +139,16 @@
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  color: #1a1a2e;
+  color: $nubian-charcoal;
   cursor: pointer;
   transition: background 0.2s;
 
   &:hover {
-    background: #f3f4f6;
+    background: $nubian-cream;
   }
 
   &.active {
-    background: #ede9fe;
+    background: rgba($nubian-gold, 0.1);
   }
 
   .town-name {
@@ -122,20 +158,20 @@
 
   .town-meta {
     font-size: 12px;
-    color: #6b7280;
+    color: $nubian-gray;
   }
 
   .check-icon {
     width: 20px;
     height: 20px;
-    color: #6366f1;
+    color: $nubian-gold;
   }
 }
 
 .town-dropdown-empty {
   padding: 20px;
   text-align: center;
-  color: #6b7280;
+  color: $nubian-gray;
 }
 
 /* Section Header */
@@ -156,12 +192,12 @@
 .section-title h2 {
   font-size: 24px;
   font-weight: 700;
-  color: #1a1a2e;
+  color: $nubian-charcoal;
   margin: 0 0 4px 0;
 }
 
 .section-subtitle {
-  color: #6b7280;
+  color: $nubian-gray;
   font-size: 14px;
   margin: 0;
 }
@@ -176,10 +212,10 @@
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background: #f3f4f6;
-  border: none;
+  background: $nubian-cream;
+  border: 1px solid $nubian-beige;
   border-radius: 8px;
-  color: #374151;
+  color: $nubian-charcoal;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
@@ -190,7 +226,8 @@
   }
 
   &:hover {
-    background: #e5e7eb;
+    background: $nubian-beige;
+    border-color: $nubian-gold-light;
   }
 }
 
@@ -205,14 +242,15 @@
   background: white;
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border-left: 4px solid #6366f1;
+  box-shadow: 0 2px 8px rgba($nubian-gold, 0.08);
+  border-left: 4px solid $nubian-gold;
   cursor: pointer;
   transition: all 0.3s ease;
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 8px 24px rgba($nubian-gold, 0.15);
+    border-left-color: $nubian-gold-dark;
   }
 }
 
@@ -232,7 +270,7 @@
 .family-name {
   font-size: 18px;
   font-weight: 600;
-  color: #1a1a2e;
+  color: $nubian-charcoal;
   margin: 0;
 }
 
@@ -244,12 +282,13 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #6b7280;
+  color: $nubian-gray;
   font-size: 14px;
 
   svg {
     width: 18px;
     height: 18px;
+    color: $nubian-teal;
   }
 }
 
@@ -258,8 +297,8 @@
   align-items: center;
   justify-content: space-between;
   padding-top: 12px;
-  border-top: 1px solid #e5e7eb;
-  color: #6366f1;
+  border-top: 1px solid $nubian-beige;
+  color: $nubian-gold;
   font-size: 14px;
   font-weight: 500;
 
@@ -283,15 +322,17 @@
   padding: 16px 20px;
   background: white;
   border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba($nubian-gold, 0.06);
+  border: 1px solid $nubian-beige;
   cursor: pointer;
   transition: all 0.2s;
   text-decoration: none;
   color: inherit;
 
   &:hover {
-    background: #f9fafb;
+    background: $nubian-cream;
     transform: translateX(4px);
+    border-color: $nubian-gold-light;
   }
 }
 
@@ -299,7 +340,7 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: #dbeafe;
+  background: rgba($nubian-teal, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -307,17 +348,17 @@
   svg {
     width: 24px;
     height: 24px;
-    color: #3b82f6;
+    color: $nubian-teal;
   }
 
   &.female {
-    background: #fce7f3;
-    svg { color: #ec4899; }
+    background: rgba($nubian-gold, 0.1);
+    svg { color: $nubian-gold; }
   }
 
   &.unknown {
-    background: #e5e7eb;
-    svg { color: #6b7280; }
+    background: rgba($nubian-gray, 0.1);
+    svg { color: $nubian-gray; }
   }
 }
 
@@ -328,7 +369,7 @@
 .member-name {
   font-size: 16px;
   font-weight: 600;
-  color: #1a1a2e;
+  color: $nubian-charcoal;
   margin: 0 0 4px 0;
 }
 
@@ -336,13 +377,13 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #6b7280;
+  color: $nubian-gray;
   font-size: 13px;
 }
 
 .living-badge {
-  background: #d1fae5;
-  color: #047857;
+  background: rgba($nubian-teal, 0.1);
+  color: $nubian-teal;
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 11px;
@@ -352,7 +393,7 @@
 .member-arrow {
   width: 20px;
   height: 20px;
-  color: #9ca3af;
+  color: $nubian-gold-light;
 }
 
 .select-town-prompt {
@@ -378,12 +419,12 @@
 .header-title h1 {
   font-size: 28px;
   font-weight: 700;
-  color: #1a1a2e;
+  color: $nubian-charcoal;
   margin: 0 0 4px 0;
 }
 
 .subtitle {
-  color: #6b7280;
+  color: $nubian-gray;
   font-size: 14px;
   margin: 0;
 }
@@ -408,27 +449,28 @@
   transform: translateY(-50%);
   width: 20px;
   height: 20px;
-  color: #9ca3af;
+  color: $nubian-gray;
 }
 
 .search-input {
   width: 100%;
   padding: 10px 12px 10px 40px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid $nubian-beige;
   border-radius: 8px;
   font-size: 14px;
+  background: white;
   transition: all 0.2s;
 
   &:focus {
     outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    border-color: $nubian-gold;
+    box-shadow: 0 0 0 3px rgba($nubian-gold, 0.1);
   }
 }
 
 .town-filter {
   padding: 10px 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid $nubian-beige;
   border-radius: 8px;
   font-size: 14px;
   min-width: 180px;
@@ -437,13 +479,13 @@
 
   &:focus {
     outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    border-color: $nubian-gold;
+    box-shadow: 0 0 0 3px rgba($nubian-gold, 0.1);
   }
 }
 
 .stats-bar {
-  color: #6b7280;
+  color: $nubian-gray;
   font-size: 14px;
   margin-bottom: 16px;
 }
@@ -458,12 +500,14 @@
   background: white;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba($nubian-gold, 0.08);
+  border: 1px solid $nubian-beige;
   transition: all 0.3s ease;
 
   &:hover {
     transform: translateY(-4px);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 12px 32px rgba($nubian-gold, 0.15);
+    border-color: $nubian-gold-light;
   }
 }
 
@@ -482,7 +526,7 @@
 .cover-gradient {
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, $nubian-gold 0%, $nubian-teal 100%);
 }
 
 .cover-overlay {
@@ -506,12 +550,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba($nubian-gold, 0.2);
+  border: 2px solid $nubian-beige;
 
   svg {
     width: 24px;
     height: 24px;
-    color: #667eea;
+    color: $nubian-gold;
   }
 }
 
@@ -529,7 +574,7 @@
 
 .public-badge {
   background: rgba(255, 255, 255, 0.95);
-  color: #059669;
+  color: $nubian-teal;
 
   .badge-icon {
     width: 12px;
@@ -544,12 +589,12 @@
 .tree-name {
   font-size: 18px;
   font-weight: 600;
-  color: #1a1a2e;
+  color: $nubian-charcoal;
   margin: 0 0 8px 0;
 }
 
 .tree-description {
-  color: #6b7280;
+  color: $nubian-gray;
   font-size: 13px;
   line-height: 1.5;
   margin: 0 0 16px 0;
@@ -570,12 +615,13 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #6b7280;
+  color: $nubian-gray;
   font-size: 13px;
 
   svg {
     width: 16px;
     height: 16px;
+    color: $nubian-teal;
   }
 }
 
@@ -585,12 +631,12 @@
   font-size: 11px;
   font-weight: 600;
 
-  &.role-0 { background: #f3f4f6; color: #6b7280; } // Viewer
-  &.role-1 { background: #dbeafe; color: #1d4ed8; } // Contributor
-  &.role-2 { background: #d1fae5; color: #047857; } // Editor
-  &.role-3 { background: #fef3c7; color: #b45309; } // SubAdmin
-  &.role-4 { background: #ede9fe; color: #6d28d9; } // Admin
-  &.role-5 { background: #fce7f3; color: #be185d; } // Owner
+  &.role-0 { background: $nubian-cream; color: $nubian-gray; } // Viewer
+  &.role-1 { background: rgba($nubian-teal, 0.1); color: $nubian-teal; } // Contributor
+  &.role-2 { background: rgba($nubian-teal, 0.15); color: darken($nubian-teal, 10%); } // Editor
+  &.role-3 { background: rgba($nubian-gold, 0.15); color: $nubian-gold-dark; } // SubAdmin
+  &.role-4 { background: rgba($nubian-gold, 0.2); color: $nubian-gold-dark; } // Admin
+  &.role-5 { background: $nubian-gold; color: white; } // Owner
 }
 
 .card-actions {
@@ -604,7 +650,7 @@
   justify-content: center;
   gap: 8px;
   padding: 10px 20px;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, $nubian-gold 0%, $nubian-gold-dark 100%);
   color: white;
   border: none;
   border-radius: 8px;
@@ -612,10 +658,12 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba($nubian-gold, 0.3);
 
   &:hover {
-    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    background: linear-gradient(135deg, $nubian-gold-dark 0%, darken($nubian-gold-dark, 5%) 100%);
     transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba($nubian-gold, 0.4);
   }
 
   &:disabled {
@@ -643,8 +691,8 @@
   gap: 8px;
   padding: 10px 20px;
   background: white;
-  color: #374151;
-  border: 1px solid #e5e7eb;
+  color: $nubian-charcoal;
+  border: 1px solid $nubian-beige;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
@@ -652,8 +700,9 @@
   transition: all 0.2s;
 
   &:hover {
-    background: #f9fafb;
-    border-color: #d1d5db;
+    background: $nubian-cream;
+    border-color: $nubian-gold-light;
+    color: $nubian-gold-dark;
   }
 }
 
@@ -663,10 +712,10 @@
   justify-content: center;
   width: 38px;
   height: 38px;
-  background: #f3f4f6;
-  border: none;
+  background: $nubian-cream;
+  border: 1px solid $nubian-beige;
   border-radius: 8px;
-  color: #6b7280;
+  color: $nubian-gray;
   cursor: pointer;
   transition: all 0.2s;
 
@@ -676,8 +725,9 @@
   }
 
   &:hover {
-    background: #e5e7eb;
-    color: #374151;
+    background: $nubian-beige;
+    color: $nubian-gold;
+    border-color: $nubian-gold-light;
   }
 }
 
@@ -687,13 +737,13 @@
   align-items: center;
   justify-content: center;
   padding: 80px 20px;
-  color: #6b7280;
+  color: $nubian-gray;
 
   .spinner {
     width: 40px;
     height: 40px;
-    border: 3px solid #e5e7eb;
-    border-top-color: #3b82f6;
+    border: 3px solid $nubian-beige;
+    border-top-color: $nubian-gold;
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin-bottom: 16px;
@@ -716,7 +766,7 @@
   }
 
   p {
-    color: #6b7280;
+    color: $nubian-gray;
     margin-bottom: 16px;
   }
 }
@@ -732,42 +782,48 @@
   .empty-icon {
     width: 64px;
     height: 64px;
-    color: #d1d5db;
+    color: $nubian-beige;
     margin-bottom: 20px;
   }
 
   h3 {
     font-size: 18px;
     font-weight: 600;
-    color: #374151;
+    color: $nubian-charcoal;
     margin: 0 0 8px 0;
   }
 
   p {
-    color: #6b7280;
+    color: $nubian-gray;
     margin: 0 0 20px 0;
+  }
+
+  &.small {
+    padding: 40px 20px;
   }
 }
 
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba($nubian-charcoal, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
   padding: 20px;
+  backdrop-filter: blur(4px);
 }
 
 .modal {
-  background: white;
+  background: $nubian-cream;
   border-radius: 16px;
   width: 100%;
   max-width: 480px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 25px 50px rgba($nubian-gold, 0.25);
+  border: 1px solid $nubian-beige;
 }
 
 .modal-header {
@@ -775,12 +831,14 @@
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid $nubian-beige;
+  background: white;
 
   h2 {
     font-size: 18px;
     font-weight: 600;
     margin: 0;
+    color: $nubian-charcoal;
   }
 }
 
@@ -793,11 +851,12 @@
   background: none;
   border: none;
   border-radius: 8px;
-  color: #6b7280;
+  color: $nubian-gray;
   cursor: pointer;
 
   &:hover {
-    background: #f3f4f6;
+    background: $nubian-cream;
+    color: $nubian-gold;
   }
 
   svg {
@@ -808,6 +867,7 @@
 
 .modal-body {
   padding: 24px;
+  background: white;
 }
 
 .form-group {
@@ -818,7 +878,7 @@
   display: block;
   font-size: 14px;
   font-weight: 500;
-  color: #374151;
+  color: $nubian-charcoal;
   margin-bottom: 6px;
 
   &.required::after {
@@ -830,29 +890,30 @@
 .form-input {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid $nubian-beige;
   border-radius: 8px;
   font-size: 14px;
+  background: white;
   transition: all 0.2s;
 
   &:focus {
     outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    border-color: $nubian-gold;
+    box-shadow: 0 0 0 3px rgba($nubian-gold, 0.1);
   }
 }
 
 .form-hint {
   font-size: 12px;
-  color: #6b7280;
+  color: $nubian-gray;
   margin: 6px 0 0 0;
 }
 
 .town-confirmation {
   margin-top: 12px;
   padding: 16px;
-  background: #f0fdf4;
-  border: 1px solid #86efac;
+  background: rgba($nubian-teal, 0.05);
+  border: 1px solid rgba($nubian-teal, 0.2);
   border-radius: 8px;
 }
 
@@ -860,7 +921,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #166534;
+  color: $nubian-teal;
   font-weight: 600;
   margin-bottom: 12px;
 
@@ -875,6 +936,7 @@
   border-radius: 6px;
   padding: 12px;
   margin-bottom: 12px;
+  border: 1px solid $nubian-beige;
 }
 
 .town-name-row {
@@ -882,20 +944,20 @@
   align-items: center;
   gap: 8px;
   padding: 6px 0;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid $nubian-beige;
 
   &:last-child {
     border-bottom: none;
   }
 
   .label {
-    color: #6b7280;
+    color: $nubian-gray;
     font-size: 13px;
     min-width: 70px;
   }
 
   strong {
-    color: #1a1a2e;
+    color: $nubian-charcoal;
     font-size: 14px;
   }
 }
@@ -906,9 +968,9 @@
   gap: 8px;
   margin: 0;
   padding: 10px;
-  background: #fef3c7;
+  background: rgba($nubian-gold, 0.1);
   border-radius: 6px;
-  color: #92400e;
+  color: $nubian-gold-dark;
   font-size: 13px;
 
   svg {
@@ -916,6 +978,7 @@
     height: 18px;
     flex-shrink: 0;
     margin-top: 1px;
+    color: $nubian-gold;
   }
 }
 
@@ -925,7 +988,7 @@
   gap: 10px;
   cursor: pointer;
   font-size: 14px;
-  color: #374151;
+  color: $nubian-charcoal;
 }
 
 .checkbox {
@@ -933,6 +996,7 @@
   height: 18px;
   border-radius: 4px;
   cursor: pointer;
+  accent-color: $nubian-gold;
 }
 
 .error-message {
@@ -973,6 +1037,19 @@
     padding: 16px;
   }
 
+  .greeting-header {
+    padding: 24px;
+  }
+
+  .greeting-content {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .town-selector-container {
+    width: 100%;
+  }
+
   .header-content {
     flex-direction: column;
     gap: 16px;
@@ -987,6 +1064,10 @@
   }
 
   .tree-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .family-grid {
     grid-template-columns: 1fr;
   }
 }

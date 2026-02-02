@@ -33,6 +33,20 @@
         </button>
       </div>
     } @else {
+      <!-- View Mode Toggle -->
+      <div class="relationship-path-overlay__view-toggle">
+        <mat-button-toggle-group [value]="viewMode()" (change)="setViewMode($event.value)">
+          <mat-button-toggle value="linear" [matTooltip]="'relationship.viewLinear' | translate">
+            <i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i>
+            <span class="toggle-label">{{ 'relationship.linearView' | translate }}</span>
+          </mat-button-toggle>
+          <mat-button-toggle value="tree" [matTooltip]="'relationship.viewTree' | translate">
+            <i class="fa-solid fa-sitemap" aria-hidden="true"></i>
+            <span class="toggle-label">{{ 'relationship.treeView' | translate }}</span>
+          </mat-button-toggle>
+        </mat-button-toggle-group>
+      </div>
+
       <!-- Chart Container -->
       <div class="relationship-path-overlay__chart" #chartContainer>
         <svg #svg></svg>
@@ -40,13 +54,13 @@
 
       <!-- Controls -->
       <div class="relationship-path-overlay__controls">
-        <button mat-icon-button (click)="zoomIn()" [matTooltip]="'common.zoomIn' | translate">
+        <button mat-icon-button (click)="zoomIn()" [matTooltip]="'relationship.zoomIn' | translate">
           <i class="fa-solid fa-plus" aria-hidden="true"></i>
         </button>
-        <button mat-icon-button (click)="zoomOut()" [matTooltip]="'common.zoomOut' | translate">
+        <button mat-icon-button (click)="zoomOut()" [matTooltip]="'relationship.zoomOut' | translate">
           <i class="fa-solid fa-minus" aria-hidden="true"></i>
         </button>
-        <button mat-icon-button (click)="fitToScreen()" [matTooltip]="'common.fitToScreen' | translate">
+        <button mat-icon-button (click)="fitToScreen()" [matTooltip]="'relationship.fitToScreen' | translate">
           <i class="fa-solid fa-expand" aria-hidden="true"></i>
         </button>
       </div>

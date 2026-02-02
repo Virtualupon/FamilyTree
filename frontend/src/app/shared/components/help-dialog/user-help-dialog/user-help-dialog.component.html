@@ -1,0 +1,295 @@
+<div class="help-dialog" role="dialog" aria-labelledby="help-dialog-title">
+  <!-- Header -->
+  <div class="help-header">
+    <div class="help-title">
+      <mat-icon aria-hidden="true">help_outline</mat-icon>
+      <h2 id="help-dialog-title">{{ 'HELP.USER.TITLE' | translate }}</h2>
+    </div>
+    <button
+      mat-icon-button
+      class="close-button"
+      (click)="close()"
+      [attr.aria-label]="'COMMON.CLOSE' | translate">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="help-tabs" role="tablist" [attr.aria-label]="'HELP.SECTIONS' | translate">
+    @for (tab of tabs; track tab.id) {
+      <button
+        class="tab-btn"
+        [class.active]="activeTab === tab.id"
+        (click)="setActiveTab(tab.id)"
+        (keydown)="onTabKeydown($event, tab.id)"
+        role="tab"
+        [attr.aria-selected]="activeTab === tab.id"
+        [attr.aria-controls]="'tabpanel-' + tab.id"
+        [id]="'tab-' + tab.id">
+        <mat-icon aria-hidden="true">{{ tab.icon }}</mat-icon>
+        <span>{{ tab.labelKey | translate }}</span>
+      </button>
+    }
+  </div>
+
+  <!-- Content Area -->
+  <div class="help-content">
+    <!-- Overview Tab -->
+    @if (activeTab === 'overview') {
+      <div class="tab-content" role="tabpanel" id="tabpanel-overview" aria-labelledby="tab-overview">
+        <h3>{{ 'HELP.USER.OVERVIEW.TITLE' | translate }}</h3>
+        <p>{{ 'HELP.USER.OVERVIEW.INTRO' | translate }}</p>
+
+        <h4>{{ 'HELP.USER.OVERVIEW.FEATURES_TITLE' | translate }}</h4>
+        <ul class="feature-list">
+          <li>{{ 'HELP.USER.OVERVIEW.FEATURE_1' | translate }}</li>
+          <li>{{ 'HELP.USER.OVERVIEW.FEATURE_2' | translate }}</li>
+          <li>{{ 'HELP.USER.OVERVIEW.FEATURE_3' | translate }}</li>
+          <li>{{ 'HELP.USER.OVERVIEW.FEATURE_4' | translate }}</li>
+          <li>{{ 'HELP.USER.OVERVIEW.FEATURE_5' | translate }}</li>
+        </ul>
+      </div>
+    }
+
+    <!-- Onboarding Tab -->
+    @if (activeTab === 'onboarding') {
+      <div class="tab-content" role="tabpanel" id="tabpanel-onboarding" aria-labelledby="tab-onboarding">
+        <h3>{{ 'HELP.USER.ONBOARDING.TITLE' | translate }}</h3>
+        <p>{{ 'HELP.USER.ONBOARDING.INTRO' | translate }}</p>
+
+        <div class="step-list">
+          <div class="step">
+            <div class="step-number">1</div>
+            <div class="step-content">
+              <div class="step-title">{{ 'HELP.USER.ONBOARDING.STEP1_TITLE' | translate }}</div>
+              <div class="step-desc">{{ 'HELP.USER.ONBOARDING.STEP1_DESC' | translate }}</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">2</div>
+            <div class="step-content">
+              <div class="step-title">{{ 'HELP.USER.ONBOARDING.STEP2_TITLE' | translate }}</div>
+              <div class="step-desc">{{ 'HELP.USER.ONBOARDING.STEP2_DESC' | translate }}</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-number">3</div>
+            <div class="step-content">
+              <div class="step-title">{{ 'HELP.USER.ONBOARDING.STEP3_TITLE' | translate }}</div>
+              <div class="step-desc">{{ 'HELP.USER.ONBOARDING.STEP3_DESC' | translate }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Dashboard Tab -->
+    @if (activeTab === 'dashboard') {
+      <div class="tab-content" role="tabpanel" id="tabpanel-dashboard" aria-labelledby="tab-dashboard">
+        <h3>{{ 'HELP.USER.DASHBOARD.TITLE' | translate }}</h3>
+        <p>{{ 'HELP.USER.DASHBOARD.INTRO' | translate }}</p>
+
+        <h4>{{ 'HELP.USER.DASHBOARD.STATS_TITLE' | translate }}</h4>
+        <p>{{ 'HELP.USER.DASHBOARD.STATS_DESC' | translate }}</p>
+
+        <h4>{{ 'HELP.USER.DASHBOARD.TREES_TITLE' | translate }}</h4>
+        <p>{{ 'HELP.USER.DASHBOARD.TREES_DESC' | translate }}</p>
+
+        <div class="tip-box" role="note">
+          <div class="tip-header">
+            <mat-icon aria-hidden="true">lightbulb</mat-icon>
+            <span>{{ 'HELP.USER.DASHBOARD.CHANGE_TOWN' | translate }}</span>
+          </div>
+          <p>{{ 'HELP.USER.DASHBOARD.CHANGE_TOWN_DESC' | translate }}</p>
+        </div>
+      </div>
+    }
+
+    <!-- Trees Tab -->
+    @if (activeTab === 'trees') {
+      <div class="tab-content" role="tabpanel" id="tabpanel-trees" aria-labelledby="tab-trees">
+        <h3>{{ 'HELP.USER.TREES.TITLE' | translate }}</h3>
+        <p>{{ 'HELP.USER.TREES.INTRO' | translate }}</p>
+
+        <h4>{{ 'HELP.USER.TREES.VIEW_TITLE' | translate }}</h4>
+        <p>{{ 'HELP.USER.TREES.VIEW_DESC' | translate }}</p>
+
+        <h4>{{ 'HELP.USER.TREES.SEARCH_TITLE' | translate }}</h4>
+        <p>{{ 'HELP.USER.TREES.SEARCH_DESC' | translate }}</p>
+
+        <h4>{{ 'HELP.USER.TREES.FILTER_TITLE' | translate }}</h4>
+        <p>{{ 'HELP.USER.TREES.FILTER_DESC' | translate }}</p>
+      </div>
+    }
+
+    <!-- People Tab -->
+    @if (activeTab === 'people') {
+      <div class="tab-content" role="tabpanel" id="tabpanel-people" aria-labelledby="tab-people">
+        <h3>{{ 'HELP.USER.PEOPLE.TITLE' | translate }}</h3>
+        <p>{{ 'HELP.USER.PEOPLE.INTRO' | translate }}</p>
+
+        <h4>{{ 'HELP.USER.PEOPLE.SEARCH_TITLE' | translate }}</h4>
+        <p>{{ 'HELP.USER.PEOPLE.SEARCH_DESC' | translate }}</p>
+
+        <h4>{{ 'HELP.USER.PEOPLE.FILTER_TITLE' | translate }}</h4>
+        <p>{{ 'HELP.USER.PEOPLE.FILTER_DESC' | translate }}</p>
+
+        <h4>{{ 'HELP.USER.PEOPLE.PROFILE_TITLE' | translate }}</h4>
+        <p>{{ 'HELP.USER.PEOPLE.PROFILE_DESC' | translate }}</p>
+      </div>
+    }
+
+    <!-- Tree View Tab -->
+    @if (activeTab === 'tree-view') {
+      <div class="tab-content" role="tabpanel" id="tabpanel-tree-view" aria-labelledby="tab-tree-view">
+        <h3>{{ 'HELP.USER.TREE_VIEW.TITLE' | translate }}</h3>
+        <p>{{ 'HELP.USER.TREE_VIEW.INTRO' | translate }}</p>
+
+        <h4>{{ 'HELP.USER.TREE_VIEW.NAVIGATION_TITLE' | translate }}</h4>
+        <ul class="control-list">
+          <li><kbd>+</kbd> {{ 'HELP.USER.TREE_VIEW.ZOOM_IN' | translate }}</li>
+          <li><kbd>-</kbd> {{ 'HELP.USER.TREE_VIEW.ZOOM_OUT' | translate }}</li>
+          <li>{{ 'HELP.USER.TREE_VIEW.PAN' | translate }}</li>
+          <li>{{ 'HELP.USER.TREE_VIEW.FIT_SCREEN' | translate }}</li>
+        </ul>
+
+        <h4>{{ 'HELP.USER.TREE_VIEW.VIEWS_TITLE' | translate }}</h4>
+        <ul>
+          <li><strong>{{ 'HELP.USER.TREE_VIEW.PEDIGREE' | translate }}</strong></li>
+          <li><strong>{{ 'HELP.USER.TREE_VIEW.DESCENDANTS' | translate }}</strong></li>
+          <li><strong>{{ 'HELP.USER.TREE_VIEW.HOURGLASS' | translate }}</strong></li>
+        </ul>
+
+        <div class="tip-box" role="note">
+          <div class="tip-header">
+            <mat-icon aria-hidden="true">touch_app</mat-icon>
+            <span>{{ 'COMMON.TIP' | translate }}</span>
+          </div>
+          <p>{{ 'HELP.USER.TREE_VIEW.CLICK_PERSON' | translate }}</p>
+        </div>
+      </div>
+    }
+
+    <!-- Media Tab -->
+    @if (activeTab === 'media') {
+      <div class="tab-content" role="tabpanel" id="tabpanel-media" aria-labelledby="tab-media">
+        <h3>{{ 'HELP.USER.MEDIA.TITLE' | translate }}</h3>
+        <p>{{ 'HELP.USER.MEDIA.INTRO' | translate }}</p>
+
+        <h4>{{ 'HELP.USER.MEDIA.BROWSE_TITLE' | translate }}</h4>
+        <p>{{ 'HELP.USER.MEDIA.BROWSE_DESC' | translate }}</p>
+
+        <h4>{{ 'HELP.USER.MEDIA.FILTER_TITLE' | translate }}</h4>
+        <p>{{ 'HELP.USER.MEDIA.FILTER_DESC' | translate }}</p>
+
+        <h4>{{ 'HELP.USER.MEDIA.VIEW_TITLE' | translate }}</h4>
+        <p>{{ 'HELP.USER.MEDIA.VIEW_DESC' | translate }}</p>
+      </div>
+    }
+
+    <!-- Suggestions Tab -->
+    @if (activeTab === 'suggestions') {
+      <div class="tab-content" role="tabpanel" id="tabpanel-suggestions" aria-labelledby="tab-suggestions">
+        <h3>{{ 'HELP.USER.SUGGESTIONS.TITLE' | translate }}</h3>
+        <p>{{ 'HELP.USER.SUGGESTIONS.INTRO' | translate }}</p>
+
+        <h4>{{ 'HELP.USER.SUGGESTIONS.HOW_TITLE' | translate }}</h4>
+        <p>{{ 'HELP.USER.SUGGESTIONS.HOW_DESC' | translate }}</p>
+
+        <h4>{{ 'HELP.USER.SUGGESTIONS.TYPES_TITLE' | translate }}</h4>
+        <ul>
+          <li><strong>{{ 'HELP.USER.SUGGESTIONS.TYPE_PARENT' | translate }}</strong></li>
+          <li><strong>{{ 'HELP.USER.SUGGESTIONS.TYPE_CHILD' | translate }}</strong></li>
+          <li><strong>{{ 'HELP.USER.SUGGESTIONS.TYPE_SPOUSE' | translate }}</strong></li>
+          <li><strong>{{ 'HELP.USER.SUGGESTIONS.TYPE_CORRECTION' | translate }}</strong></li>
+        </ul>
+
+        <h4>{{ 'HELP.USER.SUGGESTIONS.STATUS_TITLE' | translate }}</h4>
+        <div class="status-list">
+          <div class="status-item pending">
+            <mat-icon aria-hidden="true">schedule</mat-icon>
+            <span>{{ 'HELP.USER.SUGGESTIONS.STATUS_PENDING' | translate }}</span>
+          </div>
+          <div class="status-item approved">
+            <mat-icon aria-hidden="true">check_circle</mat-icon>
+            <span>{{ 'HELP.USER.SUGGESTIONS.STATUS_APPROVED' | translate }}</span>
+          </div>
+          <div class="status-item rejected">
+            <mat-icon aria-hidden="true">cancel</mat-icon>
+            <span>{{ 'HELP.USER.SUGGESTIONS.STATUS_REJECTED' | translate }}</span>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Profile Tab -->
+    @if (activeTab === 'profile') {
+      <div class="tab-content" role="tabpanel" id="tabpanel-profile" aria-labelledby="tab-profile">
+        <h3>{{ 'HELP.USER.PROFILE.TITLE' | translate }}</h3>
+        <p>{{ 'HELP.USER.PROFILE.INTRO' | translate }}</p>
+
+        <h4>{{ 'HELP.USER.PROFILE.LANGUAGE_TITLE' | translate }}</h4>
+        <p>{{ 'HELP.USER.PROFILE.LANGUAGE_DESC' | translate }}</p>
+
+        <h4>{{ 'HELP.USER.PROFILE.TOWN_TITLE' | translate }}</h4>
+        <p>{{ 'HELP.USER.PROFILE.TOWN_DESC' | translate }}</p>
+      </div>
+    }
+
+    <!-- Tips Tab -->
+    @if (activeTab === 'tips') {
+      <div class="tab-content" role="tabpanel" id="tabpanel-tips" aria-labelledby="tab-tips">
+        <h3>{{ 'HELP.USER.TIPS.TITLE' | translate }}</h3>
+
+        <div class="tips-grid">
+          <div class="tip-card">
+            <div class="tip-icon">
+              <mat-icon aria-hidden="true">translate</mat-icon>
+            </div>
+            <div class="tip-title">{{ 'HELP.USER.TIPS.TIP1_TITLE' | translate }}</div>
+            <div class="tip-desc">{{ 'HELP.USER.TIPS.TIP1_DESC' | translate }}</div>
+          </div>
+
+          <div class="tip-card">
+            <div class="tip-icon">
+              <mat-icon aria-hidden="true">hub</mat-icon>
+            </div>
+            <div class="tip-title">{{ 'HELP.USER.TIPS.TIP2_TITLE' | translate }}</div>
+            <div class="tip-desc">{{ 'HELP.USER.TIPS.TIP2_DESC' | translate }}</div>
+          </div>
+
+          <div class="tip-card">
+            <div class="tip-icon">
+              <mat-icon aria-hidden="true">rate_review</mat-icon>
+            </div>
+            <div class="tip-title">{{ 'HELP.USER.TIPS.TIP3_TITLE' | translate }}</div>
+            <div class="tip-desc">{{ 'HELP.USER.TIPS.TIP3_DESC' | translate }}</div>
+          </div>
+
+          <div class="tip-card">
+            <div class="tip-icon">
+              <mat-icon aria-hidden="true">spellcheck</mat-icon>
+            </div>
+            <div class="tip-title">{{ 'HELP.USER.TIPS.TIP4_TITLE' | translate }}</div>
+            <div class="tip-desc">{{ 'HELP.USER.TIPS.TIP4_DESC' | translate }}</div>
+          </div>
+
+          <div class="tip-card">
+            <div class="tip-icon">
+              <mat-icon aria-hidden="true">offline_bolt</mat-icon>
+            </div>
+            <div class="tip-title">{{ 'HELP.USER.TIPS.TIP5_TITLE' | translate }}</div>
+            <div class="tip-desc">{{ 'HELP.USER.TIPS.TIP5_DESC' | translate }}</div>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Footer -->
+  <div class="help-footer">
+    <button mat-raised-button color="primary" (click)="close()">
+      {{ 'HELP.CLOSE_BUTTON' | translate }}
+    </button>
+  </div>
+</div>

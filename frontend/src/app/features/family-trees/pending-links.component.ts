@@ -12,7 +12,8 @@ import { I18nService, TranslatePipe } from '../../core/i18n';
   selector: 'app-pending-links',
   standalone: true,
   imports: [CommonModule, FormsModule, TranslatePipe],
-  templateUrl: './pending-links.component.html'
+  templateUrl: './pending-links.component.html',
+  styleUrls: ['./pending-links.component.scss']
 })
 export class PendingLinksComponent implements OnInit {
   private readonly i18n = inject(I18nService);

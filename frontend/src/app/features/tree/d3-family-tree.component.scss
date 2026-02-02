@@ -70,18 +70,18 @@
 
   .node-name {
     font-family: 'Inter', 'Roboto', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     fill: #2D2D2D; // Nubian charcoal
-    text-anchor: middle;
+    text-anchor: start;
     pointer-events: none;
   }
 
   .node-dates {
     font-family: 'Inter', 'Roboto', sans-serif;
-    font-size: 11px;
+    font-size: 10px;
     fill: #6B6B6B; // Nubian gray
-    text-anchor: middle;
+    text-anchor: start;
     pointer-events: none;
   }
 
@@ -113,9 +113,53 @@
 
   .generation-label {
     font-family: 'Inter', 'Roboto', sans-serif;
-    font-size: 12px;
-    fill: #9CA3AF; // Nubian gray-light
-    text-anchor: start;
+    font-size: 13px;
+    font-weight: 600;
+    fill: #2D2D2D; // Nubian charcoal
+    text-anchor: middle;
+    pointer-events: none;
+  }
+
+  .generation-count {
+    font-family: 'Inter', 'Roboto', sans-serif;
+    font-size: 11px;
+    fill: #6B6B6B; // Nubian gray
+    pointer-events: none;
+  }
+
+  .collapse-indicator {
+    pointer-events: none;
+    transition: transform 0.2s ease;
+  }
+
+  .generation-label-group {
+    transition: transform 0.2s ease;
+
+    &.clickable {
+      cursor: pointer;
+
+      &:hover {
+        transform: scale(1.02);
+      }
+    }
+  }
+
+  .generation-label-bg {
+    transition: all 0.2s ease;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+
+    &.collapsed {
+      opacity: 0.8;
+    }
+  }
+
+  .generation-bands {
+    pointer-events: none;
+  }
+
+  .generation-band {
+    pointer-events: none;
+    transition: fill 0.3s ease;
   }
 
   .cross-tree-badge {

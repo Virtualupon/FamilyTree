@@ -175,9 +175,6 @@ var redisInstanceName = redisConfig.GetValue<string>("InstanceName");
 
 if (redisEnabled)
 {
-    Log.Information("Redis cache ENABLED - Configuring connection to {ConnectionString} with instance {InstanceName}",
-        redisConnectionString, redisInstanceName);
-
     services.AddStackExchangeRedisCache(options =>
     {
         options.InstanceName = redisInstanceName;
@@ -186,7 +183,6 @@ if (redisEnabled)
 }
 else
 {
-    Log.Information("Redis cache DISABLED - Using in-memory distributed cache");
     services.AddDistributedMemoryCache();
 }
 
@@ -433,6 +429,9 @@ await mappingService.InitializeAsync();
 // -------------------------------
 if (redisEnabled)
 {
+    app.Logger.LogInformation("Redis cache ENABLED - Connecting to {ConnectionString} with instance {InstanceName}",
+        redisConnectionString, redisInstanceName);
+
     try
     {
         var cache = app.Services.GetRequiredService<IDistributedCache>();
@@ -448,8 +447,7 @@ if (redisEnabled)
 
         if (readBack == testValue)
         {
-            app.Logger.LogInformation("Redis connection VERIFIED - Successfully connected to {ConnectionString}",
-                redisConnectionString);
+            app.Logger.LogInformation("Redis connection VERIFIED - Successfully connected");
         }
         else
         {
@@ -460,9 +458,12 @@ if (redisEnabled)
     }
     catch (Exception ex)
     {
-        app.Logger.LogError(ex, "Redis connection FAILED - Could not connect to {ConnectionString}. Cache operations will fail until Redis is available.",
-            redisConnectionString);
+        app.Logger.LogError(ex, "Redis connection FAILED - Could not connect. Cache operations will fail until Redis is available.");
     }
+}
+else
+{
+    app.Logger.LogInformation("Redis cache DISABLED - Using in-memory distributed cache");
 }
 
 // -------------------------------

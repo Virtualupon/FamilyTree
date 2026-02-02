@@ -34,13 +34,25 @@
         "/api/person/**",
         "/api/tree/**",
         "/api/relationship/**",
-        "/api/family/**",
-        "/api/auth/**"
+        "/api/family/**"
       ],
       "cacheConfig": {
         "strategy": "freshness",
         "maxSize": 100,
         "maxAge": "1h",
+        "timeout": "10s"
+      }
+    },
+    {
+      "name": "api-never-cache",
+      "urls": [
+        "/api/auth/**",
+        "/api/admin/**"
+      ],
+      "cacheConfig": {
+        "strategy": "freshness",
+        "maxSize": 0,
+        "maxAge": "0u",
         "timeout": "10s"
       }
     },

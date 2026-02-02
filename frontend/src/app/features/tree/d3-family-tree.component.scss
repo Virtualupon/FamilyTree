@@ -11,6 +11,12 @@
   height: 100%;
   cursor: grab;
 
+  // CRITICAL: Prevent browser gesture handling (pinch-zoom, pan) on the SVG
+  // D3 handles all touch interactions internally via d3-zoom
+  // This allows user-scalable=yes in viewport for WCAG accessibility
+  // without conflicting with D3's zoom/pan behavior
+  touch-action: none;
+
   &:active {
     cursor: grabbing;
   }

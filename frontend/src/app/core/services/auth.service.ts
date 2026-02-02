@@ -1,7 +1,8 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, isDevMode } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, BehaviorSubject, tap, of, catchError, map } from 'rxjs';
+import { SwUpdate } from '@angular/service-worker';
 import {
   AuthResponse,
   LoginRequest,
@@ -37,7 +38,8 @@ export class AuthService {
 
   constructor(
     private http: HttpClient,
-    private router: Router
+    private router: Router,
+    private swUpdate: SwUpdate
   ) {}
 
   login(request: LoginRequest): Observable<AuthResponse> {
@@ -61,6 +63,10 @@ export class AuthService {
     this.currentUserSubject.next(null);
     this.isAuthenticated.set(false);
 
+    // CRITICAL: Clear Service Worker cache on logout to prevent data leakage
+    // This ensures the next user on a shared device doesn't see cached family data
+    this.clearServiceWorkerCache();
+
     if (refreshToken) {
       // Call revoke endpoint to invalidate the refresh token on the server
       // Silently ignore errors - logout should always succeed locally
@@ -70,6 +76,34 @@ export class AuthService {
     }
 
     return of(undefined);
+  }
+
+  /**
+   * Clear all Service Worker caches on logout.
+   * SECURITY: Prevents cached family data from being exposed to subsequent users
+   * on shared or public devices.
+   */
+  private async clearServiceWorkerCache(): Promise<void> {
+    if (isDevMode() || !this.swUpdate.isEnabled) {
+      return;
+    }
+
+    try {
+      // Clear all caches managed by the browser
+      const cacheNames = await caches.keys();
+      const apiCaches = cacheNames.filter(name =>
+        name.includes('ngsw') || name.includes('api')
+      );
+
+      await Promise.all(
+        apiCaches.map(cacheName => caches.delete(cacheName))
+      );
+
+      console.log('Service Worker caches cleared on logout');
+    } catch (error) {
+      // Don't block logout on cache clearing failure
+      console.warn('Failed to clear SW caches:', error);
+    }
   }
 
   refreshToken(): Observable<AuthResponse> {

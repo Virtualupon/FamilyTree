@@ -4,7 +4,13 @@
   <meta charset="utf-8">
   <title>Family Tree Platform</title>
   <base href="/">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+  <!--
+  Viewport Configuration:
+  - user-scalable=yes: Required for WCAG 2.1 Level AA accessibility compliance
+  - maximum-scale=5: Allows 5x zoom for users with visual impairments
+  - D3 tree component uses CSS touch-action:none to prevent gesture conflicts
+-->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5, user-scalable=yes">
 
   <!-- PWA Meta Tags -->
   <meta name="theme-color" content="#187573">

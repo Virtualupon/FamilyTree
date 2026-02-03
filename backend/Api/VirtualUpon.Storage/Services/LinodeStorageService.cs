@@ -106,7 +106,8 @@ namespace VirtualUpon.Storage.Services
                     return new SavedImageInfoDto
                     {
                         StorageType = _storageTypeInt,
-                        ImagePath = imagePath
+                        ImagePath = imagePath,
+                        Success = true
                     };
                 }
             }

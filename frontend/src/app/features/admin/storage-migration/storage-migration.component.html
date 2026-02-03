@@ -1,0 +1,271 @@
+<div class="storage-migration">
+  <!-- Header -->
+  <div class="header">
+    <div class="header__title">
+      <h1>
+        <i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i>
+        {{ 'admin.storageMigration.title' | translate }}
+      </h1>
+      <p class="subtitle">{{ 'admin.storageMigration.subtitle' | translate }}</p>
+    </div>
+    <button mat-flat-button (click)="loadPendingCount()" [disabled]="loading()">
+      <i class="fa-solid fa-refresh" aria-hidden="true"></i>
+      {{ 'common.refresh' | translate }}
+    </button>
+  </div>
+
+  @if (loading() && !pendingCount()) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+    </div>
+  } @else {
+    <!-- Status Cards -->
+    <div class="status-cards">
+      <!-- Pending Files Card -->
+      <mat-card class="status-card">
+        <mat-card-header>
+          <mat-card-title>
+            <i class="fa-solid fa-file" aria-hidden="true"></i>
+            {{ 'admin.storageMigration.pendingFiles' | translate }}
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="stat-value">{{ pendingCount()?.totalLocalFiles || 0 }}</div>
+          <div class="stat-label">{{ 'admin.storageMigration.filesInLocalStorage' | translate }}</div>
+          <div class="stat-secondary">{{ formatBytes(pendingCount()?.totalBytes || 0) }}</div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- By Media Kind Card -->
+      <mat-card class="status-card">
+        <mat-card-header>
+          <mat-card-title>
+            <i class="fa-solid fa-photo-film" aria-hidden="true"></i>
+            {{ 'admin.storageMigration.byMediaKind' | translate }}
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="kind-chips">
+            @for (entry of getMediaKindEntries(); track entry.kind) {
+              <mat-chip>{{ entry.kind }}: {{ entry.count }}</mat-chip>
+            }
+            @if (getMediaKindEntries().length === 0) {
+              <span class="no-data">{{ 'common.noData' | translate }}</span>
+            }
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Migration Status Card -->
+      <mat-card class="status-card" [class.running]="isRunning()">
+        <mat-card-header>
+          <mat-card-title>
+            <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+            {{ 'admin.storageMigration.status' | translate }}
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          @if (isRunning()) {
+            <div class="status-running">
+              <mat-spinner diameter="24"></mat-spinner>
+              <span>{{ 'admin.storageMigration.migrationInProgress' | translate }}</span>
+            </div>
+          } @else {
+            <div class="status-idle">
+              <i class="fa-solid fa-check-circle" aria-hidden="true"></i>
+              <span>{{ 'admin.storageMigration.ready' | translate }}</span>
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Progress Section -->
+    @if (progress()) {
+      <mat-card class="progress-card">
+        <mat-card-header>
+          <mat-card-title>
+            <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
+            {{ 'admin.storageMigration.progress' | translate }}
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="progress-stats">
+            <div class="progress-stat">
+              <span class="label">{{ 'admin.storageMigration.processed' | translate }}</span>
+              <span class="value">{{ progress()!.processedFiles }} / {{ progress()!.totalFiles }}</span>
+            </div>
+            <div class="progress-stat success">
+              <span class="label">{{ 'admin.storageMigration.success' | translate }}</span>
+              <span class="value">{{ progress()!.successCount }}</span>
+            </div>
+            <div class="progress-stat error">
+              <span class="label">{{ 'admin.storageMigration.failed' | translate }}</span>
+              <span class="value">{{ progress()!.failedCount }}</span>
+            </div>
+            <div class="progress-stat">
+              <span class="label">{{ 'admin.storageMigration.transferred' | translate }}</span>
+              <span class="value">{{ formatBytes(progress()!.totalBytesTransferred) }}</span>
+            </div>
+          </div>
+          <mat-progress-bar
+            [mode]="isRunning() ? 'determinate' : 'determinate'"
+            [value]="progress()!.progressPercent">
+          </mat-progress-bar>
+          <div class="progress-percent">{{ progress()!.progressPercent | number:'1.1-1' }}%</div>
+          @if (progress()!.currentFile && isRunning()) {
+            <div class="current-file">
+              <i class="fa-solid fa-file" aria-hidden="true"></i>
+              {{ progress()!.currentFile }}
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+    }
+
+    <!-- Configuration Section -->
+    <mat-card class="config-card">
+      <mat-card-header>
+        <mat-card-title>
+          <i class="fa-solid fa-gear" aria-hidden="true"></i>
+          {{ 'admin.storageMigration.configuration' | translate }}
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="config-form">
+          <div class="config-row">
+            <mat-slide-toggle [(ngModel)]="config.renameFiles">
+              {{ 'admin.storageMigration.renameFiles' | translate }}
+            </mat-slide-toggle>
+            <span class="config-hint">{{ 'admin.storageMigration.renameFilesHint' | translate }}</span>
+          </div>
+
+          <div class="config-row">
+            <mat-slide-toggle [(ngModel)]="config.deleteLocalAfter" color="warn">
+              {{ 'admin.storageMigration.deleteLocalAfter' | translate }}
+            </mat-slide-toggle>
+            <span class="config-hint warn">{{ 'admin.storageMigration.deleteLocalAfterHint' | translate }}</span>
+          </div>
+
+          <mat-divider></mat-divider>
+
+          <div class="config-fields">
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'admin.storageMigration.batchSize' | translate }}</mat-label>
+              <input matInput type="number" [(ngModel)]="config.batchSize" min="1" max="100">
+              <mat-hint>{{ 'admin.storageMigration.batchSizeHint' | translate }}</mat-hint>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'admin.storageMigration.maxFiles' | translate }}</mat-label>
+              <input matInput type="number" [(ngModel)]="config.maxFiles" min="0">
+              <mat-hint>{{ 'admin.storageMigration.maxFilesHint' | translate }}</mat-hint>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'admin.storageMigration.maxConcurrency' | translate }}</mat-label>
+              <input matInput type="number" [(ngModel)]="config.maxConcurrency" min="1" max="10">
+              <mat-hint>{{ 'admin.storageMigration.maxConcurrencyHint' | translate }}</mat-hint>
+            </mat-form-field>
+          </div>
+        </div>
+      </mat-card-content>
+      <mat-card-actions align="end">
+        <button mat-stroked-button (click)="runPreview()" [disabled]="isRunning() || loading()">
+          <i class="fa-solid fa-eye" aria-hidden="true"></i>
+          {{ 'admin.storageMigration.preview' | translate }}
+        </button>
+        @if (isRunning()) {
+          <button mat-flat-button color="warn" (click)="cancelMigration()">
+            <i class="fa-solid fa-stop" aria-hidden="true"></i>
+            {{ 'admin.storageMigration.cancel' | translate }}
+          </button>
+        } @else {
+          <button mat-flat-button color="primary" (click)="startMigration()"
+                  [disabled]="!pendingCount()?.totalLocalFiles">
+            <i class="fa-solid fa-play" aria-hidden="true"></i>
+            {{ 'admin.storageMigration.startMigration' | translate }}
+          </button>
+        }
+      </mat-card-actions>
+    </mat-card>
+
+    <!-- Preview Results -->
+    @if (showPreview() && previewResults().length > 0) {
+      <mat-card class="preview-card">
+        <mat-card-header>
+          <mat-card-title>
+            <i class="fa-solid fa-list" aria-hidden="true"></i>
+            {{ 'admin.storageMigration.previewResults' | translate }}
+            <span class="count">({{ previewResults().length }})</span>
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="table-container">
+            <table mat-table [dataSource]="previewResults()" class="preview-table">
+              <ng-container matColumnDef="oldPath">
+                <th mat-header-cell *matHeaderCellDef>{{ 'admin.storageMigration.oldPath' | translate }}</th>
+                <td mat-cell *matCellDef="let row" class="path-cell">
+                  <code>{{ row.oldPath }}</code>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="newPath">
+                <th mat-header-cell *matHeaderCellDef>{{ 'admin.storageMigration.newPath' | translate }}</th>
+                <td mat-cell *matCellDef="let row" class="path-cell">
+                  <code class="new-path">{{ row.newPath }}</code>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="fileSize">
+                <th mat-header-cell *matHeaderCellDef>{{ 'admin.storageMigration.fileSize' | translate }}</th>
+                <td mat-cell *matCellDef="let row">{{ formatBytes(row.fileSize) }}</td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="previewColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: previewColumns;"></tr>
+            </table>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    }
+
+    <!-- Errors Section -->
+    @if (errors().length > 0) {
+      <mat-card class="errors-card">
+        <mat-card-header>
+          <mat-card-title>
+            <i class="fa-solid fa-exclamation-triangle" aria-hidden="true"></i>
+            {{ 'admin.storageMigration.errors' | translate }}
+            <span class="count error">({{ errors().length }})</span>
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="table-container">
+            <table mat-table [dataSource]="errors()" class="errors-table">
+              <ng-container matColumnDef="fileName">
+                <th mat-header-cell *matHeaderCellDef>{{ 'admin.storageMigration.fileName' | translate }}</th>
+                <td mat-cell *matCellDef="let row">{{ row.fileName }}</td>
+              </ng-container>
+
+              <ng-container matColumnDef="oldPath">
+                <th mat-header-cell *matHeaderCellDef>{{ 'admin.storageMigration.path' | translate }}</th>
+                <td mat-cell *matCellDef="let row" class="path-cell">
+                  <code>{{ row.oldPath }}</code>
+                </td>
+              </ng-container>
+
+              <ng-container matColumnDef="errorMessage">
+                <th mat-header-cell *matHeaderCellDef>{{ 'admin.storageMigration.error' | translate }}</th>
+                <td mat-cell *matCellDef="let row" class="error-cell">{{ row.errorMessage }}</td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="errorColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: errorColumns;"></tr>
+            </table>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    }
+  }
+</div>

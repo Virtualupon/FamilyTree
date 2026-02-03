@@ -91,6 +91,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/admin/suggestion-review.component').then(m => m.SuggestionReviewComponent)
       },
       {
+        path: 'admin/storage-migration',
+        canActivate: [superAdminGuard],
+        loadComponent: () => import('./features/admin/storage-migration/storage-migration.component').then(m => m.StorageMigrationComponent)
+      },
+      {
         path: 'suggestions',
         children: [
           {

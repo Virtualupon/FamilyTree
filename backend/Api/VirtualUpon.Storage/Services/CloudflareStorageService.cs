@@ -1,3 +1,4 @@
+using Amazon;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Microsoft.Extensions.Caching.Distributed;
@@ -47,9 +48,13 @@ namespace VirtualUpon.Storage.Services
             var s3Config = new AmazonS3Config
             {
                 ServiceURL = _serviceURL,
-                ForcePathStyle = false, // R2 uses virtual-hosted-style
-                UseHttp = false // Always use HTTPS with R2
+                ForcePathStyle = true, // R2 works better with path-style
+                UseHttp = false, // Always use HTTPS with R2
+                SignatureVersion = "4" // Use AWS Signature Version 4
             };
+
+            // Disable payload signing - R2 doesn't support STREAMING-AWS4-HMAC-SHA256-PAYLOAD
+            AWSConfigsS3.UseSignatureVersion4 = true;
 
             _s3Client = new AmazonS3Client(accessKey, secretKey, s3Config);
 
@@ -84,7 +89,8 @@ namespace VirtualUpon.Storage.Services
                     {
                         BucketName = _bucketName,
                         Key = key,
-                        InputStream = memoryStream
+                        InputStream = memoryStream,
+                        DisablePayloadSigning = true // R2 doesn't support STREAMING-AWS4-HMAC-SHA256-PAYLOAD
                     };
 
                     await _s3Client.PutObjectAsync(putRequest);
@@ -104,7 +110,8 @@ namespace VirtualUpon.Storage.Services
                     return new SavedImageInfoDto
                     {
                         StorageType = _storageTypeInt,
-                        ImagePath = imagePath
+                        ImagePath = imagePath,
+                        Success = true
                     };
                 }
             }

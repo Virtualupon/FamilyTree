@@ -59,7 +59,10 @@
     "viewProfile": "View Profile",
     "continue": "Continue",
     "trees": "trees",
-    "familyTrees": "family trees"
+    "familyTrees": "family trees",
+    "zoomIn": "Zoom In",
+    "zoomOut": "Zoom Out",
+    "resetZoom": "Reset Zoom"
   },
   "auth": {
     "login": "Login",
@@ -561,6 +564,51 @@
       "activeStatus": "Active",
       "activeHint": "Inactive images will not be displayed in carousels",
       "invalidImage": "Could not load image"
+    },
+    "storageMigration": {
+      "title": "Storage Migration",
+      "subtitle": "Migrate media files from local storage to Cloudflare R2",
+      "pendingFiles": "Pending Files",
+      "filesInLocalStorage": "files in local storage",
+      "byMediaKind": "By Media Type",
+      "status": "Status",
+      "migrationInProgress": "Migration in progress...",
+      "ready": "Ready to migrate",
+      "progress": "Progress",
+      "processed": "Processed",
+      "success": "Success",
+      "failed": "Failed",
+      "transferred": "Transferred",
+      "configuration": "Configuration",
+      "renameFiles": "Use descriptive file names",
+      "renameFilesHint": "Rename files using person name, date, and type",
+      "deleteLocalAfter": "Delete local files after migration",
+      "deleteLocalAfterHint": "Warning: This cannot be undone",
+      "batchSize": "Batch Size",
+      "batchSizeHint": "Files per batch (1-100)",
+      "maxFiles": "Max Files",
+      "maxFilesHint": "0 = unlimited",
+      "maxConcurrency": "Concurrency",
+      "maxConcurrencyHint": "Parallel uploads (1-10)",
+      "preview": "Preview",
+      "startMigration": "Start Migration",
+      "cancel": "Cancel",
+      "confirmStart": "Start migration of {{count}} files to Cloudflare R2?",
+      "confirmCancel": "Cancel the running migration?",
+      "previewResults": "Preview Results",
+      "oldPath": "Current Path",
+      "newPath": "New Path",
+      "fileSize": "Size",
+      "fileName": "File Name",
+      "path": "Path",
+      "error": "Error",
+      "errors": "Errors",
+      "errors": {
+        "loadFailed": "Failed to load pending files",
+        "previewFailed": "Failed to generate preview",
+        "migrationFailed": "Migration failed",
+        "cancelFailed": "Failed to cancel migration"
+      }
     }
   },
   "messages": {

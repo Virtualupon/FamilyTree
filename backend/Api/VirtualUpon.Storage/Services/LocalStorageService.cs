@@ -87,7 +87,8 @@ namespace VirtualUpon.Storage.Services
                 return new SavedImageInfoDto
                 {
                     StorageType = _storageTypeInt,
-                    ImagePath = Path.GetFullPath(filePath)
+                    ImagePath = Path.GetFullPath(filePath),
+                    Success = true
                 };
             }
             catch (Exception ex)

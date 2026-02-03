@@ -260,6 +260,15 @@ services.AddControllers()
 services.AddHttpContextAccessor();
 
 // -------------------------------
+// SECURITY SERVICES (Email Verification, Rate Limiting)
+// -------------------------------
+services.Configure<RateLimitConfiguration>(configuration.GetSection(RateLimitConfiguration.SectionName));
+services.Configure<EmailConfiguration>(configuration.GetSection(EmailConfiguration.SectionName));
+services.AddSingleton<ISecureCryptoService, SecureCryptoService>();
+services.AddScoped<IRateLimitService, RateLimitService>();
+services.AddScoped<IEmailService, EmailService>();
+
+// -------------------------------
 // FAMILY TREE SERVICES
 // -------------------------------
 services.AddScoped<IAuthService, AuthService>();

@@ -10,6 +10,87 @@ export interface RegisterRequest {
   lastName: string;
 }
 
+// ============================================================================
+// Two-Phase Registration (Secure)
+// ============================================================================
+
+/**
+ * Phase 1: Initiate registration request.
+ * Password is sent once here, then stored encrypted on server.
+ */
+export interface InitiateRegistrationRequest {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  homeTownId?: string;
+}
+
+/**
+ * Phase 1 response - returns registration token (NOT password).
+ * SECURITY: Frontend stores only the token, not the password.
+ */
+export interface InitiateRegistrationResponse {
+  success: boolean;
+  message: string;
+  maskedEmail: string;
+  registrationToken: string | null;
+}
+
+/**
+ * Phase 2: Complete registration using token + code.
+ * SECURITY: Password is NOT sent again.
+ */
+export interface CompleteRegistrationRequest {
+  registrationToken: string;
+  code: string;
+}
+
+export interface CompleteRegistrationResponse {
+  success: boolean;
+  message: string;
+  tokens?: AuthResponse;
+}
+
+// ============================================================================
+// Email Verification & Password Reset
+// ============================================================================
+
+export interface ResendCodeRequest {
+  email: string;
+  purpose: 'Registration' | 'PasswordReset';
+}
+
+export interface ResendCodeResponse {
+  success: boolean;
+  message: string;
+  retryAfterSeconds?: number;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ForgotPasswordResponse {
+  success: boolean;
+  message: string;
+}
+
+export interface ResetPasswordRequest {
+  email: string;
+  code: string;
+  newPassword: string;
+}
+
+export interface ResetPasswordResponse {
+  success: boolean;
+  message: string;
+}
+
+// ============================================================================
+// Auth Response & User
+// ============================================================================
+
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
@@ -31,6 +112,8 @@ export interface User {
   isFirstLogin: boolean;
   selectedTownId: string | null;
   selectedTownName: string | null;
+  homeTownId: string | null;
+  homeTownName: string | null;
 }
 
 // System-wide roles (via ASP.NET Identity)

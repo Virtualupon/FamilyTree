@@ -159,6 +159,18 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/register.component').then(m => m.RegisterComponent)
   },
   {
+    path: 'verify-email',
+    loadComponent: () => import('./features/auth/verify-email.component').then(m => m.VerifyEmailComponent)
+  },
+  {
+    path: 'forgot-password',
+    loadComponent: () => import('./features/auth/forgot-password.component').then(m => m.ForgotPasswordComponent)
+  },
+  {
+    path: 'reset-password',
+    loadComponent: () => import('./features/auth/reset-password.component').then(m => m.ResetPasswordComponent)
+  },
+  {
     path: 'invite',
     loadComponent: () => import('./features/family-trees/accept-invitation.component').then(m => m.AcceptInvitationComponent)
   },

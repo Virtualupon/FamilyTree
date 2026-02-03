@@ -104,6 +104,9 @@ export class ManageRelationshipsComponent implements OnInit, OnDestroy {
   // Path view mode (linear or tree)
   pathViewMode = signal<PathViewMode>('linear');
 
+  // Tree zoom level (0.5 to 1.5)
+  treeZoom = signal<number>(1);
+
   // Relationship types for creating/editing
   relationshipTypesGrouped = signal<FamilyRelationshipTypeGrouped[]>([]);
 
@@ -661,11 +664,12 @@ export class ManageRelationshipsComponent implements OnInit, OnDestroy {
   getPathNodeName(node: PathPersonNode): string {
     const lang = this.i18n.currentLang();
     if (lang === 'ar') {
-      return node.nameArabic || node.nameEnglish || node.primaryName;
+      return node.nameArabic || node.primaryName;
     } else if (lang === 'nob') {
-      return node.nameNobiin || node.nameEnglish || node.primaryName;
+      return node.nameNobiin || node.primaryName;
     }
-    return node.nameEnglish || node.nameArabic || node.primaryName;
+    // For English, prefer nameEnglish, then primaryName (don't mix in Arabic)
+    return node.nameEnglish || node.primaryName;
   }
 
   getEdgeLabel(edgeType: RelationshipEdgeType | number | string): string {
@@ -922,6 +926,16 @@ export class ManageRelationshipsComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Get the left branch reversed (from peak down to Person A)
+   * Used for tree view to show descendants from peak going down
+   */
+  getLeftBranchReversed(): Array<{ node: PathPersonNode; index: number }> {
+    const leftBranch = this.getLeftBranch();
+    // Reverse so we go from closest-to-peak down to Person A
+    return [...leftBranch].reverse();
+  }
+
+  /**
    * Get the peak node (common ancestor)
    */
   getPeakNode(): PathPersonNode | null {
@@ -957,6 +971,32 @@ export class ManageRelationshipsComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Get the descendant label for a node.
+   * This describes what the person IS (e.g., "Daughter", "Son").
+   * Used for showing the relationship from ancestor to descendants.
+   */
+  getDescendantLabel(node: PathPersonNode): string {
+    if (node.sex === Sex.Male) {
+      return this.i18n.t('relationship.son');
+    } else if (node.sex === Sex.Female) {
+      return this.i18n.t('relationship.daughter');
+    }
+    return this.i18n.t('relationship.child');
+  }
+
+  /**
+   * Get the descendant label for the NEXT node at the given index.
+   * Used for connectors between nodes on the right branch.
+   */
+  getDescendantLabelForNext(currentIndex: number): string {
+    const path = this.relationshipPath()?.path;
+    if (!path || currentIndex + 1 >= path.length) return '';
+
+    const nextNode = path[currentIndex + 1];
+    return this.getDescendantLabel(nextNode);
+  }
+
+  /**
    * Handle avatar image load error - hide the broken image
    */
   onAvatarError(event: Event): void {
@@ -964,5 +1004,32 @@ export class ManageRelationshipsComponent implements OnInit, OnDestroy {
     if (img) {
       img.style.display = 'none';
     }
+  }
+
+  /**
+   * Zoom in the tree view
+   */
+  zoomIn(): void {
+    const current = this.treeZoom();
+    if (current < 1.5) {
+      this.treeZoom.set(Math.min(1.5, current + 0.1));
+    }
+  }
+
+  /**
+   * Zoom out the tree view
+   */
+  zoomOut(): void {
+    const current = this.treeZoom();
+    if (current > 0.5) {
+      this.treeZoom.set(Math.max(0.5, current - 0.1));
+    }
+  }
+
+  /**
+   * Reset tree zoom to 100%
+   */
+  resetZoom(): void {
+    this.treeZoom.set(1);
   }
 }

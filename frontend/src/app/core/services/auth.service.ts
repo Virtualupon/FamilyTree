@@ -16,7 +16,15 @@ import {
   SelectTownResponse,
   AvailableTownsResponse,
   AdminLoginResponse,
-  TownInfo
+  TownInfo,
+  InitiateRegistrationRequest,
+  InitiateRegistrationResponse,
+  CompleteRegistrationRequest,
+  CompleteRegistrationResponse,
+  ResendCodeResponse,
+  ForgotPasswordResponse,
+  ResetPasswordRequest,
+  ResetPasswordResponse
 } from '../models/auth.models';
 import { environment } from '../../../environments/environment';
 
@@ -27,6 +35,8 @@ export class AuthService {
   private readonly apiUrl = `${environment.apiUrl}/auth`;
   private readonly accessTokenKey = 'access_token';
   private readonly refreshTokenKey = 'refresh_token';
+  private readonly registrationTokenKey = 'registration_token';
+  private readonly verifyEmailKey = 'verify_email';
 
   // Buffer time before expiry to trigger refresh (5 minutes)
   private readonly TOKEN_EXPIRY_BUFFER_MS = 5 * 60 * 1000;
@@ -49,11 +59,130 @@ export class AuthService {
       );
   }
 
+  /**
+   * Legacy single-phase registration (deprecated).
+   * Use initiateRegistration() and completeRegistration() instead.
+   */
   register(request: RegisterRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.apiUrl}/register`, request)
       .pipe(
         tap(response => this.handleAuthResponse(response))
       );
+  }
+
+  // ============================================================================
+  // Two-Phase Registration (Secure)
+  // SECURITY: Password is NOT stored in sessionStorage - only the registration token
+  // ============================================================================
+
+  /**
+   * Phase 1: Initiate registration - sends password once, receives token.
+   * Token is stored (NOT the password).
+   */
+  initiateRegistration(request: InitiateRegistrationRequest): Observable<InitiateRegistrationResponse> {
+    return this.http.post<InitiateRegistrationResponse>(
+      `${this.apiUrl}/register/initiate`,
+      request
+    ).pipe(
+      tap(response => {
+        if (response.success && response.registrationToken) {
+          // SECURITY: Store only the token, NOT the password
+          sessionStorage.setItem(this.registrationTokenKey, response.registrationToken);
+          sessionStorage.setItem(this.verifyEmailKey, response.maskedEmail);
+        }
+      })
+    );
+  }
+
+  /**
+   * Phase 2: Complete registration using token + verification code.
+   * SECURITY: Password is NOT re-transmitted.
+   */
+  completeRegistration(code: string): Observable<CompleteRegistrationResponse> {
+    const registrationToken = this.getRegistrationToken();
+    if (!registrationToken) {
+      return new Observable(observer => {
+        observer.error(new Error('No registration token found. Please start registration again.'));
+      });
+    }
+
+    const request: CompleteRegistrationRequest = {
+      registrationToken,
+      code
+    };
+
+    return this.http.post<CompleteRegistrationResponse>(
+      `${this.apiUrl}/register/complete`,
+      request
+    ).pipe(
+      tap(response => {
+        if (response.success && response.tokens) {
+          this.handleAuthResponse(response.tokens);
+          this.clearRegistrationData();
+        }
+      })
+    );
+  }
+
+  /**
+   * Get stored registration token (not password!).
+   */
+  getRegistrationToken(): string | null {
+    return sessionStorage.getItem(this.registrationTokenKey);
+  }
+
+  /**
+   * Get masked email for verification display.
+   */
+  getVerifyEmail(): string | null {
+    return sessionStorage.getItem(this.verifyEmailKey);
+  }
+
+  /**
+   * Clear registration data after successful registration or on cancel.
+   */
+  clearRegistrationData(): void {
+    sessionStorage.removeItem(this.registrationTokenKey);
+    sessionStorage.removeItem(this.verifyEmailKey);
+  }
+
+  /**
+   * Check if we have a pending registration.
+   */
+  hasPendingRegistration(): boolean {
+    return !!this.getRegistrationToken();
+  }
+
+  // ============================================================================
+  // Email Verification & Password Reset
+  // ============================================================================
+
+  /**
+   * Resend verification code with rate limiting support.
+   */
+  resendCode(email: string, purpose: 'Registration' | 'PasswordReset'): Observable<ResendCodeResponse> {
+    return this.http.post<ResendCodeResponse>(`${this.apiUrl}/resend-code`, { email, purpose });
+  }
+
+  /**
+   * Initiate forgot password flow.
+   */
+  forgotPassword(email: string): Observable<ForgotPasswordResponse> {
+    return this.http.post<ForgotPasswordResponse>(`${this.apiUrl}/forgot-password`, { email });
+  }
+
+  /**
+   * Reset password using verification code.
+   */
+  resetPassword(request: ResetPasswordRequest): Observable<ResetPasswordResponse> {
+    return this.http.post<ResetPasswordResponse>(`${this.apiUrl}/reset-password`, request);
+  }
+
+  /**
+   * Get towns for registration dropdown (public endpoint).
+   */
+  getTownsForRegistration(): Observable<TownInfo[]> {
+    return this.http.get<TownInfo[]>(`${this.apiUrl}/towns`);
   }
 
   logout(): Observable<void> {

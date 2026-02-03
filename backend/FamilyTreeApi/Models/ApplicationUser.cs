@@ -22,6 +22,13 @@ public class ApplicationUser : IdentityUser<long>
     public Town? SelectedTown { get; set; }
 
     /// <summary>
+    /// User's home town (where they are from).
+    /// Optional field set during registration for community connection.
+    /// </summary>
+    public Guid? HomeTownId { get; set; }
+    public Town? HomeTown { get; set; }
+
+    /// <summary>
     /// Flag indicating user needs to complete onboarding (language selection).
     /// Set to FALSE after first setup.
     /// </summary>

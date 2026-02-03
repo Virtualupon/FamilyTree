@@ -8,6 +8,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 import { PersonService } from '../../../core/services/person.service';
 import { PersonMediaService } from '../../../core/services/person-media.service';
+import { I18nService } from '../../../core/i18n';
 import type { Person, PersonListItem } from '../../../core/models/person.models';
 import type { SearchPersonItem } from '../../../core/models/search.models';
 
@@ -51,6 +52,7 @@ export class PersonAvatarComponent implements OnChanges, OnDestroy {
   private personService = inject(PersonService);
   private mediaService = inject(PersonMediaService);
   private snackBar = inject(MatSnackBar);
+  private i18n = inject(I18nService);
 
   @Input() person: Person | PersonListItem | SearchPersonItem | null = null;
   @Input() size: 'small' | 'medium' | 'large' | 'xlarge' = 'medium';
@@ -116,9 +118,18 @@ export class PersonAvatarComponent implements OnChanges, OnDestroy {
 
   get displayName(): string {
     if (!this.person) return '';
-    return this.person.primaryName ||
-           ('nameEnglish' in this.person ? this.person.nameEnglish : null) ||
-           '';
+
+    const person = this.person as any;
+    const lang = this.i18n.currentLang();
+
+    // Return name based on current language to avoid mixing scripts
+    if (lang === 'ar') {
+      return person.nameArabic || person.primaryName || '';
+    } else if (lang === 'nob') {
+      return person.nameNobiin || person.nameEnglish || person.primaryName || '';
+    }
+    // For English, prefer nameEnglish to avoid Arabic initials
+    return person.nameEnglish || person.primaryName || '';
   }
 
   get initials(): string {

@@ -1,0 +1,135 @@
+<div class="nubian-auth">
+  <!-- Animated Background Pattern -->
+  <div class="nubian-auth__pattern"></div>
+
+  <div class="nubian-auth__card">
+    <!-- Header with Logo -->
+    <div class="nubian-auth__header">
+      <div class="nubian-auth__logo">
+        <i class="fa-solid fa-envelope-circle-check" aria-hidden="true"></i>
+      </div>
+      <h1>{{ 'auth.verifyEmail' | translate }}</h1>
+      <p>{{ 'auth.verificationCodeSent' | translate }}</p>
+      <p class="email-display">{{ maskedEmail }}</p>
+    </div>
+
+    <!-- Verification Code Form -->
+    <div class="nubian-auth__content">
+      <form [formGroup]="codeForm" (ngSubmit)="onSubmit()" class="nubian-auth__form">
+        <div class="code-input-container">
+          <input
+            #codeInput
+            type="text"
+            maxlength="1"
+            formControlName="digit1"
+            class="code-digit"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            (input)="onDigitInput($event, 0)"
+            (keydown)="onKeydown($event, 0)"
+            (paste)="onPaste($event)">
+          <input
+            #codeInput
+            type="text"
+            maxlength="1"
+            formControlName="digit2"
+            class="code-digit"
+            inputmode="numeric"
+            (input)="onDigitInput($event, 1)"
+            (keydown)="onKeydown($event, 1)"
+            (paste)="onPaste($event)">
+          <input
+            #codeInput
+            type="text"
+            maxlength="1"
+            formControlName="digit3"
+            class="code-digit"
+            inputmode="numeric"
+            (input)="onDigitInput($event, 2)"
+            (keydown)="onKeydown($event, 2)"
+            (paste)="onPaste($event)">
+          <span class="code-separator">-</span>
+          <input
+            #codeInput
+            type="text"
+            maxlength="1"
+            formControlName="digit4"
+            class="code-digit"
+            inputmode="numeric"
+            (input)="onDigitInput($event, 3)"
+            (keydown)="onKeydown($event, 3)"
+            (paste)="onPaste($event)">
+          <input
+            #codeInput
+            type="text"
+            maxlength="1"
+            formControlName="digit5"
+            class="code-digit"
+            inputmode="numeric"
+            (input)="onDigitInput($event, 4)"
+            (keydown)="onKeydown($event, 4)"
+            (paste)="onPaste($event)">
+          <input
+            #codeInput
+            type="text"
+            maxlength="1"
+            formControlName="digit6"
+            class="code-digit"
+            inputmode="numeric"
+            (input)="onDigitInput($event, 5)"
+            (keydown)="onKeydown($event, 5)"
+            (paste)="onPaste($event)">
+        </div>
+
+        <p class="code-expiry">
+          <i class="fa-solid fa-clock" aria-hidden="true"></i>
+          {{ 'auth.codeExpiry' | translate }}
+        </p>
+
+        <button
+          mat-raised-button
+          type="submit"
+          class="nubian-auth__submit"
+          [disabled]="codeForm.invalid || loading">
+          @if (loading) {
+            <mat-spinner diameter="20"></mat-spinner>
+          } @else {
+            <i class="fa-solid fa-check" aria-hidden="true"></i>
+            <span>{{ 'auth.verifyButton' | translate }}</span>
+          }
+        </button>
+
+        <div class="resend-section">
+          @if (resendCountdown > 0) {
+            <p class="resend-countdown">
+              {{ 'auth.resendIn' | translate:{ seconds: resendCountdown } }}
+            </p>
+          } @else {
+            <button
+              mat-button
+              type="button"
+              class="resend-button"
+              [disabled]="resendLoading"
+              (click)="resendCode()">
+              @if (resendLoading) {
+                <mat-spinner diameter="16"></mat-spinner>
+              } @else {
+                <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+                {{ 'auth.resendCode' | translate }}
+              }
+            </button>
+          }
+        </div>
+      </form>
+
+      <div class="nubian-auth__footer">
+        <p>
+          <a (click)="cancelRegistration()" class="cancel-link">
+            <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+            {{ 'auth.backToRegister' | translate }}
+          </a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

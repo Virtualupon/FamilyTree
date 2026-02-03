@@ -68,6 +68,10 @@ public class ApplicationDbContext : IdentityDbContext<
     // Town-specific images for carousels
     public DbSet<TownImage> TownImages { get; set; }
 
+    // Email verification and registration
+    public DbSet<EmailVerificationCode> EmailVerificationCodes { get; set; }
+    public DbSet<RegistrationToken> RegistrationTokens { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -690,6 +694,60 @@ public class ApplicationDbContext : IdentityDbContext<
                 .WithMany()
                 .HasForeignKey(e => e.SelectedTownId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            // HomeTown relationship
+            entity.HasOne(e => e.HomeTown)
+                .WithMany()
+                .HasForeignKey(e => e.HomeTownId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(e => e.HomeTownId);
+        });
+
+        // ============================================================================
+        // Email Verification & Registration Entities
+        // ============================================================================
+
+        modelBuilder.Entity<EmailVerificationCode>(entity =>
+        {
+            entity.ToTable("EmailVerificationCodes");
+            entity.HasKey(e => e.Id);
+
+            // Indexes for efficient lookup
+            entity.HasIndex(e => new { e.Email, e.Purpose });
+            entity.HasIndex(e => e.ExpiresAt);
+            entity.HasIndex(e => e.CreatedAt);
+
+            // User relationship (optional - null for pre-registration)
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Optimistic concurrency with PostgreSQL xmin
+            entity.Property(e => e.RowVersion)
+                .HasColumnName("xmin")
+                .HasColumnType("xid")
+                .ValueGeneratedOnAddOrUpdate()
+                .IsConcurrencyToken();
+        });
+
+        modelBuilder.Entity<RegistrationToken>(entity =>
+        {
+            entity.ToTable("RegistrationTokens");
+            entity.HasKey(e => e.Id);
+
+            // Token must be unique and indexed for fast lookup
+            entity.HasIndex(e => e.Token).IsUnique();
+            entity.HasIndex(e => e.Email);
+            entity.HasIndex(e => e.ExpiresAt);
+
+            // Optimistic concurrency with PostgreSQL xmin
+            entity.Property(e => e.RowVersion)
+                .HasColumnName("xmin")
+                .HasColumnType("xid")
+                .ValueGeneratedOnAddOrUpdate()
+                .IsConcurrencyToken();
         });
 
         // AuditLog - Suggestion relationship (for tracking suggestion-triggered changes)

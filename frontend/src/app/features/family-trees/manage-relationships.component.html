@@ -265,102 +265,121 @@
 
           <!-- Tree Path visualization -->
           @if (pathViewMode() === 'tree') {
-            <div class="manage-relationships__tree-path">
-              <!-- Left branch (Person A going up to common ancestor) -->
-              <div class="manage-relationships__tree-branch manage-relationships__tree-branch--left">
-                @for (item of getLeftBranch(); track item.node.id; let i = $index; let last = $last) {
-                  <div class="manage-relationships__tree-level">
-                    <div
-                      class="manage-relationships__tree-node"
-                      [class.manage-relationships__tree-node--endpoint]="i === 0">
-                      @if (item.node.thumbnailUrl) {
-                        <img
-                          [src]="item.node.thumbnailUrl"
-                          [alt]="getPathNodeName(item.node)"
-                          class="manage-relationships__tree-avatar-img"
-                          (error)="onAvatarError($event)">
-                      } @else {
-                        <div
-                          class="manage-relationships__avatar"
-                          [class.manage-relationships__avatar--male]="item.node.sex === Sex.Male"
-                          [class.manage-relationships__avatar--female]="item.node.sex === Sex.Female">
-                          {{ getInitials(getPathNodeName(item.node)) }}
-                        </div>
-                      }
-                      <span class="manage-relationships__tree-name">{{ getPathNodeName(item.node) }}</span>
-                    </div>
-                    <!-- Connector to next node (going up) - show what CURRENT person is (e.g., "Son Of") -->
-                    <div class="manage-relationships__tree-connector manage-relationships__tree-connector--up">
-                      <span class="manage-relationships__tree-edge-label">{{ getInverseRelationshipLabel(item.node) }}</span>
-                      <i class="fa-solid fa-arrow-up" aria-hidden="true"></i>
-                    </div>
-                  </div>
-                }
+            <div class="manage-relationships__tree-wrapper">
+              <!-- Zoom Controls -->
+              <div class="manage-relationships__zoom-controls">
+                <button
+                  mat-icon-button
+                  (click)="zoomIn()"
+                  [disabled]="treeZoom() >= 1.5"
+                  [matTooltip]="'common.zoomIn' | translate">
+                  <i class="fa-solid fa-magnifying-glass-plus" aria-hidden="true"></i>
+                </button>
+                <span class="manage-relationships__zoom-level">{{ (treeZoom() * 100).toFixed(0) }}%</span>
+                <button
+                  mat-icon-button
+                  (click)="zoomOut()"
+                  [disabled]="treeZoom() <= 0.5"
+                  [matTooltip]="'common.zoomOut' | translate">
+                  <i class="fa-solid fa-magnifying-glass-minus" aria-hidden="true"></i>
+                </button>
+                <button
+                  mat-icon-button
+                  (click)="resetZoom()"
+                  [matTooltip]="'common.resetZoom' | translate">
+                  <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i>
+                </button>
               </div>
 
-              <!-- Common Ancestor (Peak) -->
-              @if (getPeakNode(); as peak) {
-                <div class="manage-relationships__tree-peak">
-                  <div class="manage-relationships__tree-node manage-relationships__tree-node--peak">
-                    @if (peak.thumbnailUrl) {
-                      <img
-                        [src]="peak.thumbnailUrl"
-                        [alt]="getPathNodeName(peak)"
-                        class="manage-relationships__tree-avatar-img"
-                        (error)="onAvatarError($event)">
-                    } @else {
-                      <div
-                        class="manage-relationships__avatar"
-                        [class.manage-relationships__avatar--male]="peak.sex === Sex.Male"
-                        [class.manage-relationships__avatar--female]="peak.sex === Sex.Female">
-                        {{ getInitials(getPathNodeName(peak)) }}
-                      </div>
-                    }
-                    <span class="manage-relationships__tree-name">{{ getPathNodeName(peak) }}</span>
-                    <span class="manage-relationships__peak-badge">{{ 'relationship.commonAncestor' | translate }}</span>
-                  </div>
-                  <!-- Connector from peak to right branch -->
-                  @if (getRightBranch().length > 0) {
-                    <div class="manage-relationships__tree-connector manage-relationships__tree-connector--down">
-                      <i class="fa-solid fa-arrow-down" aria-hidden="true"></i>
-                      <span class="manage-relationships__tree-edge-label">{{ getNodeRelationshipLabel(peak) }}</span>
-                    </div>
-                  }
-                </div>
-              }
-
-              <!-- Right branch (Going down from common ancestor to Person B) -->
-              <div class="manage-relationships__tree-branch manage-relationships__tree-branch--right">
-                @for (item of getRightBranch(); track item.node.id; let i = $index; let last = $last) {
-                  <div class="manage-relationships__tree-level">
-                    <div
-                      class="manage-relationships__tree-node"
-                      [class.manage-relationships__tree-node--endpoint]="last">
-                      @if (item.node.thumbnailUrl) {
+              <div class="manage-relationships__tree-container" [style.transform]="'scale(' + treeZoom() + ')'" [style.transform-origin]="'top center'">
+                <!-- Peak (Common Ancestor) at top center -->
+                @if (getPeakNode(); as peak) {
+                  <div class="manage-relationships__tree-row manage-relationships__tree-row--peak">
+                    <div class="manage-relationships__tree-node manage-relationships__tree-node--peak">
+                      @if (peak.thumbnailUrl) {
                         <img
-                          [src]="item.node.thumbnailUrl"
-                          [alt]="getPathNodeName(item.node)"
+                          [src]="peak.thumbnailUrl"
+                          [alt]="getPathNodeName(peak)"
                           class="manage-relationships__tree-avatar-img"
                           (error)="onAvatarError($event)">
                       } @else {
                         <div
                           class="manage-relationships__avatar"
-                          [class.manage-relationships__avatar--male]="item.node.sex === Sex.Male"
-                          [class.manage-relationships__avatar--female]="item.node.sex === Sex.Female">
-                          {{ getInitials(getPathNodeName(item.node)) }}
+                          [class.manage-relationships__avatar--male]="peak.sex === Sex.Male"
+                          [class.manage-relationships__avatar--female]="peak.sex === Sex.Female">
+                          {{ getInitials(getPathNodeName(peak)) }}
                         </div>
                       }
-                      <span class="manage-relationships__tree-name">{{ getPathNodeName(item.node) }}</span>
+                      <span class="manage-relationships__tree-name">{{ getPathNodeName(peak) }}</span>
+                      <span class="manage-relationships__peak-badge">{{ 'relationship.commonAncestor' | translate }}</span>
                     </div>
-                    <!-- Connector to next node (going down), only if not last -->
-                    @if (!last) {
-                      <div class="manage-relationships__tree-connector manage-relationships__tree-connector--down">
+                  </div>
+                }
+
+                <!-- Branches container: Left and Right side by side -->
+                <div class="manage-relationships__tree-branches">
+                  <!-- Left Branch (Person A side - going down from peak) -->
+                  <div class="manage-relationships__tree-column manage-relationships__tree-column--left">
+                    @for (item of getLeftBranchReversed(); track item.node.id; let i = $index; let first = $first; let last = $last) {
+                      <!-- Connector from previous node -->
+                      <div class="manage-relationships__tree-connector-v">
+                        <span class="manage-relationships__tree-edge-label">{{ getDescendantLabel(item.node) }}</span>
                         <i class="fa-solid fa-arrow-down" aria-hidden="true"></i>
-                        <span class="manage-relationships__tree-edge-label">{{ getNodeRelationshipLabel(item.node) }}</span>
+                      </div>
+                      <!-- Node -->
+                      <div
+                        class="manage-relationships__tree-node"
+                        [class.manage-relationships__tree-node--endpoint]="last">
+                        @if (item.node.thumbnailUrl) {
+                          <img
+                            [src]="item.node.thumbnailUrl"
+                            [alt]="getPathNodeName(item.node)"
+                            class="manage-relationships__tree-avatar-img"
+                            (error)="onAvatarError($event)">
+                        } @else {
+                          <div
+                            class="manage-relationships__avatar"
+                            [class.manage-relationships__avatar--male]="item.node.sex === Sex.Male"
+                            [class.manage-relationships__avatar--female]="item.node.sex === Sex.Female">
+                            {{ getInitials(getPathNodeName(item.node)) }}
+                          </div>
+                        }
+                        <span class="manage-relationships__tree-name">{{ getPathNodeName(item.node) }}</span>
                       </div>
                     }
                   </div>
-                }
+
+                  <!-- Right Branch (Person B side - going down from peak) -->
+                  <div class="manage-relationships__tree-column manage-relationships__tree-column--right">
+                    @for (item of getRightBranch(); track item.node.id; let i = $index; let last = $last) {
+                      <!-- Connector from previous node -->
+                      <div class="manage-relationships__tree-connector-v">
+                        <span class="manage-relationships__tree-edge-label">{{ getDescendantLabel(item.node) }}</span>
+                        <i class="fa-solid fa-arrow-down" aria-hidden="true"></i>
+                      </div>
+                      <!-- Node -->
+                      <div
+                        class="manage-relationships__tree-node"
+                        [class.manage-relationships__tree-node--endpoint]="last">
+                        @if (item.node.thumbnailUrl) {
+                          <img
+                            [src]="item.node.thumbnailUrl"
+                            [alt]="getPathNodeName(item.node)"
+                            class="manage-relationships__tree-avatar-img"
+                            (error)="onAvatarError($event)">
+                        } @else {
+                          <div
+                            class="manage-relationships__avatar"
+                            [class.manage-relationships__avatar--male]="item.node.sex === Sex.Male"
+                            [class.manage-relationships__avatar--female]="item.node.sex === Sex.Female">
+                            {{ getInitials(getPathNodeName(item.node)) }}
+                          </div>
+                        }
+                        <span class="manage-relationships__tree-name">{{ getPathNodeName(item.node) }}</span>
+                      </div>
+                    }
+                  </div>
+                </div>
               </div>
             </div>
           }

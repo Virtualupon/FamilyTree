@@ -401,22 +401,170 @@
     }
   }
 
-  // Tree Path visualization
-  &__tree-path {
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    gap: var(--ft-spacing-xl);
+  // Tree wrapper with zoom controls
+  &__tree-wrapper {
+    position: relative;
     margin-bottom: var(--ft-spacing-lg);
     padding: var(--ft-spacing-xl);
     background: var(--ft-surface-variant);
     border-radius: var(--ft-radius-md);
+    overflow: auto;
     min-height: 200px;
+  }
+
+  &__zoom-controls {
+    position: sticky;
+    top: 0;
+    left: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--ft-spacing-xs);
+    padding: var(--ft-spacing-sm);
+    background: var(--ft-surface);
+    border-radius: var(--ft-radius-md);
+    box-shadow: var(--ft-shadow-sm);
+    margin-bottom: var(--ft-spacing-md);
+    width: fit-content;
+    z-index: 10;
+
+    button {
+      color: var(--ft-primary);
+      width: 32px;
+      height: 32px;
+
+      i.fa-solid {
+        font-size: 14px;
+      }
+
+      &:disabled {
+        color: var(--ft-on-surface-variant);
+        opacity: 0.5;
+      }
+    }
+  }
+
+  &__zoom-level {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--ft-on-surface-variant);
+    min-width: 40px;
+    text-align: center;
+  }
+
+  // Tree Path visualization - new container structure
+  &__tree-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--ft-spacing-md);
+    transition: transform 0.2s ease;
+  }
+
+  &__tree-row {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+
+    &--peak {
+      margin-bottom: var(--ft-spacing-md);
+    }
+  }
+
+  &__tree-branches {
+    display: flex;
+    justify-content: center;
+    gap: var(--ft-spacing-xl);
+    width: 100%;
+
+    @media (max-width: 600px) {
+      flex-direction: column;
+      align-items: center;
+      gap: var(--ft-spacing-lg);
+    }
+  }
+
+  &__tree-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 120px;
+
+    &--left,
+    &--right {
+      flex-shrink: 0;
+    }
+  }
+
+  &__tree-connector-v {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--ft-spacing-xs);
+    padding: var(--ft-spacing-sm) 0;
+
+    i.fa-solid {
+      font-size: 1rem;
+      color: var(--ft-primary);
+    }
+  }
+
+  // Legacy styles kept for compatibility
+  &__tree-path {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--ft-spacing-md);
+    margin-bottom: var(--ft-spacing-lg);
+    padding: var(--ft-spacing-xl);
+    background: var(--ft-surface-variant);
+    border-radius: var(--ft-radius-md);
+    min-height: 150px;
     overflow-x: auto;
 
     @media (max-width: 768px) {
       flex-direction: column;
       align-items: center;
+      gap: var(--ft-spacing-lg);
+    }
+  }
+
+  &__tree-endpoint {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    &--left,
+    &--right {
+      flex-shrink: 0;
+    }
+  }
+
+  &__tree-connector-horizontal {
+    display: flex;
+    align-items: center;
+    gap: var(--ft-spacing-sm);
+    color: var(--ft-on-surface-variant);
+    padding: 0 var(--ft-spacing-sm);
+
+    i.fa-solid {
+      font-size: 1.25rem;
+      color: var(--ft-primary);
+    }
+
+    &--left {
+      flex-direction: row-reverse;
+    }
+
+    &--right {
+      flex-direction: row;
+    }
+
+    @media (max-width: 768px) {
+      flex-direction: column !important;
+
+      i.fa-solid {
+        transform: rotate(90deg);
+      }
     }
   }
 
@@ -427,11 +575,11 @@
     gap: var(--ft-spacing-sm);
 
     &--left {
-      flex-direction: column-reverse; // Reverse so Person A is at bottom, going up
+      flex-direction: column-reverse;
     }
 
     &--right {
-      flex-direction: column; // Person B is at bottom, coming from top
+      flex-direction: column;
     }
   }
 
@@ -447,6 +595,7 @@
     flex-direction: column;
     align-items: center;
     padding-top: 0;
+    flex-shrink: 0;
   }
 
   &__tree-connector {

@@ -57,6 +57,23 @@
           <mat-error *ngIf="registerForm.get('password')?.hasError('minlength')">
             {{ 'validation.passwordMinLength' | translate }}
           </mat-error>
+          <mat-error *ngIf="registerForm.get('password')?.hasError('pattern')">
+            {{ 'validation.passwordPattern' | translate }}
+          </mat-error>
+          <mat-hint>{{ 'auth.passwordHint' | translate }}</mat-hint>
+        </mat-form-field>
+
+        <!-- HomeTown Selection (Optional) -->
+        <mat-form-field appearance="outline">
+          <mat-label>{{ 'auth.homeTown' | translate }}</mat-label>
+          <mat-select formControlName="homeTownId">
+            <mat-option [value]="null">{{ 'auth.preferNotToSay' | translate }}</mat-option>
+            <mat-option *ngFor="let town of towns" [value]="town.id">
+              {{ town.name }}
+            </mat-option>
+          </mat-select>
+          <i class="fa-solid fa-location-dot" matPrefix aria-hidden="true"></i>
+          <mat-hint>{{ 'auth.homeTownHint' | translate }}</mat-hint>
         </mat-form-field>
 
         <button

@@ -9,6 +9,83 @@ public record RegisterRequest(
     string? LastName
 );
 
+// ============================================================================
+// Two-Phase Registration DTOs
+// SECURITY FIX: Separates initiation from completion to prevent:
+// - Storing password in frontend sessionStorage
+// - Creating unverified user accounts
+// ============================================================================
+
+/// <summary>
+/// Phase 1: Initiate registration - validates email and sends verification code.
+/// User record is NOT created at this stage.
+/// </summary>
+public record InitiateRegistrationRequest(
+    string Email,
+    string Password,
+    string? FirstName,
+    string? LastName,
+    Guid? HomeTownId
+);
+
+/// <summary>
+/// Response for initiation - returns a registration token.
+/// SECURITY: Always returns success-like response to prevent email enumeration.
+/// The registrationToken is used in Phase 2 (not the password).
+/// </summary>
+public record InitiateRegistrationResponse(
+    bool Success,
+    string Message,
+    string MaskedEmail,
+    string? RegistrationToken  // One-time token for Phase 2 (NOT the password!)
+);
+
+/// <summary>
+/// Phase 2: Complete registration - verify code using token.
+/// SECURITY FIX: Password is NOT sent again - retrieved from encrypted storage using token.
+/// </summary>
+public record CompleteRegistrationRequest(
+    string RegistrationToken,  // The token from Phase 1
+    string Code                // The 6-digit verification code
+);
+
+/// <summary>
+/// Response with tokens after successful verification.
+/// </summary>
+public record CompleteRegistrationResponse(
+    bool Success,
+    string Message,
+    TokenResponse? Tokens
+);
+
+// ============================================================================
+// Email Verification DTOs
+// ============================================================================
+
+public record VerifyEmailRequest(string Email, string Code);
+public record VerifyEmailResponse(bool Success, string Message, TokenResponse? Tokens);
+
+public record ResendCodeRequest(string Email, string Purpose);
+public record ResendCodeResponse(bool Success, string Message, int? RetryAfterSeconds);
+
+// ============================================================================
+// Password Reset DTOs
+// ============================================================================
+
+public record ForgotPasswordRequest(string Email);
+
+/// <summary>
+/// SECURITY: Always returns success to prevent email enumeration.
+/// </summary>
+public record ForgotPasswordResponse(bool Success, string Message);
+
+public record ResetPasswordRequest(string Email, string Code, string NewPassword);
+public record ResetPasswordResponse(bool Success, string Message);
+
+// ============================================================================
+// User DTO - Updated with HomeTown fields
+// ============================================================================
+
 public record UserDto(
     long Id,
     string Email,
@@ -22,7 +99,9 @@ public record UserDto(
     string PreferredLanguage = "en",
     bool IsFirstLogin = true,
     Guid? SelectedTownId = null,
-    string? SelectedTownName = null
+    string? SelectedTownName = null,
+    Guid? HomeTownId = null,
+    string? HomeTownName = null
 );
 
 public record TokenResponse(

@@ -294,6 +294,9 @@ services.AddSingleton<ICacheOptionsProvider, CacheOptionsProvider>();
 services.AddSingleton<IResilientCacheService, ResilientCacheService>();
 services.AddScoped<ITreeCacheService, TreeCacheService>();
 
+// Storage Migration Service (Singleton - has instance state for progress tracking)
+services.AddSingleton<IStorageMigrationService, StorageMigrationService>();
+
 // -------------------------------
 // TRANSLATION SERVICES
 // -------------------------------

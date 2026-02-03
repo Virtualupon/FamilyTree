@@ -4,6 +4,7 @@ using FamilyTreeApi.Data;
 using FamilyTreeApi.Models;
 using FamilyTreeApi.Models.Configuration;
 using FamilyTreeApi.Models.Enums;
+using FamilyTreeApi.Utilities;
 using VirtualUpon.Storage.Factories;
 using VirtualUpon.Storage.Dto;
 using VirtualUpon.Storage.Utilities;
@@ -58,11 +59,38 @@ public class MediaService : IMediaService
                 extension = GetExtensionFromMimeType(mimeType ?? "application/octet-stream");
             }
 
-            // Generate unique filename
-            var uniqueFileName = $"{mediaKind}_{Guid.NewGuid()}{extension}";
+            // Get person and org for descriptive naming
+            var person = await _context.People
+                .Include(p => p.Org)
+                .FirstOrDefaultAsync(p => p.Id == personId);
 
-            // Define storage path segments
-            string[] pathSegments = new[] { "family-tree", "people", personId.ToString(), mediaKind.ToString().ToLower() };
+            var orgName = person?.Org?.Name ?? "unknown-org";
+            var personName = person?.PrimaryName ?? "unknown-person";
+            var orgId = person?.OrgId ?? Guid.Empty;
+
+            // Generate media ID first (needed for path building)
+            var mediaId = Guid.NewGuid();
+
+            // Build descriptive path using MediaPathBuilder
+            string[] pathSegments;
+            string uniqueFileName;
+            try
+            {
+                (pathSegments, uniqueFileName) = MediaPathBuilder.BuildDescriptivePath(
+                    orgName,
+                    personName,
+                    mediaKind.ToString(),
+                    DateTime.UtcNow,
+                    mediaId,
+                    extension);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid file parameters for upload, falling back to legacy naming");
+                // Fallback to legacy naming if validation fails
+                uniqueFileName = $"{mediaKind}_{mediaId}{extension}";
+                pathSegments = new[] { "family-tree", "people", personId.ToString(), mediaKind.ToString().ToLowerInvariant() };
+            }
 
             // Upload to storage
             var savedMediaInfo = await _storageService.UploadFileAsync(
@@ -74,19 +102,15 @@ public class MediaService : IMediaService
             // Get file size
             var fileSize = mediaBytes.Length;
 
-            // Get OrgId from Person
-            var person = await _context.People.FindAsync(personId);
-            var orgId = person?.OrgId ?? Guid.Empty;
-
-            // Create media record
+            // Create media record with descriptive storage key
             var media = new Media
             {
-                Id = Guid.NewGuid(),
+                Id = mediaId,
                 OrgId = orgId,
                 PersonId = personId,
                 Url = savedMediaInfo.ImagePath,
-                StorageKey = $"{string.Join("/", pathSegments)}/{uniqueFileName}",
-                FileName = fileName,
+                StorageKey = MediaPathBuilder.BuildStorageKey(pathSegments, uniqueFileName),
+                FileName = fileName,  // Preserve original filename
                 MimeType = mimeType,
                 FileSize = fileSize,
                 Kind = mediaKind,
@@ -102,10 +126,11 @@ public class MediaService : IMediaService
             await _context.SaveChangesAsync();
 
             _logger.LogInformation(
-                "Uploaded media {FileName} ({MediaKind}) for person {PersonId}",
+                "Uploaded media {FileName} ({MediaKind}) for person {PersonId} with storage key {StorageKey}",
                 fileName,
                 mediaKind,
-                personId);
+                personId,
+                media.StorageKey);
 
             return media;
         }

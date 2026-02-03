@@ -6,6 +6,7 @@ using FamilyTreeApi.Data;
 using FamilyTreeApi.DTOs;
 using FamilyTreeApi.Models;
 using FamilyTreeApi.Models.Enums;
+using FamilyTreeApi.Utilities;
 using VirtualUpon.Storage.Factories;
 using VirtualUpon.Storage.Dto;
 
@@ -316,6 +317,7 @@ public class MediaManagementService : IMediaManagementService
 
             string fileUrl;
             string storageKey;
+            var mediaId = Guid.NewGuid();
 
             try
             {
@@ -324,18 +326,41 @@ public class MediaManagementService : IMediaManagementService
                 await file.CopyToAsync(memoryStream, cancellationToken);
                 var fileBytes = memoryStream.ToArray();
 
-                // Generate unique filename
-                var extension = Path.GetExtension(file.FileName);
-                var uniqueFileName = $"{mediaKind.Value}_{Guid.NewGuid()}{extension}";
+                // Get org name for descriptive path
+                var org = await _context.Orgs
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(o => o.Id == effectiveOrgId, cancellationToken);
+                var orgName = org?.Name ?? "unknown-org";
 
-                // Define storage path
-                string[] pathSegments = new[] { "family-tree", "orgs", effectiveOrgId.ToString(), mediaKind.Value.ToString().ToLower() };
+                // Generate descriptive path using MediaPathBuilder
+                var extension = Path.GetExtension(file.FileName);
+                string[] pathSegments;
+                string uniqueFileName;
+
+                try
+                {
+                    // For org-level media (no person), use org-media as person placeholder
+                    (pathSegments, uniqueFileName) = MediaPathBuilder.BuildDescriptivePath(
+                        orgName,
+                        "org-media",  // Placeholder for org-level media
+                        mediaKind.Value.ToString(),
+                        DateTime.UtcNow,
+                        mediaId,
+                        extension);
+                }
+                catch (ArgumentException ex)
+                {
+                    _logger.LogWarning(ex, "Invalid file parameters for upload, falling back to legacy naming");
+                    // Fallback to legacy naming if validation fails
+                    uniqueFileName = $"{mediaKind.Value}_{mediaId}{extension}";
+                    pathSegments = new[] { "family-tree", "orgs", effectiveOrgId.ToString(), mediaKind.Value.ToString().ToLowerInvariant() };
+                }
 
                 // Upload to VirtualUpon.Storage
                 var savedMediaInfo = await _storageService.UploadFileAsync(pathSegments, uniqueFileName, fileBytes);
 
                 fileUrl = savedMediaInfo.ImagePath;
-                storageKey = $"{string.Join("/", pathSegments)}/{uniqueFileName}";
+                storageKey = MediaPathBuilder.BuildStorageKey(pathSegments, uniqueFileName);
             }
             catch (Exception ex)
             {
@@ -345,7 +370,7 @@ public class MediaManagementService : IMediaManagementService
 
             var media = new Media
             {
-                Id = Guid.NewGuid(),
+                Id = mediaId,
                 OrgId = effectiveOrgId,
                 Kind = mediaKind.Value,
                 Url = fileUrl,

@@ -1,6 +1,8 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { MAT_DIALOG_DATA, MatDialogRef, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatInputModule } from '@angular/material/input';
@@ -65,8 +67,9 @@ export interface PersonFormDialogData {
   templateUrl: './person-form-dialog.component.html',
   styleUrls: ['./person-form-dialog.component.scss']
 })
-export class PersonFormDialogComponent implements OnInit {
+export class PersonFormDialogComponent implements OnInit, OnDestroy {
   private readonly fb = inject(FormBuilder);
+  private readonly destroy$ = new Subject<void>();
   private readonly personService = inject(PersonService);
   private readonly transliterationService = inject(TransliterationService);
   private readonly translationService = inject(TranslationService);
@@ -85,7 +88,7 @@ export class PersonFormDialogComponent implements OnInit {
     const user = this.authService.getCurrentUser();
     if (!user) return true;
     // System admins are never viewers - they can directly edit
-    if (user.systemRole === 'SuperAdmin' || user.systemRole === 'Admin') return false;
+    if (user.systemRole === 'Developer' || user.systemRole === 'SuperAdmin' || user.systemRole === 'Admin') return false;
     // Regular users: need Contributor or higher org role to directly edit
     // If role is undefined or less than Contributor, they must use suggestions
     return user.role === undefined || user.role === null || user.role < OrgRole.Contributor;
@@ -125,12 +128,52 @@ export class PersonFormDialogComponent implements OnInit {
   
   ngOnInit(): void {
     this.initForm();
+    this.setupPrimaryNameSync();
     this.loadFamilies();
     this.loadCountries();
 
     if (this.data.person) {
       this.loadPersonDetails();
     }
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  /**
+   * Set up subscriptions to sync primaryName with the language-specific name
+   * based on the current UI language.
+   */
+  private setupPrimaryNameSync(): void {
+    // When nameEnglish changes and UI is English, sync to primaryName
+    this.form.get('nameEnglish')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(value => {
+        const lang = this.i18n.currentLang();
+        if (lang === 'en' || (lang !== 'ar' && lang !== 'nob')) {
+          this.form.patchValue({ primaryName: value || '' }, { emitEvent: false });
+        }
+      });
+
+    // When nameArabic changes and UI is Arabic, sync to primaryName
+    this.form.get('nameArabic')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(value => {
+        if (this.i18n.currentLang() === 'ar') {
+          this.form.patchValue({ primaryName: value || '' }, { emitEvent: false });
+        }
+      });
+
+    // When nameNobiin changes and UI is Nobiin, sync to primaryName
+    this.form.get('nameNobiin')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(value => {
+        if (this.i18n.currentLang() === 'nob') {
+          this.form.patchValue({ primaryName: value || '' }, { emitEvent: false });
+        }
+      });
   }
 
   private loadCountries(): void {
@@ -484,7 +527,7 @@ export class PersonFormDialogComponent implements OnInit {
         const personName = formValue.primaryName?.trim() ||
                           formValue.nameArabic?.trim() ||
                           formValue.nameEnglish?.trim() ||
-                          this.i18n.t('common.unknown');
+                          '';
         this.snackBar.open(
           this.i18n.t('suggestion.submitSuccess', { name: personName }),
           this.i18n.t('common.close'),

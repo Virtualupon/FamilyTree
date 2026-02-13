@@ -251,6 +251,24 @@
       height: 0.875rem;
     }
   }
+
+  &__delete {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+    background: rgba(255, 255, 255, 0.9);
+    z-index: 1;
+
+    &--suggest {
+      color: var(--ft-on-surface-variant, #6B6B6B);
+    }
+  }
+
+  &:hover &__delete {
+    opacity: 1;
+  }
 }
 
 // Media List Item
@@ -340,6 +358,16 @@
     font-size: 0.75rem;
     font-weight: 500;
   }
+
+  &__delete {
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  &:hover &__delete {
+    opacity: 1;
+  }
 }
 
 // Lightbox
@@ -353,12 +381,27 @@
   justify-content: center;
   padding: 2rem;
 
-  &__close {
+  &__toolbar {
     position: absolute;
     top: 1rem;
     right: 1rem;
-    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     z-index: 1001;
+  }
+
+  &__close {
+    color: #fff;
+  }
+
+  &__delete {
+    color: rgba(255, 255, 255, 0.8);
+    transition: color 0.2s;
+
+    &:hover {
+      color: var(--ft-error, #D32F2F);
+    }
   }
 
   &__content {

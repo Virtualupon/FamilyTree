@@ -29,7 +29,7 @@ public class CarouselImagesController : ControllerBase
     /// Get all carousel images (SuperAdmin only - for management)
     /// </summary>
     [HttpGet]
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize(Roles = "Developer,SuperAdmin")]
     [ProducesResponseType(typeof(List<CarouselImageDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<List<CarouselImageDto>>> GetAll()
     {
@@ -50,7 +50,7 @@ public class CarouselImagesController : ControllerBase
     /// Get a single carousel image by ID (SuperAdmin only)
     /// </summary>
     [HttpGet("{id:guid}")]
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize(Roles = "Developer,SuperAdmin")]
     [ProducesResponseType(typeof(CarouselImageDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<CarouselImageDto>> GetById(Guid id)
@@ -76,7 +76,7 @@ public class CarouselImagesController : ControllerBase
     /// Create a new carousel image (SuperAdmin only)
     /// </summary>
     [HttpPost]
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize(Roles = "Developer,SuperAdmin")]
     [ProducesResponseType(typeof(CarouselImageDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<CarouselImageDto>> Create([FromBody] CreateCarouselImageRequest request)
@@ -105,7 +105,7 @@ public class CarouselImagesController : ControllerBase
     /// Update an existing carousel image (SuperAdmin only)
     /// </summary>
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize(Roles = "Developer,SuperAdmin")]
     [ProducesResponseType(typeof(CarouselImageDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<CarouselImageDto>> Update(
@@ -133,7 +133,7 @@ public class CarouselImagesController : ControllerBase
     /// Delete a carousel image (SuperAdmin only)
     /// </summary>
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize(Roles = "Developer,SuperAdmin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id)
@@ -159,7 +159,7 @@ public class CarouselImagesController : ControllerBase
     /// Toggle active status of a carousel image (SuperAdmin only)
     /// </summary>
     [HttpPatch("{id:guid}/toggle-active")]
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize(Roles = "Developer,SuperAdmin")]
     [ProducesResponseType(typeof(CarouselImageDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<CarouselImageDto>> ToggleActive(Guid id)
@@ -185,7 +185,7 @@ public class CarouselImagesController : ControllerBase
     /// Reorder carousel images (SuperAdmin only)
     /// </summary>
     [HttpPost("reorder")]
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize(Roles = "Developer,SuperAdmin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Reorder([FromBody] ReorderCarouselImagesRequest request)

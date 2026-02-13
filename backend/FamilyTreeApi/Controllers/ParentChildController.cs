@@ -53,7 +53,7 @@ public class ParentChildController : ControllerBase
     /// Add a parent to a person
     /// </summary>
     [HttpPost("person/{childId}/parents/{parentId}")]
-    [Authorize(Roles = "Owner,Admin,Editor,Contributor,SuperAdmin")]
+    [Authorize(Roles = "Developer,Owner,Admin,Editor,Contributor,SuperAdmin")]
     public async Task<ActionResult<ParentChildResponse>> AddParent(
         Guid childId,
         Guid parentId,
@@ -74,7 +74,7 @@ public class ParentChildController : ControllerBase
     /// Add a child to a person
     /// </summary>
     [HttpPost("person/{parentId}/children/{childId}")]
-    [Authorize(Roles = "Owner,Admin,Editor,Contributor,SuperAdmin")]
+    [Authorize(Roles = "Developer,Owner,Admin,Editor,Contributor,SuperAdmin")]
     public async Task<ActionResult<ParentChildResponse>> AddChild(
         Guid parentId,
         Guid childId,
@@ -88,7 +88,7 @@ public class ParentChildController : ControllerBase
     /// Update a parent-child relationship
     /// </summary>
     [HttpPut("{id}")]
-    [Authorize(Roles = "Owner,Admin,Editor,SuperAdmin")]
+    [Authorize(Roles = "Developer,Owner,Admin,Editor,SuperAdmin")]
     public async Task<ActionResult<ParentChildResponse>> UpdateRelationship(Guid id, UpdateParentChildRequest request)
     {
         var userContext = BuildUserContext();
@@ -101,7 +101,7 @@ public class ParentChildController : ControllerBase
     /// Delete a parent-child relationship
     /// </summary>
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Owner,Admin,Editor,SuperAdmin")]
+    [Authorize(Roles = "Developer,Owner,Admin,Editor,SuperAdmin")]
     public async Task<IActionResult> DeleteRelationship(Guid id)
     {
         var userContext = BuildUserContext();
@@ -119,7 +119,7 @@ public class ParentChildController : ControllerBase
     /// Remove a specific parent from a child
     /// </summary>
     [HttpDelete("person/{childId}/parents/{parentId}")]
-    [Authorize(Roles = "Owner,Admin,Editor,SuperAdmin")]
+    [Authorize(Roles = "Developer,Owner,Admin,Editor,SuperAdmin")]
     public async Task<IActionResult> RemoveParent(Guid childId, Guid parentId)
     {
         var userContext = BuildUserContext();
@@ -137,7 +137,7 @@ public class ParentChildController : ControllerBase
     /// Remove a specific child from a parent
     /// </summary>
     [HttpDelete("person/{parentId}/children/{childId}")]
-    [Authorize(Roles = "Owner,Admin,Editor,SuperAdmin")]
+    [Authorize(Roles = "Developer,Owner,Admin,Editor,SuperAdmin")]
     public async Task<IActionResult> RemoveChild(Guid parentId, Guid childId)
     {
         return await RemoveParent(childId, parentId);
@@ -212,15 +212,11 @@ public class ParentChildController : ControllerBase
 
     private string GetTreeRole()
     {
-        var role = User.FindFirst(ClaimTypes.Role)?.Value;
+        // Read from "treeRole" claim (set per org membership), not ClaimTypes.Role (Identity roles)
+        var role = User.FindFirst("treeRole")?.Value;
         if (string.IsNullOrEmpty(role))
         {
             return "Viewer";
-        }
-
-        if (role.Contains(':'))
-        {
-            role = role.Split(':').Last();
         }
 
         return role;

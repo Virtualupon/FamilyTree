@@ -179,9 +179,13 @@ export class PersonService {
    * Upload avatar atomically (creates media + sets AvatarMediaId in one call)
    */
   uploadAvatar(personId: string, request: UploadAvatarRequest): Observable<UploadAvatarResponse> {
+    const treeId = this.treeContext.selectedTreeId();
+    let params = new HttpParams();
+    if (treeId) params = params.set('treeId', treeId);
     return this.http.post<UploadAvatarResponse>(
       `${this.apiUrl}/${personId}/avatar`,
-      request
+      request,
+      { params }
     );
   }
 
@@ -189,9 +193,12 @@ export class PersonService {
    * Remove avatar from person
    */
   removeAvatar(personId: string, deleteMedia = true): Observable<void> {
+    const treeId = this.treeContext.selectedTreeId();
+    let params = new HttpParams().set('deleteMedia', deleteMedia.toString());
+    if (treeId) params = params.set('treeId', treeId);
     return this.http.delete<void>(
       `${this.apiUrl}/${personId}/avatar`,
-      { params: { deleteMedia: deleteMedia.toString() } }
+      { params }
     );
   }
 

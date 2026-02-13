@@ -124,16 +124,16 @@ export class TownDetailComponent implements OnInit {
 
   getRoleLabel(role: OrgRole | null): string {
     if (role === null) return '';
-    return OrgRoleLabels[role] || this.i18n.t('common.unknown');
+    return OrgRoleLabels[role] || '';
   }
 
   isAdmin(): boolean {
     const user = this.authService.getCurrentUser();
-    return user?.systemRole === 'SuperAdmin' || user?.systemRole === 'Admin';
+    return user?.systemRole === 'Developer' || user?.systemRole === 'SuperAdmin' || user?.systemRole === 'Admin';
   }
 
   isSuperAdmin(): boolean {
     const user = this.authService.getCurrentUser();
-    return user?.systemRole === 'SuperAdmin';
+    return user?.systemRole === 'Developer' || user?.systemRole === 'SuperAdmin';
   }
 }

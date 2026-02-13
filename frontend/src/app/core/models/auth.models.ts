@@ -49,7 +49,8 @@ export interface CompleteRegistrationRequest {
 export interface CompleteRegistrationResponse {
   success: boolean;
   message: string;
-  tokens?: AuthResponse;
+  user?: User;
+  expiresIn?: number;
 }
 
 // ============================================================================
@@ -91,11 +92,12 @@ export interface ResetPasswordResponse {
 // Auth Response & User
 // ============================================================================
 
+/**
+ * Cookie-based auth response — tokens are in HttpOnly cookies, NOT in the body.
+ */
 export interface AuthResponse {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
   user: User;
+  expiresIn: number;
 }
 
 export interface User {
@@ -117,7 +119,7 @@ export interface User {
 }
 
 // System-wide roles (via ASP.NET Identity)
-export type SystemRole = 'SuperAdmin' | 'Admin' | 'User';
+export type SystemRole = 'Developer' | 'SuperAdmin' | 'Admin' | 'User';
 
 // Tree-specific roles (OrgUsers.Role)
 export enum OrgRole {
@@ -138,9 +140,11 @@ export const OrgRoleLabels: Record<OrgRole, string> = {
   [OrgRole.Owner]: 'Owner'
 };
 
-export interface RefreshTokenRequest {
-  refreshToken: string;
-}
+/**
+ * Refresh token request — no body needed, refresh token is in HttpOnly cookie.
+ * Kept for backward compatibility but body is empty.
+ */
+export interface RefreshTokenRequest {}
 
 // ============================================================================
 // Governance Model - Language and Town Selection
@@ -160,8 +164,11 @@ export interface SelectTownRequest {
   townId: string;
 }
 
+/**
+ * Select town response — access token is set via HttpOnly cookie, NOT in body.
+ */
 export interface SelectTownResponse {
-  accessToken: string;
+  accessToken: string | null;
   townId: string;
   townName: string;
 }

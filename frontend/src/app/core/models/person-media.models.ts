@@ -44,9 +44,6 @@ export interface LinkedPerson {
   personId: string;
   personName: string | null;
   isPrimary: boolean;
-  notes: string | null;
-  notesAr: string | null;
-  notesNob: string | null;
   linkedAt: string;
 }
 
@@ -134,6 +131,7 @@ export interface MediaUploadRequest {
   title?: string;
   description?: string;
   personIds: string[];
+  tags?: string[];
 }
 
 /**
@@ -146,6 +144,7 @@ export interface MediaUploadPayload {
   title?: string;
   description?: string;
   personIds: string[];
+  tags?: string[];
   sizeBytes: number;
 }
 

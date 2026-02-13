@@ -101,7 +101,7 @@ export class FamilySheetComponent implements OnChanges, OnDestroy {
    * Get the role label for a person (Husband/Wife/Father/Mother)
    */
   getRoleLabel(person: TreePersonNode | null | undefined, isParentContext: boolean): string {
-    if (!person) return this.i18n.t('common.unknown');
+    if (!person) return '';
 
     if (isParentContext) {
       return this.isMale(person)
@@ -254,21 +254,20 @@ export class FamilySheetComponent implements OnChanges, OnDestroy {
   }
 
   getDisplayName(person: TreePersonNode | null | undefined): string {
-    if (!person) return this.i18n.t('common.unknown');
+    if (!person) return '';
     const lang = this.i18n.currentLang();
-    const unknown = this.i18n.t('common.unknown');
     if (lang === 'ar') {
-      return person.nameArabic || person.nameEnglish || person.primaryName || unknown;
+      return person.nameArabic || person.nameEnglish || person.primaryName || '';
     }
     if (lang === 'nob') {
-      return person.nameNobiin || person.nameEnglish || person.primaryName || unknown;
+      return person.nameNobiin || person.nameEnglish || person.primaryName || '';
     }
-    return person.nameEnglish || person.nameArabic || person.primaryName || unknown;
+    return person.nameEnglish || person.nameArabic || person.primaryName || '';
   }
 
   getInitials(person: TreePersonNode | null | undefined): string {
     const name = this.getDisplayName(person);
-    if (!name || name === this.i18n.t('common.unknown')) return '?';
+    if (!name) return '?';
     const parts = name.trim().split(/\s+/);
     if (parts.length === 1) {
       return parts[0].charAt(0).toUpperCase();

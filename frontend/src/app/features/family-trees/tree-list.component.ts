@@ -7,7 +7,6 @@ import { TownService } from '../../core/services/town.service';
 import { FamilyService } from '../../core/services/family.service';
 import { AuthService } from '../../core/services/auth.service';
 import { TreeContextService } from '../../core/services/tree-context.service';
-import { AdminService } from '../../core/services/admin.service';
 import { I18nService, TranslatePipe } from '../../core/i18n';
 import { FamilyTreeListItem, CreateFamilyTreeRequest } from '../../core/models/family-tree.models';
 import { TownListItem } from '../../core/models/town.models';
@@ -15,11 +14,12 @@ import { FamilyListItem, FamilyWithMembers } from '../../core/models/family.mode
 import { OrgRole, OrgRoleLabels } from '../../core/models/auth.models';
 import { Sex } from '../../core/models/person.models';
 import { GedcomImportDialogComponent } from './gedcom-import-dialog.component';
+import { TreeDiagramModalComponent } from './tree-diagram-modal.component';
 
 @Component({
   selector: 'app-tree-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, TranslatePipe, GedcomImportDialogComponent],
+  imports: [CommonModule, RouterModule, FormsModule, TranslatePipe, GedcomImportDialogComponent, TreeDiagramModalComponent],
   templateUrl: './tree-list.component.html',
   styleUrls: ['./tree-list.component.scss']
 })
@@ -47,6 +47,16 @@ export class TreeListComponent implements OnInit {
   showTownDropdown = signal(false);
   availableTowns = signal<TownListItem[]>([]);
 
+  // Check if user can create trees
+  canCreateTree = computed(() => {
+    const user = this.authService.getCurrentUser();
+    if (!user) return false;
+    // Developer, SuperAdmin, and Admin can create trees
+    return user.systemRole === 'Developer' ||
+           user.systemRole === 'SuperAdmin' ||
+           user.systemRole === 'Admin';
+  });
+
   searchQuery = '';
   selectedTownId: string | null = null;
 
@@ -61,6 +71,8 @@ export class TreeListComponent implements OnInit {
   }
 
   showImportModal = false;
+  showDiagramModal = false;
+  selectedTreeForDiagram: { id: string; name: string } | null = null;
   creating = signal(false);
   createError = signal<string | null>(null);
 
@@ -112,7 +124,6 @@ export class TreeListComponent implements OnInit {
     private treeService: FamilyTreeService,
     private townService: TownService,
     private authService: AuthService,
-    private adminService: AdminService,
     private i18n: I18nService
   ) {}
 
@@ -137,40 +148,51 @@ export class TreeListComponent implements OnInit {
     const user = this.authService.getCurrentUser();
     if (!user) return;
 
-    if (user.systemRole === 'SuperAdmin') {
-      // SuperAdmin: load all towns
+    if (user.systemRole === 'Developer' || user.systemRole === 'SuperAdmin') {
+      // Developer/SuperAdmin: load all towns
       this.townService.getTowns({ page: 1, pageSize: 500 }).subscribe({
         next: (result) => {
           this.availableTowns.set(result.items);
         }
       });
     } else if (user.systemRole === 'Admin') {
-      // Admin: load only assigned towns
-      this.adminService.getUserTownAssignments(user.id).subscribe({
-        next: (assignments) => {
-          const towns = assignments
-            .filter(a => a.isActive)
-            .map(a => ({
-              id: a.townId,
-              name: a.townName || 'Unknown Town',
-              nameEn: a.townNameEn || undefined,
-              nameAr: a.townNameAr || undefined,
-              nameLocal: a.townNameLocal || undefined,
-              country: '',
-              region: '',
-              treeCount: a.treeCount || 0,
-              personCount: 0,
-              createdAt: new Date().toISOString()
-            }));
-          this.availableTowns.set(towns);
+      // Admin: load assigned towns via auth endpoint (admin controller requires SuperAdmin+)
+      this.authService.getMyTowns().subscribe({
+        next: (response) => {
+          this.availableTowns.set(response.assignedTowns.map(t => ({
+            id: t.id,
+            name: t.name,
+            nameEn: t.nameEn || undefined,
+            nameAr: t.nameAr || undefined,
+            nameLocal: undefined,
+            country: t.country || '',
+            treeCount: t.treeCount || 0,
+            createdAt: new Date().toISOString()
+          })));
         },
         error: () => {
           this.availableTowns.set([]);
         }
       });
     } else {
-      // Regular users: no town selector
-      this.availableTowns.set([]);
+      // Regular users: load all available towns via public endpoint
+      this.authService.getAvailableTowns().subscribe({
+        next: (towns) => {
+          this.availableTowns.set(towns.map(t => ({
+            id: t.id,
+            name: t.name,
+            nameEn: t.nameEn || undefined,
+            nameAr: t.nameAr || undefined,
+            nameLocal: undefined,
+            country: t.country || '',
+            treeCount: t.treeCount || 0,
+            createdAt: new Date().toISOString()
+          })));
+        },
+        error: () => {
+          this.availableTowns.set([]);
+        }
+      });
     }
   }
 
@@ -339,16 +361,7 @@ export class TreeListComponent implements OnInit {
   }
 
   getLocalizedTownName(town: TownListItem): string {
-    const lang = this.i18n.currentLang();
-    switch (lang) {
-      case 'ar':
-        return town.nameAr || town.name;
-      case 'nob':
-        return town.nameLocal || town.name;
-      case 'en':
-      default:
-        return town.nameEn || town.name;
-    }
+    return this.i18n.getTownName(town);
   }
 
   canManage(role: OrgRole | null): boolean {
@@ -359,7 +372,7 @@ export class TreeListComponent implements OnInit {
   // Get the selected town for the create tree modal
   getSelectedCreateTown(): TownListItem | null {
     if (!this.newTree.townId) return null;
-    return this.towns().find(t => t.id === this.newTree.townId) || null;
+    return this.availableTowns().find(t => t.id === this.newTree.townId) || null;
   }
 
   // Called when town selection changes in create modal
@@ -374,5 +387,23 @@ export class TreeListComponent implements OnInit {
       next: () => this.loadTrees(),
       error: () => this.loadTrees()
     });
+  }
+
+  /**
+   * Open the tree diagram modal to show root persons (top level ancestors)
+   */
+  openTreeDiagram(tree: FamilyTreeListItem, event: Event): void {
+    event.stopPropagation();
+    event.preventDefault();
+    this.selectedTreeForDiagram = { id: tree.id, name: tree.name };
+    this.showDiagramModal = true;
+  }
+
+  /**
+   * Close the tree diagram modal
+   */
+  closeTreeDiagram(): void {
+    this.showDiagramModal = false;
+    this.selectedTreeForDiagram = null;
   }
 }

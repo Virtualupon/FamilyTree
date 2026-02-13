@@ -279,7 +279,6 @@ public record PersonDetailsResult
     public Guid? DeathPlaceId { get; init; }
     public string? DeathPlaceName { get; init; }
     public bool IsLiving { get; init; }
-    public string? Notes { get; init; }
     public Guid? FamilyId { get; init; }
     public string? FamilyName { get; init; }
     public Guid OrgId { get; init; }
@@ -303,10 +302,23 @@ public record RelatedPersonDto
     public string? Name { get; init; }
     public int? Sex { get; init; }
     public string? RelationshipType { get; init; }
+
+    /// <summary>Specific relationship subtype: father, mother, stepfather, stepmother, son, daughter, brother, sister, halfBrother, halfSister, stepBrother, stepSister</summary>
+    public string? RelationshipSubType { get; init; }
+
+    /// <summary>For parents: true if biological, false if step-parent</summary>
+    public bool? IsBiological { get; init; }
+
+    /// <summary>For siblings: 'full', 'half', or 'step'</summary>
+    public string? SiblingType { get; init; }
+
     public int? BirthYear { get; init; }
     public int? DeathYear { get; init; }
     public bool IsLiving { get; init; }
-    public bool? IsFullSibling { get; init; }
+
+    /// <summary>Deprecated: Use SiblingType == 'full' instead</summary>
+    [Obsolete("Use SiblingType property instead")]
+    public bool? IsFullSibling => SiblingType == "full";
 }
 
 /// <summary>
@@ -318,7 +330,12 @@ public record SpouseDto
     public Guid PersonId { get; init; }
     public string? Name { get; init; }
     public int? Sex { get; init; }
-    public string? UnionType { get; init; }
+    public string? RelationshipType { get; init; } = "spouse";
+
+    /// <summary>Specific relationship subtype: husband, wife</summary>
+    public string? RelationshipSubType { get; init; }
+
+    public int? UnionType { get; init; }
     public DateTime? StartDate { get; init; }
     public DateTime? EndDate { get; init; }
     public int? BirthYear { get; init; }

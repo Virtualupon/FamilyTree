@@ -50,4 +50,25 @@ public interface IMediaManagementService
         int expiresInSeconds,
         UserContext userContext,
         CancellationToken cancellationToken = default);
+
+    // ============================================================================
+    // MEDIA APPROVAL
+    // ============================================================================
+
+    Task<ServiceResult<MediaApprovalQueueResponse>> GetApprovalQueueAsync(
+        MediaApprovalQueueRequest request,
+        UserContext userContext,
+        CancellationToken cancellationToken = default);
+
+    Task<ServiceResult> ApproveMediaAsync(
+        Guid mediaId,
+        MediaApprovalRequest request,
+        UserContext userContext,
+        CancellationToken cancellationToken = default);
+
+    Task<ServiceResult> RejectMediaAsync(
+        Guid mediaId,
+        MediaApprovalRequest request,
+        UserContext userContext,
+        CancellationToken cancellationToken = default);
 }

@@ -20,9 +20,12 @@ import { I18nService, TranslatePipe } from '../../core/i18n';
 import {
   RelationshipService,
   ParentChildResponse,
+  ParentChildRelationshipType,
   UnionResponse,
   SiblingResponse,
-  UnionMemberDto
+  UnionMemberDto,
+  SuggestedParentDto,
+  SuggestedChildLinkDto
 } from '../../core/services/relationship.service';
 import {
   AddRelationshipDialogComponent,
@@ -140,7 +143,7 @@ export class PersonDetailComponent implements OnInit {
 
   getPersonDisplayName(): string {
     const p = this.person();
-    if (!p) return this.i18n.t('common.unknown');
+    if (!p) return '';
     const lang = this.i18n.currentLang() as DisplayLanguage;
     return getDisplayName(p, lang);
   }
@@ -150,41 +153,32 @@ export class PersonDetailComponent implements OnInit {
     return !!(p?.nameArabic || p?.nameEnglish || p?.nameNobiin);
   }
 
-  hasAnyNotes(): boolean {
-    const p = this.person();
-    return !!(p?.notes || p?.notesAr || p?.notesNob);
-  }
-
   getParentDisplayName(parent: ParentChildResponse): string {
     const lang = this.i18n.currentLang();
-    const unknown = this.i18n.t('common.unknown');
-    if (lang === 'ar') return parent.parentNameArabic || parent.parentNameEnglish || parent.parentName || unknown;
-    if (lang === 'nob') return parent.parentNameNobiin || parent.parentNameEnglish || parent.parentName || unknown;
-    return parent.parentNameEnglish || parent.parentNameArabic || parent.parentName || unknown;
+    if (lang === 'ar') return parent.parentNameArabic || parent.parentNameEnglish || parent.parentName || '';
+    if (lang === 'nob') return parent.parentNameNobiin || parent.parentNameEnglish || parent.parentName || '';
+    return parent.parentNameEnglish || parent.parentNameArabic || parent.parentName || '';
   }
 
   getChildDisplayName(child: ParentChildResponse): string {
     const lang = this.i18n.currentLang();
-    const unknown = this.i18n.t('common.unknown');
-    if (lang === 'ar') return child.childNameArabic || child.childNameEnglish || child.childName || unknown;
-    if (lang === 'nob') return child.childNameNobiin || child.childNameEnglish || child.childName || unknown;
-    return child.childNameEnglish || child.childNameArabic || child.childName || unknown;
+    if (lang === 'ar') return child.childNameArabic || child.childNameEnglish || child.childName || '';
+    if (lang === 'nob') return child.childNameNobiin || child.childNameEnglish || child.childName || '';
+    return child.childNameEnglish || child.childNameArabic || child.childName || '';
   }
 
   getSiblingDisplayName(sibling: SiblingResponse): string {
     const lang = this.i18n.currentLang();
-    const unknown = this.i18n.t('common.unknown');
-    if (lang === 'ar') return sibling.personNameArabic || sibling.personNameEnglish || sibling.personName || unknown;
-    if (lang === 'nob') return sibling.personNameNobiin || sibling.personNameEnglish || sibling.personName || unknown;
-    return sibling.personNameEnglish || sibling.personNameArabic || sibling.personName || unknown;
+    if (lang === 'ar') return sibling.personNameArabic || sibling.personNameEnglish || sibling.personName || '';
+    if (lang === 'nob') return sibling.personNameNobiin || sibling.personNameEnglish || sibling.personName || '';
+    return sibling.personNameEnglish || sibling.personNameArabic || sibling.personName || '';
   }
 
   getSpouseDisplayName(member: UnionMemberDto): string {
     const lang = this.i18n.currentLang();
-    const unknown = this.i18n.t('common.unknown');
-    if (lang === 'ar') return member.personNameArabic || member.personNameEnglish || member.personName || unknown;
-    if (lang === 'nob') return member.personNameNobiin || member.personNameEnglish || member.personName || unknown;
-    return member.personNameEnglish || member.personNameArabic || member.personName || unknown;
+    if (lang === 'ar') return member.personNameArabic || member.personNameEnglish || member.personName || '';
+    if (lang === 'nob') return member.personNameNobiin || member.personNameEnglish || member.personName || '';
+    return member.personNameEnglish || member.personNameArabic || member.personName || '';
   }
 
   formatDate(dateStr?: string | null): string {
@@ -266,6 +260,15 @@ export class PersonDetailComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result?.success) {
+        // Handle suggested additional parents (from parent/child flow)
+        if (result.suggestedAdditionalParents?.length > 0) {
+          this.promptAdditionalParentLinks(result.suggestedAdditionalParents, result.result);
+        }
+        // Handle suggested child links (from spouse flow)
+        else if (result.suggestedChildLinks?.length > 0) {
+          this.promptChildLinks(result.suggestedChildLinks);
+        }
+
         this.loadPerson(); // Reload to show new relationship
         this.snackBar.open(this.i18n.t('personDetail.messages.relationshipAdded'), this.i18n.t('common.close'), { duration: 3000 });
       }
@@ -349,6 +352,75 @@ export class PersonDetailComponent implements OnInit {
         },
         error: (err: any) => {
           this.snackBar.open(err.error?.message || this.i18n.t('personActions.failedDelete'), this.i18n.t('common.close'), { duration: 3000 });
+        }
+      });
+    }
+  }
+
+  /**
+   * Prompt user to also link a spouse as parent of a child.
+   * Called after Add Parent or Add Child when the backend suggests additional parents.
+   */
+  private promptAdditionalParentLinks(suggestions: SuggestedParentDto[], parentChildResult: ParentChildResponse): void {
+    for (const suggested of suggestions) {
+      const spouseName = suggested.personNameArabic || suggested.personName || '?';
+      const childId = parentChildResult.childId;
+
+      if (confirm(this.i18n.t('relationships.alsoLinkSpouseAsParent', { name: spouseName }))) {
+        this.relationshipService.addParent(childId, suggested.personId, {
+          relationshipType: ParentChildRelationshipType.Biological
+        }).subscribe({
+          next: () => {
+            this.loadPerson();
+            this.snackBar.open(
+              this.i18n.t('relationships.additionalParentLinked', { name: spouseName }),
+              this.i18n.t('common.close'),
+              { duration: 3000 }
+            );
+          },
+          error: (err) => {
+            console.warn('Failed to link additional parent:', err);
+          }
+        });
+      }
+    }
+  }
+
+  /**
+   * Prompt user to link children to a new spouse.
+   * Called after Add Spouse when the backend suggests child links.
+   */
+  private promptChildLinks(suggestions: SuggestedChildLinkDto[]): void {
+    if (suggestions.length === 0) return;
+
+    const childNames = suggestions.map(s =>
+      s.childNameArabic || s.childName || '?'
+    ).join(', ');
+    const spouseName = suggestions[0].suggestedParentName || '?';
+
+    if (confirm(this.i18n.t('relationships.alsoLinkChildrenToSpouse', {
+      spouseName,
+      childNames,
+      count: suggestions.length
+    }))) {
+      const calls = suggestions.map(s =>
+        this.relationshipService.addParent(s.childId, s.suggestedParentId, {
+          relationshipType: ParentChildRelationshipType.Biological
+        })
+      );
+
+      forkJoin(calls).subscribe({
+        next: () => {
+          this.loadPerson();
+          this.snackBar.open(
+            this.i18n.t('relationships.childrenLinkedToSpouse', { count: suggestions.length }),
+            this.i18n.t('common.close'),
+            { duration: 3000 }
+          );
+        },
+        error: (err) => {
+          console.warn('Failed to link some children to spouse:', err);
+          this.loadPerson(); // Reload anyway to show partial results
         }
       });
     }

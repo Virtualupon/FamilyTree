@@ -197,15 +197,6 @@ export class TreeSettingsComponent implements OnInit {
   }
 
   getLocalizedTownName(town: TownListItem): string {
-    const lang = this.i18n.currentLang();
-    switch (lang) {
-      case 'ar':
-        return town.nameAr || town.name;
-      case 'nob':
-        return town.nameLocal || town.name;
-      case 'en':
-      default:
-        return town.nameEn || town.name;
-    }
+    return this.i18n.getTownName(town);
   }
 }

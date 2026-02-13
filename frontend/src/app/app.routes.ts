@@ -96,6 +96,44 @@ export const routes: Routes = [
         loadComponent: () => import('./features/admin/storage-migration/storage-migration.component').then(m => m.StorageMigrationComponent)
       },
       {
+        path: 'admin/duplicates',
+        canActivate: [adminGuard],
+        loadComponent: () => import('./features/admin/duplicate-detection/duplicate-detection.component').then(m => m.DuplicateDetectionComponent)
+      },
+      {
+        path: 'admin/predictions',
+        canActivate: [adminGuard],
+        loadComponent: () => import('./features/admin/predictions/predictions.component').then(m => m.PredictionsComponent)
+      },
+      {
+        path: 'admin/media-approval',
+        canActivate: [adminGuard],
+        loadComponent: () => import('./features/admin/media-approval-queue.component').then(m => m.MediaApprovalQueueComponent)
+      },
+      {
+        path: 'admin/activity-logs',
+        canActivate: [superAdminGuard],
+        loadComponent: () => import('./features/admin/activity-logs/activity-logs.component').then(m => m.ActivityLogsComponent)
+      },
+      {
+        path: 'support',
+        children: [
+          {
+            path: '',
+            loadComponent: () => import('./features/support/my-tickets.component').then(m => m.MyTicketsComponent)
+          },
+          {
+            path: ':id',
+            loadComponent: () => import('./features/support/ticket-detail.component').then(m => m.TicketDetailComponent)
+          }
+        ]
+      },
+      {
+        path: 'admin/support-tickets',
+        canActivate: [superAdminGuard],
+        loadComponent: () => import('./features/admin/support-tickets/support-tickets-admin.component').then(m => m.SupportTicketsAdminComponent)
+      },
+      {
         path: 'suggestions',
         children: [
           {
@@ -149,6 +187,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/families/families-list.component').then(m => m.FamiliesListComponent)
       }
     ]
+  },
+  {
+    path: 'help',
+    loadComponent: () => import('./features/auth/help.component').then(m => m.HelpComponent)
   },
   {
     path: 'login',

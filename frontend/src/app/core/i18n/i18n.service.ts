@@ -20,9 +20,9 @@ export class I18nService {
   private readonly translateService = inject(TranslateService);
 
   readonly supportedLanguages: LanguageConfig[] = [
-    { code: 'en', name: 'English', nativeName: 'English', direction: 'ltr', flag: '🇬🇧' },
-    { code: 'ar', name: 'Arabic', nativeName: 'العربية', direction: 'rtl', flag: '🇸🇦' },
-    { code: 'nob', name: 'Nobiin', nativeName: 'ⲛⲟⲃⲓ̄ⲛ', direction: 'ltr', flag: '🇸🇩' }
+    { code: 'en', name: 'English', nativeName: 'English', direction: 'ltr', flag: 'gb' },
+    { code: 'ar', name: 'Arabic', nativeName: 'العربية', direction: 'rtl', flag: 'sa' },
+    { code: 'nob', name: 'Nobiin', nativeName: 'NOBIIN', direction: 'ltr', flag: 'sd' }
   ];
 
   private currentLangSubject = new BehaviorSubject<Language>(this.getInitialLanguage());
@@ -90,33 +90,41 @@ export class I18nService {
   }
 
   /**
+   * Get localized entity name with proper fallback chain.
+   * Fallback: preferred lang → nameLocal → nameEn → nameAr → name
+   */
+  private getLocalizedName(entity: { name: string; nameEn?: string | null; nameAr?: string | null; nameLocal?: string | null }): string {
+    const lang = this.currentLang();
+    switch (lang) {
+      case 'ar':
+        return entity.nameAr || entity.nameLocal || entity.nameEn || entity.name;
+      case 'nob':
+        return entity.nameLocal || entity.nameEn || entity.nameAr || entity.name;
+      case 'en':
+      default:
+        return entity.nameEn || entity.nameLocal || entity.nameAr || entity.name;
+    }
+  }
+
+  /**
    * Get localized town name based on current language
    */
   getTownName(town: { name: string; nameEn?: string | null; nameAr?: string | null; nameLocal?: string | null }): string {
-    const lang = this.currentLang();
-    if (lang === 'ar' && town.nameAr) return town.nameAr;
-    if (lang === 'en' && town.nameEn) return town.nameEn;
-    return town.nameLocal || town.name;
+    return this.getLocalizedName(town);
   }
 
   /**
    * Get localized tree name based on current language
    */
   getTreeName(tree: { name: string; nameEn?: string | null; nameAr?: string | null; nameLocal?: string | null }): string {
-    const lang = this.currentLang();
-    if (lang === 'ar' && tree.nameAr) return tree.nameAr;
-    if (lang === 'en' && tree.nameEn) return tree.nameEn;
-    return tree.nameLocal || tree.name;
+    return this.getLocalizedName(tree);
   }
 
   /**
    * Get localized family group name based on current language
    */
   getFamilyName(family: { name: string; nameEn?: string | null; nameAr?: string | null; nameLocal?: string | null }): string {
-    const lang = this.currentLang();
-    if (lang === 'ar' && family.nameAr) return family.nameAr;
-    if (lang === 'en' && family.nameEn) return family.nameEn;
-    return family.nameLocal || family.name;
+    return this.getLocalizedName(family);
   }
 
   /**

@@ -329,6 +329,32 @@
   text-align: center;
 }
 
+.tree-page__generations-slider {
+  display: flex;
+  align-items: center;
+  gap: var(--ft-spacing-sm);
+  padding: 0 var(--ft-spacing-sm);
+
+  .generations-label {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--ft-on-surface-variant);
+    white-space: nowrap;
+  }
+
+  mat-slider {
+    width: 120px;
+  }
+
+  .generations-value {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--ft-on-surface);
+    min-width: 1ch;
+    text-align: center;
+  }
+}
+
 .menu-setting {
   padding: var(--ft-spacing-sm) var(--ft-spacing-md);
   display: flex;

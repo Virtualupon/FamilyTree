@@ -1,0 +1,360 @@
+<div class="analytics-tab">
+  <!-- Period Toggle -->
+  <div class="period-toggle">
+    <mat-button-toggle-group [value]="selectedPeriod()" (change)="onPeriodChange($event.value)">
+      <mat-button-toggle [value]="30">{{ 'admin.analytics.last30Days' | translate }}</mat-button-toggle>
+      <mat-button-toggle [value]="90">{{ 'admin.analytics.last90Days' | translate }}</mat-button-toggle>
+      <mat-button-toggle [value]="365">{{ 'admin.analytics.last365Days' | translate }}</mat-button-toggle>
+    </mat-button-toggle-group>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-container">
+      <mat-spinner diameter="48"></mat-spinner>
+    </div>
+  } @else if (error()) {
+    <div class="error-container">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <p>{{ error() }}</p>
+      <button class="retry-btn" (click)="loadDashboard()">
+        <i class="fa-solid fa-rotate-right"></i>
+        {{ 'common.retry' | translate }}
+      </button>
+    </div>
+  } @else if (dashboard()) {
+
+    <!-- ROW 1: Growth Metrics -->
+    <section class="analytics-section">
+      <h3 class="section-title">
+        <i class="fa-solid fa-chart-line"></i>
+        {{ 'admin.analytics.growth.title' | translate }}
+        @if (growthLoading()) {
+          <mat-spinner diameter="18" class="inline-spinner"></mat-spinner>
+        }
+      </h3>
+      <div class="growth-row">
+        <mat-card class="growth-chart-card">
+          <mat-card-content>
+            <app-d3-line-chart
+              [dataSeries]="growthChartData()"
+              [height]="300">
+            </app-d3-line-chart>
+          </mat-card-content>
+        </mat-card>
+        <div class="growth-summary-cards">
+          <mat-card class="mini-stat-card">
+            <mat-card-content>
+              <span class="mini-stat-value" style="color: #187573">+{{ dashboard()!.growth.totalUsersInPeriod }}</span>
+              <span class="mini-stat-label">{{ 'admin.analytics.growth.newUsers' | translate }}</span>
+            </mat-card-content>
+          </mat-card>
+          <mat-card class="mini-stat-card">
+            <mat-card-content>
+              <span class="mini-stat-value" style="color: #2D7A3E">+{{ dashboard()!.growth.totalTreesInPeriod }}</span>
+              <span class="mini-stat-label">{{ 'admin.analytics.growth.newTrees' | translate }}</span>
+            </mat-card-content>
+          </mat-card>
+          <mat-card class="mini-stat-card">
+            <mat-card-content>
+              <span class="mini-stat-value" style="color: #C17E3E">+{{ dashboard()!.growth.totalPeopleInPeriod }}</span>
+              <span class="mini-stat-label">{{ 'admin.analytics.growth.newPeople' | translate }}</span>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+    </section>
+
+    <!-- ROW 2: User Engagement + Content Analytics -->
+    <section class="analytics-section">
+      <div class="two-col-row">
+        <!-- User Engagement -->
+        <div class="col">
+          <h3 class="section-title">
+            <i class="fa-solid fa-users"></i>
+            {{ 'admin.analytics.engagement.title' | translate }}
+          </h3>
+          <div class="engagement-cards">
+            <mat-card class="active-users-card">
+              <mat-card-content>
+                <h4>{{ 'admin.analytics.engagement.activeUsers' | translate }}</h4>
+                <div class="active-users-grid">
+                  <div class="active-stat">
+                    <span class="active-value">{{ dashboard()!.engagement.activeUsers.dailyActiveUsers }}</span>
+                    <span class="active-label">{{ 'admin.analytics.engagement.daily' | translate }}</span>
+                  </div>
+                  <div class="active-stat">
+                    <span class="active-value">{{ dashboard()!.engagement.activeUsers.weeklyActiveUsers }}</span>
+                    <span class="active-label">{{ 'admin.analytics.engagement.weekly' | translate }}</span>
+                  </div>
+                  <div class="active-stat">
+                    <span class="active-value">{{ dashboard()!.engagement.activeUsers.monthlyActiveUsers }}</span>
+                    <span class="active-label">{{ 'admin.analytics.engagement.monthly' | translate }}</span>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+            <mat-card class="donut-card">
+              <mat-card-content>
+                <h4>{{ 'admin.analytics.engagement.roleDistribution' | translate }}</h4>
+                <app-d3-donut-chart
+                  [data]="roleDonutData()"
+                  centerLabel="Roles"
+                  [size]="180">
+                </app-d3-donut-chart>
+              </mat-card-content>
+            </mat-card>
+          </div>
+        </div>
+
+        <!-- Content Analytics -->
+        <div class="col">
+          <h3 class="section-title">
+            <i class="fa-solid fa-sitemap"></i>
+            {{ 'admin.analytics.content.title' | translate }}
+          </h3>
+          <mat-card>
+            <mat-card-content>
+              <h4>{{ 'admin.analytics.content.treesByTown' | translate }}</h4>
+              <app-d3-bar-chart
+                [data]="townChartData()"
+                [height]="300"
+                [horizontal]="true"
+                barColor="#187573">
+              </app-d3-bar-chart>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+    </section>
+
+    <!-- ROW 3: Top Contributors + Tree Size Distribution -->
+    <section class="analytics-section">
+      <div class="two-col-row">
+        <!-- Top Contributors -->
+        <div class="col">
+          <h3 class="section-title">
+            <i class="fa-solid fa-trophy"></i>
+            {{ 'admin.analytics.engagement.topContributors' | translate }}
+          </h3>
+          <mat-card>
+            <mat-card-content>
+              @if (dashboard()!.engagement.topContributors.length > 0) {
+                <div class="table-responsive">
+                  <table mat-table [dataSource]="dashboard()!.engagement.topContributors" class="contributors-table">
+                    <ng-container matColumnDef="rank">
+                      <th mat-header-cell *matHeaderCellDef>#</th>
+                      <td mat-cell *matCellDef="let c; let i = index">{{ i + 1 }}</td>
+                    </ng-container>
+                    <ng-container matColumnDef="user">
+                      <th mat-header-cell *matHeaderCellDef>{{ 'admin.user' | translate }}</th>
+                      <td mat-cell *matCellDef="let c">
+                        <span class="contributor-name">{{ c.firstName }} {{ c.lastName }}</span>
+                        <span class="contributor-email">{{ c.email }}</span>
+                      </td>
+                    </ng-container>
+                    <ng-container matColumnDef="peopleAdded">
+                      <th mat-header-cell *matHeaderCellDef>{{ 'admin.analytics.engagement.peopleAdded' | translate }}</th>
+                      <td mat-cell *matCellDef="let c">{{ c.peopleAdded }}</td>
+                    </ng-container>
+                    <ng-container matColumnDef="treesOwned">
+                      <th mat-header-cell *matHeaderCellDef>{{ 'admin.analytics.engagement.treesOwned' | translate }}</th>
+                      <td mat-cell *matCellDef="let c">{{ c.treesOwned }}</td>
+                    </ng-container>
+                    <tr mat-header-row *matHeaderRowDef="contributorColumns"></tr>
+                    <tr mat-row *matRowDef="let row; columns: contributorColumns;"></tr>
+                  </table>
+                </div>
+              } @else {
+                <p class="empty-text">{{ 'admin.analytics.noData' | translate }}</p>
+              }
+            </mat-card-content>
+          </mat-card>
+        </div>
+
+        <!-- Tree Size + Content Stats -->
+        <div class="col">
+          <h3 class="section-title">
+            <i class="fa-solid fa-chart-bar"></i>
+            {{ 'admin.analytics.content.treeSizeDistribution' | translate }}
+          </h3>
+          <mat-card>
+            <mat-card-content>
+              <div class="content-stats-row">
+                <div class="content-stat">
+                  <span class="content-stat-value">{{ dashboard()!.content.averageTreeSize }}</span>
+                  <span class="content-stat-label">{{ 'admin.analytics.content.averageTreeSize' | translate }}</span>
+                </div>
+                <div class="content-stat">
+                  <span class="content-stat-value">{{ dashboard()!.content.largestTreeSize }}</span>
+                  <span class="content-stat-label">{{ 'admin.analytics.content.largestTree' | translate }}</span>
+                </div>
+                <div class="content-stat">
+                  <span class="content-stat-value">{{ dashboard()!.content.totalRelationships }}</span>
+                  <span class="content-stat-label">{{ 'admin.analytics.content.totalRelationships' | translate }}</span>
+                </div>
+              </div>
+              <app-d3-bar-chart
+                [data]="treeSizeChartData()"
+                [height]="250">
+              </app-d3-bar-chart>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+    </section>
+
+    <!-- ROW 4: Data Quality + Suggestions -->
+    <section class="analytics-section">
+      <div class="two-col-row">
+        <!-- Data Quality -->
+        <div class="col">
+          <h3 class="section-title">
+            <i class="fa-solid fa-clipboard-check"></i>
+            {{ 'admin.analytics.quality.title' | translate }}
+          </h3>
+          <mat-card>
+            <mat-card-content>
+              <div class="quality-header">
+                <div class="completeness-circle">
+                  <span class="completeness-value">{{ dashboard()!.dataQuality.profileCompletenessPercent }}%</span>
+                  <span class="completeness-label">{{ 'admin.analytics.quality.profileCompleteness' | translate }}</span>
+                </div>
+              </div>
+              <div class="quality-breakdown">
+                <div class="quality-item">
+                  <span class="quality-count">{{ dashboard()!.dataQuality.peopleWithNoName }}</span>
+                  <span class="quality-label">{{ 'admin.analytics.quality.missingNames' | translate }}</span>
+                </div>
+                <div class="quality-item">
+                  <span class="quality-count">{{ dashboard()!.dataQuality.peopleWithNoBirthDate }}</span>
+                  <span class="quality-label">{{ 'admin.analytics.quality.missingBirthDates' | translate }}</span>
+                </div>
+                <div class="quality-item">
+                  <span class="quality-count">{{ dashboard()!.dataQuality.peopleWithUnknownSex }}</span>
+                  <span class="quality-label">{{ 'admin.analytics.quality.unknownGender' | translate }}</span>
+                </div>
+                <div class="quality-item">
+                  <span class="quality-count">{{ dashboard()!.dataQuality.peopleWithNoRelationships }}</span>
+                  <span class="quality-label">{{ 'admin.analytics.quality.noRelationships' | translate }}</span>
+                </div>
+              </div>
+              <h4 class="sub-title">{{ 'admin.analytics.quality.privacyDistribution' | translate }}</h4>
+              <app-d3-donut-chart
+                [data]="privacyDonutData()"
+                centerLabel="Privacy"
+                [size]="160">
+              </app-d3-donut-chart>
+            </mat-card-content>
+          </mat-card>
+        </div>
+
+        <!-- Suggestions -->
+        <div class="col">
+          <h3 class="section-title">
+            <i class="fa-solid fa-lightbulb"></i>
+            {{ 'admin.analytics.suggestions.title' | translate }}
+          </h3>
+          <mat-card>
+            <mat-card-content>
+              @if (dashboard()!.suggestions.totalSuggestions > 0) {
+                <div class="suggestion-stats-row">
+                  <div class="suggestion-stat">
+                    <span class="suggestion-value">{{ dashboard()!.suggestions.averageReviewTimeHours }}h</span>
+                    <span class="suggestion-label">{{ 'admin.analytics.suggestions.averageReviewTime' | translate }}</span>
+                  </div>
+                </div>
+                <app-d3-donut-chart
+                  [data]="suggestionDonutData()"
+                  centerLabel="Total"
+                  [size]="180">
+                </app-d3-donut-chart>
+              } @else {
+                <p class="empty-text">{{ 'admin.analytics.noData' | translate }}</p>
+              }
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+    </section>
+
+    <!-- ROW 5: System Activity -->
+    <section class="analytics-section">
+      <h3 class="section-title">
+        <i class="fa-solid fa-shield-halved"></i>
+        {{ 'admin.analytics.activity.title' | translate }}
+      </h3>
+      <div class="activity-stats">
+        <mat-card class="mini-stat-card">
+          <mat-card-content>
+            <span class="mini-stat-value" style="color: #187573">{{ dashboard()!.systemActivity.totalActionsLast24Hours }}</span>
+            <span class="mini-stat-label">{{ 'admin.analytics.activity.last24Hours' | translate }}</span>
+          </mat-card-content>
+        </mat-card>
+        <mat-card class="mini-stat-card">
+          <mat-card-content>
+            <span class="mini-stat-value" style="color: #C17E3E">{{ dashboard()!.systemActivity.totalActionsLast7Days }}</span>
+            <span class="mini-stat-label">{{ 'admin.analytics.activity.last7Days' | translate }}</span>
+          </mat-card-content>
+        </mat-card>
+      </div>
+      <div class="two-col-row">
+        <div class="col">
+          <mat-card>
+            <mat-card-content>
+              <h4>{{ 'admin.analytics.activity.actionSummary' | translate }}</h4>
+              <app-d3-bar-chart
+                [data]="actionSummaryChartData()"
+                [height]="280"
+                [horizontal]="true"
+                barColor="#C17E3E">
+              </app-d3-bar-chart>
+            </mat-card-content>
+          </mat-card>
+        </div>
+        <div class="col">
+          <mat-card>
+            <mat-card-content>
+              <h4>{{ 'admin.analytics.activity.recentLogs' | translate }}</h4>
+              @if (totalLogs() > 0) {
+                <div class="table-responsive">
+                  <table mat-table [dataSource]="paginatedLogs()" class="audit-table">
+                    <ng-container matColumnDef="timestamp">
+                      <th mat-header-cell *matHeaderCellDef>{{ 'admin.analytics.activity.timestamp' | translate }}</th>
+                      <td mat-cell *matCellDef="let log">{{ formatDate(log.timestamp) }}</td>
+                    </ng-container>
+                    <ng-container matColumnDef="actor">
+                      <th mat-header-cell *matHeaderCellDef>{{ 'admin.analytics.activity.actor' | translate }}</th>
+                      <td mat-cell *matCellDef="let log">{{ log.actorName || 'System' }}</td>
+                    </ng-container>
+                    <ng-container matColumnDef="action">
+                      <th mat-header-cell *matHeaderCellDef>{{ 'admin.analytics.activity.action' | translate }}</th>
+                      <td mat-cell *matCellDef="let log">
+                        <span class="action-badge">{{ log.action }}</span>
+                      </td>
+                    </ng-container>
+                    <ng-container matColumnDef="entityType">
+                      <th mat-header-cell *matHeaderCellDef>{{ 'admin.analytics.activity.entityType' | translate }}</th>
+                      <td mat-cell *matCellDef="let log">{{ log.entityType }}</td>
+                    </ng-container>
+                    <tr mat-header-row *matHeaderRowDef="auditColumns"></tr>
+                    <tr mat-row *matRowDef="let row; columns: auditColumns;"></tr>
+                  </table>
+                </div>
+                <mat-paginator
+                  [length]="totalLogs()"
+                  [pageSize]="activityPageSize()"
+                  [pageIndex]="activityPageIndex()"
+                  [pageSizeOptions]="[5, 10, 20]"
+                  (page)="onActivityPageChange($event)"
+                  showFirstLastButtons>
+                </mat-paginator>
+              } @else {
+                <p class="empty-text">{{ 'admin.analytics.noData' | translate }}</p>
+              }
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+    </section>
+  }
+</div>

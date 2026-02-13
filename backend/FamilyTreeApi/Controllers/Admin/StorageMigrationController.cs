@@ -11,7 +11,7 @@ namespace FamilyTreeApi.Controllers.Admin;
 /// </summary>
 [ApiController]
 [Route("api/admin/storage-migration")]
-[Authorize(Roles = "Admin,SuperAdmin")]
+[Authorize(Roles = "Developer,Admin,SuperAdmin")]
 public class StorageMigrationController : ControllerBase
 {
     private readonly IStorageMigrationService _migrationService;

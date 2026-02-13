@@ -5,13 +5,13 @@ import { I18nService } from '../i18n';
  * Get relationship display name with multi-level fallback:
  * 1. Try DB type ID (new system)
  * 2. Try i18n key (legacy system)
- * 3. Return "Unknown" (never empty)
+ * 3. Return empty string when no data
  *
  * @param typeId - The database relationship type ID (may be null/undefined)
  * @param i18nKey - The legacy i18n key (may be null/undefined)
  * @param familyRelTypeService - The family relationship type service
  * @param i18nService - The i18n service
- * @returns The localized relationship name, or "Unknown" if not found
+ * @returns The localized relationship name, or empty string if not found
  */
 export function getRelationshipDisplayName(
   typeId: number | null | undefined,
@@ -22,7 +22,7 @@ export function getRelationshipDisplayName(
   // Level 1: Try DB type ID (preferred - new system)
   if (typeId != null && typeId > 0) {
     const name = familyRelTypeService.getLocalizedNameById(typeId);
-    if (name && name !== 'Unknown' && name !== i18nService.t('common.unknown')) {
+    if (name) {
       return name;
     }
   }
@@ -42,8 +42,8 @@ export function getRelationshipDisplayName(
     }
   }
 
-  // Level 3: Return "Unknown" - NEVER empty
-  return i18nService.t('common.unknown') || 'Unknown';
+  // Level 3: Return empty string when no data
+  return '';
 }
 
 /**
@@ -65,7 +65,7 @@ export function hasValidRelationshipInfo(
   // Check type ID
   if (typeId != null && typeId > 0) {
     const name = familyRelTypeService.getLocalizedNameById(typeId);
-    if (name && name !== 'Unknown' && name !== i18nService.t('common.unknown')) {
+    if (name) {
       return true;
     }
   }

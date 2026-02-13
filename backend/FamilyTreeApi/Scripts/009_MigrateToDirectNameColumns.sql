@@ -533,7 +533,6 @@ BEGIN
         p."DeathPlaceId" AS death_place_id,
         dp."Name" AS death_place_name,
         (p."DeathDate" IS NULL) AS is_living,
-        p."Notes" AS notes,
         p."FamilyId" AS family_id,
         f."Name" AS family_name,
         p."OrgId" AS org_id,

@@ -77,6 +77,10 @@ export class RegisterComponent implements OnInit {
     });
   }
 
+  getLocalizedTownName(town: TownInfo): string {
+    return this.i18n.getTownName(town);
+  }
+
   onSubmit() {
     if (this.registerForm.invalid) return;
 

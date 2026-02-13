@@ -219,22 +219,21 @@ export class HeritageBookViewComponent implements OnChanges, OnDestroy {
       return name;
     }
 
-    return this.i18n.t('common.unknown');
+    return '';
   }
 
   getDisplayName(person: TreePersonNode | null | undefined): string {
-    if (!person) return this.i18n.t('common.unknown');
+    if (!person) return '';
 
     const lang = this.i18n.currentLang();
-    const unknown = this.i18n.t('common.unknown');
 
     if (lang === 'ar') {
-      return person.nameArabic || person.nameEnglish || person.primaryName || unknown;
+      return person.nameArabic || person.nameEnglish || person.primaryName || '';
     }
     if (lang === 'nob') {
-      return person.nameNobiin || person.nameEnglish || person.primaryName || unknown;
+      return person.nameNobiin || person.nameEnglish || person.primaryName || '';
     }
-    return person.nameEnglish || person.nameArabic || person.primaryName || unknown;
+    return person.nameEnglish || person.nameArabic || person.primaryName || '';
   }
 
   formatLifespan(person: TreePersonNode): string {
@@ -308,7 +307,7 @@ export class HeritageBookViewComponent implements OnChanges, OnDestroy {
   getInitials(person: TreePersonNode | null | undefined): string {
     if (!person) return '?';
     const name = this.getDisplayName(person);
-    if (!name || name === this.i18n.t('common.unknown')) return '?';
+    if (!name) return '?';
 
     const parts = name.trim().split(/\s+/);
     if (parts.length === 1) {

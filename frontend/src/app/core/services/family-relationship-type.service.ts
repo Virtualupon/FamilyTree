@@ -177,13 +177,13 @@ export class FamilyRelationshipTypeService {
 
   /**
    * Get localized name by type ID.
-   * Returns "Unknown" with warning if ID not found - NEVER empty string.
+   * Returns empty string if ID not found.
    */
   getLocalizedNameById(id: number): string {
     const type = this._types().find(t => t.id === id);
     if (!type) {
       console.warn(`Unknown relationship type ID: ${id}`);
-      return this.i18n.t('common.unknown') || 'Unknown';
+      return '';
     }
     return this.getLocalizedName(type);
   }

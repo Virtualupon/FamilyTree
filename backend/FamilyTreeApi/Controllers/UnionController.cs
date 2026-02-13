@@ -64,7 +64,7 @@ public class UnionController : ControllerBase
     /// Create a new union (marriage/partnership)
     /// </summary>
     [HttpPost]
-    [Authorize(Roles = "Owner,Admin,Editor,Contributor,SuperAdmin")]
+    [Authorize(Roles = "Developer,Owner,Admin,Editor,Contributor,SuperAdmin")]
     public async Task<ActionResult<UnionResponseDto>> CreateUnion(CreateUnionRequest request)
     {
         var dto = new CreateUnionDto(
@@ -95,7 +95,7 @@ public class UnionController : ControllerBase
     /// Update a union
     /// </summary>
     [HttpPut("{id}")]
-    [Authorize(Roles = "Owner,Admin,Editor,SuperAdmin")]
+    [Authorize(Roles = "Developer,Owner,Admin,Editor,SuperAdmin")]
     public async Task<ActionResult<UnionResponseDto>> UpdateUnion(Guid id, UpdateUnionRequest request, [FromQuery] Guid? treeId = null)
     {
         var dto = new UpdateUnionDto(
@@ -119,7 +119,7 @@ public class UnionController : ControllerBase
     /// Delete a union
     /// </summary>
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Owner,Admin,Editor,SuperAdmin")]
+    [Authorize(Roles = "Developer,Owner,Admin,Editor,SuperAdmin")]
     public async Task<IActionResult> DeleteUnion(Guid id, [FromQuery] Guid? treeId = null)
     {
         var userContext = BuildUserContext();
@@ -137,7 +137,7 @@ public class UnionController : ControllerBase
     /// Add a member (spouse/partner) to a union
     /// </summary>
     [HttpPost("{id}/members")]
-    [Authorize(Roles = "Owner,Admin,Editor,SuperAdmin")]
+    [Authorize(Roles = "Developer,Owner,Admin,Editor,SuperAdmin")]
     public async Task<ActionResult<UnionMemberDto>> AddMember(Guid id, AddUnionMemberRequest request, [FromQuery] Guid? treeId = null)
     {
         var dto = new AddUnionMemberDto(request.PersonId);
@@ -156,7 +156,7 @@ public class UnionController : ControllerBase
     /// Remove a member from a union
     /// </summary>
     [HttpDelete("{unionId}/members/{personId}")]
-    [Authorize(Roles = "Owner,Admin,Editor,SuperAdmin")]
+    [Authorize(Roles = "Developer,Owner,Admin,Editor,SuperAdmin")]
     public async Task<IActionResult> RemoveMember(Guid unionId, Guid personId, [FromQuery] Guid? treeId = null)
     {
         var userContext = BuildUserContext();
@@ -186,7 +186,7 @@ public class UnionController : ControllerBase
     /// Add a child to a union
     /// </summary>
     [HttpPost("{id}/children")]
-    [Authorize(Roles = "Owner,Admin,Editor,Contributor,SuperAdmin")]
+    [Authorize(Roles = "Developer,Owner,Admin,Editor,Contributor,SuperAdmin")]
     public async Task<ActionResult<UnionChildDto>> AddChild(Guid id, [FromBody] AddUnionChildDto dto, [FromQuery] Guid? treeId = null)
     {
         var userContext = BuildUserContext();
@@ -204,7 +204,7 @@ public class UnionController : ControllerBase
     /// Remove a child from a union
     /// </summary>
     [HttpDelete("{unionId}/children/{childId}")]
-    [Authorize(Roles = "Owner,Admin,Editor,SuperAdmin")]
+    [Authorize(Roles = "Developer,Owner,Admin,Editor,SuperAdmin")]
     public async Task<IActionResult> RemoveChild(Guid unionId, Guid childId, [FromQuery] Guid? treeId = null)
     {
         var userContext = BuildUserContext();
@@ -267,9 +267,10 @@ public class UnionController : ControllerBase
 
     private string GetTreeRole()
     {
-        var role = User.FindFirst(ClaimTypes.Role)?.Value;
+        // Read from "treeRole" claim (set per org membership), not ClaimTypes.Role (Identity roles)
+        var role = User.FindFirst("treeRole")?.Value;
         if (string.IsNullOrEmpty(role)) return "Viewer";
-        return role.Contains(':') ? role.Split(':').Last() : role;
+        return role;
     }
 
     private ActionResult<T> HandleResult<T>(ServiceResult<T> result)

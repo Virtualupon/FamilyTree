@@ -139,3 +139,75 @@ public class RelationshipResponse
     public int? GenerationsFromCommonAncestor2 { get; set; }
     public List<Guid> CommonAncestors { get; set; } = new();
 }
+
+// ============================================================================
+// ROOT PERSONS (TOP LEVEL) DTOs
+// ============================================================================
+
+/// <summary>
+/// Response containing root persons (ancestors with no parents) of a tree
+/// </summary>
+public class RootPersonsResponse
+{
+    /// <summary>
+    /// List of root persons (top-level ancestors) - limited to MaxLimit
+    /// </summary>
+    public List<RootPersonSummary> RootPersons { get; set; } = new();
+
+    /// <summary>
+    /// Total count of root persons in the tree (may exceed returned list if truncated)
+    /// </summary>
+    public int TotalCount { get; set; }
+
+    /// <summary>
+    /// Whether more root persons exist beyond the returned limit
+    /// </summary>
+    public bool HasMore { get; set; }
+
+    /// <summary>
+    /// Tree ID these root persons belong to
+    /// </summary>
+    public Guid TreeId { get; set; }
+
+    /// <summary>
+    /// Tree name for display
+    /// </summary>
+    public string TreeName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Maximum number of root persons returned (for client awareness)
+    /// </summary>
+    public int MaxLimit { get; set; } = 50;
+}
+
+/// <summary>
+/// Summary info for a root person
+/// </summary>
+public class RootPersonSummary
+{
+    public Guid Id { get; set; }
+    public string PrimaryName { get; set; } = string.Empty;
+    public string? NameArabic { get; set; }
+    public string? NameEnglish { get; set; }
+    public string? NameNobiin { get; set; }
+    public Sex Sex { get; set; }
+    public DateTime? BirthDate { get; set; }
+    public DateTime? DeathDate { get; set; }
+    public bool IsLiving { get; set; }
+    public Guid? AvatarMediaId { get; set; }
+
+    /// <summary>
+    /// Number of descendants (children, grandchildren, etc.)
+    /// </summary>
+    public int DescendantCount { get; set; }
+
+    /// <summary>
+    /// Number of direct children
+    /// </summary>
+    public int ChildCount { get; set; }
+
+    /// <summary>
+    /// Number of generations below this person (capped at MaxDepth)
+    /// </summary>
+    public int GenerationDepth { get; set; }
+}

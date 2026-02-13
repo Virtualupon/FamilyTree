@@ -539,7 +539,7 @@ export class MySuggestionsComponent implements OnInit {
       case SuggestionType.RemoveRelationship: return 'suggestion.types.removeRelationship';
       case SuggestionType.MergePerson: return 'suggestion.types.mergePerson';
       case SuggestionType.SplitPerson: return 'suggestion.types.splitPerson';
-      default: return 'common.unknown';
+      default: return '';
     }
   }
 
@@ -550,7 +550,7 @@ export class MySuggestionsComponent implements OnInit {
       case SuggestionStatus.Rejected: return 'suggestion.status.rejected';
       case SuggestionStatus.NeedsInfo: return 'suggestion.status.needsInfo';
       case SuggestionStatus.Withdrawn: return 'suggestion.status.withdrawn';
-      default: return 'common.unknown';
+      default: return '';
     }
   }
 

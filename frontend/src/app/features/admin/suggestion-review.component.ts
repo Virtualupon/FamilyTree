@@ -84,7 +84,7 @@ import {
                       <i class="fa-solid fa-user" aria-hidden="true"></i>
                     </div>
                     <div class="person-details">
-                      <span class="person-name">{{ suggestion()!.targetPerson?.primaryName || ('common.unknown' | translate) }}</span>
+                      <span class="person-name">{{ suggestion()!.targetPerson?.primaryName }}</span>
                       @if (suggestion()!.targetPersonId) {
                         <a [routerLink]="['/people', suggestion()!.targetPersonId]" class="person-link">
                           {{ 'common.viewProfile' | translate }}
@@ -105,7 +105,7 @@ import {
                         <i class="fa-solid fa-user" aria-hidden="true"></i>
                       </div>
                       <div class="person-details">
-                        <span class="person-name">{{ suggestion()!.secondaryPerson?.primaryName || ('common.unknown' | translate) }}</span>
+                        <span class="person-name">{{ suggestion()!.secondaryPerson?.primaryName }}</span>
                         <a [routerLink]="['/people', suggestion()!.secondaryPersonId]" class="person-link">
                           {{ 'common.viewProfile' | translate }}
                         </a>
@@ -121,7 +121,7 @@ import {
               <div class="metadata-grid">
                 <div class="metadata-item">
                   <span class="metadata-item__label">{{ 'suggestion.submittedBy' | translate }}</span>
-                  <span class="metadata-item__value">{{ suggestion()!.submitter?.name || suggestion()!.submitter?.email || ('common.unknown' | translate) }}</span>
+                  <span class="metadata-item__value">{{ suggestion()!.submitter?.name || suggestion()!.submitter?.email }}</span>
                 </div>
                 <div class="metadata-item">
                   <span class="metadata-item__label">{{ 'suggestion.submittedAt' | translate }}</span>
@@ -242,7 +242,7 @@ import {
               <mat-card-content>
                 <div class="history-item">
                   <span class="history-action">{{ getStatusLabel(suggestion()!.status) | translate }}</span>
-                  <span class="history-by">{{ 'suggestion.by' | translate }} {{ suggestion()!.reviewer?.name || suggestion()!.reviewer?.email || ('common.unknown' | translate) }}</span>
+                  <span class="history-by">{{ 'suggestion.by' | translate }} {{ suggestion()!.reviewer?.name || suggestion()!.reviewer?.email }}</span>
                   <span class="history-date">{{ formatDateTime(suggestion()!.reviewedAt!) }}</span>
                 </div>
                 @if (suggestion()!.reviewerNotes) {
@@ -803,7 +803,7 @@ export class SuggestionReviewComponent implements OnInit {
 
   isAdmin(): boolean {
     const user = this.authService.getCurrentUser();
-    return user?.systemRole === 'SuperAdmin' || user?.systemRole === 'Admin';
+    return user?.systemRole === 'Developer' || user?.systemRole === 'SuperAdmin' || user?.systemRole === 'Admin';
   }
 
   canTakeAction(): boolean {
@@ -965,7 +965,7 @@ export class SuggestionReviewComponent implements OnInit {
       case SuggestionType.RemoveRelationship: return 'suggestion.types.removeRelationship';
       case SuggestionType.MergePerson: return 'suggestion.types.mergePerson';
       case SuggestionType.SplitPerson: return 'suggestion.types.splitPerson';
-      default: return 'common.unknown';
+      default: return '';
     }
   }
 
@@ -998,7 +998,7 @@ export class SuggestionReviewComponent implements OnInit {
       case SuggestionStatus.Rejected: return 'suggestion.status.rejected';
       case SuggestionStatus.NeedsInfo: return 'suggestion.status.needsInfo';
       case SuggestionStatus.Withdrawn: return 'suggestion.status.withdrawn';
-      default: return 'common.unknown';
+      default: return '';
     }
   }
 
@@ -1019,7 +1019,7 @@ export class SuggestionReviewComponent implements OnInit {
       case ConfidenceLevel.Probable: return 'suggestion.confidence.probable';
       case ConfidenceLevel.Possible: return 'suggestion.confidence.possible';
       case ConfidenceLevel.Uncertain: return 'suggestion.confidence.uncertain';
-      default: return 'common.unknown';
+      default: return '';
     }
   }
 

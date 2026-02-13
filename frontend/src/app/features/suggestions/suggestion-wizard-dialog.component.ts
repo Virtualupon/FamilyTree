@@ -793,7 +793,6 @@ export class SuggestionWizardDialogComponent implements OnInit {
   // Get full lineage name (Person + Father + Grandfather) plus Tree and Town
   getPersonDisplayName(person: SearchPersonItem): string {
     const lang = this.i18n.currentLang();
-    const unknown = this.i18n.t('common.unknown');
     const parts: string[] = [];
 
     // Get person's name based on language
@@ -820,7 +819,7 @@ export class SuggestionWizardDialogComponent implements OnInit {
     if (fatherName) parts.push(fatherName);
     if (grandfatherName) parts.push(grandfatherName);
 
-    let result = parts.join(' ') || unknown;
+    let result = parts.join(' ');
 
     // Add tree name if available
     if (person.treeName) {

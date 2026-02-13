@@ -201,11 +201,11 @@ export class TownListComponent implements OnInit {
 
   isAdmin(): boolean {
     const user = this.authService.getCurrentUser();
-    return user?.systemRole === 'SuperAdmin' || user?.systemRole === 'Admin';
+    return user?.systemRole === 'Developer' || user?.systemRole === 'SuperAdmin' || user?.systemRole === 'Admin';
   }
 
   isSuperAdmin(): boolean {
     const user = this.authService.getCurrentUser();
-    return user?.systemRole === 'SuperAdmin';
+    return user?.systemRole === 'Developer' || user?.systemRole === 'SuperAdmin';
   }
 }

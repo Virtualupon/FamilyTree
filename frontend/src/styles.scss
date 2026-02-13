@@ -1575,6 +1575,17 @@ $breakpoints: (
   }
 }
 
+// Error snackbar (used by login, register, verify-email, etc.)
+.error-snackbar {
+  --mdc-snackbar-container-color: #D32F2F;
+  --mdc-snackbar-supporting-text-color: white;
+  --mat-snack-bar-button-color: white;
+
+  .mat-mdc-button {
+    color: white !important;
+  }
+}
+
 // =============================================================================
 // FIX: Material dropdown panels appearing behind custom modals
 // =============================================================================
@@ -1641,6 +1652,8 @@ $breakpoints: (
 .mat-mdc-snack-bar-container,
 .mat-snack-bar-container {
   background-color: #323232 !important;
+  max-width: 400px !important;
+  margin: 0 auto !important;
 }
 
 // Generic CDK overlay catch-all

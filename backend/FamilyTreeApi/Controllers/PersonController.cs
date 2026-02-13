@@ -107,10 +107,11 @@ public class PersonController : ControllerBase
     [RequestSizeLimit(5 * 1024 * 1024)] // 5MB max for avatars
     public async Task<ActionResult<UploadPersonAvatarResponse>> UploadAvatar(
         Guid id,
-        [FromBody] UploadPersonAvatarRequest request)
+        [FromBody] UploadPersonAvatarRequest request,
+        [FromQuery] Guid? treeId = null)
     {
         var userContext = BuildUserContext();
-        var result = await _personService.UploadAvatarAsync(id, request, userContext);
+        var result = await _personService.UploadAvatarAsync(id, request, userContext, treeId);
 
         if (!result.IsSuccess)
         {
@@ -124,10 +125,10 @@ public class PersonController : ControllerBase
     /// Remove avatar from a person (clears AvatarMediaId, optionally deletes media)
     /// </summary>
     [HttpDelete("{id}/avatar")]
-    public async Task<IActionResult> RemoveAvatar(Guid id, [FromQuery] bool deleteMedia = true)
+    public async Task<IActionResult> RemoveAvatar(Guid id, [FromQuery] bool deleteMedia = true, [FromQuery] Guid? treeId = null)
     {
         var userContext = BuildUserContext();
-        var result = await _personService.RemoveAvatarAsync(id, deleteMedia, userContext);
+        var result = await _personService.RemoveAvatarAsync(id, deleteMedia, userContext, treeId);
 
         if (!result.IsSuccess)
         {
@@ -150,6 +151,7 @@ public class PersonController : ControllerBase
         {
             UserId = GetUserId(),
             OrgId = TryGetOrgIdFromToken(),
+            SelectedTownId = TryGetSelectedTownIdFromToken(),
             SystemRole = GetSystemRole(),
             TreeRole = GetTreeRole()
         };
@@ -173,6 +175,16 @@ public class PersonController : ControllerBase
             return null;
         }
         return orgId;
+    }
+
+    private Guid? TryGetSelectedTownIdFromToken()
+    {
+        var townIdClaim = User.FindFirst("selectedTownId")?.Value;
+        if (string.IsNullOrEmpty(townIdClaim) || !Guid.TryParse(townIdClaim, out var townId))
+        {
+            return null;
+        }
+        return townId;
     }
 
     private string GetSystemRole()

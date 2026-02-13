@@ -71,59 +71,349 @@
           </div>
         } @else if (preview()) {
           <div class="preview-content">
-            <div class="preview-stats">
-              <div class="stat-card">
-                <div class="stat-value">{{ preview()!.individualCount }}</div>
-                <div class="stat-label">{{ t('gedcom.preview.individuals') }}</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-value">{{ preview()!.familyCount }}</div>
-                <div class="stat-label">{{ t('gedcom.preview.families') }}</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-value">{{ formatFileSize(preview()!.fileSize) }}</div>
-                <div class="stat-label">{{ t('gedcom.preview.fileSize') }}</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-value">{{ preview()!.encoding }}</div>
-                <div class="stat-label">{{ t('gedcom.preview.encoding') }}</div>
-              </div>
+            <!-- Sub-tab navigation -->
+            <div class="preview-tabs">
+              <button class="tab-btn" [class.active]="previewTab() === 'summary'" (click)="setPreviewTab('summary')">
+                {{ t('gedcom.preview.tabSummary') }}
+              </button>
+              <button class="tab-btn" [class.active]="previewTab() === 'families'" (click)="setPreviewTab('families')">
+                {{ t('gedcom.preview.tabFamilies') }}
+                <span class="tab-count">{{ preview()!.familyGroups.length }}</span>
+              </button>
+              <button class="tab-btn" [class.active]="previewTab() === 'individuals'" (click)="setPreviewTab('individuals')">
+                {{ t('gedcom.preview.tabIndividuals') }}
+                <span class="tab-count">{{ preview()!.individualCount }}</span>
+              </button>
+              <button class="tab-btn" [class.active]="previewTab() === 'issues'" (click)="setPreviewTab('issues')">
+                {{ t('gedcom.preview.tabIssues') }}
+                @if (preview()!.dataQualityIssues.length > 0) {
+                  <span class="tab-count warning">{{ preview()!.dataQualityIssues.length }}</span>
+                }
+              </button>
             </div>
 
-            @if (preview()!.sampleIndividuals.length > 0) {
-              <div class="sample-table">
-                <h4>{{ t('gedcom.preview.sampleData') }}</h4>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>{{ t('gedcom.preview.name') }}</th>
-                      <th>{{ t('gedcom.preview.sex') }}</th>
-                      <th>{{ t('gedcom.preview.birth') }}</th>
-                      <th>{{ t('gedcom.preview.death') }}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (person of preview()!.sampleIndividuals; track person.id) {
-                      <tr>
-                        <td>{{ person.name || '—' }}</td>
-                        <td>{{ person.sex || '—' }}</td>
-                        <td>{{ person.birthDate || '—' }}</td>
-                        <td>{{ person.deathDate || '—' }}</td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
+            <!-- Tab 1: Summary -->
+            @if (previewTab() === 'summary') {
+              <div class="tab-content">
+                <div class="preview-stats">
+                  <div class="stat-card">
+                    <div class="stat-value">{{ preview()!.individualCount }}</div>
+                    <div class="stat-label">{{ t('gedcom.preview.individuals') }}</div>
+                  </div>
+                  <div class="stat-card">
+                    <div class="stat-value">{{ preview()!.familyCount }}</div>
+                    <div class="stat-label">{{ t('gedcom.preview.families') }}</div>
+                  </div>
+                  <div class="stat-card">
+                    <div class="stat-value">{{ formatFileSize(preview()!.fileSize) }}</div>
+                    <div class="stat-label">{{ t('gedcom.preview.fileSize') }}</div>
+                  </div>
+                  <div class="stat-card">
+                    <div class="stat-value">{{ preview()!.encoding }}</div>
+                    <div class="stat-label">{{ t('gedcom.preview.encoding') }}</div>
+                  </div>
+                </div>
+
+                <!-- Linkage Analysis -->
+                <div class="linkage-section">
+                  <h4>{{ t('gedcom.preview.linkageAnalysis') }}</h4>
+                  <div class="linkage-method" [style.border-left-color]="getLinkingMethodColor()">
+                    <span class="method-badge" [style.background]="getLinkingMethodColor()">
+                      {{ preview()!.linkageStatistics.linkingMethod }}
+                    </span>
+                    <p>{{ preview()!.linkageStatistics.linkingMethodDescription }}</p>
+                  </div>
+                  <div class="linkage-stats">
+                    <div class="linkage-stat">
+                      <span class="ls-value">{{ preview()!.linkageStatistics.individualsWithFAMC }}</span>
+                      <span class="ls-label">{{ t('gedcom.preview.withFAMC') }}</span>
+                    </div>
+                    <div class="linkage-stat">
+                      <span class="ls-value">{{ preview()!.linkageStatistics.individualsWithFAMS }}</span>
+                      <span class="ls-label">{{ t('gedcom.preview.withFAMS') }}</span>
+                    </div>
+                    <div class="linkage-stat">
+                      <span class="ls-value">{{ preview()!.linkageStatistics.individualsInFamilies }}</span>
+                      <span class="ls-label">{{ t('gedcom.preview.inFamilies') }}</span>
+                    </div>
+                    <div class="linkage-stat">
+                      <span class="ls-value orphaned">{{ preview()!.linkageStatistics.orphanedCount }}</span>
+                      <span class="ls-label">{{ t('gedcom.preview.orphaned') }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                @if (preview()!.warningCount > 0) {
+                  <div class="warnings-section">
+                    <h4>{{ t('gedcom.preview.warnings') }} ({{ preview()!.warningCount }})</h4>
+                    <ul>
+                      @for (warning of preview()!.warnings; track warning) {
+                        <li>{{ warning }}</li>
+                      }
+                    </ul>
+                  </div>
+                }
               </div>
             }
 
-            @if (preview()!.warningCount > 0) {
-              <div class="warnings-section">
-                <h4>{{ t('gedcom.preview.warnings') }} ({{ preview()!.warningCount }})</h4>
-                <ul>
-                  @for (warning of preview()!.warnings; track warning) {
-                    <li>{{ warning }}</li>
+            <!-- Tab 2: Family Groups -->
+            @if (previewTab() === 'families') {
+              <div class="tab-content">
+                @if (preview()!.familyGroupsTruncated) {
+                  <div class="info-banner">
+                    {{ t('gedcom.preview.familiesTruncated', { count: preview()!.familyGroups.length }) }}
+                  </div>
+                }
+
+                <div class="family-accordion">
+                  @for (group of paginatedFamilies(); track trackByFamilyId($index, group)) {
+                    <div class="family-panel" [class.expanded]="isFamilyExpanded(group.familyId)">
+                      <button class="family-header" (click)="toggleFamily(group.familyId)">
+                        <span class="family-title">{{ getFamilyHeaderText(group) }}</span>
+                        <span class="family-meta">
+                          {{ group.children.length }} {{ t('gedcom.preview.children') }}
+                          @if (group.issues.length > 0) {
+                            <span class="issue-badge">{{ group.issues.length }}</span>
+                          }
+                        </span>
+                        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                      </button>
+                      @if (isFamilyExpanded(group.familyId)) {
+                        <div class="family-detail">
+                          <div class="family-members">
+                            @if (group.husband) {
+                              <div class="member-row">
+                                <span class="member-role">{{ t('gedcom.preview.husband') }}</span>
+                                <span class="member-name">{{ group.husband.fullName || group.husband.id }}</span>
+                                @if (group.husband.birthDate) {
+                                  <span class="member-dates">{{ group.husband.birthDate }}</span>
+                                }
+                              </div>
+                            }
+                            @if (group.wife) {
+                              <div class="member-row">
+                                <span class="member-role">{{ t('gedcom.preview.wife') }}</span>
+                                <span class="member-name">{{ group.wife.fullName || group.wife.id }}</span>
+                                @if (group.wife.birthDate) {
+                                  <span class="member-dates">{{ group.wife.birthDate }}</span>
+                                }
+                              </div>
+                            }
+                            @if (group.marriageDate || group.marriagePlace) {
+                              <div class="member-row event-row">
+                                <span class="member-role">{{ t('gedcom.preview.marriage') }}</span>
+                                <span class="member-name">
+                                  {{ group.marriageDate || '' }}
+                                  @if (group.marriagePlace) { — {{ group.marriagePlace }} }
+                                </span>
+                              </div>
+                            }
+                            @if (group.divorceDate) {
+                              <div class="member-row event-row">
+                                <span class="member-role">{{ t('gedcom.preview.divorce') }}</span>
+                                <span class="member-name">{{ group.divorceDate }}</span>
+                              </div>
+                            }
+                          </div>
+                          @if (group.children.length > 0) {
+                            <div class="children-list">
+                              <h5>{{ t('gedcom.preview.children') }}</h5>
+                              @for (child of group.children; track trackById($index, child)) {
+                                <div class="child-row">
+                                  <span class="child-name">{{ child.fullName || child.id }}</span>
+                                  <span class="child-meta">
+                                    @if (child.sex) { {{ child.sex }} }
+                                    @if (child.birthDate) { — {{ child.birthDate }} }
+                                  </span>
+                                </div>
+                              }
+                            </div>
+                          }
+                          @if (group.issues.length > 0) {
+                            <div class="family-issues">
+                              @for (issue of group.issues; track issue) {
+                                <div class="family-issue-item">{{ issue }}</div>
+                              }
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
                   }
-                </ul>
+                </div>
+
+                <!-- Family pagination -->
+                @if (totalFamilyPages() > 1) {
+                  <div class="pagination">
+                    <button class="page-btn" [disabled]="familyPage() === 1" (click)="setFamilyPage(familyPage() - 1)">
+                      {{ t('common.previous') }}
+                    </button>
+                    <span class="page-info">{{ familyPage() }} / {{ totalFamilyPages() }}</span>
+                    <button class="page-btn" [disabled]="familyPage() === totalFamilyPages()" (click)="setFamilyPage(familyPage() + 1)">
+                      {{ t('common.next') }}
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+
+            <!-- Tab 3: All Individuals -->
+            @if (previewTab() === 'individuals') {
+              <div class="tab-content">
+                @if (preview()!.allIndividualsTruncated) {
+                  <div class="info-banner">
+                    {{ t('gedcom.preview.individualsTruncated', { shown: preview()!.allIndividuals.length, total: preview()!.individualCount }) }}
+                  </div>
+                }
+
+                <!-- Search and filters -->
+                <div class="individual-controls">
+                  <input
+                    type="text"
+                    class="search-input"
+                    [placeholder]="t('gedcom.preview.searchPlaceholder')"
+                    (input)="onSearchInput($event)"
+                  >
+                  <div class="filter-chips">
+                    <button class="chip" [class.active]="individualFilter() === 'all'" (click)="setIndividualFilter('all')">
+                      {{ t('gedcom.preview.filterAll') }}
+                    </button>
+                    <button class="chip" [class.active]="individualFilter() === 'orphaned'" (click)="setIndividualFilter('orphaned')">
+                      {{ t('gedcom.preview.filterOrphaned') }}
+                      <span class="chip-count">{{ preview()!.linkageStatistics.orphanedCount }}</span>
+                    </button>
+                    <button class="chip" [class.active]="individualFilter() === 'noFAMC'" (click)="setIndividualFilter('noFAMC')">
+                      {{ t('gedcom.preview.filterNoFAMC') }}
+                    </button>
+                    <button class="chip" [class.active]="individualFilter() === 'noFAMS'" (click)="setIndividualFilter('noFAMS')">
+                      {{ t('gedcom.preview.filterNoFAMS') }}
+                    </button>
+                  </div>
+                </div>
+
+                <div class="individuals-table-wrap">
+                  <table class="individuals-table">
+                    <thead>
+                      <tr>
+                        <th>{{ t('gedcom.preview.colId') }}</th>
+                        <th>{{ t('gedcom.preview.name') }}</th>
+                        <th>{{ t('gedcom.preview.sex') }}</th>
+                        <th>{{ t('gedcom.preview.birth') }}</th>
+                        <th>{{ t('gedcom.preview.death') }}</th>
+                        <th>{{ t('gedcom.preview.colLinks') }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (person of paginatedIndividuals(); track trackById($index, person)) {
+                        <tr [class.orphaned-row]="person.isOrphaned">
+                          <td class="id-cell">{{ person.id }}</td>
+                          <td>{{ person.fullName || '—' }}</td>
+                          <td>{{ person.sex || '—' }}</td>
+                          <td>{{ person.birthDate || '—' }}</td>
+                          <td>{{ person.deathDate || '—' }}</td>
+                          <td class="links-cell">
+                            @if (person.hasFAMC) { <span class="link-tag famc">FAMC</span> }
+                            @if (person.hasFAMS) { <span class="link-tag fams">FAMS</span> }
+                            @if (person.isOrphaned) { <span class="link-tag orphan">{{ t('gedcom.preview.orphaned') }}</span> }
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+
+                <div class="table-footer">
+                  <span class="result-count">
+                    {{ t('gedcom.preview.showingCount', { count: filteredIndividuals().length }) }}
+                  </span>
+                  @if (totalIndividualPages() > 1) {
+                    <div class="pagination">
+                      <button class="page-btn" [disabled]="individualPage() === 1" (click)="setIndividualPage(individualPage() - 1)">
+                        {{ t('common.previous') }}
+                      </button>
+                      <span class="page-info">{{ individualPage() }} / {{ totalIndividualPages() }}</span>
+                      <button class="page-btn" [disabled]="individualPage() === totalIndividualPages()" (click)="setIndividualPage(individualPage() + 1)">
+                        {{ t('common.next') }}
+                      </button>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Tab 4: Issues -->
+            @if (previewTab() === 'issues') {
+              <div class="tab-content">
+                @if (preview()!.dataQualityIssues.length === 0) {
+                  <div class="empty-state">
+                    <p>{{ t('gedcom.preview.noIssues') }}</p>
+                  </div>
+                } @else {
+                  <!-- Errors -->
+                  @if (errorIssues().length > 0) {
+                    <div class="issues-group error">
+                      <h4>{{ t('gedcom.preview.issueErrors') }} ({{ errorIssues().length }})</h4>
+                      @for (issue of errorIssues(); track issue.message) {
+                        <div class="issue-card">
+                          <span class="issue-severity error">{{ issue.severity }}</span>
+                          <span class="issue-category">{{ issue.category }}</span>
+                          <p class="issue-message">{{ issue.message }}</p>
+                          @if (issue.affectedIds.length > 0) {
+                            <div class="affected-ids">
+                              @for (id of issue.affectedIds; track id) {
+                                <span class="affected-id">{{ id }}</span>
+                              }
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+
+                  <!-- Warnings -->
+                  @if (warningIssues().length > 0) {
+                    <div class="issues-group warning">
+                      <h4>{{ t('gedcom.preview.issueWarnings') }} ({{ warningIssues().length }})</h4>
+                      @for (issue of warningIssues(); track issue.message) {
+                        <div class="issue-card">
+                          <span class="issue-severity warning">{{ issue.severity }}</span>
+                          <span class="issue-category">{{ issue.category }}</span>
+                          <p class="issue-message">{{ issue.message }}</p>
+                          @if (issue.affectedIds.length > 0) {
+                            <div class="affected-ids">
+                              @for (id of issue.affectedIds; track id) {
+                                <span class="affected-id">{{ id }}</span>
+                              }
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+
+                  <!-- Info -->
+                  @if (infoIssues().length > 0) {
+                    <div class="issues-group info">
+                      <h4>{{ t('gedcom.preview.issueInfo') }} ({{ infoIssues().length }})</h4>
+                      @for (issue of infoIssues(); track issue.message) {
+                        <div class="issue-card">
+                          <span class="issue-severity info">{{ issue.severity }}</span>
+                          <span class="issue-category">{{ issue.category }}</span>
+                          <p class="issue-message">{{ issue.message }}</p>
+                          @if (issue.affectedIds.length > 0) {
+                            <div class="affected-ids">
+                              @for (id of issue.affectedIds; track id) {
+                                <span class="affected-id">{{ id }}</span>
+                              }
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+                }
               </div>
             }
           </div>

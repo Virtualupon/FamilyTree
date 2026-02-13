@@ -28,8 +28,6 @@ public class PersonLink
     /// <summary>Confidence level 0-100%</summary>
     public int Confidence { get; set; } = 100;
 
-    public string? Notes { get; set; }
-
     /// <summary>User who created the link request</summary>
     public long? CreatedByUserId { get; set; }
     public ApplicationUser? CreatedByUser { get; set; }

@@ -15,15 +15,18 @@ public class GedcomService : IGedcomService
     private readonly ApplicationDbContext _context;
     private readonly ILogger<GedcomService> _logger;
     private readonly INameTransliterationService _transliterationService;
+    private readonly IAuditLogService _auditLogService;
 
     public GedcomService(
         ApplicationDbContext context,
         ILogger<GedcomService> logger,
-        INameTransliterationService transliterationService)
+        INameTransliterationService transliterationService,
+        IAuditLogService auditLogService)
     {
         _context = context;
         _logger = logger;
         _transliterationService = transliterationService;
+        _auditLogService = auditLogService;
     }
 
     public async Task<(List<GedcomIndividual> Individuals, List<GedcomFamily> Families, List<string> Warnings)> ParseAsync(
@@ -129,8 +132,19 @@ public class GedcomService : IGedcomService
 
             // Create or get tree
             Org tree;
-            if (options.CreateNewTree || options.ExistingTreeId == null)
+            if (options.ExistingTreeId.HasValue && !options.CreateNewTree)
             {
+                // Use existing tree
+                tree = await _context.Orgs.FindAsync(options.ExistingTreeId.Value)
+                    ?? throw new InvalidOperationException($"Tree with ID {options.ExistingTreeId.Value} not found");
+
+                _logger.LogInformation(
+                    "GEDCOM import using existing tree: {TreeId} ({TreeName}) in town {TownId}",
+                    tree.Id, tree.Name, tree.TownId);
+            }
+            else
+            {
+                // Create new tree
                 if (!options.TownId.HasValue)
                 {
                     return new GedcomImportResult(
@@ -162,11 +176,10 @@ public class GedcomService : IGedcomService
                     JoinedAt = DateTime.UtcNow
                 };
                 _context.OrgUsers.Add(ownerMember);
-            }
-            else
-            {
-                tree = await _context.Orgs.FindAsync(options.ExistingTreeId.Value)
-                    ?? throw new InvalidOperationException("Tree not found");
+
+                _logger.LogInformation(
+                    "GEDCOM import creating new tree: {TreeId} ({TreeName}) in town {TownId}",
+                    tree.Id, tree.Name, tree.TownId);
             }
 
             // Map GEDCOM IDs to created Person IDs
@@ -194,12 +207,15 @@ public class GedcomService : IGedcomService
             // Create unions and relationships from families
             int familiesImported = 0;
             int relationshipsCreated = 0;
+            // Track parent-child pairs added in this batch to prevent duplicates
+            // (AnyAsync only checks DB, not the EF change tracker)
+            var addedParentChildPairs = new HashSet<(Guid ParentId, Guid ChildId, RelationshipType Type)>();
 
             foreach (var fam in families)
             {
                 try
                 {
-                    var result = await CreateFamilyRelationships(fam, tree.Id, personMap);
+                    var result = await CreateFamilyRelationships(fam, tree.Id, personMap, addedParentChildPairs);
                     if (result.UnionCreated) familiesImported++;
                     relationshipsCreated += result.RelationshipsCreated;
                 }
@@ -210,6 +226,10 @@ public class GedcomService : IGedcomService
             }
 
             await _context.SaveChangesAsync();
+
+            await _auditLogService.LogAsync(
+                userId, "Import", "Gedcom", tree.Id,
+                $"GEDCOM imported: {individualsImported} people, {familiesImported} unions");
 
             // Generate translations for all imported persons
             _logger.LogInformation(
@@ -352,7 +372,7 @@ public class GedcomService : IGedcomService
                     indi.Occupation = value;
                     break;
                 case "NOTE":
-                    indi.Notes = value;
+                    // Notes are now stored in EntityNotes table, not inline on the entity
                     break;
                 case "FAMS":
                     if (value != null) indi.FamilySpouseIds.Add(value);
@@ -379,10 +399,7 @@ public class GedcomService : IGedcomService
                     else if (tag == "PLAC") indi.DeathPlace = value;
                     break;
                 case "NOTE":
-                    if (tag == "CONT" || tag == "CONC")
-                    {
-                        indi.Notes = (indi.Notes ?? "") + (tag == "CONT" ? "\n" : "") + value;
-                    }
+                    // Notes are now stored in EntityNotes table, not inline on the entity
                     break;
             }
         }
@@ -509,16 +526,22 @@ public class GedcomService : IGedcomService
 
     private Person CreatePersonFromGedcom(GedcomIndividual indi, Guid orgId, GedcomImportOptions options)
     {
-        var fullName = indi.FullName ?? $"{indi.GivenName} {indi.Surname}".Trim();
+        // Store only the given name (first name), NOT the full patronymic chain.
+        // The full name (person + father + grandfather) is computed dynamically
+        // from ParentChild relationships by search_persons_unified and the UI.
+        // Using FullName as fallback only when GivenName is missing (e.g. "NAME علي //").
+        var givenName = !string.IsNullOrWhiteSpace(indi.GivenName)
+            ? indi.GivenName
+            : indi.FullName ?? "?";
 
         // Detect script of the name
-        var script = DetectScriptFromContent(fullName);
+        var script = DetectScriptFromContent(givenName);
 
         var person = new Person
         {
             Id = Guid.NewGuid(),
             OrgId = orgId,
-            PrimaryName = fullName,
+            PrimaryName = givenName,
             Sex = indi.Sex?.ToUpperInvariant() switch
             {
                 "M" => Sex.Male,
@@ -530,13 +553,12 @@ public class GedcomService : IGedcomService
             DeathDate = indi.DeathDate?.ParsedDate,
             DeathPrecision = indi.DeathDate?.IsApproximate == true ? DatePrecision.About : DatePrecision.Exact,
             Occupation = options.ImportOccupations ? indi.Occupation : null,
-            Notes = options.ImportNotes ? indi.Notes : null,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
             // Set the correct column based on detected script
-            NameArabic = script == "Arabic" ? fullName : null,
-            NameEnglish = script == "English" ? fullName : null,
-            NameNobiin = script == "Nobiin" ? fullName : null
+            NameArabic = script == "Arabic" ? givenName : null,
+            NameEnglish = script == "English" ? givenName : null,
+            NameNobiin = script == "Nobiin" ? givenName : null
         };
 
         return person;
@@ -559,7 +581,8 @@ public class GedcomService : IGedcomService
     }
 
     private async Task<(bool UnionCreated, int RelationshipsCreated)> CreateFamilyRelationships(
-        GedcomFamily fam, Guid orgId, Dictionary<string, Guid> personMap)
+        GedcomFamily fam, Guid orgId, Dictionary<string, Guid> personMap,
+        HashSet<(Guid ParentId, Guid ChildId, RelationshipType Type)> addedPairs)
     {
         bool unionCreated = false;
         int relationshipsCreated = 0;
@@ -620,40 +643,50 @@ public class GedcomService : IGedcomService
 
             if (husbandId.HasValue)
             {
-                // Check for existing relationship
-                var exists = await _context.ParentChildren.AnyAsync(pc =>
-                    pc.ParentId == husbandId.Value && pc.ChildId == childId);
-
-                if (!exists)
+                var key = (husbandId.Value, childId, RelationshipType.Biological);
+                if (!addedPairs.Contains(key))
                 {
-                    _context.ParentChildren.Add(new ParentChild
+                    // Also check DB for pre-existing relationships (when importing into existing tree)
+                    var existsInDb = await _context.ParentChildren.AnyAsync(pc =>
+                        pc.ParentId == husbandId.Value && pc.ChildId == childId && pc.RelationshipType == RelationshipType.Biological);
+
+                    if (!existsInDb)
                     {
-                        Id = Guid.NewGuid(),
-                        ParentId = husbandId.Value,
-                        ChildId = childId,
-                        RelationshipType = RelationshipType.Biological,
-                        CreatedAt = DateTime.UtcNow
-                    });
-                    relationshipsCreated++;
+                        _context.ParentChildren.Add(new ParentChild
+                        {
+                            Id = Guid.NewGuid(),
+                            ParentId = husbandId.Value,
+                            ChildId = childId,
+                            RelationshipType = RelationshipType.Biological,
+                            CreatedAt = DateTime.UtcNow
+                        });
+                        relationshipsCreated++;
+                    }
+                    addedPairs.Add(key);
                 }
             }
 
             if (wifeId.HasValue)
             {
-                var exists = await _context.ParentChildren.AnyAsync(pc =>
-                    pc.ParentId == wifeId.Value && pc.ChildId == childId);
-
-                if (!exists)
+                var key = (wifeId.Value, childId, RelationshipType.Biological);
+                if (!addedPairs.Contains(key))
                 {
-                    _context.ParentChildren.Add(new ParentChild
+                    var existsInDb = await _context.ParentChildren.AnyAsync(pc =>
+                        pc.ParentId == wifeId.Value && pc.ChildId == childId && pc.RelationshipType == RelationshipType.Biological);
+
+                    if (!existsInDb)
                     {
-                        Id = Guid.NewGuid(),
-                        ParentId = wifeId.Value,
-                        ChildId = childId,
-                        RelationshipType = RelationshipType.Biological,
-                        CreatedAt = DateTime.UtcNow
-                    });
-                    relationshipsCreated++;
+                        _context.ParentChildren.Add(new ParentChild
+                        {
+                            Id = Guid.NewGuid(),
+                            ParentId = wifeId.Value,
+                            ChildId = childId,
+                            RelationshipType = RelationshipType.Biological,
+                            CreatedAt = DateTime.UtcNow
+                        });
+                        relationshipsCreated++;
+                    }
+                    addedPairs.Add(key);
                 }
             }
         }

@@ -48,15 +48,13 @@ public record PersonResponseDto(
     string? Religion,
     string? Nationality,
     string? Ethnicity,
-    string? Notes,
-    string? NotesAr,
-    string? NotesNob,
     bool IsVerified,
     bool NeedsReview,
     bool HasConflict,
     DateTime CreatedAt,
     DateTime UpdatedAt,
-    Guid? AvatarMediaId = null
+    Guid? AvatarMediaId = null,
+    List<GetNoteDto>? Notes = null
 );
 
 public class CreatePersonDto
@@ -81,9 +79,7 @@ public class CreatePersonDto
     public string? Religion { get; set; }
     public string? Nationality { get; set; }
     public string? Ethnicity { get; set; }
-    public string? Notes { get; set; }
-    public string? NotesAr { get; set; }
-    public string? NotesNob { get; set; }
+    public List<CreateNoteDto>? Notes { get; set; }
 }
 
 public class UpdatePersonDto
@@ -106,9 +102,7 @@ public class UpdatePersonDto
     public string? Religion { get; set; }
     public string? Nationality { get; set; }
     public string? Ethnicity { get; set; }
-    public string? Notes { get; set; }
-    public string? NotesAr { get; set; }
-    public string? NotesNob { get; set; }
+    public List<CreateNoteDto>? Notes { get; set; }
     public bool? IsVerified { get; set; }
     public bool? NeedsReview { get; set; }
     /// <summary>Avatar/profile picture media ID. Set to null to remove avatar.</summary>

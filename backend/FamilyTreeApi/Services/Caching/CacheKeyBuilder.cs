@@ -51,6 +51,13 @@ public static class CacheKeyBuilder
         return $"relationship:{NormalizeGuid(orgId)}:{first}:{second}";
     }
 
+    /// <summary>
+    /// Root persons cache key for a tree.
+    /// Cached for 5 minutes to balance freshness vs performance.
+    /// </summary>
+    public static string RootPersons(Guid treeId)
+        => $"root_persons:{NormalizeGuid(treeId)}";
+
     // =========================================================================
     // REFERENCE DATA KEYS - Global, not tenant-specific
     // =========================================================================

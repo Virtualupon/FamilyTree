@@ -24,8 +24,6 @@ public class Union
     public Guid? EndPlaceId { get; set; }
     public Place? EndPlace { get; set; }
 
-    public string? Notes { get; set; }
-
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 

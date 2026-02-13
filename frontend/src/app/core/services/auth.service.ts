@@ -33,24 +33,23 @@ import { environment } from '../../../environments/environment';
 })
 export class AuthService {
   private readonly apiUrl = `${environment.apiUrl}/auth`;
-  private readonly accessTokenKey = 'access_token';
-  private readonly refreshTokenKey = 'refresh_token';
   private readonly registrationTokenKey = 'registration_token';
   private readonly verifyEmailKey = 'verify_email';
-
-  // Buffer time before expiry to trigger refresh (5 minutes)
-  private readonly TOKEN_EXPIRY_BUFFER_MS = 5 * 60 * 1000;
 
   private currentUserSubject = new BehaviorSubject<User | null>(this.loadUserFromStorage());
   public currentUser$ = this.currentUserSubject.asObservable();
 
-  public isAuthenticated = signal<boolean>(this.hasValidToken());
+  public isAuthenticated = signal<boolean>(this.hasValidSession());
 
   constructor(
     private http: HttpClient,
     private router: Router,
     private swUpdate: SwUpdate
   ) {}
+
+  // ============================================================================
+  // AUTHENTICATION — Cookie-based (HttpOnly cookies set by backend)
+  // ============================================================================
 
   login(request: LoginRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.apiUrl}/login`, request)
@@ -96,7 +95,7 @@ export class AuthService {
 
   /**
    * Phase 2: Complete registration using token + verification code.
-   * SECURITY: Password is NOT re-transmitted.
+   * SECURITY: Password is NOT re-transmitted. Tokens set via HttpOnly cookies.
    */
   completeRegistration(code: string): Observable<CompleteRegistrationResponse> {
     const registrationToken = this.getRegistrationToken();
@@ -116,8 +115,11 @@ export class AuthService {
       request
     ).pipe(
       tap(response => {
-        if (response.success && response.tokens) {
-          this.handleAuthResponse(response.tokens);
+        if (response.success && response.user) {
+          // Tokens are in HttpOnly cookies — just store user profile
+          this.storeUserProfile(response.user);
+          this.currentUserSubject.next(response.user);
+          this.isAuthenticated.set(true);
           this.clearRegistrationData();
         }
       })
@@ -185,26 +187,22 @@ export class AuthService {
     return this.http.get<TownInfo[]>(`${this.apiUrl}/towns`);
   }
 
-  logout(): Observable<void> {
-    const refreshToken = this.getRefreshToken();
+  // ============================================================================
+  // LOGOUT — Clears HttpOnly cookies server-side
+  // ============================================================================
 
-    this.clearTokens();
-    this.currentUserSubject.next(null);
-    this.isAuthenticated.set(false);
+  logout(): Observable<void> {
+    // Clear local state immediately
+    this.clearLocalSession();
 
     // CRITICAL: Clear Service Worker cache on logout to prevent data leakage
-    // This ensures the next user on a shared device doesn't see cached family data
     this.clearServiceWorkerCache();
 
-    if (refreshToken) {
-      // Call revoke endpoint to invalidate the refresh token on the server
-      // Silently ignore errors - logout should always succeed locally
-      return this.http.post<void>(`${this.apiUrl}/revoke`, { refreshToken }).pipe(
-        catchError(() => of(undefined))
-      );
-    }
-
-    return of(undefined);
+    // Call revoke endpoint to invalidate refresh token + clear HttpOnly cookies server-side
+    // Silently ignore errors - logout should always succeed locally
+    return this.http.post<void>(`${this.apiUrl}/revoke`, {}).pipe(
+      catchError(() => of(undefined))
+    );
   }
 
   /**
@@ -235,28 +233,27 @@ export class AuthService {
     }
   }
 
-  refreshToken(): Observable<AuthResponse> {
-    const refreshToken = this.getRefreshToken();
-    if (!refreshToken) {
-      // Return an Observable error instead of throwing synchronously
-      return new Observable(observer => {
-        observer.error(new Error('No refresh token available'));
-      });
-    }
+  // ============================================================================
+  // TOKEN REFRESH — Cookie-based (refresh token in HttpOnly cookie)
+  // ============================================================================
 
-    return this.http.post<AuthResponse>(`${this.apiUrl}/refresh`, { refreshToken })
+  refreshToken(): Observable<AuthResponse> {
+    // No need to read refresh token from localStorage — it's in the HttpOnly cookie
+    // and will be sent automatically with the request via withCredentials
+    return this.http.post<AuthResponse>(`${this.apiUrl}/refresh`, {})
       .pipe(
-        tap(response => this.handleAuthResponse(response))
+        tap(response => this.handleAuthResponse(response)),
+        catchError(error => {
+          // If refresh fails, clear local session
+          this.clearLocalSession();
+          throw error;
+        })
       );
   }
 
-  getAccessToken(): string | null {
-    return localStorage.getItem(this.accessTokenKey);
-  }
-
-  getRefreshToken(): string | null {
-    return localStorage.getItem(this.refreshTokenKey);
-  }
+  // ============================================================================
+  // USER STATE — Profile stored locally for UI, tokens are NOT accessible
+  // ============================================================================
 
   getCurrentUser(): User | null {
     return this.currentUserSubject.value;
@@ -280,41 +277,63 @@ export class AuthService {
     return roles.includes(user.systemRole);
   }
 
-  // Check if user is SuperAdmin
-  isSuperAdmin(): boolean {
-    return this.hasSystemRole('SuperAdmin');
+  // Check if user is Developer
+  isDeveloper(): boolean {
+    return this.hasSystemRole('Developer');
   }
 
-  // Check if user is Admin or SuperAdmin
+  // Check if user is SuperAdmin or Developer
+  isSuperAdmin(): boolean {
+    return this.hasSystemRole(['SuperAdmin', 'Developer']);
+  }
+
+  // Check if user is Admin, SuperAdmin, or Developer
   isAdminOrHigher(): boolean {
-    return this.hasSystemRole(['SuperAdmin', 'Admin']);
+    return this.hasSystemRole(['Developer', 'SuperAdmin', 'Admin']);
   }
 
   // Check if user can manage a tree (tree-specific Admin or Owner)
   canManageTree(): boolean {
     const user = this.getCurrentUser();
     if (!user) return false;
-    
-    // SuperAdmin/Admin system roles can manage
+
+    // Developer/SuperAdmin/Admin system roles can manage
     if (this.isAdminOrHigher()) return true;
-    
+
     // Tree-specific Admin or Owner
     return user.role >= OrgRole.Admin;
   }
 
+  // ============================================================================
+  // AUTH RESPONSE HANDLING — No tokens in body, only user profile
+  // ============================================================================
+
+  /**
+   * Handle cookie-based auth response.
+   * SECURITY: Tokens are in HttpOnly cookies (set by backend), NOT in the response body.
+   * We only store the user profile for UI state.
+   */
   private handleAuthResponse(response: AuthResponse): void {
-    localStorage.setItem(this.accessTokenKey, response.accessToken);
-    localStorage.setItem(this.refreshTokenKey, response.refreshToken);
-    localStorage.setItem('user', JSON.stringify(response.user));
-    
+    this.storeUserProfile(response.user);
     this.currentUserSubject.next(response.user);
     this.isAuthenticated.set(true);
   }
 
-  private clearTokens(): void {
-    localStorage.removeItem(this.accessTokenKey);
-    localStorage.removeItem(this.refreshTokenKey);
+  /**
+   * Store user profile in localStorage for UI state (NOT a token).
+   */
+  private storeUserProfile(user: User): void {
+    localStorage.setItem('user', JSON.stringify(user));
+  }
+
+  /**
+   * Clear local session state (user profile, auth signal).
+   * Does NOT clear HttpOnly cookies — that's done server-side via /revoke.
+   */
+  private clearLocalSession(): void {
     localStorage.removeItem('user');
+    this.currentUserSubject.next(null);
+    this.isAuthenticated.set(false);
   }
 
   private loadUserFromStorage(): User | null {
@@ -329,68 +348,14 @@ export class AuthService {
     }
   }
 
-  private hasValidToken(): boolean {
-    const token = this.getAccessToken();
-    if (!token) return false;
-    return !this.isTokenExpired(token);
-  }
-
   /**
-   * Check if a JWT token is expired (with buffer time)
+   * Check if user has a valid session.
+   * With HttpOnly cookies, we can't inspect the token directly.
+   * We rely on the user profile existing in localStorage as a signal.
+   * The backend validates the actual token on each request.
    */
-  isTokenExpired(token: string): boolean {
-    const expiry = this.getTokenExpiry(token);
-    if (!expiry) return true;
-
-    // Check if token expires within buffer time
-    return Date.now() >= expiry - this.TOKEN_EXPIRY_BUFFER_MS;
-  }
-
-  /**
-   * Get token expiration time in milliseconds
-   */
-  getTokenExpiry(token: string): number | null {
-    try {
-      const payload = this.decodeToken(token);
-      if (!payload || !payload['exp']) return null;
-      // JWT exp is in seconds, convert to milliseconds
-      return (payload['exp'] as number) * 1000;
-    } catch {
-      return null;
-    }
-  }
-
-  /**
-   * Decode JWT payload (without verification - just for reading claims)
-   */
-  private decodeToken(token: string): Record<string, unknown> | null {
-    try {
-      const parts = token.split('.');
-      if (parts.length !== 3) return null;
-
-      const payload = parts[1];
-      // Handle URL-safe base64
-      const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(
-        atob(base64)
-          .split('')
-          .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-          .join('')
-      );
-
-      return JSON.parse(jsonPayload);
-    } catch {
-      return null;
-    }
-  }
-
-  /**
-   * Check if current access token needs refresh
-   */
-  needsTokenRefresh(): boolean {
-    const token = this.getAccessToken();
-    if (!token) return false;
-    return this.isTokenExpired(token);
+  private hasValidSession(): boolean {
+    return this.loadUserFromStorage() !== null;
   }
 
   // ============================================================================
@@ -438,16 +403,14 @@ export class AuthService {
   }
 
   /**
-   * Select a town for viewing (User role)
+   * Select a town for viewing (User role).
+   * Access token with town claim is set via HttpOnly cookie by the backend.
    */
   selectTownForUser(townId: string): Observable<SelectTownResponse> {
     return this.http.post<SelectTownResponse>(`${this.apiUrl}/select-town-user`, { townId })
       .pipe(
         tap(response => {
-          // Update access token with town claim
-          localStorage.setItem(this.accessTokenKey, response.accessToken);
-
-          // Update stored user with selected town
+          // Token is in HttpOnly cookie — just update user profile with selected town
           const user = this.getCurrentUser();
           if (user) {
             user.selectedTownId = response.townId;
@@ -459,16 +422,14 @@ export class AuthService {
   }
 
   /**
-   * Select a town for managing (Admin role)
+   * Select a town for managing (Admin role).
+   * Access token with town claim is set via HttpOnly cookie by the backend.
    */
   selectTownForAdmin(townId: string): Observable<SelectTownResponse> {
     return this.http.post<SelectTownResponse>(`${this.apiUrl}/select-town`, { townId })
       .pipe(
         tap(response => {
-          // Update access token with town claim
-          localStorage.setItem(this.accessTokenKey, response.accessToken);
-
-          // Update stored user with selected town
+          // Token is in HttpOnly cookie — just update user profile with selected town
           const user = this.getCurrentUser();
           if (user) {
             user.selectedTownId = response.townId;
@@ -501,11 +462,15 @@ export class AuthService {
 
   /**
    * Check if user needs town selection (regular User role without selected town)
-   * Admin and SuperAdmin have assigned towns that auto-select, so they bypass this check.
+   * Developer, Admin, and SuperAdmin have assigned towns that auto-select,
+   * so they bypass this check.
    */
   needsTownSelection(): boolean {
     const user = this.getCurrentUser();
     if (!user) return false;
+
+    // Developer doesn't need town selection - has access to all towns
+    if (user.systemRole === 'Developer') return false;
 
     // SuperAdmin doesn't need town selection - has access to all towns
     if (user.systemRole === 'SuperAdmin') return false;

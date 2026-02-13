@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
-import { MediaSearchParams, MediaSearchResult, CachedSignedUrl } from '../models/media.models';
+import { MediaSearchParams, MediaSearchResult, CachedSignedUrl, MediaApprovalQueueParams, MediaApprovalQueueResponse } from '../models/media.models';
 import { SignedMediaUrl } from '../models/person-media.models';
 
 /**
@@ -32,6 +32,8 @@ export class MediaService {
     if (params.capturePlaceId) httpParams = httpParams.set('capturePlaceId', params.capturePlaceId);
     if (params.searchTerm) httpParams = httpParams.set('searchTerm', params.searchTerm);
     if (params.excludeAvatars !== undefined) httpParams = httpParams.set('excludeAvatars', params.excludeAvatars.toString());
+    if (params.approvalStatus) httpParams = httpParams.set('approvalStatus', params.approvalStatus);
+    if (params.tag) httpParams = httpParams.set('tag', params.tag);
     if (params.page) httpParams = httpParams.set('page', params.page.toString());
     if (params.pageSize) httpParams = httpParams.set('pageSize', params.pageSize.toString());
 
@@ -93,6 +95,44 @@ export class MediaService {
    */
   clearCache(): void {
     this.urlCache.clear();
+  }
+
+  // ============================================
+  // Media Approval
+  // ============================================
+
+  /**
+   * Get the media approval queue (pending items)
+   */
+  getApprovalQueue(params: MediaApprovalQueueParams = {}): Observable<MediaApprovalQueueResponse> {
+    let httpParams = new HttpParams();
+    if (params.page) httpParams = httpParams.set('page', params.page.toString());
+    if (params.pageSize) httpParams = httpParams.set('pageSize', params.pageSize.toString());
+    if (params.kind) httpParams = httpParams.set('kind', params.kind);
+    if (params.searchTerm) httpParams = httpParams.set('searchTerm', params.searchTerm);
+
+    return this.http.get<MediaApprovalQueueResponse>('/api/media/approval-queue', { params: httpParams });
+  }
+
+  /**
+   * Approve a pending media item
+   */
+  approveMedia(mediaId: string, reviewerNotes?: string): Observable<void> {
+    return this.http.post<void>(`/api/media/${mediaId}/approve`, { reviewerNotes });
+  }
+
+  /**
+   * Reject a pending media item
+   */
+  rejectMedia(mediaId: string, reviewerNotes?: string): Observable<void> {
+    return this.http.post<void>(`/api/media/${mediaId}/reject`, { reviewerNotes });
+  }
+
+  /**
+   * Delete a media item and its cloud storage file
+   */
+  deleteMedia(mediaId: string): Observable<void> {
+    return this.http.delete<void>(`/api/media/${mediaId}`);
   }
 
   /**

@@ -7,13 +7,13 @@ namespace FamilyTreeApi.DTOs;
 public class AddParentChildRequest
 {
     public RelationshipType? RelationshipType { get; set; }
-    public string? Notes { get; set; }
+    public List<CreateNoteDto>? Notes { get; set; }
 }
 
 public class UpdateParentChildRequest
 {
     public RelationshipType? RelationshipType { get; set; }
-    public string? Notes { get; set; }
+    public List<CreateNoteDto>? Notes { get; set; }
 }
 
 // Response DTOs for ParentChild API endpoints
@@ -33,8 +33,28 @@ public class ParentChildResponse
     public string? ChildNameNobiin { get; set; }
     public Sex? ChildSex { get; set; }
     public RelationshipType RelationshipType { get; set; }
-    public string? Notes { get; set; }
+    public List<GetNoteDto>? Notes { get; set; }
     public bool IsAdopted => RelationshipType == RelationshipType.Adoptive;
+
+    /// <summary>
+    /// After creating a parent-child relationship, if the new parent has a spouse (via union)
+    /// who is NOT already a parent of the same child, they are suggested here for optional linking.
+    /// </summary>
+    public List<SuggestedParentDto>? SuggestedAdditionalParents { get; set; }
+}
+
+/// <summary>
+/// Represents a spouse/partner who could also be linked as a parent of a child.
+/// </summary>
+public class SuggestedParentDto
+{
+    public Guid PersonId { get; set; }
+    public string? PersonName { get; set; }
+    public string? PersonNameArabic { get; set; }
+    public string? PersonNameEnglish { get; set; }
+    public string? PersonNameNobiin { get; set; }
+    public Sex? PersonSex { get; set; }
+    public Guid UnionId { get; set; }
 }
 
 public class SiblingResponse

@@ -54,7 +54,7 @@ interface LanguageOption {
                 (click)="selectLanguage(lang.code)"
                 [disabled]="loading"
               >
-                <span class="flag">{{ lang.flag }}</span>
+                <img class="flag" [src]="'assets/flags/' + lang.flag + '.svg'" [alt]="lang.name + ' flag'">
                 <div class="language-names">
                   <span class="native-name">{{ lang.nativeName }}</span>
                   <span class="english-name">{{ lang.name }}</span>
@@ -87,16 +87,36 @@ interface LanguageOption {
   styles: [`
     .language-selection-container {
       min-height: 100vh;
+      min-height: 100dvh;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 24px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #FFF9F5 0%, #FFF5EB 50%, #F4E4D7 100%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .language-selection-container::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.06;
+      background-image:
+        repeating-linear-gradient(45deg, transparent, transparent 35px, #C17E3E 35px, #C17E3E 37px),
+        repeating-linear-gradient(-45deg, transparent, transparent 35px, #187573 35px, #187573 37px);
+      background-size: 80px 80px;
+      z-index: 0;
     }
 
     .selection-card {
       max-width: 500px;
       width: 100%;
+      position: relative;
+      z-index: 1;
+      border-radius: 24px;
+      box-shadow: 0 20px 40px rgba(45, 45, 45, 0.15);
     }
 
     .text-center {
@@ -128,12 +148,12 @@ interface LanguageOption {
       transition: all 0.2s ease;
 
       &:hover {
-        background-color: rgba(103, 126, 234, 0.08);
+        background-color: rgba(24, 117, 115, 0.06);
       }
 
       &.selected {
-        border-color: #667eea;
-        background-color: rgba(103, 126, 234, 0.12);
+        border-color: #187573;
+        background-color: rgba(24, 117, 115, 0.1);
       }
 
       &.rtl {
@@ -147,8 +167,12 @@ interface LanguageOption {
     }
 
     .flag {
-      font-size: 32px;
-      line-height: 1;
+      width: 40px;
+      height: 28px;
+      object-fit: cover;
+      border-radius: 4px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+      flex-shrink: 0;
     }
 
     .language-names {
@@ -169,7 +193,7 @@ interface LanguageOption {
     }
 
     .check-icon {
-      color: #667eea;
+      color: #187573;
     }
 
     mat-card-actions {
@@ -178,6 +202,15 @@ interface LanguageOption {
 
     button[mat-raised-button] {
       min-width: 120px;
+      background: linear-gradient(135deg, #187573, #2B9A97) !important;
+      color: white !important;
+      border-radius: 12px !important;
+      font-weight: 600;
+    }
+
+    button[mat-raised-button]:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(24, 117, 115, 0.35);
     }
 
     mat-spinner {
@@ -199,21 +232,21 @@ export class LanguageSelectionComponent {
       code: 'en',
       name: 'English',
       nativeName: 'English',
-      flag: '🇬🇧',
+      flag: 'gb',
       direction: 'ltr'
     },
     {
       code: 'ar',
       name: 'Arabic',
       nativeName: 'العربية',
-      flag: '🇸🇦',
+      flag: 'sa',
       direction: 'rtl'
     },
     {
       code: 'nob',
       name: 'Nobiin',
       nativeName: 'نوبين',
-      flag: '🇸🇩',
+      flag: 'sd',
       direction: 'rtl'
     }
   ];
@@ -234,7 +267,7 @@ export class LanguageSelectionComponent {
         // Check if user needs town selection next
         const user = this.authService.getCurrentUser();
 
-        if (user?.systemRole === 'SuperAdmin') {
+        if (user?.systemRole === 'Developer' || user?.systemRole === 'SuperAdmin') {
           // SuperAdmin goes directly to dashboard
           this.authService.completeOnboarding().subscribe({
             next: () => {

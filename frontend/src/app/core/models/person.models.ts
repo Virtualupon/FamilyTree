@@ -26,11 +26,6 @@ export interface Person {
   religion: string | null;
   nationality: string | null;
   ethnicity: string | null;
-  notes: string | null;
-  /** Notes in Arabic */
-  notesAr: string | null;
-  /** Notes in Nobiin */
-  notesNob: string | null;
   isVerified: boolean;
   needsReview: boolean;
   hasConflict: boolean;
@@ -131,11 +126,6 @@ export interface CreatePersonRequest {
   religion?: string;
   nationality?: string;
   ethnicity?: string;
-  notes?: string;
-  /** Notes in Arabic */
-  notesAr?: string;
-  /** Notes in Nobiin */
-  notesNob?: string;
   /** @deprecated Use nameArabic, nameEnglish, nameNobiin directly */
   names?: CreatePersonNameRequest[];
 }
@@ -163,11 +153,6 @@ export interface UpdatePersonRequest {
   religion?: string;
   nationality?: string;
   ethnicity?: string;
-  notes?: string;
-  /** Notes in Arabic */
-  notesAr?: string;
-  /** Notes in Nobiin */
-  notesNob?: string;
   isVerified?: boolean;
   needsReview?: boolean;
   /** Avatar/profile picture media ID. Set to null to remove avatar. */

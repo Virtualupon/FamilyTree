@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -17,9 +17,12 @@ import { PersonService } from '../../core/services/person.service';
 import { PersonSearchService } from '../../core/services/person-search.service';
 import { PersonMediaService } from '../../core/services/person-media.service';
 import { TreeContextService } from '../../core/services/tree-context.service';
+import { TreeService } from '../../core/services/tree.service';
+import { AuthService } from '../../core/services/auth.service';
 import { I18nService, TranslatePipe } from '../../core/i18n';
 import { Sex } from '../../core/models/person.models';
 import { SearchPersonItem, getPrimaryName, SearchScript } from '../../core/models/search.models';
+import { RootPersonSummary } from '../../core/models/tree.models';
 import { EmptyStateComponent, SkeletonComponent, ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components';
 import { PersonFormDialogComponent } from './person-form-dialog.component';
 
@@ -53,6 +56,8 @@ export class PeopleListComponent implements OnInit, OnDestroy {
   private readonly personService = inject(PersonService);
   private readonly mediaService = inject(PersonMediaService);
   private readonly treeContext = inject(TreeContextService);
+  private readonly treeService = inject(TreeService);
+  private readonly authService = inject(AuthService);
   private readonly i18n = inject(I18nService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
@@ -61,14 +66,38 @@ export class PeopleListComponent implements OnInit, OnDestroy {
 
   // Track if we've already retried after clearing tree selection
   private hasRetriedAfterClearingTree = false;
-  
+
   // Avatar cache: personId -> object URL
   private avatarCache = new Map<string, string>();
   private avatarLoading = new Set<string>();
-  
+
+  // Ancestor avatar cache: personId -> object URL
+  private ancestorAvatarCache = new Map<string, string>();
+  private ancestorAvatarLoading = new Set<string>();
+
   // Expose enum to template
   readonly Sex = Sex;
-  
+
+  // Founding ancestors hero state
+  rootPersons = signal<RootPersonSummary[]>([]);
+  treeName = signal<string>('');
+  loadingAncestors = signal(false);
+  heroCollapsed = signal(false);
+
+  // Tree/Town context — always visible when a tree is selected
+  currentTreeName = computed(() => {
+    // Prefer the tree name from root-persons API (includes all scripts)
+    const apiTreeName = this.treeName();
+    if (apiTreeName) return apiTreeName;
+    // Fallback to tree context selected tree
+    return this.treeContext.selectedTree()?.name || '';
+  });
+
+  currentTownName = computed(() => {
+    const tree = this.treeContext.selectedTree();
+    return tree?.townName || this.treeContext.selectedTown()?.name || this.authService.getSelectedTownName() || '';
+  });
+
   // State - using new SearchPersonItem type
   people = signal<SearchPersonItem[]>([]);
   loading = signal(true);
@@ -95,7 +124,32 @@ export class PeopleListComponent implements OnInit, OnDestroy {
     const f = this.filters();
     return this.searchQuery.length > 0 || f.sex !== null || f.status !== 'all';
   });
-  
+
+  // Reload people list when the selected tree changes
+  private previousTreeId: string | null = null;
+  private rootPersonsLoaded = false;
+  private treeChangeEffect = effect(() => {
+    const currentTreeId = this.treeContext.effectiveTreeId();
+    if (this.previousTreeId !== null && currentTreeId !== this.previousTreeId) {
+      // Tree changed - full reload
+      this.currentPage.set(1);
+      this.people.set([]);
+      this.avatarCache.forEach(url => URL.revokeObjectURL(url));
+      this.avatarCache.clear();
+      this.avatarLoading.clear();
+      this.ancestorAvatarCache.forEach(url => URL.revokeObjectURL(url));
+      this.ancestorAvatarCache.clear();
+      this.ancestorAvatarLoading.clear();
+      this.hasRetriedAfterClearingTree = false;
+      this.loadPeople();
+      this.loadRootPersons();
+    } else if (currentTreeId && !this.rootPersonsLoaded) {
+      // Initial tree assignment (previousTreeId was null) - load ancestors
+      this.loadRootPersons();
+    }
+    this.previousTreeId = currentTreeId;
+  });
+
   ngOnInit(): void {
     // Setup search debounce
     this.searchSubject.pipe(
@@ -108,17 +162,20 @@ export class PeopleListComponent implements OnInit, OnDestroy {
       this.currentPage.set(1);
       this.loadPeople();
     });
-    
+
     this.loadPeople();
+    this.loadRootPersons();
   }
-  
+
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
-    
+
     // Revoke avatar object URLs to prevent memory leaks
     this.avatarCache.forEach(url => URL.revokeObjectURL(url));
     this.avatarCache.clear();
+    this.ancestorAvatarCache.forEach(url => URL.revokeObjectURL(url));
+    this.ancestorAvatarCache.clear();
   }
   
   loadPeople(append = false): void {
@@ -423,5 +480,176 @@ export class PeopleListComponent implements OnInit, OnDestroy {
       return person.countryNameAr || person.countryNameEn || '';
     }
     return person.countryNameEn || person.countryNameAr || '';
+  }
+
+  // ========================================================================
+  // FOUNDING ANCESTORS HERO SECTION
+  // ========================================================================
+
+  /**
+   * Load root persons (founding ancestors) for the current tree
+   */
+  loadRootPersons(): void {
+    const treeId = this.treeContext.effectiveTreeId();
+    if (!treeId) {
+      this.rootPersons.set([]);
+      this.treeName.set('');
+      return;
+    }
+
+    this.loadingAncestors.set(true);
+    this.rootPersonsLoaded = true;
+
+    this.treeService.getRootPersons(treeId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          this.rootPersons.set(response.rootPersons);
+          this.treeName.set(response.treeName || '');
+          this.loadingAncestors.set(false);
+
+          // Load avatars for root persons
+          response.rootPersons.forEach(person => {
+            if (person.avatarMediaId) {
+              this.loadAncestorAvatar(person.id, person.avatarMediaId);
+            }
+          });
+        },
+        error: (err) => {
+          console.error('Failed to load root persons:', err);
+          this.loadingAncestors.set(false);
+        }
+      });
+  }
+
+  /**
+   * Load avatar for a root person and cache it
+   */
+  loadAncestorAvatar(personId: string, avatarMediaId: string): void {
+    if (this.ancestorAvatarCache.has(personId)) return;
+    if (this.ancestorAvatarLoading.has(personId)) return;
+
+    this.ancestorAvatarLoading.add(personId);
+
+    this.mediaService.getMediaById(avatarMediaId).subscribe({
+      next: (media) => {
+        const objectUrl = this.mediaService.createObjectUrl(
+          media.base64Data,
+          media.mimeType || 'image/jpeg'
+        );
+        this.ancestorAvatarCache.set(personId, objectUrl);
+        this.ancestorAvatarLoading.delete(personId);
+      },
+      error: () => {
+        this.ancestorAvatarLoading.delete(personId);
+      }
+    });
+  }
+
+  /**
+   * Get cached avatar URL for a root person
+   */
+  getAncestorAvatarUrl(personId: string): string | null {
+    return this.ancestorAvatarCache.get(personId) || null;
+  }
+
+  /**
+   * Get localized name for a root person, with tree name as family name.
+   * Root persons have no parents, so we append the tree name to form a full name.
+   * e.g. "Ahmed" + tree "Sab" → "Ahmed Sab"
+   */
+  getAncestorName(person: RootPersonSummary): string {
+    const lang = this.i18n.currentLang();
+    let firstName = '';
+    switch (lang) {
+      case 'ar':
+        firstName = person.nameArabic || person.primaryName;
+        break;
+      case 'nob':
+        firstName = person.nameNobiin || person.primaryName;
+        break;
+      case 'en':
+      default:
+        firstName = person.nameEnglish || person.primaryName;
+        break;
+    }
+
+    // Extract the relevant part of the tree name for the current language.
+    // Tree name may contain mixed scripts e.g. "Sab ساب" — extract only the matching script.
+    const fullTreeName = this.treeName();
+    if (!fullTreeName) return firstName;
+
+    const familyName = this.extractLocalizedTreeName(fullTreeName, lang);
+    if (familyName && !firstName.includes(familyName)) {
+      return `${firstName} ${familyName}`;
+    }
+    return firstName;
+  }
+
+  /**
+   * Extract the language-appropriate part of a tree name.
+   * e.g. "Sab ساب" → "ساب" for Arabic, "Sab" for English
+   */
+  private extractLocalizedTreeName(treeName: string, lang: string): string {
+    const parts = treeName.split(/\s+/);
+    if (parts.length <= 1) return treeName;
+
+    // Check if the name has mixed scripts (Latin + Arabic/Coptic)
+    const arabicParts = parts.filter(p => /[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/.test(p));
+    const latinParts = parts.filter(p => /[a-zA-Z]/.test(p));
+    const copticParts = parts.filter(p => /[\u2C80-\u2CFF]/.test(p));
+
+    if (lang === 'ar' && arabicParts.length > 0) {
+      return arabicParts.join(' ');
+    }
+    if (lang === 'nob' && copticParts.length > 0) {
+      return copticParts.join(' ');
+    }
+    if (latinParts.length > 0) {
+      return latinParts.join(' ');
+    }
+
+    // Fallback: return the full name
+    return treeName;
+  }
+
+  /**
+   * Get gender CSS class for root person avatar
+   */
+  getGenderClass(sex: Sex): string {
+    switch (sex) {
+      case Sex.Male:
+        return 'male';
+      case Sex.Female:
+        return 'female';
+      default:
+        return 'unknown';
+    }
+  }
+
+  /**
+   * Navigate to tree diagram view for a specific ancestor
+   */
+  viewAncestor(person: RootPersonSummary): void {
+    this.router.navigate(['/tree'], { queryParams: { personId: person.id } });
+  }
+
+  /**
+   * Navigate to tree view, centered on the first root ancestor
+   */
+  viewTree(): void {
+    const roots = this.rootPersons();
+    if (roots.length > 0) {
+      this.router.navigate(['/tree'], { queryParams: { personId: roots[0].id } });
+    } else {
+      this.router.navigate(['/tree']);
+    }
+  }
+
+  /**
+   * Toggle hero section collapse
+   */
+  toggleHero(): void {
+    this.heroCollapsed.update(v => !v);
   }
 }

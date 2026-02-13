@@ -695,8 +695,8 @@ public class TreeViewService : ITreeViewService
         UserContext userContext,
         CancellationToken cancellationToken)
     {
-        // SuperAdmin can access any tree
-        if (userContext.IsSuperAdmin)
+        // Developer/SuperAdmin can access any tree
+        if (userContext.IsDeveloper || userContext.IsSuperAdmin)
         {
             if (requestedTreeId.HasValue)
             {
@@ -760,24 +760,74 @@ public class TreeViewService : ITreeViewService
             return (null, "You must be assigned to a tree or be a member of one.");
         }
 
-        // Regular user - must be a member
-        if (userContext.OrgId == null)
-        {
-            return (null, "You must be a member of a family tree. Please create or join one first.");
-        }
+        // Regular user - must be a member or have access
+        // Note: userContext.OrgId may be the FIRST of multiple orgId JWT claims (multi-org bug).
+        // A user with multiple tree memberships may have a different tree selected than
+        // the one returned by FindFirst("orgId"). Always verify via IsUserMemberOfOrgAsync.
 
         // If a specific tree was requested, verify membership
-        if (requestedTreeId.HasValue && requestedTreeId.Value != userContext.OrgId.Value)
+        if (requestedTreeId.HasValue)
         {
+            // Quick check: does the requested tree match the token orgId?
+            if (requestedTreeId.Value == userContext.OrgId)
+            {
+                return (requestedTreeId, null);
+            }
+
+            // Full membership check via OrgUsers table
             var isMember = await _orgRepository.IsUserMemberOfOrgAsync(
                 userContext.UserId, requestedTreeId.Value, cancellationToken);
 
-            if (!isMember)
+            if (isMember)
             {
-                return (null, "You are not a member of this tree.");
+                return (requestedTreeId, null);
             }
 
-            return (requestedTreeId, null);
+            // Check if tree exists in user's town (read-only browse access)
+            // First try using the user's own tree to determine their town
+            if (userContext.OrgId.HasValue)
+            {
+                var userTree = await _orgRepository.QueryNoTracking()
+                    .Where(o => o.Id == userContext.OrgId.Value)
+                    .Select(o => new { o.TownId })
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (userTree?.TownId != null)
+                {
+                    var requestedTree = await _orgRepository.QueryNoTracking()
+                        .Where(o => o.Id == requestedTreeId.Value)
+                        .Select(o => new { o.TownId })
+                        .FirstOrDefaultAsync(cancellationToken);
+
+                    if (requestedTree?.TownId != null && requestedTree.TownId == userTree.TownId)
+                    {
+                        return (requestedTreeId, null);
+                    }
+                }
+            }
+
+            // Fallback: check if the requested tree is in the user's selected town
+            // (handles case where user's first JWT orgId is in a different town)
+            if (userContext.SelectedTownId.HasValue)
+            {
+                var requestedTree = await _orgRepository.QueryNoTracking()
+                    .Where(o => o.Id == requestedTreeId.Value)
+                    .Select(o => new { o.TownId })
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (requestedTree?.TownId != null && requestedTree.TownId == userContext.SelectedTownId.Value)
+                {
+                    return (requestedTreeId, null);
+                }
+            }
+
+            return (null, "You are not a member of this tree.");
+        }
+
+        // No specific tree requested - use token orgId
+        if (userContext.OrgId == null)
+        {
+            return (null, "You must be a member of a family tree. Please create or join one first.");
         }
 
         return (userContext.OrgId, null);
@@ -1210,5 +1260,235 @@ public class TreeViewService : ITreeViewService
         }
 
         return commonAncestors;
+    }
+
+    // ============================================================================
+    // ROOT PERSONS (TOP LEVEL) METHODS
+    // ============================================================================
+
+    // Constants for safety limits
+    private const int MaxRootPersonsLimit = 50;
+    private const int MaxDescendantDepth = 50;
+
+    /// <summary>
+    /// Get root persons (ancestors with no parents) for a tree.
+    ///
+    /// SECURITY: Uses ResolveOrgIdAsync for authorization
+    /// PERFORMANCE: Uses single recursive CTE query for descendant stats (fixes N+1)
+    /// SAFETY: Limits results to MaxRootPersonsLimit, depth to MaxDescendantDepth
+    /// </summary>
+    public async Task<ServiceResult<RootPersonsResponse>> GetRootPersonsAsync(
+        Guid treeId,
+        UserContext userContext,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Verify tree access (existing authorization)
+            var (orgId, error) = await ResolveOrgIdAsync(treeId, userContext, cancellationToken);
+            if (orgId == null)
+            {
+                return ServiceResult<RootPersonsResponse>.Failure(error!);
+            }
+
+            // Try cache first
+            var cacheKey = $"root_persons:{treeId}";
+            var cached = await _cache.GetRootPersonsAsync(treeId, cancellationToken);
+            if (cached != null)
+            {
+                _logger.LogDebug("Root persons cache HIT for tree {TreeId}", treeId);
+                return ServiceResult<RootPersonsResponse>.Success(cached);
+            }
+
+            _logger.LogDebug("Root persons cache MISS for tree {TreeId}", treeId);
+
+            // Get tree info
+            var tree = await _orgRepository.QueryNoTracking()
+                .Where(o => o.Id == treeId)
+                .Select(o => new { o.Id, o.Name })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (tree == null)
+            {
+                return ServiceResult<RootPersonsResponse>.NotFound("Tree not found");
+            }
+
+            // Check cancellation before expensive query
+            cancellationToken.ThrowIfCancellationRequested();
+
+            // Find ALL root persons - those with no parents (candidates)
+            // Consistent soft-delete filter on BOTH Person AND ParentChild
+            var allRootPersons = await _personRepository.QueryNoTracking()
+                .Where(p => p.OrgId == treeId)
+                .Where(p => !p.IsDeleted)
+                .Where(p => !p.AsChild.Any(pc => !pc.IsDeleted))  // No active parent records
+                .Take(MaxRootPersonsLimit)
+                .Select(p => new RootPersonSummary
+                {
+                    Id = p.Id,
+                    PrimaryName = p.PrimaryName ?? "Unknown",
+                    NameArabic = p.NameArabic,
+                    NameEnglish = p.NameEnglish,
+                    NameNobiin = p.NameNobiin,
+                    Sex = p.Sex,
+                    BirthDate = p.BirthDate,
+                    DeathDate = p.DeathDate,
+                    IsLiving = p.DeathDate == null,
+                    AvatarMediaId = p.AvatarMediaId,
+                    ChildCount = p.AsParent.Count(pc => !pc.IsDeleted)
+                })
+                .ToListAsync(cancellationToken);
+
+            // Check cancellation before expensive descendant calculation
+            cancellationToken.ThrowIfCancellationRequested();
+
+            // Calculate descendant stats for all candidates
+            if (allRootPersons.Count > 0)
+            {
+                var descendantStats = await CalculateDescendantStatsBatchAsync(
+                    allRootPersons.Select(p => p.Id).ToList(),
+                    treeId,
+                    cancellationToken);
+
+                foreach (var rootPerson in allRootPersons)
+                {
+                    if (descendantStats.TryGetValue(rootPerson.Id, out var stats))
+                    {
+                        rootPerson.DescendantCount = stats.DescendantCount;
+                        rootPerson.GenerationDepth = stats.MaxDepth;
+                    }
+                }
+            }
+
+            // Filter to TRUE founding ancestors: root persons who have descendants.
+            // People with no parents AND no descendants are typically spouses who
+            // married into the family (imported from GEDCOM without parent links).
+            // Sort by descendant count descending so the main founder appears first.
+            var rootPersons = allRootPersons
+                .Where(p => p.DescendantCount > 0 || p.ChildCount > 0)
+                .OrderByDescending(p => p.DescendantCount)
+                .ThenByDescending(p => p.GenerationDepth)
+                .ThenBy(p => p.BirthDate ?? DateTime.MaxValue)
+                .ToList();
+
+            // Fallback: if no roots have descendants, return all roots (tree may have no relationships yet)
+            if (rootPersons.Count == 0)
+            {
+                rootPersons = allRootPersons
+                    .OrderBy(p => p.BirthDate ?? DateTime.MaxValue)
+                    .ThenBy(p => p.PrimaryName)
+                    .ToList();
+            }
+
+            var totalCount = rootPersons.Count;
+
+            var response = new RootPersonsResponse
+            {
+                RootPersons = rootPersons,
+                TotalCount = totalCount,
+                HasMore = false,
+                TreeId = treeId,
+                TreeName = tree.Name,
+                MaxLimit = MaxRootPersonsLimit
+            };
+
+            // Cache for 5 minutes
+            await _cache.SetRootPersonsAsync(treeId, response, cancellationToken);
+
+            return ServiceResult<RootPersonsResponse>.Success(response);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("GetRootPersonsAsync cancelled for tree {TreeId}", treeId);
+            throw; // Let framework handle cancellation
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting root persons for tree {TreeId}", treeId);
+            return ServiceResult<RootPersonsResponse>.InternalError("Error loading root persons");
+        }
+    }
+
+    /// <summary>
+    /// Calculate descendant stats for multiple root persons using batch loading.
+    /// Loads all parent-child relationships for the tree once, then calculates in-memory.
+    /// This eliminates the N+1 query pattern.
+    ///
+    /// SAFETY: Depth is capped at MaxDescendantDepth to prevent infinite recursion
+    /// SAFETY: Cycle detection via visited tracking
+    /// </summary>
+    private async Task<Dictionary<Guid, (int DescendantCount, int MaxDepth)>> CalculateDescendantStatsBatchAsync(
+        List<Guid> rootPersonIds,
+        Guid treeId,
+        CancellationToken cancellationToken)
+    {
+        if (rootPersonIds.Count == 0)
+            return new Dictionary<Guid, (int, int)>();
+
+        // Check cancellation before expensive query
+        cancellationToken.ThrowIfCancellationRequested();
+
+        // Load ALL parent-child relationships for this tree in ONE query
+        var allRelationships = await _personRepository.QueryNoTracking()
+            .Where(p => p.OrgId == treeId && !p.IsDeleted)
+            .SelectMany(p => p.AsChild.Where(pc => !pc.IsDeleted)
+                .Select(pc => new { pc.ParentId, pc.ChildId }))
+            .ToListAsync(cancellationToken);
+
+        // Build adjacency list: parent -> children
+        var childrenByParent = allRelationships
+            .GroupBy(r => r.ParentId)
+            .ToDictionary(g => g.Key, g => g.Select(r => r.ChildId).ToList());
+
+        var results = new Dictionary<Guid, (int DescendantCount, int MaxDepth)>();
+
+        // Calculate stats for each root person using BFS
+        foreach (var rootId in rootPersonIds)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var visited = new HashSet<Guid>();
+            var queue = new Queue<(Guid Id, int Depth)>();
+            queue.Enqueue((rootId, 0));
+
+            int maxDepth = 0;
+            int count = 0;
+
+            while (queue.Count > 0)
+            {
+                var (currentId, depth) = queue.Dequeue();
+
+                // Cycle detection
+                if (visited.Contains(currentId))
+                    continue;
+                visited.Add(currentId);
+
+                // Depth limit check
+                if (depth > MaxDescendantDepth)
+                    continue;
+
+                if (depth > 0) // Don't count the root person
+                {
+                    count++;
+                    maxDepth = Math.Max(maxDepth, depth);
+                }
+
+                // Get children from pre-loaded adjacency list
+                if (childrenByParent.TryGetValue(currentId, out var children))
+                {
+                    foreach (var childId in children)
+                    {
+                        if (!visited.Contains(childId))
+                        {
+                            queue.Enqueue((childId, depth + 1));
+                        }
+                    }
+                }
+            }
+
+            results[rootId] = (count, maxDepth);
+        }
+
+        return results;
     }
 }

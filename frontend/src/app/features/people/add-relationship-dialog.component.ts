@@ -13,8 +13,8 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { debounceTime } from 'rxjs/operators';
-import { Observable } from 'rxjs';
+import { debounceTime, switchMap } from 'rxjs/operators';
+import { Observable, forkJoin, of } from 'rxjs';
 
 import { Sex } from '../../core/models/person.models';
 import { OrgRole } from '../../core/models/auth.models';
@@ -24,7 +24,11 @@ import { PersonSearchComponent } from '../../shared/components/person-search/per
 import {
   RelationshipService,
   ParentChildRelationshipType,
+  ParentChildResponse,
+  SuggestedParentDto,
+  SuggestedChildLinkDto,
   UnionType,
+  UnionResponse,
   CreateUnionRequest
 } from '../../core/services/relationship.service';
 import { FamilyRelationshipTypeService } from '../../core/services/family-relationship-type.service';
@@ -96,7 +100,7 @@ export class AddRelationshipDialogComponent implements OnInit {
     const user = this.authService.getCurrentUser();
     if (!user) return true;
     // System admins are never viewers - they can directly edit
-    if (user.systemRole === 'SuperAdmin' || user.systemRole === 'Admin') return false;
+    if (user.systemRole === 'Developer' || user.systemRole === 'SuperAdmin' || user.systemRole === 'Admin') return false;
     // Regular users: need Contributor or higher org role to directly edit
     // If role is undefined or less than Contributor, they must use suggestions
     return user.role === undefined || user.role === null || user.role < OrgRole.Contributor;
@@ -349,8 +353,8 @@ export class AddRelationshipDialogComponent implements OnInit {
 
     request$.subscribe({
       next: (result: any) => {
-        this.isSaving.set(false);
-        this.dialogRef.close({ success: true, result });
+        // Handle auto-inference: check for suggested additional parents or child links
+        this.handleAutoInferenceSuggestions(result);
       },
       error: (err: any) => {
         this.isSaving.set(false);
@@ -358,6 +362,72 @@ export class AddRelationshipDialogComponent implements OnInit {
         this.error.set(message);
       }
     });
+  }
+
+  /**
+   * After a relationship is created, check if the backend suggests additional links.
+   * For parent/child/sibling: suggestedAdditionalParents (spouse who could also be a parent)
+   * For spouse: suggestedChildLinks (children who could be linked to the new spouse)
+   * Auto-create these additional links silently (user already intends the full family group).
+   */
+  private handleAutoInferenceSuggestions(result: any): void {
+    const type = this.data.type;
+
+    // For sibling: auto-link to all suggested additional parents (the other parent in the union)
+    if (type === 'sibling' && result?.suggestedAdditionalParents?.length > 0) {
+      const selected = this.selectedPerson();
+      if (!selected) {
+        this.isSaving.set(false);
+        this.dialogRef.close({ success: true, result });
+        return;
+      }
+      const additionalCalls = (result.suggestedAdditionalParents as SuggestedParentDto[])
+        .map(sp => this.relationshipService.addChild(sp.personId, selected.id, {
+          relationshipType: this.relationshipTypeControl.value ?? ParentChildRelationshipType.Biological,
+          isBiological: this.relationshipTypeControl.value === ParentChildRelationshipType.Biological,
+          isAdopted: this.relationshipTypeControl.value === ParentChildRelationshipType.Adopted
+        }));
+
+      forkJoin(additionalCalls).subscribe({
+        next: () => {
+          this.isSaving.set(false);
+          this.dialogRef.close({ success: true, result, additionalLinksCreated: true });
+        },
+        error: (err) => {
+          // Primary link succeeded, additional failed — still close as success
+          console.warn('Additional parent links failed (non-critical):', err);
+          this.isSaving.set(false);
+          this.dialogRef.close({ success: true, result, additionalLinksCreated: false });
+        }
+      });
+      return;
+    }
+
+    // For parent/child: pass suggestions back to the caller to show in the UI
+    if ((type === 'parent' || type === 'child') && result?.suggestedAdditionalParents?.length > 0) {
+      this.isSaving.set(false);
+      this.dialogRef.close({
+        success: true,
+        result,
+        suggestedAdditionalParents: result.suggestedAdditionalParents as SuggestedParentDto[]
+      });
+      return;
+    }
+
+    // For spouse: pass child link suggestions back to the caller to show in the UI
+    if (type === 'spouse' && result?.suggestedChildLinks?.length > 0) {
+      this.isSaving.set(false);
+      this.dialogRef.close({
+        success: true,
+        result,
+        suggestedChildLinks: result.suggestedChildLinks as SuggestedChildLinkDto[]
+      });
+      return;
+    }
+
+    // No suggestions — just close normally
+    this.isSaving.set(false);
+    this.dialogRef.close({ success: true, result });
   }
 
   /**

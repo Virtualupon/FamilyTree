@@ -54,4 +54,9 @@
     <Folder Include="Logs\" />
   </ItemGroup>
 
+  <!-- SQL scripts: copy to output for auto-migration at startup -->
+  <ItemGroup>
+    <Content Include="Scripts\*.sql" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

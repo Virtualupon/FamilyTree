@@ -9,11 +9,16 @@ import { FamilyTreeService } from '../../core/services/family-tree.service';
 import { FamilyTreeListItem } from '../../core/models/family-tree.models';
 import {
   GedcomImportResult,
-  GedcomPreviewResult
+  GedcomPreviewResult,
+  GedcomPreviewIndividual,
+  GedcomPreviewFamilyGroup,
+  GedcomDataQualityIssue
 } from '../../core/models/gedcom.models';
 import { TownListItem } from '../../core/models/town.models';
 
 type ImportStep = 'upload' | 'preview' | 'options' | 'importing' | 'result';
+type PreviewTab = 'summary' | 'families' | 'individuals' | 'issues';
+type IndividualFilter = 'all' | 'orphaned' | 'noFAMC' | 'noFAMS';
 
 @Component({
   selector: 'app-gedcom-import-dialog',
@@ -42,12 +47,88 @@ export class GedcomImportDialogComponent implements OnInit {
   readonly availableTrees = signal<FamilyTreeListItem[]>([]);
   readonly townTouched = signal(false);
 
+  // Preview tab state
+  readonly previewTab = signal<PreviewTab>('summary');
+  readonly individualFilter = signal<IndividualFilter>('all');
+  readonly individualSearch = signal('');
+  readonly familyPage = signal(1);
+  readonly individualPage = signal(1);
+  readonly expandedFamilyIds = signal<Set<string>>(new Set());
+
+  readonly familiesPerPage = 20;
+  readonly individualsPerPage = 50;
+
   selectedFile: File | null = null;
   treeName = '';
   selectedTownId = '';
   selectedTreeId = '';
   importNotes = true;
   importOccupations = true;
+
+  // Debounce timer for search
+  private searchDebounceTimer: any;
+
+  // Computed: filtered individuals
+  readonly filteredIndividuals = computed(() => {
+    const p = this.preview();
+    if (!p) return [];
+
+    let list = p.allIndividuals;
+    const filter = this.individualFilter();
+    if (filter === 'orphaned') list = list.filter(i => i.isOrphaned);
+    else if (filter === 'noFAMC') list = list.filter(i => !i.hasFAMC);
+    else if (filter === 'noFAMS') list = list.filter(i => !i.hasFAMS);
+
+    const search = this.individualSearch().toLowerCase().trim();
+    if (search) {
+      list = list.filter(i =>
+        (i.fullName?.toLowerCase().includes(search)) ||
+        (i.givenName?.toLowerCase().includes(search)) ||
+        (i.surname?.toLowerCase().includes(search)) ||
+        i.id.toLowerCase().includes(search)
+      );
+    }
+
+    return list;
+  });
+
+  // Computed: paginated individuals
+  readonly paginatedIndividuals = computed(() => {
+    const all = this.filteredIndividuals();
+    const page = this.individualPage();
+    const start = (page - 1) * this.individualsPerPage;
+    return all.slice(start, start + this.individualsPerPage);
+  });
+
+  readonly totalIndividualPages = computed(() =>
+    Math.ceil(this.filteredIndividuals().length / this.individualsPerPage) || 1
+  );
+
+  // Computed: paginated family groups
+  readonly paginatedFamilies = computed(() => {
+    const p = this.preview();
+    if (!p) return [];
+    const page = this.familyPage();
+    const start = (page - 1) * this.familiesPerPage;
+    return p.familyGroups.slice(start, start + this.familiesPerPage);
+  });
+
+  readonly totalFamilyPages = computed(() => {
+    const p = this.preview();
+    if (!p) return 1;
+    return Math.ceil(p.familyGroups.length / this.familiesPerPage) || 1;
+  });
+
+  // Computed: issues grouped by severity
+  readonly errorIssues = computed(() =>
+    this.preview()?.dataQualityIssues.filter(i => i.severity === 'Error') ?? []
+  );
+  readonly warningIssues = computed(() =>
+    this.preview()?.dataQualityIssues.filter(i => i.severity === 'Warning') ?? []
+  );
+  readonly infoIssues = computed(() =>
+    this.preview()?.dataQualityIssues.filter(i => i.severity === 'Info') ?? []
+  );
 
   ngOnInit(): void {
     this.loadTowns();
@@ -70,7 +151,6 @@ export class GedcomImportDialogComponent implements OnInit {
   }
 
   private loadTowns(): void {
-    // Use assigned towns for Admin users, or load all towns for SuperAdmin
     const assignedTowns = this.treeContext.assignedTowns();
     if (assignedTowns.length > 0) {
       this.availableTowns.set(assignedTowns.map(t => ({
@@ -85,13 +165,11 @@ export class GedcomImportDialogComponent implements OnInit {
         personCount: 0,
         createdAt: new Date().toISOString()
       })));
-      // Auto-select if only one town
       if (assignedTowns.length === 1) {
         this.selectedTownId = assignedTowns[0].id;
         this.onTownChange();
       }
     } else {
-      // Load all towns for SuperAdmin
       this.townService.getTowns({ page: 1, pageSize: 1000 }).subscribe({
         next: (result) => {
           this.availableTowns.set(result.items);
@@ -122,10 +200,7 @@ export class GedcomImportDialogComponent implements OnInit {
   }
 
   getLocalizedTownName(town: TownListItem): string {
-    const lang = this.i18n.currentLang();
-    if (lang === 'ar' && town.nameAr) return town.nameAr;
-    if (lang === 'nob' && town.nameLocal) return town.nameLocal;
-    return town.nameEn || town.name;
+    return this.i18n.getTownName(town);
   }
 
   readonly stepIndex = computed(() => {
@@ -213,6 +288,73 @@ export class GedcomImportDialogComponent implements OnInit {
     });
   }
 
+  // Preview tab navigation
+  setPreviewTab(tab: PreviewTab): void {
+    this.previewTab.set(tab);
+  }
+
+  // Individual filter/search
+  setIndividualFilter(filter: IndividualFilter): void {
+    this.individualFilter.set(filter);
+    this.individualPage.set(1);
+  }
+
+  onSearchInput(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    clearTimeout(this.searchDebounceTimer);
+    this.searchDebounceTimer = setTimeout(() => {
+      this.individualSearch.set(value);
+      this.individualPage.set(1);
+    }, 300);
+  }
+
+  // Pagination
+  setIndividualPage(page: number): void {
+    if (page >= 1 && page <= this.totalIndividualPages()) {
+      this.individualPage.set(page);
+    }
+  }
+
+  setFamilyPage(page: number): void {
+    if (page >= 1 && page <= this.totalFamilyPages()) {
+      this.familyPage.set(page);
+    }
+  }
+
+  // Family accordion
+  toggleFamily(familyId: string): void {
+    const current = new Set(this.expandedFamilyIds());
+    if (current.has(familyId)) {
+      current.delete(familyId);
+    } else {
+      current.add(familyId);
+    }
+    this.expandedFamilyIds.set(current);
+  }
+
+  isFamilyExpanded(familyId: string): boolean {
+    return this.expandedFamilyIds().has(familyId);
+  }
+
+  getFamilyHeaderText(group: GedcomPreviewFamilyGroup): string {
+    const parts: string[] = [];
+    if (group.husband) parts.push(group.husband.fullName || group.husband.id);
+    if (group.wife) parts.push(group.wife.fullName || group.wife.id);
+    const spouseText = parts.length > 0 ? parts.join(' & ') : this.t('gedcom.preview.unknownSpouses');
+    return `${group.familyId}: ${spouseText}`;
+  }
+
+  // Linking method color
+  getLinkingMethodColor(): string {
+    const method = this.preview()?.linkageStatistics?.linkingMethod;
+    switch (method) {
+      case 'MIXED': return '#10b981';   // green
+      case 'FAMC_FAMS': return '#6366f1'; // indigo
+      case 'FAM_ONLY': return '#f59e0b';  // amber
+      default: return '#ef4444';          // red
+    }
+  }
+
   previousStep(): void {
     const current = this.step();
     if (current === 'preview') {
@@ -267,5 +409,13 @@ export class GedcomImportDialogComponent implements OnInit {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  trackById(_index: number, item: { id: string }): string {
+    return item.id;
+  }
+
+  trackByFamilyId(_index: number, item: GedcomPreviewFamilyGroup): string {
+    return item.familyId;
   }
 }

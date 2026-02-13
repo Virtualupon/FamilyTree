@@ -110,8 +110,8 @@
     }
 
     &.pending {
-      background: #FFF8E1;
-      color: #F57C00;
+      background: #FFF8F0;         // Nubian Gold light
+      color: base.$admin-primary;  // Nubian Gold
     }
 
     &.approved {
@@ -120,7 +120,7 @@
     }
 
     &.rejected {
-      background: #FFEBEE;
+      background: #FFF3EF;  // Nubian Orange light
       color: #C62828;
     }
   }
@@ -178,11 +178,11 @@
   }
 
   .tip-box {
-    border-right-color: #FFC107;
+    border-right-color: base.$admin-primary;  // Nubian Gold
   }
 
   .note-box {
-    border-right-color: #1976D2;
+    border-right-color: base.$user-primary;  // Nubian Teal
   }
 
   .step-list .step {

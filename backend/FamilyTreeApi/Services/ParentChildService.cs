@@ -1,4 +1,5 @@
 // File: Services/ParentChildService.cs
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using FamilyTreeApi.Data;
 using FamilyTreeApi.DTOs;
@@ -15,15 +16,18 @@ public class ParentChildService : IParentChildService
 {
     private readonly ApplicationDbContext _context;
     private readonly ITreeCacheService _treeCache;
+    private readonly IAuditLogService _auditLogService;
     private readonly ILogger<ParentChildService> _logger;
 
     public ParentChildService(
         ApplicationDbContext context,
         ITreeCacheService treeCache,
+        IAuditLogService auditLogService,
         ILogger<ParentChildService> logger)
     {
         _context = context;
         _treeCache = treeCache;
+        _auditLogService = auditLogService;
         _logger = logger;
     }
 
@@ -79,8 +83,7 @@ public class ParentChildService : IParentChildService
                     ChildNameEnglish = null,
                     ChildNameNobiin = null,
                     ChildSex = null,
-                    RelationshipType = pc.RelationshipType,
-                    Notes = pc.Notes
+                    RelationshipType = pc.RelationshipType
                 })
                 .ToListAsync(cancellationToken);
 
@@ -145,8 +148,7 @@ public class ParentChildService : IParentChildService
                     ChildNameEnglish = pc.Child.NameEnglish,
                     ChildNameNobiin = pc.Child.NameNobiin,
                     ChildSex = pc.Child.Sex,
-                    RelationshipType = pc.RelationshipType,
-                    Notes = pc.Notes
+                    RelationshipType = pc.RelationshipType
                 })
                 .ToListAsync(cancellationToken);
 
@@ -176,25 +178,14 @@ public class ParentChildService : IParentChildService
                 return ServiceResult<ParentChildResponse>.NotFound("Child not found");
             }
 
-            // Determine the effective OrgId - either from token or from the child's tree
-            var effectiveOrgId = userContext.OrgId ?? child.OrgId;
+            // Use child's OrgId as the effective org (the tree where the relationship lives)
+            var effectiveOrgId = child.OrgId;
 
-            // Verify user has permission to modify this tree
-            if (userContext.OrgId != null && userContext.OrgId != child.OrgId)
+            // Verify user has access to this tree (handles multi-org admin users correctly)
+            var hasAccess = await HasTreeAccessAsync(effectiveOrgId, userContext, cancellationToken);
+            if (!hasAccess)
             {
-                return ServiceResult<ParentChildResponse>.Failure("Child does not belong to your selected tree");
-            }
-
-            // Check if user is a member of this tree (has permission to add relationships)
-            var isMember = await _context.OrgUsers
-                .AnyAsync(ou => ou.UserId == userContext.UserId && ou.OrgId == effectiveOrgId, cancellationToken);
-
-            // Also check if user is a SuperAdmin (they can modify any tree)
-            var isSuperAdmin = userContext.SystemRole == "SuperAdmin";
-
-            if (!isMember && !isSuperAdmin)
-            {
-                return ServiceResult<ParentChildResponse>.Failure("You must be a member of this tree to add relationships");
+                return ServiceResult<ParentChildResponse>.Failure("You don't have access to this tree");
             }
 
             var parent = await _context.People.FirstOrDefaultAsync(p => p.Id == parentId, cancellationToken);
@@ -245,7 +236,6 @@ public class ParentChildService : IParentChildService
                 ParentId = parentId,
                 ChildId = childId,
                 RelationshipType = relationshipType,
-                Notes = request?.Notes,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -257,6 +247,12 @@ public class ParentChildService : IParentChildService
             await _treeCache.InvalidatePersonAsync(childId, effectiveOrgId, cancellationToken);
 
             _logger.LogInformation("Parent-child relationship created: Parent {ParentId} -> Child {ChildId}", parentId, childId);
+
+            await _auditLogService.LogAsync(
+                userContext.UserId, "AddParent", "ParentChild", parentChild.Id,
+                $"Added parent {parent.PrimaryName} to child {child.PrimaryName}",
+                newValuesJson: JsonSerializer.Serialize(new { parentChild.Id, ParentId = parentId, ChildId = childId, parentChild.RelationshipType }),
+                cancellationToken: cancellationToken);
 
             var response = new ParentChildResponse
             {
@@ -273,9 +269,27 @@ public class ParentChildService : IParentChildService
                 ChildNameEnglish = child.NameEnglish,
                 ChildNameNobiin = child.NameNobiin,
                 ChildSex = child.Sex,
-                RelationshipType = parentChild.RelationshipType,
-                Notes = parentChild.Notes
+                RelationshipType = parentChild.RelationshipType
             };
+
+            // Suggest additional parents: find parent's spouses via unions who are NOT already
+            // a parent of this child, and who wouldn't violate constraints (max 2 bio parents).
+            try
+            {
+                var suggestedParents = await GetSuggestedAdditionalParentsAsync(
+                    parentId, childId, cancellationToken);
+                if (suggestedParents.Count > 0)
+                {
+                    response.SuggestedAdditionalParents = suggestedParents;
+                }
+            }
+            catch (Exception suggestEx)
+            {
+                // Non-critical: log but don't fail the main operation
+                _logger.LogWarning(suggestEx,
+                    "Error computing suggested additional parents for Parent {ParentId} -> Child {ChildId}",
+                    parentId, childId);
+            }
 
             return ServiceResult<ParentChildResponse>.Success(response);
         }
@@ -294,27 +308,24 @@ public class ParentChildService : IParentChildService
     {
         try
         {
-            if (userContext.OrgId == null)
-            {
-                return ServiceResult<ParentChildResponse>.Failure("You must be a member of an organization to update relationships.");
-            }
-
             var relationship = await _context.ParentChildren
                 .Include(pc => pc.Parent)
                 .Include(pc => pc.Child)
-                .FirstOrDefaultAsync(pc => pc.Id == id &&
-                    (pc.Parent.OrgId == userContext.OrgId || pc.Child.OrgId == userContext.OrgId), cancellationToken);
+                .FirstOrDefaultAsync(pc => pc.Id == id, cancellationToken);
 
             if (relationship == null)
             {
                 return ServiceResult<ParentChildResponse>.NotFound("Relationship not found");
             }
 
+            // Verify user has access to the tree (handles multi-org admin users)
+            if (!await HasTreeAccessAsync(relationship.Parent.OrgId, userContext, cancellationToken))
+            {
+                return ServiceResult<ParentChildResponse>.Forbidden();
+            }
+
             if (request.RelationshipType.HasValue)
                 relationship.RelationshipType = request.RelationshipType.Value;
-            if (request.Notes != null)
-                relationship.Notes = request.Notes;
-
             await _context.SaveChangesAsync(cancellationToken);
 
             // Invalidate cache for both parent and child
@@ -323,6 +334,11 @@ public class ParentChildService : IParentChildService
             await _treeCache.InvalidatePersonAsync(relationship.ChildId, orgId, cancellationToken);
 
             _logger.LogInformation("Parent-child relationship updated: {RelationshipId}", id);
+
+            await _auditLogService.LogAsync(
+                userContext.UserId, "Update", "ParentChild", id,
+                $"Updated parent-child relationship: {relationship.Parent.PrimaryName} -> {relationship.Child.PrimaryName}",
+                cancellationToken: cancellationToken);
 
             var response = new ParentChildResponse
             {
@@ -339,8 +355,7 @@ public class ParentChildService : IParentChildService
                 ChildNameEnglish = relationship.Child.NameEnglish,
                 ChildNameNobiin = relationship.Child.NameNobiin,
                 ChildSex = relationship.Child.Sex,
-                RelationshipType = relationship.RelationshipType,
-                Notes = relationship.Notes
+                RelationshipType = relationship.RelationshipType
             };
 
             return ServiceResult<ParentChildResponse>.Success(response);
@@ -359,20 +374,20 @@ public class ParentChildService : IParentChildService
     {
         try
         {
-            if (userContext.OrgId == null)
-            {
-                return ServiceResult.Failure("You must be a member of an organization to delete relationships.");
-            }
-
             var relationship = await _context.ParentChildren
                 .Include(pc => pc.Parent)
                 .Include(pc => pc.Child)
-                .FirstOrDefaultAsync(pc => pc.Id == id &&
-                    (pc.Parent.OrgId == userContext.OrgId || pc.Child.OrgId == userContext.OrgId), cancellationToken);
+                .FirstOrDefaultAsync(pc => pc.Id == id, cancellationToken);
 
             if (relationship == null)
             {
                 return ServiceResult.NotFound("Relationship not found");
+            }
+
+            // Verify user has access to the tree (handles multi-org admin users)
+            if (!await HasTreeAccessAsync(relationship.Parent.OrgId, userContext, cancellationToken))
+            {
+                return ServiceResult.Forbidden();
             }
 
             // Get IDs before removing for cache invalidation
@@ -388,6 +403,11 @@ public class ParentChildService : IParentChildService
             await _treeCache.InvalidatePersonAsync(childId, orgId, cancellationToken);
 
             _logger.LogInformation("Parent-child relationship deleted: {RelationshipId}", id);
+
+            await _auditLogService.LogAsync(
+                userContext.UserId, "Delete", "ParentChild", id,
+                $"Deleted parent-child relationship: parent {parentId} -> child {childId}",
+                cancellationToken: cancellationToken);
 
             return ServiceResult.Success();
         }
@@ -406,20 +426,20 @@ public class ParentChildService : IParentChildService
     {
         try
         {
-            if (userContext.OrgId == null)
-            {
-                return ServiceResult.Failure("You must be a member of an organization to remove relationships.");
-            }
-
             var relationship = await _context.ParentChildren
                 .Include(pc => pc.Parent)
                 .Include(pc => pc.Child)
-                .FirstOrDefaultAsync(pc => pc.ParentId == parentId && pc.ChildId == childId &&
-                    (pc.Parent.OrgId == userContext.OrgId || pc.Child.OrgId == userContext.OrgId), cancellationToken);
+                .FirstOrDefaultAsync(pc => pc.ParentId == parentId && pc.ChildId == childId, cancellationToken);
 
             if (relationship == null)
             {
                 return ServiceResult.NotFound("Relationship not found");
+            }
+
+            // Verify user has access to the tree (handles multi-org admin users)
+            if (!await HasTreeAccessAsync(relationship.Parent.OrgId, userContext, cancellationToken))
+            {
+                return ServiceResult.Forbidden();
             }
 
             // Get orgId for cache invalidation before removing
@@ -433,6 +453,11 @@ public class ParentChildService : IParentChildService
             await _treeCache.InvalidatePersonAsync(childId, orgId, cancellationToken);
 
             _logger.LogInformation("Parent removed: Parent {ParentId} from Child {ChildId}", parentId, childId);
+
+            await _auditLogService.LogAsync(
+                userContext.UserId, "RemoveParent", "ParentChild", relationship.Id,
+                $"Removed parent {parentId} from child {childId}",
+                cancellationToken: cancellationToken);
 
             return ServiceResult.Success();
         }
@@ -532,8 +557,8 @@ public class ParentChildService : IParentChildService
         UserContext userContext,
         CancellationToken cancellationToken)
     {
-        // SuperAdmin has access to everything
-        if (userContext.IsSuperAdmin) return true;
+        // Developer and SuperAdmin have access to everything
+        if (userContext.IsDeveloper || userContext.IsSuperAdmin) return true;
 
         // Admin: check for assignment or membership
         if (userContext.IsAdmin)
@@ -568,6 +593,83 @@ public class ParentChildService : IParentChildService
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Find spouses/partners of the given parent (via unions) who are NOT already a parent
+    /// of the given child, and who could be linked without violating constraints.
+    /// </summary>
+    private async Task<List<SuggestedParentDto>> GetSuggestedAdditionalParentsAsync(
+        Guid parentId,
+        Guid childId,
+        CancellationToken cancellationToken)
+    {
+        var suggested = new List<SuggestedParentDto>();
+
+        // Find all unions where the parent is a member
+        var parentUnionMemberships = await _context.Set<UnionMember>()
+            .Where(um => um.PersonId == parentId && !um.IsDeleted)
+            .Include(um => um.Union)
+            .Where(um => !um.Union.IsDeleted)
+            .Select(um => um.UnionId)
+            .ToListAsync(cancellationToken);
+
+        if (!parentUnionMemberships.Any())
+            return suggested;
+
+        // Find all other members of those unions (the spouses/partners)
+        var spouseMembers = await _context.Set<UnionMember>()
+            .Where(um => parentUnionMemberships.Contains(um.UnionId)
+                && um.PersonId != parentId
+                && !um.IsDeleted)
+            .Include(um => um.Person)
+            .ToListAsync(cancellationToken);
+
+        if (!spouseMembers.Any())
+            return suggested;
+
+        // Get existing parents of this child to check constraints
+        var existingParentIds = await _context.ParentChildren
+            .Where(pc => pc.ChildId == childId && !pc.IsDeleted)
+            .Select(pc => pc.ParentId)
+            .ToListAsync(cancellationToken);
+
+        var existingBioParentCount = await _context.ParentChildren
+            .CountAsync(pc => pc.ChildId == childId
+                && pc.RelationshipType == RelationshipType.Biological
+                && !pc.IsDeleted, cancellationToken);
+
+        foreach (var spouseMember in spouseMembers)
+        {
+            // Skip if spouse is already a parent of this child
+            if (existingParentIds.Contains(spouseMember.PersonId))
+                continue;
+
+            // Skip if child already has 2 biological parents (adding another bio parent would fail)
+            if (existingBioParentCount >= 2)
+                continue;
+
+            // Skip if cycle would be created
+            if (await WouldCreateCycleAsync(spouseMember.PersonId, childId, cancellationToken))
+                continue;
+
+            var person = spouseMember.Person;
+            if (person != null && !person.IsDeleted)
+            {
+                suggested.Add(new SuggestedParentDto
+                {
+                    PersonId = person.Id,
+                    PersonName = person.PrimaryName,
+                    PersonNameArabic = person.NameArabic,
+                    PersonNameEnglish = person.NameEnglish,
+                    PersonNameNobiin = person.NameNobiin,
+                    PersonSex = person.Sex,
+                    UnionId = spouseMember.UnionId
+                });
+            }
+        }
+
+        return suggested;
     }
 
     /// <summary>

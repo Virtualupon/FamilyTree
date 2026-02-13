@@ -10,20 +10,27 @@ namespace FamilyTreeApi.Controllers;
 /// <summary>
 /// Admin API controller - thin controller handling only HTTP concerns.
 /// All business logic is delegated to IAdminService.
-/// Requires SuperAdmin role for all endpoints.
+/// Requires Developer or SuperAdmin role for all endpoints (with Admin for specific endpoints).
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-//[Authorize(Roles = "SuperAdmin")]
-[Authorize]
+[Authorize(Roles = "Developer,SuperAdmin")]
 public class AdminController : ControllerBase
 {
     private readonly IAdminService _adminService;
+    private readonly IAuditLogService _auditLogService;
+    private readonly IAnalyticsService _analyticsService;
     private readonly ILogger<AdminController> _logger;
 
-    public AdminController(IAdminService adminService, ILogger<AdminController> logger)
+    public AdminController(
+        IAdminService adminService,
+        IAuditLogService auditLogService,
+        IAnalyticsService analyticsService,
+        ILogger<AdminController> logger)
     {
         _adminService = adminService;
+        _auditLogService = auditLogService;
+        _analyticsService = analyticsService;
         _logger = logger;
     }
 
@@ -37,7 +44,13 @@ public class AdminController : ControllerBase
     [HttpGet("users")]
     public async Task<ActionResult<List<UserSystemRoleResponse>>> GetAllUsers()
     {
-        var result = await _adminService.GetAllUsersAsync();
+        var userContext = BuildUserContext();
+
+        // SECURITY: Audit log admin access to user list
+        await _auditLogService.LogAdminAccessAsync(
+            userContext.UserId, "GET /api/admin/users", GetClientIp());
+
+        var result = await _adminService.GetAllUsersAsync(userContext);
 
         return HandleResult(result);
     }
@@ -49,6 +62,11 @@ public class AdminController : ControllerBase
     public async Task<ActionResult<UserSystemRoleResponse>> CreateUser(CreateUserRequest request)
     {
         var userContext = BuildUserContext();
+
+        // SECURITY: Audit log user creation
+        await _auditLogService.LogAdminAccessAsync(
+            userContext.UserId, "POST /api/admin/users", GetClientIp());
+
         var result = await _adminService.CreateUserAsync(request, userContext);
 
         if (!result.IsSuccess)
@@ -67,6 +85,11 @@ public class AdminController : ControllerBase
         long userId, UpdateSystemRoleRequest request)
     {
         var userContext = BuildUserContext();
+
+        // SECURITY: Audit log role changes (high-sensitivity action)
+        await _auditLogService.LogAdminAccessAsync(
+            userContext.UserId, $"PUT /api/admin/users/{userId}/role", GetClientIp());
+
         var result = await _adminService.UpdateUserSystemRoleAsync(userId, request, userContext);
 
         return HandleResult(result);
@@ -82,28 +105,21 @@ public class AdminController : ControllerBase
     [HttpGet("assignments")]
     public async Task<ActionResult<List<AdminAssignmentResponse>>> GetAllAssignments()
     {
-        var result = await _adminService.GetAllAssignmentsAsync();
+        var result = await _adminService.GetAllAssignmentsAsync(BuildUserContext());
 
         return HandleResult(result);
     }
 
     /// <summary>
     /// Get assignments for a specific admin user
-    /// Admins can only get their own assignments; SuperAdmins can get any user's
+    /// Admins can only get their own assignments; Developer/SuperAdmins can get any user's
     /// </summary>
-    [Authorize(Roles = "SuperAdmin,Admin")]
+    [Authorize(Roles = "Developer,SuperAdmin,Admin")]
     [HttpGet("users/{userId}/assignments")]
     public async Task<ActionResult<List<AdminAssignmentResponse>>> GetUserAssignments(long userId)
     {
         var userContext = BuildUserContext();
-
-        // Admin can only get their own assignments
-        if (!User.IsInRole("SuperAdmin") && userContext.UserId != userId)
-        {
-            return Forbid();
-        }
-
-        var result = await _adminService.GetUserAssignmentsAsync(userId);
+        var result = await _adminService.GetUserAssignmentsAsync(userId, userContext);
 
         return HandleResult(result);
     }
@@ -126,7 +142,7 @@ public class AdminController : ControllerBase
     [HttpDelete("assignments/{assignmentId}")]
     public async Task<IActionResult> DeleteAssignment(Guid assignmentId)
     {
-        var result = await _adminService.DeleteAssignmentAsync(assignmentId);
+        var result = await _adminService.DeleteAssignmentAsync(assignmentId, BuildUserContext());
 
         if (!result.IsSuccess)
         {
@@ -146,7 +162,13 @@ public class AdminController : ControllerBase
     [HttpGet("stats")]
     public async Task<ActionResult<AdminStatsDto>> GetStats()
     {
-        var result = await _adminService.GetStatsAsync();
+        var userContext = BuildUserContext();
+
+        // SECURITY: Audit log stats access
+        await _auditLogService.LogAdminAccessAsync(
+            userContext.UserId, "GET /api/admin/stats", GetClientIp());
+
+        var result = await _adminService.GetStatsAsync(userContext);
 
         return HandleResult(result);
     }
@@ -161,28 +183,21 @@ public class AdminController : ControllerBase
     [HttpGet("town-assignments")]
     public async Task<ActionResult<List<AdminTownAssignmentResponse>>> GetAllTownAssignments()
     {
-        var result = await _adminService.GetAllTownAssignmentsAsync();
+        var result = await _adminService.GetAllTownAssignmentsAsync(BuildUserContext());
 
         return HandleResult(result);
     }
 
     /// <summary>
     /// Get town assignments for a specific admin user
-    /// Admins can only get their own assignments; SuperAdmins can get any user's
+    /// Admins can only get their own assignments; Developer/SuperAdmins can get any user's
     /// </summary>
-    [Authorize(Roles = "SuperAdmin,Admin")]
+    [Authorize(Roles = "Developer,SuperAdmin,Admin")]
     [HttpGet("users/{userId}/town-assignments")]
     public async Task<ActionResult<List<AdminTownAssignmentResponse>>> GetUserTownAssignments(long userId)
     {
         var userContext = BuildUserContext();
-
-        // Admin can only get their own assignments
-        if (!User.IsInRole("SuperAdmin") && userContext.UserId != userId)
-        {
-            return Forbid();
-        }
-
-        var result = await _adminService.GetUserTownAssignmentsAsync(userId);
+        var result = await _adminService.GetUserTownAssignmentsAsync(userId, userContext);
 
         return HandleResult(result);
     }
@@ -219,7 +234,7 @@ public class AdminController : ControllerBase
     [HttpDelete("town-assignments/{assignmentId}")]
     public async Task<IActionResult> DeleteTownAssignment(Guid assignmentId)
     {
-        var result = await _adminService.DeleteTownAssignmentAsync(assignmentId);
+        var result = await _adminService.DeleteTownAssignmentAsync(assignmentId, BuildUserContext());
 
         if (!result.IsSuccess)
         {
@@ -235,7 +250,7 @@ public class AdminController : ControllerBase
     [HttpPatch("town-assignments/{assignmentId}/deactivate")]
     public async Task<IActionResult> DeactivateTownAssignment(Guid assignmentId)
     {
-        var result = await _adminService.DeactivateTownAssignmentAsync(assignmentId);
+        var result = await _adminService.DeactivateTownAssignmentAsync(assignmentId, BuildUserContext());
 
         if (!result.IsSuccess)
         {
@@ -249,19 +264,11 @@ public class AdminController : ControllerBase
     /// Get assigned towns for an admin (used after login for town selection)
     /// </summary>
     [HttpGet("users/{userId}/admin-towns")]
-    [Authorize(Roles = "SuperAdmin,Admin")]  // Allow Admin users to check their own towns
+    [Authorize(Roles = "Developer,SuperAdmin,Admin")]
     public async Task<ActionResult<AdminLoginResponse>> GetAdminTowns(long userId)
     {
-        // Admins can only get their own towns, SuperAdmins can get anyone's
-        var currentUserId = GetUserId();
-        var systemRole = GetSystemRole();
-
-        if (systemRole != "SuperAdmin" && currentUserId != userId)
-        {
-            return Forbid();
-        }
-
-        var result = await _adminService.GetAdminTownsAsync(userId);
+        var userContext = BuildUserContext();
+        var result = await _adminService.GetAdminTownsAsync(userId, userContext);
 
         return HandleResult(result);
     }
@@ -283,6 +290,67 @@ public class AdminController : ControllerBase
             TreeRole = GetTreeRole()
         };
     }
+
+    // ========================================================================
+    // ANALYTICS
+    // ========================================================================
+
+    /// <summary>
+    /// Get complete analytics dashboard data
+    /// </summary>
+    [HttpGet("analytics")]
+    public async Task<ActionResult<AnalyticsDashboardDto>> GetAnalytics(
+        [FromQuery] int days = 30)
+    {
+        var userContext = BuildUserContext();
+
+        await _auditLogService.LogAdminAccessAsync(
+            userContext.UserId, "GET /api/admin/analytics", GetClientIp());
+
+        var result = await _analyticsService.GetDashboardAsync(days, userContext);
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Get growth metrics for a specific period (for period toggle)
+    /// </summary>
+    [HttpGet("analytics/growth")]
+    public async Task<ActionResult<GrowthMetricsDto>> GetGrowthMetrics(
+        [FromQuery] int days = 30)
+    {
+        var userContext = BuildUserContext();
+        var result = await _analyticsService.GetGrowthMetricsAsync(days, userContext);
+        return HandleResult(result);
+    }
+
+    // ========================================================================
+    // ACTIVITY LOGS
+    // ========================================================================
+
+    /// <summary>
+    /// Get paginated, filtered activity logs (SuperAdmin/Developer only)
+    /// </summary>
+    [HttpGet("activity-logs")]
+    public async Task<ActionResult<ActivityLogResponse>> GetActivityLogs(
+        [FromQuery] ActivityLogQuery query)
+    {
+        var result = await _auditLogService.GetPagedLogsAsync(query);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Get available filter values for activity log dropdowns
+    /// </summary>
+    [HttpGet("activity-logs/filters")]
+    public async Task<ActionResult<ActivityLogFiltersDto>> GetActivityLogFilters()
+    {
+        var result = await _auditLogService.GetFiltersAsync();
+        return Ok(result);
+    }
+
+    // ========================================================================
+    // PRIVATE HELPER METHODS
+    // ========================================================================
 
     private long GetUserId()
     {
@@ -324,6 +392,14 @@ public class AdminController : ControllerBase
         }
 
         return role;
+    }
+
+    /// <summary>
+    /// Get client IP address for audit logging.
+    /// </summary>
+    private string? GetClientIp()
+    {
+        return HttpContext.Connection.RemoteIpAddress?.ToString();
     }
 
     /// <summary>

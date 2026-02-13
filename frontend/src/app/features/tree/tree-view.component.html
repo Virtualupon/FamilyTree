@@ -71,18 +71,34 @@
         </button>
       </mat-menu>
 
+      <!-- Generations Slider -->
+      <div class="tree-page__generations-slider d-mobile-none">
+        <label class="generations-label">{{ 'tree.generations' | translate }}:</label>
+        <mat-slider
+          [min]="1"
+          [max]="5"
+          [step]="1"
+          [discrete]="true"
+          [showTickMarks]="true">
+          <input matSliderThumb [ngModel]="generations" (ngModelChange)="onGenerationsChange($event)">
+        </mat-slider>
+        <span class="generations-value">{{ generations }}</span>
+      </div>
+
       <!-- Settings Menu -->
       <button mat-icon-button [matMenuTriggerFor]="settingsMenu" [matTooltip]="'nav.settings' | translate">
         <i class="fa-solid fa-sliders" aria-hidden="true"></i>
       </button>
       <mat-menu #settingsMenu="matMenu">
-        <div class="menu-setting" (click)="$event.stopPropagation()">
+        <!-- Generations control for mobile (hidden on desktop) -->
+        <div class="menu-setting d-desktop-none" (click)="$event.stopPropagation()">
           <span>{{ 'tree.generations' | translate }}</span>
-          <select [(ngModel)]="generations" (ngModelChange)="onSettingsChange()">
-            <option [value]="2">2</option>
-            <option [value]="3">3</option>
-            <option [value]="4">4</option>
-            <option [value]="5">5</option>
+          <select [(ngModel)]="generations" (ngModelChange)="onGenerationsChange($event)">
+            <option [ngValue]="1">1</option>
+            <option [ngValue]="2">2</option>
+            <option [ngValue]="3">3</option>
+            <option [ngValue]="4">4</option>
+            <option [ngValue]="5">5</option>
           </select>
         </div>
         <div class="menu-setting" (click)="$event.stopPropagation()">
@@ -201,7 +217,8 @@
         (personDoubleClicked)="onD3NodeDoubleClick($event)"
         (crossTreeLinkClicked)="onCrossTreeLinkClick($event)"
         (findRelationshipClicked)="onFindRelationship($event)"
-        (addRelationshipClicked)="onAddRelationship($event)">
+        (addRelationshipClicked)="onAddRelationship($event)"
+        (viewMediaClicked)="onViewMedia($event)">
       </app-d3-family-tree>
 
       <!-- Zoom Controls -->
@@ -252,7 +269,7 @@
       </div>
 
       <div class="tree-node__info">
-        <div class="tree-node__name">{{ getDisplayName(node) || ('common.unknown' | translate) }}</div>
+        <div class="tree-node__name">{{ getDisplayName(node) }}</div>
         <div class="tree-node__dates">
           @if (node.birthDate) {
             {{ formatYear(node.birthDate) }}

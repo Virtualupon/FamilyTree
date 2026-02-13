@@ -1,4 +1,25 @@
 <div class="ft-page people-page">
+  <!-- Context Breadcrumb -->
+  @if (currentTownName() || currentTreeName()) {
+    <div class="people-page__context">
+      @if (currentTownName()) {
+        <span class="people-page__context-item">
+          <i class="fa-solid fa-city" aria-hidden="true"></i>
+          {{ currentTownName() }}
+        </span>
+      }
+      @if (currentTownName() && currentTreeName()) {
+        <i class="fa-solid fa-chevron-right people-page__context-sep" aria-hidden="true"></i>
+      }
+      @if (currentTreeName()) {
+        <span class="people-page__context-item">
+          <i class="fa-solid fa-sitemap" aria-hidden="true"></i>
+          {{ currentTreeName() }}
+        </span>
+      }
+    </div>
+  }
+
   <!-- Header -->
   <header class="people-page__header">
     <div class="people-page__title-section">
@@ -20,6 +41,111 @@
       {{ 'people.addPerson' | translate }}
     </button>
   </header>
+
+  <!-- Tree Context & Founding Ancestors Hero -->
+  @if (currentTreeName()) {
+    <div class="ancestors-hero"
+         [class.ancestors-hero--collapsed]="heroCollapsed()"
+         [class.ancestors-hero--no-ancestors]="rootPersons().length === 0 && !loadingAncestors()">
+
+      <!-- Hero Header — always visible -->
+      <div class="ancestors-hero__header" (click)="rootPersons().length > 0 ? toggleHero() : null"
+           [class.ancestors-hero__header--clickable]="rootPersons().length > 0">
+        <div class="ancestors-hero__title-row">
+          <div class="ancestors-hero__tree-icon">
+            <i class="fa-solid fa-sitemap" aria-hidden="true"></i>
+          </div>
+          <div class="ancestors-hero__title-text">
+            <h2 class="ancestors-hero__tree-name">{{ currentTreeName() }}</h2>
+            <div class="ancestors-hero__meta">
+              @if (currentTownName()) {
+                <span class="ancestors-hero__town">
+                  <i class="fa-solid fa-city" aria-hidden="true"></i>
+                  {{ currentTownName() }}
+                </span>
+              }
+              @if (rootPersons().length > 0) {
+                <span class="ancestors-hero__ancestor-count">
+                  <i class="fa-solid fa-crown" aria-hidden="true"></i>
+                  {{ 'people.ancestors.foundingAncestors' | translate }} · {{ rootPersons().length }}
+                </span>
+              }
+              @if (loadingAncestors()) {
+                <span class="ancestors-hero__loading-hint">
+                  <i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>
+                </span>
+              }
+            </div>
+          </div>
+          <button class="ancestors-hero__tree-btn" (click)="viewTree()">
+            <i class="fa-solid fa-diagram-project" aria-hidden="true"></i>
+            {{ 'people.ancestors.viewFamilyTree' | translate }}
+          </button>
+          @if (rootPersons().length > 0) {
+            <button class="ancestors-hero__toggle" [attr.aria-label]="heroCollapsed() ? 'Expand' : 'Collapse'">
+              <i class="fa-solid" [class.fa-chevron-down]="heroCollapsed()" [class.fa-chevron-up]="!heroCollapsed()" aria-hidden="true"></i>
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Ancestor Cards (collapsible, only when ancestors exist) -->
+      @if (rootPersons().length > 0 && !heroCollapsed()) {
+        <div class="ancestors-hero__content">
+          <div class="ancestors-hero__persons">
+            @for (person of rootPersons(); track person.id; let i = $index) {
+              <div
+                class="ancestor-card"
+                [class]="'ancestor-card--' + getGenderClass(person.sex)"
+                (click)="viewAncestor(person)">
+
+                <!-- Avatar -->
+                <div class="ancestor-card__avatar"
+                     [class.ancestor-card__avatar--male]="person.sex === Sex.Male"
+                     [class.ancestor-card__avatar--female]="person.sex === Sex.Female">
+                  @if (getAncestorAvatarUrl(person.id)) {
+                    <img [src]="getAncestorAvatarUrl(person.id)" [alt]="getAncestorName(person)" class="ancestor-card__avatar-img">
+                  } @else {
+                    <i class="fa-solid" [class.fa-mars]="person.sex === Sex.Male" [class.fa-venus]="person.sex === Sex.Female" [class.fa-user]="person.sex !== Sex.Male && person.sex !== Sex.Female" aria-hidden="true"></i>
+                  }
+                </div>
+
+                <!-- Info -->
+                <div class="ancestor-card__info">
+                  <span class="ancestor-card__name">{{ getAncestorName(person) }}</span>
+                  <div class="ancestor-card__stats">
+                    @if (person.descendantCount > 0) {
+                      <span class="ancestor-card__stat">
+                        <i class="fa-solid fa-users" aria-hidden="true"></i>
+                        {{ person.descendantCount }}
+                      </span>
+                    }
+                    @if (person.generationDepth > 0) {
+                      <span class="ancestor-card__stat">
+                        <i class="fa-solid fa-layer-group" aria-hidden="true"></i>
+                        {{ person.generationDepth }}
+                      </span>
+                    }
+                    @if (person.childCount > 0) {
+                      <span class="ancestor-card__stat">
+                        <i class="fa-solid fa-child" aria-hidden="true"></i>
+                        {{ person.childCount }}
+                      </span>
+                    }
+                  </div>
+                </div>
+
+                <!-- Arrow -->
+                <i class="fa-solid fa-chevron-right ancestor-card__arrow" aria-hidden="true"></i>
+              </div>
+            }
+          </div>
+
+          <!-- View Tree Link (moved to header) -->
+        </div>
+      }
+    </div>
+  }
 
   <!-- Search & Filters -->
   <div class="people-page__toolbar">
@@ -132,7 +258,7 @@
 
             <!-- Content -->
             <div class="ft-person-card__content">
-              <h3 class="ft-person-card__name">{{ getPersonName(person) || ('common.unknown' | translate) }}</h3>
+              <h3 class="ft-person-card__name">{{ getPersonName(person) }}</h3>
 
               <!-- Show secondary names if available -->
               @if (hasSecondaryNames(person)) {

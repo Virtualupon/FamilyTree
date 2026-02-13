@@ -1,4 +1,5 @@
 // File: Services/PersonLinkService.cs
+using System.Text.Json;
 using AutoMapper;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -24,6 +25,7 @@ public class PersonLinkService : IPersonLinkService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IMapper _mapper;
     private readonly ILogger<PersonLinkService> _logger;
+    private readonly IAuditLogService _auditLogService;
 
     public PersonLinkService(
         ApplicationDbContext context,
@@ -31,7 +33,8 @@ public class PersonLinkService : IPersonLinkService
         IOrgRepository orgRepository,
         UserManager<ApplicationUser> userManager,
         IMapper mapper,
-        ILogger<PersonLinkService> logger)
+        ILogger<PersonLinkService> logger,
+        IAuditLogService auditLogService)
     {
         _context = context;
         _personRepository = personRepository;
@@ -39,6 +42,7 @@ public class PersonLinkService : IPersonLinkService
         _userManager = userManager;
         _mapper = mapper;
         _logger = logger;
+        _auditLogService = auditLogService;
     }
 
     // ============================================================================
@@ -83,7 +87,7 @@ public class PersonLinkService : IPersonLinkService
                     l.TargetPerson.Org.Name,
                     l.LinkType,
                     l.Confidence,
-                    l.Notes,
+                    null, // Notes now stored in EntityNotes table
                     l.Status,
                     l.CreatedByUser != null
                         ? $"{l.CreatedByUser.FirstName} {l.CreatedByUser.LastName}".Trim()
@@ -167,7 +171,7 @@ public class PersonLinkService : IPersonLinkService
                     l.TargetPerson.Org.Name,
                     l.LinkType,
                     l.Confidence,
-                    l.Notes,
+                    null, // Notes now stored in EntityNotes table
                     l.Status,
                     l.CreatedByUser != null
                         ? $"{l.CreatedByUser.FirstName} {l.CreatedByUser.LastName}".Trim()
@@ -242,7 +246,6 @@ public class PersonLinkService : IPersonLinkService
                 TargetPersonId = request.TargetPersonId,
                 LinkType = request.LinkType,
                 Confidence = Math.Clamp(request.Confidence, 0, 100),
-                Notes = request.Notes,
                 CreatedByUserId = userContext.UserId,
                 Status = autoApprove ? PersonLinkStatus.Approved : PersonLinkStatus.Pending,
                 ApprovedByUserId = autoApprove ? userContext.UserId : null,
@@ -252,6 +255,12 @@ public class PersonLinkService : IPersonLinkService
 
             _context.Set<PersonLink>().Add(link);
             await _context.SaveChangesAsync(cancellationToken);
+
+            await _auditLogService.LogAsync(
+                userContext.UserId, "Create", "PersonLink", link.Id,
+                $"Created person link: {link.SourcePersonId} -> {link.TargetPersonId}",
+                newValuesJson: JsonSerializer.Serialize(new { link.Id, link.SourcePersonId, link.TargetPersonId, link.LinkType }),
+                cancellationToken: cancellationToken);
 
             var user = await _context.Users.FindAsync(new object[] { userContext.UserId }, cancellationToken);
             var statusText = autoApprove ? "approved" : "pending";
@@ -270,7 +279,7 @@ public class PersonLinkService : IPersonLinkService
                 targetPerson.Org.Name,
                 link.LinkType,
                 link.Confidence,
-                link.Notes,
+                null, // Notes now stored in EntityNotes table
                 link.Status,
                 user != null ? $"{user.FirstName} {user.LastName}".Trim() : null,
                 autoApprove && user != null ? $"{user.FirstName} {user.LastName}".Trim() : null,
@@ -321,12 +330,12 @@ public class PersonLinkService : IPersonLinkService
             link.ApprovedByUserId = userContext.UserId;
             link.UpdatedAt = DateTime.UtcNow;
 
-            if (request.Notes != null)
-            {
-                link.Notes = (link.Notes ?? "") + "\n\nReview: " + request.Notes;
-            }
-
             await _context.SaveChangesAsync(cancellationToken);
+
+            await _auditLogService.LogAsync(
+                userContext.UserId, "Review", "PersonLink", link.Id,
+                $"Reviewed person link: {link.Status}",
+                cancellationToken: cancellationToken);
 
             var user = await _context.Users.FindAsync(new object[] { userContext.UserId }, cancellationToken);
             var statusText = request.Approve ? "approved" : "rejected";
@@ -344,7 +353,7 @@ public class PersonLinkService : IPersonLinkService
                 link.TargetPerson.Org.Name,
                 link.LinkType,
                 link.Confidence,
-                link.Notes,
+                null, // Notes now stored in EntityNotes table
                 link.Status,
                 link.CreatedByUser != null
                     ? $"{link.CreatedByUser.FirstName} {link.CreatedByUser.LastName}".Trim()
@@ -391,6 +400,11 @@ public class PersonLinkService : IPersonLinkService
 
             _context.Set<PersonLink>().Remove(link);
             await _context.SaveChangesAsync(cancellationToken);
+
+            await _auditLogService.LogAsync(
+                userContext.UserId, "Delete", "PersonLink", linkId,
+                $"Deleted person link {linkId}",
+                cancellationToken: cancellationToken);
 
             _logger.LogInformation("Person link deleted: {LinkId} by user {UserId}", linkId, userContext.UserId);
 
@@ -579,7 +593,7 @@ public class PersonLinkService : IPersonLinkService
         var user = await _userManager.FindByIdAsync(userContext.UserId.ToString());
 
         if (user == null) return false;
-        if (userContext.IsSuperAdmin) return true;
+        if (userContext.IsDeveloper || userContext.IsSuperAdmin) return true;
 
         if (userContext.IsAdmin)
         {
@@ -591,6 +605,50 @@ public class PersonLinkService : IPersonLinkService
         var orgUser = await _context.OrgUsers
             .FirstOrDefaultAsync(ou => ou.UserId == userContext.UserId && ou.OrgId == treeId, cancellationToken);
 
-        return orgUser != null && orgUser.Role >= minRole;
+        if (orgUser != null && orgUser.Role >= minRole) return true;
+
+        // Town-based read access: if user is in a tree in the same town, grant Viewer access
+        if (minRole <= OrgRole.Viewer)
+        {
+            var userTreeIds = await _context.OrgUsers
+                .Where(ou => ou.UserId == userContext.UserId)
+                .Select(ou => ou.OrgId)
+                .ToListAsync(cancellationToken);
+
+            if (userTreeIds.Any())
+            {
+                var userTownIds = await _context.Orgs
+                    .Where(o => userTreeIds.Contains(o.Id))
+                    .Select(o => o.TownId)
+                    .Distinct()
+                    .ToListAsync(cancellationToken);
+
+                var requestedTreeTownId = await _context.Orgs
+                    .Where(o => o.Id == treeId)
+                    .Select(o => o.TownId)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (requestedTreeTownId != Guid.Empty && userTownIds.Contains(requestedTreeTownId))
+                {
+                    return true;
+                }
+            }
+        }
+
+        // Selected-town-based read access: if the tree is in the user's selected town
+        if (minRole <= OrgRole.Viewer && userContext.SelectedTownId.HasValue)
+        {
+            var requestedTreeTownId2 = await _context.Orgs
+                .Where(o => o.Id == treeId)
+                .Select(o => o.TownId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (requestedTreeTownId2 != Guid.Empty && requestedTreeTownId2 == userContext.SelectedTownId.Value)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

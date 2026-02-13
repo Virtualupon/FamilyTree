@@ -1,3 +1,4 @@
+using FamilyTreeApi.DTOs;
 using FamilyTreeApi.Models;
 
 namespace FamilyTreeApi.Services;
@@ -44,5 +45,28 @@ public interface IAuditLogService
     Task<List<AuditLog>> GetLogsByActorAsync(
         long actorId,
         int limit = 100,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Log admin dashboard access for audit trail.
+    /// SECURITY: Tracks who accessed sensitive admin endpoints and when.
+    /// </summary>
+    Task LogAdminAccessAsync(
+        long actorId,
+        string endpoint,
+        string? ipAddress = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get paginated, filtered activity logs for admin viewing.
+    /// </summary>
+    Task<ActivityLogResponse> GetPagedLogsAsync(
+        ActivityLogQuery query,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get available filter values (actions and entity types) for activity log dropdowns.
+    /// </summary>
+    Task<ActivityLogFiltersDto> GetFiltersAsync(
         CancellationToken cancellationToken = default);
 }

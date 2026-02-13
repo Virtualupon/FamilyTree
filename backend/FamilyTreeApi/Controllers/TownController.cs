@@ -88,7 +88,7 @@ public class TownController : ControllerBase
     /// Create a new town (SuperAdmin only)
     /// </summary>
     [HttpPost]
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize(Roles = "Developer,SuperAdmin")]
     public async Task<ActionResult<TownDetailDto>> CreateTown(CreateTownDto request)
     {
         var userContext = BuildUserContext();
@@ -106,7 +106,7 @@ public class TownController : ControllerBase
     /// Update a town (SuperAdmin only)
     /// </summary>
     [HttpPut("{id}")]
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize(Roles = "Developer,SuperAdmin")]
     public async Task<ActionResult<TownDetailDto>> UpdateTown(Guid id, UpdateTownDto request)
     {
         var userContext = BuildUserContext();
@@ -119,7 +119,7 @@ public class TownController : ControllerBase
     /// Delete a town (SuperAdmin only)
     /// </summary>
     [HttpDelete("{id}")]
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize(Roles = "Developer,SuperAdmin")]
     public async Task<IActionResult> DeleteTown(Guid id)
     {
         var userContext = BuildUserContext();

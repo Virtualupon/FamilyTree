@@ -89,7 +89,7 @@
                         @for (person of media.linkedPersons; track person.personId) {
                           <a [routerLink]="['/persons', person.personId]" class="linked-person"
                              [class.primary]="person.isPrimary">
-                            {{ person.personName || ('common.unknown' | translate) }}
+                            {{ person.personName }}
                             @if (person.isPrimary) {
                               <i class="fa-solid fa-star primary-badge" [matTooltip]="'media.primary' | translate" aria-hidden="true"></i>
                             }
@@ -319,7 +319,7 @@
               <div class="selected-persons-chips">
                 @for (person of selectedPersons(); track person.id) {
                   <div class="person-chip" [class.current]="person.id === personId">
-                    <span>{{ getSearchPersonName(person) || ('common.unknown' | translate) }}</span>
+                    <span>{{ getSearchPersonName(person) }}</span>
                     @if (person.id === personId) {
                       <span class="current-badge">({{ 'media.current' | translate }})</span>
                     }
@@ -351,7 +351,7 @@
                       (click)="$event.stopPropagation()">
                     </mat-checkbox>
                     <div class="person-info">
-                      <span class="person-name">{{ getSearchPersonName(person) || ('common.unknown' | translate) }}</span>
+                      <span class="person-name">{{ getSearchPersonName(person) }}</span>
                       <span class="person-meta">
                         @if (person.birthDate || person.deathDate) {
                           <span class="person-dates">{{ getLifespan(person) }}</span>
@@ -383,6 +383,20 @@
               </div>
             }
           </div>
+
+          <!-- Tags section -->
+          @if (selectedFile()) {
+            <div class="tags-section">
+              <h4>{{ 'media.tags' | translate }}</h4>
+              <mat-form-field appearance="outline" class="tags-field">
+                <mat-label>{{ 'media.addTags' | translate }}</mat-label>
+                <input matInput
+                       [(ngModel)]="mediaTagsInput"
+                       [placeholder]="'media.tagsPlaceholder' | translate">
+                <mat-hint>{{ 'media.tagsHint' | translate }}</mat-hint>
+              </mat-form-field>
+            </div>
+          }
         </div>
 
         <div class="upload-dialog-actions">

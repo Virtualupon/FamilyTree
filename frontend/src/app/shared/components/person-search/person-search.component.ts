@@ -44,6 +44,8 @@ import { PersonNameAvatarComponent } from '../person-name-avatar/person-name-ava
 export class PersonSearchComponent implements OnInit, OnDestroy {
   @Input() excludePersonId?: string;
   @Input() placeholder = '';
+  /** When true, searches across ALL trees (not just the current one). Used for cross-tree relationships. */
+  @Input() crossTreeSearch = false;
 
   @Output() personSelected = new EventEmitter<SearchPersonItem | null>();
 
@@ -116,6 +118,14 @@ export class PersonSearchComponent implements OnInit, OnDestroy {
         // Use townId-based search if town is selected, otherwise use general quick search
         if (townId) {
           return this.searchService.searchByTown(townId, term, 1, 20).pipe(
+            catchError((err) => {
+              console.error('Search error:', err);
+              return of({ items: [], totalCount: 0, page: 1, pageSize: 20, totalPages: 0, searchDurationMs: 0 });
+            })
+          );
+        } else if (this.crossTreeSearch) {
+          // Cross-tree search: don't pass treeId so backend searches across all accessible trees
+          return this.searchService.globalSearch(term, 1, 20).pipe(
             catchError((err) => {
               console.error('Search error:', err);
               return of({ items: [], totalCount: 0, page: 1, pageSize: 20, totalPages: 0, searchDurationMs: 0 });
@@ -207,10 +217,7 @@ export class PersonSearchComponent implements OnInit, OnDestroy {
   }
 
   getLocalizedTownName(town: TownListItem): string {
-    const lang = this.i18n.currentLang();
-    if (lang === 'ar') return town.nameAr || town.nameEn || '';
-    if (lang === 'nob') return town.nameLocal || town.nameEn || '';
-    return town.nameEn || '';
+    return this.i18n.getTownName(town);
   }
 
   getCountryDisplayName(country: Country): string {
@@ -277,7 +284,7 @@ export class PersonSearchComponent implements OnInit, OnDestroy {
 
     // Build full name: "Name Father Grandfather"
     const parts = [personName, fatherName, grandfatherName].filter(p => p);
-    return parts.join(' ') || this.i18n.t('common.unknown');
+    return parts.join(' ');
   }
 
   /**

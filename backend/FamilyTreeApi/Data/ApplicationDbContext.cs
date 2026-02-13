@@ -34,6 +34,7 @@ public class ApplicationDbContext : IdentityDbContext<
     public DbSet<Source> Sources { get; set; }
     public DbSet<Tag> Tags { get; set; }
     public DbSet<PersonTag> PersonTags { get; set; }
+    public DbSet<MediaTag> MediaTags { get; set; }
     public DbSet<AuditLog> AuditLogs { get; set; }
 
     // New entities for multi-tree support
@@ -68,9 +69,20 @@ public class ApplicationDbContext : IdentityDbContext<
     // Town-specific images for carousels
     public DbSet<TownImage> TownImages { get; set; }
 
+    // Relationship prediction engine
+    public DbSet<PredictedRelationship> PredictedRelationships { get; set; }
+
+    // Centralized notes (one-to-many per entity)
+    public DbSet<EntityNote> EntityNotes { get; set; }
+
     // Email verification and registration
     public DbSet<EmailVerificationCode> EmailVerificationCodes { get; set; }
     public DbSet<RegistrationToken> RegistrationTokens { get; set; }
+
+    // Support ticket system
+    public DbSet<SupportTicket> SupportTickets { get; set; }
+    public DbSet<SupportTicketAttachment> SupportTicketAttachments { get; set; }
+    public DbSet<SupportTicketComment> SupportTicketComments { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -167,7 +179,7 @@ public class ApplicationDbContext : IdentityDbContext<
 
             entity.Property(p => p.SearchVector)
                 .HasColumnType("tsvector")
-                .HasComputedColumnSql("to_tsvector('english', coalesce(\"PrimaryName\",'') || ' ' || coalesce(\"Occupation\",'') || ' ' || coalesce(\"Notes\",''))", stored: true);
+                .HasComputedColumnSql("to_tsvector('english', coalesce(\"PrimaryName\",'') || ' ' || coalesce(\"Occupation\",''))", stored: true);
 
             entity.HasIndex(p => p.SearchVector)
                 .HasMethod("GIN");
@@ -275,6 +287,8 @@ public class ApplicationDbContext : IdentityDbContext<
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => e.OrgId);
             entity.HasIndex(e => e.StorageKey);
+            entity.HasIndex(e => e.ApprovalStatus);
+            entity.HasIndex(e => new { e.OrgId, e.ApprovalStatus });
 
             entity.Property(e => e.MetadataJson)
                 .HasColumnType("jsonb");
@@ -325,6 +339,23 @@ public class ApplicationDbContext : IdentityDbContext<
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
+        modelBuilder.Entity<MediaTag>(entity =>
+        {
+            entity.ToTable("MediaTags");
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.MediaId, e.TagId }).IsUnique();
+
+            entity.HasOne(e => e.Media)
+                .WithMany(m => m.MediaTags)
+                .HasForeignKey(e => e.MediaId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Tag)
+                .WithMany()
+                .HasForeignKey(e => e.TagId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         modelBuilder.Entity<AuditLog>(entity =>
         {
             entity.ToTable("AuditLogs");
@@ -332,6 +363,7 @@ public class ApplicationDbContext : IdentityDbContext<
             entity.HasIndex(e => e.ActorId);
             entity.HasIndex(e => new { e.EntityType, e.EntityId });
             entity.HasIndex(e => e.Timestamp);
+            entity.HasIndex(e => e.Action);
 
             entity.Property(e => e.ChangeJson)
                 .HasColumnType("jsonb");
@@ -831,6 +863,153 @@ public class ApplicationDbContext : IdentityDbContext<
             entity.HasOne(e => e.UpdatedByUser)
                 .WithMany()
                 .HasForeignKey(e => e.UpdatedBy)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ================================================================
+        // PredictedRelationships - Relationship prediction engine
+        // ================================================================
+        modelBuilder.Entity<PredictedRelationship>(entity =>
+        {
+            entity.ToTable("PredictedRelationships");
+            entity.HasKey(e => e.Id);
+
+            // Unique constraint: one prediction per (tree, source, target, type)
+            entity.HasIndex(e => new { e.TreeId, e.SourcePersonId, e.TargetPersonId, e.PredictedType })
+                .IsUnique()
+                .HasDatabaseName("UQ_Prediction_Pair");
+
+            // Primary query: predictions for a tree by status
+            entity.HasIndex(e => new { e.TreeId, e.Status })
+                .HasDatabaseName("IX_PredictedRelationships_TreeStatus");
+
+            // Confidence sorting for batch operations
+            entity.HasIndex(e => e.Confidence)
+                .IsDescending()
+                .HasDatabaseName("IX_PredictedRelationships_Confidence");
+
+            // Scan batch grouping
+            entity.HasIndex(e => e.ScanBatchId)
+                .HasDatabaseName("IX_PredictedRelationships_ScanBatch");
+
+            // Person-based lookups
+            entity.HasIndex(e => e.SourcePersonId)
+                .HasDatabaseName("IX_PredictedRelationships_SourcePerson");
+            entity.HasIndex(e => e.TargetPersonId)
+                .HasDatabaseName("IX_PredictedRelationships_TargetPerson");
+
+            // Relationships
+            entity.HasOne(e => e.Tree)
+                .WithMany()
+                .HasForeignKey(e => e.TreeId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.SourcePerson)
+                .WithMany()
+                .HasForeignKey(e => e.SourcePersonId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.TargetPerson)
+                .WithMany()
+                .HasForeignKey(e => e.TargetPersonId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.ResolvedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.ResolvedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // ================================================================
+        // EntityNotes - Centralized notes table (one-to-many per entity)
+        // ================================================================
+        modelBuilder.Entity<EntityNote>(entity =>
+        {
+            entity.ToTable("EntityNotes");
+            entity.HasKey(e => e.Id);
+
+            entity.HasIndex(e => new { e.EntityType, e.EntityId })
+                .HasDatabaseName("IX_EntityNotes_EntityType_EntityId")
+                .HasFilter("\"IsDeleted\" = FALSE");
+
+            entity.HasIndex(e => e.EntityId)
+                .HasDatabaseName("IX_EntityNotes_EntityId")
+                .HasFilter("\"IsDeleted\" = FALSE");
+
+            entity.HasIndex(e => e.CreatedAt)
+                .IsDescending()
+                .HasDatabaseName("IX_EntityNotes_CreatedAt");
+
+            entity.HasOne(e => e.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.DeletedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.DeletedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // ============================================================================
+        // Support Ticket System
+        // ============================================================================
+
+        modelBuilder.Entity<SupportTicket>(entity =>
+        {
+            entity.ToTable("SupportTickets");
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.TicketNumber).IsUnique();
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.SubmittedByUserId);
+            entity.Property(e => e.TicketNumber).ValueGeneratedOnAdd();
+
+            entity.HasQueryFilter(e => !e.IsDeleted);
+
+            entity.HasOne(e => e.SubmittedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.SubmittedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.AssignedToUser)
+                .WithMany()
+                .HasForeignKey(e => e.AssignedToUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(e => e.ResolvedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.ResolvedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<SupportTicketAttachment>(entity =>
+        {
+            entity.ToTable("SupportTicketAttachments");
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.TicketId);
+
+            entity.HasOne(e => e.Ticket)
+                .WithMany(t => t.Attachments)
+                .HasForeignKey(e => e.TicketId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SupportTicketComment>(entity =>
+        {
+            entity.ToTable("SupportTicketComments");
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.TicketId);
+
+            entity.HasQueryFilter(e => !e.IsDeleted);
+
+            entity.HasOne(e => e.Ticket)
+                .WithMany(t => t.Comments)
+                .HasForeignKey(e => e.TicketId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.AuthorUser)
+                .WithMany()
+                .HasForeignKey(e => e.AuthorUserId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
     }

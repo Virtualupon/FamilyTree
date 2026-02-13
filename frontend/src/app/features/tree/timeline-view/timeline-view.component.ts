@@ -861,15 +861,14 @@ export class TimelineViewComponent implements AfterViewInit, OnChanges, OnDestro
 
   getDisplayName(person: TreePersonNode): string {
     const lang = this.i18n.currentLang();
-    const unknown = this.i18n.t('common.unknown');
 
     if (lang === 'ar') {
-      return person.nameArabic || person.nameEnglish || person.primaryName || unknown;
+      return person.nameArabic || person.nameEnglish || person.primaryName || '';
     }
     if (lang === 'nob') {
-      return person.nameNobiin || person.nameEnglish || person.primaryName || unknown;
+      return person.nameNobiin || person.nameEnglish || person.primaryName || '';
     }
-    return person.nameEnglish || person.nameArabic || person.primaryName || unknown;
+    return person.nameEnglish || person.nameArabic || person.primaryName || '';
   }
 
   private getInitials(name: string): string {

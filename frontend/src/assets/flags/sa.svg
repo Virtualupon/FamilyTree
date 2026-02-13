@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 40">
+  <rect width="60" height="40" fill="#006C35"/>
+  <!-- Simplified shahada as decorative white line pattern -->
+  <g fill="none" stroke="#fff" stroke-width="1.2" stroke-linecap="round">
+    <!-- Stylized calligraphy lines representing the shahada -->
+    <path d="M12,12 Q16,8 20,12 Q24,16 28,12 Q32,8 36,12 Q40,16 44,12 Q48,8 50,11"/>
+    <path d="M14,18 Q18,14 22,18 Q26,22 30,18 Q34,14 38,18 Q42,22 46,18"/>
+    <!-- Vertical strokes (alif-like) -->
+    <line x1="15" y1="10" x2="15" y2="6"/>
+    <line x1="25" y1="10" x2="25" y2="6"/>
+    <line x1="35" y1="10" x2="35" y2="6"/>
+    <line x1="45" y1="10" x2="45" y2="6"/>
+  </g>
+  <!-- Simplified sword -->
+  <g fill="#fff" stroke="#fff" stroke-width="0.5">
+    <rect x="14" y="25" width="32" height="1.5" rx="0.5"/>
+    <rect x="28" y="23" width="1.5" height="7" rx="0.5"/>
+    <circle cx="14" cy="25.75" r="1.5"/>
+  </g>
+</svg>

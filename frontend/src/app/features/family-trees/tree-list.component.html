@@ -67,18 +67,20 @@
         <p class="section-subtitle">{{ 'trees.manageFamilies' | translate }}</p>
       </div>
       <div class="section-actions">
-        <button class="btn-secondary" (click)="showImportModal = true">
-          <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-          </svg>
-          {{ 'trees.import' | translate }}
-        </button>
-        <button class="btn-primary" (click)="showCreateModal = true">
-          <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-          </svg>
-          {{ 'familyGroups.create' | translate }}
-        </button>
+        @if (canCreateTree()) {
+          <button class="btn-secondary" (click)="showImportModal = true">
+            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+            </svg>
+            {{ 'trees.import' | translate }}
+          </button>
+          <button class="btn-primary" (click)="showCreateModal = true">
+            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            {{ 'familyGroups.create' | translate }}
+          </button>
+        }
       </div>
     </div>
 
@@ -151,12 +153,14 @@
           </svg>
           <h3>{{ 'familyGroups.noFamilies' | translate }}</h3>
           <p>{{ 'familyGroups.createFirst' | translate }}</p>
-          <button class="btn-primary" (click)="showCreateModal = true">
-            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            {{ 'familyGroups.createFirstButton' | translate }}
-          </button>
+          @if (canCreateTree()) {
+            <button class="btn-primary" (click)="showCreateModal = true">
+              <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              </svg>
+              {{ 'familyGroups.createFirstButton' | translate }}
+            </button>
+          }
         }
       </div>
     }
@@ -194,7 +198,7 @@
               </svg>
             </div>
             <div class="member-info">
-              <h4 class="member-name">{{ member.primaryName || ('person.unknown' | translate) }}</h4>
+              <h4 class="member-name">{{ member.primaryName }}</h4>
               <div class="member-meta">
                 @if (member.birthDate) {
                   <span>{{ formatYear(member.birthDate) }}</span>
@@ -324,6 +328,11 @@
                 </svg>
                 {{ 'trees.open' | translate }}
               </a>
+              <button class="btn-icon" [title]="'treeDiagram.viewTopLevel' | translate" (click)="openTreeDiagram(tree, $event)">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
+                </svg>
+              </button>
               @if (canManage(tree.userRole)) {
                 <a [routerLink]="['/trees', tree.id, 'settings']" class="btn-icon" [title]="'trees.settings' | translate">
                   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -355,12 +364,14 @@
         </svg>
         <h3>{{ 'trees.noTrees' | translate }}</h3>
         <p>{{ 'trees.createFirst' | translate }}</p>
-        <button class="btn-primary" (click)="showCreateModal = true">
-          <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-          </svg>
-          {{ 'trees.createFirstButton' | translate }}
-        </button>
+        @if (canCreateTree()) {
+          <button class="btn-primary" (click)="showCreateModal = true">
+            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            {{ 'trees.createFirstButton' | translate }}
+          </button>
+        }
       }
     </div>
   }
@@ -404,7 +415,7 @@
             <label class="form-label required">{{ 'trees.town' | translate }}</label>
             <select [(ngModel)]="newTree.townId" name="townId" class="form-input" required (change)="onCreateTreeTownChange()">
               <option [ngValue]="''" disabled>{{ 'trees.selectTown' | translate }}</option>
-              @for (town of towns(); track town.id) {
+              @for (town of availableTowns(); track town.id) {
                 <option [ngValue]="town.id">{{ getLocalizedTownName(town) }}{{ town.country ? ' (' + town.country + ')' : '' }}</option>
               }
             </select>
@@ -499,5 +510,14 @@
       (close)="showImportModal = false"
       (imported)="onImportComplete()">
     </app-gedcom-import-dialog>
+  }
+
+  <!-- Tree Diagram Modal (Top Level Ancestors) -->
+  @if (showDiagramModal && selectedTreeForDiagram) {
+    <app-tree-diagram-modal
+      [treeId]="selectedTreeForDiagram.id"
+      [treeName]="selectedTreeForDiagram.name"
+      (close)="closeTreeDiagram()">
+    </app-tree-diagram-modal>
   }
 </div>

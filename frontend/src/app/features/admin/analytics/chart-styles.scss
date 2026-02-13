@@ -1,0 +1,123 @@
+// Shared chart styles for analytics dashboard
+// Nubian theme colors
+$chart-teal: #187573;
+$chart-gold: #C17E3E;
+$chart-orange: #E85D35;
+$chart-green: #2D7A3E;
+$chart-beige: #F4E4D7;
+$chart-dark: #2c3e50;
+
+.chart-container {
+  width: 100%;
+  position: relative;
+  min-height: 200px;
+
+  svg {
+    width: 100%;
+    display: block;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+  }
+}
+
+.chart-tooltip {
+  position: fixed;
+  background: #fff;
+  border: 1px solid $chart-beige;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  max-width: 200px;
+
+  .tooltip-label {
+    font-weight: 600;
+    color: $chart-dark;
+    margin-bottom: 2px;
+  }
+
+  .tooltip-value {
+    color: $chart-teal;
+    font-size: 14px;
+    font-weight: 700;
+  }
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+  justify-content: center;
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #555;
+    cursor: pointer;
+
+    .legend-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+    }
+  }
+}
+
+// Axis styling
+.axis {
+  .domain {
+    stroke: #ddd;
+  }
+
+  .tick {
+    line {
+      stroke: #eee;
+    }
+
+    text {
+      fill: #888;
+      font-size: 11px;
+    }
+  }
+}
+
+.grid-line {
+  stroke: #f0f0f0;
+  stroke-dasharray: 3, 3;
+}
+
+// Donut center label
+.donut-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+
+  .donut-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -70%);
+    text-align: center;
+    pointer-events: none;
+
+    .donut-total {
+      display: block;
+      font-size: 24px;
+      font-weight: 700;
+      color: $chart-dark;
+    }
+
+    .donut-label {
+      display: block;
+      font-size: 11px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  }
+}

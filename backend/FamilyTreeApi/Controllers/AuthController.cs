@@ -16,6 +16,12 @@ public class AuthController : ControllerBase
     private readonly IAdminService _adminService;
     private readonly ILogger<AuthController> _logger;
     private readonly string[] _trustedProxies;
+    private readonly IConfiguration _configuration;
+
+    // Cookie configuration constants
+    private const string AccessTokenCookie = "access_token";
+    private const string RefreshTokenCookie = "refresh_token";
+    private const string XsrfTokenCookie = "XSRF-TOKEN";
 
     public AuthController(
         IAuthService authService,
@@ -26,19 +32,91 @@ public class AuthController : ControllerBase
         _authService = authService;
         _adminService = adminService;
         _logger = logger;
+        _configuration = configuration;
 
         // SECURITY FIX: Configure trusted proxies for X-Forwarded-For validation
         _trustedProxies = configuration.GetSection("TrustedProxies").Get<string[]>()
             ?? new[] { "127.0.0.1", "::1" };
     }
 
+    // ============================================================================
+    // Cookie Helper Methods
+    // ============================================================================
+
+    /// <summary>
+    /// Set HttpOnly secure cookies for access and refresh tokens.
+    /// Access token: HttpOnly, Secure, SameSite=Lax, Path=/
+    /// Refresh token: HttpOnly, Secure, SameSite=Strict, Path=/api/auth/refresh
+    /// XSRF token: NOT HttpOnly (readable by Angular), Secure, SameSite=Lax
+    /// </summary>
+    private void SetTokenCookies(string accessToken, string refreshToken, int accessTokenExpSeconds)
+    {
+        var isProduction = !(_configuration.GetValue<bool>("Development:DisableSecureCookies", false));
+
+        // Access token cookie — sent with every request
+        Response.Cookies.Append(AccessTokenCookie, accessToken, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = isProduction,
+            SameSite = SameSiteMode.Lax,
+            Path = "/",
+            MaxAge = TimeSpan.FromSeconds(accessTokenExpSeconds),
+            IsEssential = true
+        });
+
+        // Refresh token cookie — only sent to the refresh endpoint
+        var refreshTokenLifetimeDays = _configuration.GetValue<int>("JwtSettings:RefreshTokenLifetimeDays", 30);
+        Response.Cookies.Append(RefreshTokenCookie, refreshToken, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = isProduction,
+            SameSite = SameSiteMode.Strict,
+            Path = "/api/auth",
+            MaxAge = TimeSpan.FromDays(refreshTokenLifetimeDays),
+            IsEssential = true
+        });
+
+        // XSRF token — readable by Angular's HttpClient for CSRF protection
+        var xsrfToken = Guid.NewGuid().ToString("N");
+        Response.Cookies.Append(XsrfTokenCookie, xsrfToken, new CookieOptions
+        {
+            HttpOnly = false, // Must be readable by JavaScript
+            Secure = isProduction,
+            SameSite = SameSiteMode.Lax,
+            Path = "/",
+            MaxAge = TimeSpan.FromSeconds(accessTokenExpSeconds),
+            IsEssential = true
+        });
+    }
+
+    /// <summary>
+    /// Clear all authentication cookies.
+    /// </summary>
+    private void ClearTokenCookies()
+    {
+        var cookieOptions = new CookieOptions { Path = "/" };
+        Response.Cookies.Delete(AccessTokenCookie, cookieOptions);
+        Response.Cookies.Delete(RefreshTokenCookie, new CookieOptions { Path = "/api/auth" });
+        Response.Cookies.Delete(XsrfTokenCookie, cookieOptions);
+    }
+
+    // ============================================================================
+    // Authentication Endpoints
+    // ============================================================================
+
     [HttpPost("login")]
-    public async Task<ActionResult<TokenResponse>> Login([FromBody] LoginRequest request)
+    public async Task<ActionResult<CookieAuthResponse>> Login([FromBody] LoginRequest request)
     {
         try
         {
             var response = await _authService.LoginAsync(request);
-            return Ok(response);
+
+            // Set HttpOnly cookies instead of returning tokens in body
+            var accessTokenExpMinutes = _configuration.GetValue<int>("Jwt:AccessTokenExpirationMinutes", 15);
+            SetTokenCookies(response.AccessToken, response.RefreshToken, accessTokenExpMinutes * 60);
+
+            // Return user info only (no tokens in response body)
+            return Ok(new CookieAuthResponse(response.User, accessTokenExpMinutes * 60));
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -55,12 +133,17 @@ public class AuthController : ControllerBase
     /// Legacy single-phase registration (deprecated - use /register/initiate and /register/complete)
     /// </summary>
     [HttpPost("register")]
-    public async Task<ActionResult<TokenResponse>> Register([FromBody] RegisterRequest request)
+    public async Task<ActionResult<CookieAuthResponse>> Register([FromBody] RegisterRequest request)
     {
         try
         {
             var response = await _authService.RegisterAsync(request);
-            return CreatedAtAction(nameof(Register), response);
+
+            // Set HttpOnly cookies
+            var accessTokenExpMinutes = _configuration.GetValue<int>("Jwt:AccessTokenExpirationMinutes", 15);
+            SetTokenCookies(response.AccessToken, response.RefreshToken, accessTokenExpMinutes * 60);
+
+            return CreatedAtAction(nameof(Register), new CookieAuthResponse(response.User, accessTokenExpMinutes * 60));
         }
         catch (InvalidOperationException ex)
         {
@@ -125,9 +208,26 @@ public class AuthController : ControllerBase
             var response = await _authService.CompleteRegistrationAsync(request, ipAddress);
 
             if (!response.Success)
-                return BadRequest(response);
+                return BadRequest(new { success = response.Success, message = response.Message });
 
-            return Ok(response);
+            // Set HttpOnly cookies if tokens are present in the response
+            if (response.Tokens != null)
+            {
+                var accessTokenExpMinutes = _configuration.GetValue<int>("Jwt:AccessTokenExpirationMinutes", 15);
+                SetTokenCookies(
+                    response.Tokens.AccessToken,
+                    response.Tokens.RefreshToken,
+                    accessTokenExpMinutes * 60);
+            }
+
+            // SECURITY: Return without tokens in body — they're in HttpOnly cookies
+            return Ok(new
+            {
+                success = response.Success,
+                message = response.Message,
+                user = response.Tokens?.User,
+                expiresIn = response.Tokens?.ExpiresIn
+            });
         }
         catch (Exception ex)
         {
@@ -240,44 +340,32 @@ public class AuthController : ControllerBase
     }
 
     // ============================================================================
-    // Helper Methods
+    // Token Management
     // ============================================================================
 
-    /// <summary>
-    /// Get client IP address with trusted proxy validation.
-    /// SECURITY FIX: Only trust X-Forwarded-For from configured trusted proxies.
-    /// </summary>
-    private string GetClientIpAddress()
-    {
-        var connectionIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-
-        // Check if request came from a trusted proxy
-        if (_trustedProxies.Contains(connectionIp))
-        {
-            // Trust X-Forwarded-For header from trusted proxies
-            var forwardedFor = Request.Headers["X-Forwarded-For"].FirstOrDefault();
-            if (!string.IsNullOrEmpty(forwardedFor))
-            {
-                // Take the first (original client) IP from the chain
-                var ip = forwardedFor.Split(',').FirstOrDefault()?.Trim();
-                if (!string.IsNullOrEmpty(ip))
-                    return ip;
-            }
-        }
-
-        return connectionIp;
-    }
-
     [HttpPost("refresh")]
-    public async Task<ActionResult<TokenResponse>> Refresh([FromBody] RefreshTokenRequest request)
+    public async Task<ActionResult<CookieAuthResponse>> Refresh()
     {
         try
         {
-            var response = await _authService.RefreshTokenAsync(request.RefreshToken);
-            return Ok(response);
+            // Read refresh token from HttpOnly cookie instead of request body
+            var refreshToken = Request.Cookies[RefreshTokenCookie];
+            if (string.IsNullOrEmpty(refreshToken))
+            {
+                return Unauthorized(new { message = "No refresh token provided" });
+            }
+
+            var response = await _authService.RefreshTokenAsync(refreshToken);
+
+            // Set new HttpOnly cookies
+            var accessTokenExpMinutes = _configuration.GetValue<int>("Jwt:AccessTokenExpirationMinutes", 15);
+            SetTokenCookies(response.AccessToken, response.RefreshToken, accessTokenExpMinutes * 60);
+
+            return Ok(new CookieAuthResponse(response.User, accessTokenExpMinutes * 60));
         }
         catch (UnauthorizedAccessException ex)
         {
+            ClearTokenCookies();
             return Unauthorized(new { message = ex.Message });
         }
         catch (Exception ex)
@@ -288,29 +376,41 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("revoke")]
-    public async Task<ActionResult> Revoke([FromBody] RefreshTokenRequest request)
+    [Authorize]
+    public async Task<ActionResult> Revoke()
     {
         try
         {
-            var result = await _authService.RevokeTokenAsync(request.RefreshToken);
-            if (result)
+            // Read refresh token from HttpOnly cookie
+            var refreshToken = Request.Cookies[RefreshTokenCookie];
+            if (!string.IsNullOrEmpty(refreshToken))
             {
-                return Ok(new { message = "Token revoked successfully" });
+                await _authService.RevokeTokenAsync(refreshToken);
             }
-            return NotFound(new { message = "Token not found" });
+
+            // Always clear cookies on revoke/logout
+            ClearTokenCookies();
+
+            return Ok(new { message = "Logged out successfully" });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Token revocation failed");
-            return StatusCode(500, new { message = "An error occurred during token revocation" });
+            // Still clear cookies even on error
+            ClearTokenCookies();
+            return Ok(new { message = "Logged out" });
         }
     }
+
+    // ============================================================================
+    // Admin Town Selection (after login)
+    // ============================================================================
 
     /// <summary>
     /// Get assigned towns for the current admin user (for town selection after login)
     /// </summary>
     [HttpGet("my-towns")]
-    [Authorize(Roles = "Admin,SuperAdmin")]
+    [Authorize(Roles = "Developer,Admin,SuperAdmin")]
     public async Task<ActionResult<AdminLoginResponse>> GetMyTowns()
     {
         try
@@ -321,7 +421,8 @@ public class AuthController : ControllerBase
                 return Unauthorized(new { message = "User ID not found in token" });
             }
 
-            var result = await _adminService.GetAdminTownsAsync(userId);
+            var userContext = BuildUserContext();
+            var result = await _adminService.GetAdminTownsAsync(userId, userContext);
             if (!result.IsSuccess)
             {
                 return BadRequest(new { message = result.ErrorMessage });
@@ -338,9 +439,10 @@ public class AuthController : ControllerBase
 
     /// <summary>
     /// Select a town for the current session (returns new token with town claim) - Admin/SuperAdmin
+    /// Sets new access_token cookie with town claim.
     /// </summary>
     [HttpPost("select-town")]
-    [Authorize(Roles = "Admin,SuperAdmin")]
+    [Authorize(Roles = "Developer,Admin,SuperAdmin")]
     public async Task<ActionResult<SelectTownResponse>> SelectTown([FromBody] SelectTownRequest request)
     {
         try
@@ -352,7 +454,8 @@ public class AuthController : ControllerBase
             }
 
             // Verify user has access to this town
-            var townsResult = await _adminService.GetAdminTownsAsync(userId);
+            var userContext = BuildUserContext();
+            var townsResult = await _adminService.GetAdminTownsAsync(userId, userContext);
             if (!townsResult.IsSuccess)
             {
                 return BadRequest(new { message = townsResult.ErrorMessage });
@@ -369,8 +472,22 @@ public class AuthController : ControllerBase
             // Generate new token with selected town
             var token = await _authService.GenerateAccessTokenWithTownAsync(userId, request.TownId);
 
+            // Update the access_token cookie with the town-scoped token
+            var accessTokenExpMinutes = _configuration.GetValue<int>("Jwt:AccessTokenExpirationMinutes", 15);
+            var isProduction = !(_configuration.GetValue<bool>("Development:DisableSecureCookies", false));
+
+            Response.Cookies.Append(AccessTokenCookie, token, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = isProduction,
+                SameSite = SameSiteMode.Lax,
+                Path = "/",
+                MaxAge = TimeSpan.FromMinutes(accessTokenExpMinutes),
+                IsEssential = true
+            });
+
             return Ok(new SelectTownResponse(
-                token,
+                null, // No token in response body — it's in the cookie
                 request.TownId,
                 assignedTown.Name
             ));
@@ -468,7 +585,7 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Select a town for viewing (User role) - updates SelectedTownId and returns new token
+    /// Select a town for viewing (User role) - updates SelectedTownId and returns new token in cookie
     /// </summary>
     [HttpPost("select-town-user")]
     [Authorize]
@@ -483,7 +600,26 @@ public class AuthController : ControllerBase
             }
 
             var response = await _authService.SelectTownForUserAsync(userId, request.TownId);
-            return Ok(response);
+
+            // Set new access_token cookie with the town-scoped token
+            if (response.AccessToken != null)
+            {
+                var accessTokenExpMinutes = _configuration.GetValue<int>("Jwt:AccessTokenExpirationMinutes", 15);
+                var isProduction = !(_configuration.GetValue<bool>("Development:DisableSecureCookies", false));
+
+                Response.Cookies.Append(AccessTokenCookie, response.AccessToken, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = isProduction,
+                    SameSite = SameSiteMode.Lax,
+                    Path = "/",
+                    MaxAge = TimeSpan.FromMinutes(accessTokenExpMinutes),
+                    IsEssential = true
+                });
+            }
+
+            // Return response without token in body
+            return Ok(new SelectTownResponse(null, response.TownId, response.TownName));
         }
         catch (ArgumentException ex)
         {
@@ -528,4 +664,61 @@ public class AuthController : ControllerBase
             return StatusCode(500, new { message = "An error occurred" });
         }
     }
+
+    // ============================================================================
+    // Helper Methods
+    // ============================================================================
+
+    /// <summary>
+    /// Get client IP address with trusted proxy validation.
+    /// </summary>
+    private string GetClientIpAddress()
+    {
+        var connectionIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+        // Check if request came from a trusted proxy
+        if (_trustedProxies.Contains(connectionIp))
+        {
+            // Trust X-Forwarded-For header from trusted proxies
+            var forwardedFor = Request.Headers["X-Forwarded-For"].FirstOrDefault();
+            if (!string.IsNullOrEmpty(forwardedFor))
+            {
+                // Take the first (original client) IP from the chain
+                var ip = forwardedFor.Split(',').FirstOrDefault()?.Trim();
+                if (!string.IsNullOrEmpty(ip))
+                    return ip;
+            }
+        }
+
+        return connectionIp;
+    }
+
+    /// <summary>
+    /// Builds UserContext from JWT claims for service-layer authorization.
+    /// </summary>
+    private UserContext BuildUserContext()
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        long userId = 0;
+        if (!string.IsNullOrEmpty(userIdClaim))
+            long.TryParse(userIdClaim, out userId);
+
+        Guid? orgId = null;
+        var orgIdClaim = User.FindFirst("orgId")?.Value;
+        if (!string.IsNullOrEmpty(orgIdClaim) && Guid.TryParse(orgIdClaim, out var parsedOrgId))
+            orgId = parsedOrgId;
+
+        return new UserContext
+        {
+            UserId = userId,
+            OrgId = orgId,
+            SystemRole = User.FindFirst("systemRole")?.Value ?? "User",
+            TreeRole = User.FindFirst(ClaimTypes.Role)?.Value ?? "Viewer"
+        };
+    }
 }
+
+/// <summary>
+/// Response DTO for cookie-based auth (no tokens in body).
+/// </summary>
+public record CookieAuthResponse(UserDto User, int ExpiresIn);

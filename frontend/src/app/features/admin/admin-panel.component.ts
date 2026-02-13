@@ -29,6 +29,7 @@ import { TownListItem } from '../../core/models/town.models';
 import { NameMapping, BulkTransliterationResult, getConfidenceLevel } from '../../core/models/transliteration.models';
 import { I18nService, TranslatePipe } from '../../core/i18n';
 import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult } from './assign-town-dialog.component';
+import { AnalyticsTabComponent } from './analytics/analytics-tab.component';
 
 @Component({
   selector: 'app-admin-panel',
@@ -48,7 +49,8 @@ import { AssignTownDialogComponent, AssignTownDialogData, AssignTownDialogResult
     MatProgressSpinnerModule,
     MatChipsModule,
     MatTooltipModule,
-    TranslatePipe
+    TranslatePipe,
+    AnalyticsTabComponent
   ],
   templateUrl: './admin-panel.component.html',
   styleUrls: ['./admin-panel.component.scss']
@@ -106,7 +108,7 @@ export class AdminPanelComponent implements OnInit {
 
     this.adminService.getStats().subscribe({
       next: (stats) => this.stats.set(stats),
-      error: () => {}
+      error: () => console.warn('Failed to load stats')
     });
 
     this.adminService.getAllUsers().subscribe({
@@ -132,8 +134,8 @@ export class AdminPanelComponent implements OnInit {
         console.log('Towns loaded:', towns.length);
         this.allTowns.set(towns);
       },
-      error: (err) => {
-        console.error('Failed to load towns:', err);
+      error: () => {
+        console.warn('Failed to load towns');
       }
     });
   }
@@ -151,7 +153,7 @@ export class AdminPanelComponent implements OnInit {
   updateUserRole(user: AdminUser, newRole: string) {
     this.adminService.updateUserRole(user.userId, { systemRole: newRole }).subscribe({
       next: () => this.loadData(),
-      error: (err) => alert(err.error?.message || this.i18n.t('admin.errors.updateRoleFailed'))
+      error: () => alert(this.i18n.t('admin.errors.updateRoleFailed'))
     });
   }
 
@@ -180,13 +182,13 @@ export class AdminPanelComponent implements OnInit {
               townId: result.townId
             }).subscribe({
               next: () => this.loadData(),
-              error: (err) => alert(err.error?.message || this.i18n.t('admin.errors.assignTownFailed'))
+              error: () => alert(this.i18n.t('admin.errors.assignTownFailed'))
             });
           }
         });
       },
-      error: (err) => {
-        console.error('Failed to load towns:', err);
+      error: () => {
+        console.warn('Failed to load towns for dialog');
         alert(this.i18n.t('admin.errors.loadTownsFailed'));
       }
     });
@@ -197,7 +199,7 @@ export class AdminPanelComponent implements OnInit {
 
     this.adminService.deleteTownAssignment(assignment.id).subscribe({
       next: () => this.loadData(),
-      error: (err) => alert(err.error?.message || this.i18n.t('admin.errors.removeTownAssignmentFailed'))
+      error: () => alert(this.i18n.t('admin.errors.removeTownAssignmentFailed'))
     });
   }
 
@@ -218,7 +220,7 @@ export class AdminPanelComponent implements OnInit {
       },
       error: (err) => {
         this.creatingUser.set(false);
-        this.createUserError = err.error?.message || this.i18n.t('admin.errors.createUserFailed');
+        this.createUserError = this.i18n.t('admin.errors.createUserFailed');
       }
     });
   }
@@ -236,16 +238,7 @@ export class AdminPanelComponent implements OnInit {
   }
 
   getLocalizedTownName(town: TownListItem): string {
-    const lang = this.i18n.currentLang();
-    switch (lang) {
-      case 'ar':
-        return town.nameAr || town.name;
-      case 'nob':
-        return town.nameLocal || town.name;
-      case 'en':
-      default:
-        return town.nameEn || town.name;
-    }
+    return this.i18n.getTownName(town);
   }
 
   getLocalizedAssignmentTownName(assignment: AdminTownAssignment): string {

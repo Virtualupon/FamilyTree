@@ -106,8 +106,8 @@ export class DashboardComponent implements OnInit {
   canCreateTree = computed(() => {
     const user = this.currentUser();
     if (!user) return false;
-    // Only SuperAdmin/Admin can create trees, not regular Users
-    return user.systemRole === 'SuperAdmin' || user.systemRole === 'Admin';
+    // Only Developer/SuperAdmin/Admin can create trees, not regular Users
+    return user.systemRole === 'Developer' || user.systemRole === 'SuperAdmin' || user.systemRole === 'Admin';
   });
 
   // Computed: Check if user is a Viewer (read-only)
@@ -115,7 +115,7 @@ export class DashboardComponent implements OnInit {
     const user = this.currentUser();
     if (!user) return true;
     // System admins are never viewers
-    if (user.systemRole === 'SuperAdmin' || user.systemRole === 'Admin') return false;
+    if (user.systemRole === 'Developer' || user.systemRole === 'SuperAdmin' || user.systemRole === 'Admin') return false;
     // Check org role
     return user.role === OrgRole.Viewer;
   });
@@ -124,7 +124,7 @@ export class DashboardComponent implements OnInit {
   canEdit = computed(() => {
     const user = this.currentUser();
     if (!user) return false;
-    if (user.systemRole === 'SuperAdmin' || user.systemRole === 'Admin') return true;
+    if (user.systemRole === 'Developer' || user.systemRole === 'SuperAdmin' || user.systemRole === 'Admin') return true;
     return user.role >= OrgRole.Contributor;
   });
 
@@ -132,7 +132,7 @@ export class DashboardComponent implements OnInit {
   isAdmin = computed(() => {
     const user = this.currentUser();
     if (!user) return false;
-    return user.systemRole === 'SuperAdmin' || user.systemRole === 'Admin';
+    return user.systemRole === 'Developer' || user.systemRole === 'SuperAdmin' || user.systemRole === 'Admin';
   });
 
   stats = signal<StatCard[]>([
@@ -215,7 +215,7 @@ export class DashboardComponent implements OnInit {
     this.suggestionStats.set(null);
 
     const user = this.authService.getCurrentUser();
-    const isAdmin = user?.systemRole === 'SuperAdmin' || user?.systemRole === 'Admin';
+    const isAdmin = user?.systemRole === 'Developer' || user?.systemRole === 'SuperAdmin' || user?.systemRole === 'Admin';
 
     // For Admin/SuperAdmin - load town stats if town selected
     if (isAdmin) {
@@ -261,7 +261,7 @@ export class DashboardComponent implements OnInit {
   private checkUserTrees(): void {
     this.checkingTrees.set(true);
     const user = this.authService.getCurrentUser();
-    const isAdmin = user?.systemRole === 'SuperAdmin' || user?.systemRole === 'Admin';
+    const isAdmin = user?.systemRole === 'Developer' || user?.systemRole === 'SuperAdmin' || user?.systemRole === 'Admin';
     const isRegularUser = user?.systemRole === 'User';
 
     // For Admin/SuperAdmin - they have assigned towns, auto-select happens in TreeContextService

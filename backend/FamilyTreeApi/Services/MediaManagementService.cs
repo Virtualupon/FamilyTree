@@ -7,6 +7,7 @@ using FamilyTreeApi.DTOs;
 using FamilyTreeApi.Models;
 using FamilyTreeApi.Models.Enums;
 using FamilyTreeApi.Utilities;
+using System.Text.Json;
 using VirtualUpon.Storage.Factories;
 using VirtualUpon.Storage.Dto;
 
@@ -21,6 +22,7 @@ public class MediaManagementService : IMediaManagementService
     private readonly ApplicationDbContext _context;
     private readonly VirtualUpon.Storage.Factories.IStorageService _storageService;
     private readonly ILogger<MediaManagementService> _logger;
+    private readonly IAuditLogService _auditLogService;
 
     private static readonly string[] AllowedImageTypes = { "image/jpeg", "image/png", "image/gif", "image/webp", "image/heic" };
     private static readonly string[] AllowedVideoTypes = { "video/mp4", "video/webm", "video/quicktime" };
@@ -31,11 +33,13 @@ public class MediaManagementService : IMediaManagementService
     public MediaManagementService(
         ApplicationDbContext context,
         VirtualUpon.Storage.Factories.IStorageService storageService,
-        ILogger<MediaManagementService> logger)
+        ILogger<MediaManagementService> logger,
+        IAuditLogService auditLogService)
     {
         _context = context;
         _storageService = storageService;
         _logger = logger;
+        _auditLogService = auditLogService;
     }
 
     // ============================================================================
@@ -58,6 +62,30 @@ public class MediaManagementService : IMediaManagementService
             .Where(ou => ou.UserId == userContext.UserId)
             .Select(ou => ou.OrgId)
             .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Verify that a user has access to a specific organization.
+    /// Handles multi-org admin users whose first JWT orgId claim may not match.
+    /// </summary>
+    private async Task<bool> HasOrgAccessAsync(Guid orgId, UserContext userContext, CancellationToken cancellationToken = default)
+    {
+        // Developer/SuperAdmin can access any org
+        if (userContext.IsDeveloper || userContext.IsSuperAdmin)
+        {
+            return true;
+        }
+
+        // Check if user's token orgId matches
+        if (userContext.OrgId.HasValue && userContext.OrgId.Value == orgId)
+        {
+            return true;
+        }
+
+        // Check if user is a member of this org (handles multi-org admin/regular users)
+        return await _context.OrgUsers.AnyAsync(
+            ou => ou.UserId == userContext.UserId && ou.OrgId == orgId,
+            cancellationToken);
     }
 
     // ============================================================================
@@ -99,6 +127,26 @@ public class MediaManagementService : IMediaManagementService
             var query = _context.MediaFiles
                 .Where(m => m.OrgId == effectiveOrgId)
                 .AsQueryable();
+
+            // Approval status filter: by default, regular users only see Approved media + their own pending
+            if (!string.IsNullOrWhiteSpace(request.ApprovalStatus) &&
+                Enum.TryParse<MediaApprovalStatus>(request.ApprovalStatus, true, out var statusFilter))
+            {
+                query = query.Where(m => m.ApprovalStatus == statusFilter);
+            }
+            else if (!userContext.IsDeveloper && !userContext.IsSuperAdmin && !userContext.CanEdit())
+            {
+                query = query.Where(m =>
+                    m.ApprovalStatus == MediaApprovalStatus.Approved ||
+                    (m.ApprovalStatus == MediaApprovalStatus.Pending && m.UploadedByUserId == userContext.UserId));
+            }
+
+            // Tag filter
+            if (!string.IsNullOrWhiteSpace(request.Tag))
+            {
+                var tagName = request.Tag.Trim();
+                query = query.Where(m => m.MediaTags.Any(mt => mt.Tag.Name == tagName));
+            }
 
             // Exclude avatar media by default (media used as person profile pictures)
             // Uses NOT EXISTS pattern for efficient query execution
@@ -174,6 +222,8 @@ public class MediaManagementService : IMediaManagementService
                     MetadataJson = m.MetadataJson,
                     CreatedAt = m.CreatedAt,
                     UpdatedAt = m.UpdatedAt,
+                    ApprovalStatus = m.ApprovalStatus.ToString(),
+                    Tags = m.MediaTags.Select(mt => mt.Tag.Name).ToList(),
                     // Project linked persons inline - EF Core generates efficient JOIN
                     LinkedPersons = m.PersonLinks
                         .Select(pl => new LinkedPersonDto(
@@ -182,9 +232,6 @@ public class MediaManagementService : IMediaManagementService
                                 ? (pl.Person.PrimaryName ?? pl.Person.NameEnglish ?? pl.Person.NameArabic ?? "Unknown")
                                 : "Unknown",
                             pl.IsPrimary,
-                            pl.Notes,
-                            pl.NotesAr,
-                            pl.NotesNob,
                             pl.LinkedAt
                         ))
                         .ToList()
@@ -216,14 +263,11 @@ public class MediaManagementService : IMediaManagementService
     {
         try
         {
-            var orgId = await GetEffectiveOrgIdAsync(userContext, cancellationToken);
-            if (orgId == null)
-            {
-                return ServiceResult<MediaResponse>.Failure("You must be a member of an organization to view media.");
-            }
-
+            // Find media by ID first (without org filter), then verify access.
+            // This handles multi-org admin users whose first JWT orgId claim
+            // may not match the org that owns this media.
             var media = await _context.MediaFiles
-                .Where(m => m.Id == id && m.OrgId == orgId.Value)
+                .Where(m => m.Id == id)
                 .Include(m => m.CapturePlace)
                 .Select(m => new MediaResponse
                 {
@@ -253,6 +297,12 @@ public class MediaManagementService : IMediaManagementService
             if (media == null)
             {
                 return ServiceResult<MediaResponse>.NotFound("Media not found");
+            }
+
+            // Verify user has access to the org that owns this media
+            if (!await HasOrgAccessAsync(media.OrgId, userContext, cancellationToken))
+            {
+                return ServiceResult<MediaResponse>.Forbidden("Access denied to this media.");
             }
 
             return ServiceResult<MediaResponse>.Success(media);
@@ -368,6 +418,11 @@ public class MediaManagementService : IMediaManagementService
                 return ServiceResult<MediaResponse>.InternalError("Failed to upload file");
             }
 
+            // Admins/Editors get auto-approved; regular contributors go to pending
+            var approvalStatus = (userContext.IsDeveloper || userContext.IsSuperAdmin || userContext.CanEdit())
+                ? MediaApprovalStatus.Approved
+                : MediaApprovalStatus.Pending;
+
             var media = new Media
             {
                 Id = mediaId,
@@ -385,12 +440,23 @@ public class MediaManagementService : IMediaManagementService
                 Visibility = request.Visibility,
                 Copyright = request.Copyright,
                 MetadataJson = request.MetadataJson,
+                ApprovalStatus = approvalStatus,
+                UploadedByUserId = userContext.UserId,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
 
             _context.MediaFiles.Add(media);
             await _context.SaveChangesAsync(cancellationToken);
+
+            await _auditLogService.LogAsync(
+                userContext.UserId, "Upload", "Media", media.Id,
+                $"Uploaded media: {media.FileName}",
+                newValuesJson: JsonSerializer.Serialize(new { media.Id, media.FileName, media.MimeType }),
+                cancellationToken: cancellationToken);
+
+            // Process tags
+            await ProcessMediaTagsAsync(media.Id, effectiveOrgId, request.Tags, cancellationToken);
 
             _logger.LogInformation("Media uploaded: {MediaId} in Org: {OrgId}", media.Id, effectiveOrgId);
 
@@ -516,6 +582,11 @@ public class MediaManagementService : IMediaManagementService
             _context.MediaFiles.Remove(media);
             await _context.SaveChangesAsync(cancellationToken);
 
+            await _auditLogService.LogAsync(
+                userContext.UserId, "Delete", "Media", id,
+                $"Deleted media: {media.FileName}",
+                cancellationToken: cancellationToken);
+
             _logger.LogInformation("Media deleted: {MediaId}", id);
 
             return ServiceResult.Success();
@@ -534,19 +605,18 @@ public class MediaManagementService : IMediaManagementService
     {
         try
         {
-            var orgId = await GetEffectiveOrgIdAsync(userContext, cancellationToken);
-            if (orgId == null)
-            {
-                return ServiceResult<(byte[] Data, string ContentType, string FileName)>.Failure("You must be a member of an organization to download media.");
-            }
-
+            // Find media by ID first, then verify access (handles multi-org users)
             var media = await _context.MediaFiles.FirstOrDefaultAsync(
-                m => m.Id == id && m.OrgId == orgId.Value,
-                cancellationToken);
+                m => m.Id == id, cancellationToken);
 
             if (media == null)
             {
                 return ServiceResult<(byte[] Data, string ContentType, string FileName)>.NotFound("Media not found");
+            }
+
+            if (!await HasOrgAccessAsync(media.OrgId, userContext, cancellationToken))
+            {
+                return ServiceResult<(byte[] Data, string ContentType, string FileName)>.Forbidden("Access denied to this media.");
             }
 
             try
@@ -588,18 +658,21 @@ public class MediaManagementService : IMediaManagementService
     {
         try
         {
-            var orgId = await GetEffectiveOrgIdAsync(userContext, cancellationToken);
-            if (orgId == null)
-            {
-                return ServiceResult<SignedMediaUrlDto>.Failure("You must be a member of an organization.");
-            }
-
+            // Find media by ID first (without org filter), then verify access.
+            // This handles multi-org admin users whose first JWT orgId claim
+            // may not match the org that owns this media.
             var media = await _context.MediaFiles
-                .FirstOrDefaultAsync(m => m.Id == id && m.OrgId == orgId.Value, cancellationToken);
+                .FirstOrDefaultAsync(m => m.Id == id, cancellationToken);
 
             if (media == null)
             {
                 return ServiceResult<SignedMediaUrlDto>.NotFound("Media not found");
+            }
+
+            // Verify user has access to the org that owns this media
+            if (!await HasOrgAccessAsync(media.OrgId, userContext, cancellationToken))
+            {
+                return ServiceResult<SignedMediaUrlDto>.Forbidden("Access denied to this media.");
             }
 
             var result = await _storageService.GetSignedUrlAsync(media.Url, expiresInSeconds);
@@ -652,9 +725,95 @@ public class MediaManagementService : IMediaManagementService
                 ThumbnailPath = m.ThumbnailPath,
                 MetadataJson = m.MetadataJson,
                 CreatedAt = m.CreatedAt,
-                UpdatedAt = m.UpdatedAt
+                UpdatedAt = m.UpdatedAt,
+                ApprovalStatus = m.ApprovalStatus.ToString(),
+                Tags = m.MediaTags.Select(mt => mt.Tag.Name).ToList(),
+                LinkedPersons = m.PersonLinks
+                    .Select(pl => new LinkedPersonDto(
+                        pl.PersonId,
+                        pl.Person != null
+                            ? (pl.Person.PrimaryName ?? pl.Person.NameEnglish ?? pl.Person.NameArabic ?? "Unknown")
+                            : "Unknown",
+                        pl.IsPrimary,
+                        pl.LinkedAt
+                    ))
+                    .ToList()
             })
             .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Process tag names for a media item: find existing tags or create new ones, then create junction records.
+    /// </summary>
+    private async Task ProcessMediaTagsAsync(Guid mediaId, Guid orgId, List<string>? tagNames, CancellationToken cancellationToken)
+    {
+        if (tagNames == null || tagNames.Count == 0)
+            return;
+
+        // Validate: max 20 tags per media
+        var validTags = tagNames
+            .Select(t => t.Trim())
+            .Where(t => !string.IsNullOrWhiteSpace(t))
+            .Select(t => t.Length > 100 ? t[..100] : t) // Truncate to 100 chars
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(20)
+            .ToList();
+
+        if (validTags.Count == 0)
+            return;
+
+        // Fetch existing tags for this org (case-insensitive match)
+        var lowerTagNames = validTags.Select(t => t.ToLowerInvariant()).ToList();
+        var existingTags = await _context.Tags
+            .Where(t => t.OrgId == orgId && lowerTagNames.Contains(t.Name.ToLower()))
+            .ToListAsync(cancellationToken);
+
+        var existingTagNamesLower = existingTags.Select(t => t.Name.ToLowerInvariant()).ToHashSet();
+
+        // Create new tags that don't exist yet
+        var newTags = validTags
+            .Where(t => !existingTagNamesLower.Contains(t.ToLowerInvariant()))
+            .Select(t => new Tag
+            {
+                Id = Guid.NewGuid(),
+                OrgId = orgId,
+                Name = t,
+                CreatedAt = DateTime.UtcNow
+            })
+            .ToList();
+
+        if (newTags.Count > 0)
+        {
+            _context.Tags.AddRange(newTags);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        var allTags = existingTags.Concat(newTags).ToList();
+
+        // Get existing MediaTag records to avoid duplicates
+        var existingMediaTagIds = await _context.MediaTags
+            .Where(mt => mt.MediaId == mediaId)
+            .Select(mt => mt.TagId)
+            .ToListAsync(cancellationToken);
+        var existingMediaTagSet = existingMediaTagIds.ToHashSet();
+
+        // Create junction records
+        var mediaTags = allTags
+            .Where(t => !existingMediaTagSet.Contains(t.Id))
+            .Select(t => new MediaTag
+            {
+                Id = Guid.NewGuid(),
+                MediaId = mediaId,
+                TagId = t.Id,
+                CreatedAt = DateTime.UtcNow
+            })
+            .ToList();
+
+        if (mediaTags.Count > 0)
+        {
+            _context.MediaTags.AddRange(mediaTags);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
     }
 
     private static MediaKind? DetermineMediaKind(string contentType)
@@ -679,5 +838,229 @@ public class MediaManagementService : IMediaManagementService
             MediaKind.Document => AllowedDocumentTypes.Contains(contentType),
             _ => false
         };
+    }
+
+    // ============================================================================
+    // MEDIA APPROVAL
+    // ============================================================================
+
+    public async Task<ServiceResult<MediaApprovalQueueResponse>> GetApprovalQueueAsync(
+        MediaApprovalQueueRequest request,
+        UserContext userContext,
+        CancellationToken cancellationToken = default)
+    {
+        if (!userContext.IsDeveloper && !userContext.IsSuperAdmin && !userContext.CanEdit())
+        {
+            return ServiceResult<MediaApprovalQueueResponse>.Forbidden("Only admins can view the approval queue.");
+        }
+
+        try
+        {
+            const int MaxPageSize = 100;
+            if (request.PageSize > MaxPageSize) request.PageSize = MaxPageSize;
+            if (request.PageSize < 1) request.PageSize = 20;
+            if (request.Page < 1) request.Page = 1;
+
+            IQueryable<Media> query;
+
+            if (userContext.IsDeveloper || userContext.IsSuperAdmin)
+            {
+                // Developer/SuperAdmin sees pending media across all orgs
+                query = _context.MediaFiles
+                    .Where(m => m.ApprovalStatus == MediaApprovalStatus.Pending);
+            }
+            else
+            {
+                // Admin sees pending media only for their org(s)
+                var userOrgIds = await _context.OrgUsers
+                    .Where(ou => ou.UserId == userContext.UserId)
+                    .Select(ou => ou.OrgId)
+                    .ToListAsync(cancellationToken);
+
+                query = _context.MediaFiles
+                    .Where(m => m.ApprovalStatus == MediaApprovalStatus.Pending &&
+                                userOrgIds.Contains(m.OrgId));
+            }
+
+            // Filters
+            if (request.Kind.HasValue)
+            {
+                query = query.Where(m => m.Kind == request.Kind.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+            {
+                var term = request.SearchTerm.ToLower();
+                query = query.Where(m =>
+                    (m.Title != null && m.Title.ToLower().Contains(term)) ||
+                    (m.Description != null && m.Description.ToLower().Contains(term)) ||
+                    (m.FileName != null && m.FileName.ToLower().Contains(term)));
+            }
+
+            var total = await query.CountAsync(cancellationToken);
+            var totalPages = (int)Math.Ceiling(total / (double)request.PageSize);
+
+            var items = await query
+                .OrderBy(m => m.CreatedAt)
+                .Skip((request.Page - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .Select(m => new MediaApprovalQueueItem
+                {
+                    Id = m.Id,
+                    OrgId = m.OrgId,
+                    TreeName = _context.Orgs
+                        .Where(o => o.Id == m.OrgId)
+                        .Select(o => o.Name)
+                        .FirstOrDefault(),
+                    FileName = m.FileName,
+                    MimeType = m.MimeType,
+                    FileSize = m.FileSize,
+                    Kind = m.Kind.ToString(),
+                    ApprovalStatus = m.ApprovalStatus.ToString(),
+                    UploaderName = _context.Users
+                        .Where(u => u.Id == m.UploadedByUserId)
+                        .Select(u => (u.FirstName != null && u.LastName != null)
+                            ? u.FirstName + " " + u.LastName
+                            : u.UserName)
+                        .FirstOrDefault(),
+                    UploadedByUserId = m.UploadedByUserId,
+                    CreatedAt = m.CreatedAt,
+                    Title = m.Title,
+                    Description = m.Description,
+                    Tags = m.MediaTags.Select(mt => mt.Tag.Name).ToList(),
+                    LinkedPersons = m.PersonLinks
+                        .Select(pl => new LinkedPersonDto(
+                            pl.PersonId,
+                            pl.Person != null
+                                ? (pl.Person.PrimaryName ?? pl.Person.NameEnglish ?? pl.Person.NameArabic ?? "Unknown")
+                                : "Unknown",
+                            pl.IsPrimary,
+                            pl.LinkedAt
+                        ))
+                        .ToList()
+                })
+                .ToListAsync(cancellationToken);
+
+            return ServiceResult<MediaApprovalQueueResponse>.Success(new MediaApprovalQueueResponse
+            {
+                Items = items,
+                Total = total,
+                Page = request.Page,
+                PageSize = request.PageSize,
+                TotalPages = totalPages
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting media approval queue");
+            return ServiceResult<MediaApprovalQueueResponse>.InternalError("Error loading approval queue");
+        }
+    }
+
+    public async Task<ServiceResult> ApproveMediaAsync(
+        Guid mediaId,
+        MediaApprovalRequest request,
+        UserContext userContext,
+        CancellationToken cancellationToken = default)
+    {
+        if (!userContext.IsDeveloper && !userContext.IsSuperAdmin && !userContext.CanEdit())
+        {
+            return ServiceResult.Forbidden("Only admins can approve media.");
+        }
+
+        try
+        {
+            var media = await _context.MediaFiles
+                .FirstOrDefaultAsync(m => m.Id == mediaId, cancellationToken);
+
+            if (media == null)
+            {
+                return ServiceResult.NotFound("Media not found.");
+            }
+
+            // Verify admin has access to this media's org
+            if (!await HasOrgAccessAsync(media.OrgId, userContext, cancellationToken))
+            {
+                return ServiceResult.Forbidden("Access denied to this media.");
+            }
+
+            // Idempotent: if already approved, return success
+            if (media.ApprovalStatus == MediaApprovalStatus.Approved)
+            {
+                return ServiceResult.Success();
+            }
+
+            media.ApprovalStatus = MediaApprovalStatus.Approved;
+            media.ReviewedByUserId = userContext.UserId;
+            media.ReviewedAt = DateTime.UtcNow;
+            media.ReviewerNotes = request.ReviewerNotes;
+            media.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Media {MediaId} approved by user {UserId}", mediaId, userContext.UserId);
+
+            return ServiceResult.Success();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error approving media {MediaId}", mediaId);
+            return ServiceResult.InternalError("Error approving media");
+        }
+    }
+
+    public async Task<ServiceResult> RejectMediaAsync(
+        Guid mediaId,
+        MediaApprovalRequest request,
+        UserContext userContext,
+        CancellationToken cancellationToken = default)
+    {
+        if (!userContext.IsDeveloper && !userContext.IsSuperAdmin && !userContext.CanEdit())
+        {
+            return ServiceResult.Forbidden("Only admins can reject media.");
+        }
+
+        try
+        {
+            var media = await _context.MediaFiles
+                .FirstOrDefaultAsync(m => m.Id == mediaId, cancellationToken);
+
+            if (media == null)
+            {
+                return ServiceResult.NotFound("Media not found.");
+            }
+
+            // Verify admin has access to this media's org
+            if (!await HasOrgAccessAsync(media.OrgId, userContext, cancellationToken))
+            {
+                return ServiceResult.Forbidden("Access denied to this media.");
+            }
+
+            // Idempotent: if already rejected, return success
+            if (media.ApprovalStatus == MediaApprovalStatus.Rejected)
+            {
+                return ServiceResult.Success();
+            }
+
+            media.ApprovalStatus = MediaApprovalStatus.Rejected;
+            media.ReviewedByUserId = userContext.UserId;
+            media.ReviewedAt = DateTime.UtcNow;
+            media.ReviewerNotes = request.ReviewerNotes;
+            media.UpdatedAt = DateTime.UtcNow;
+
+            // Keep the stored file — admin may reconsider later.
+            // File is only deleted on explicit media delete.
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Media {MediaId} rejected by user {UserId}", mediaId, userContext.UserId);
+
+            return ServiceResult.Success();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error rejecting media {MediaId}", mediaId);
+            return ServiceResult.InternalError("Error rejecting media");
+        }
     }
 }

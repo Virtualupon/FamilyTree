@@ -8,7 +8,8 @@ import {
   DescendantRequest,
   HourglassRequest,
   RelationshipCalculationRequest,
-  RelationshipCalculationResponse
+  RelationshipCalculationResponse,
+  RootPersonsResponse
 } from '../models/tree.models';
 import {
   RelationshipPathRequest,
@@ -48,5 +49,14 @@ export class TreeService {
    */
   findRelationshipPath(request: RelationshipPathRequest): Observable<RelationshipPathResponse> {
     return this.http.post<RelationshipPathResponse>(`${this.apiUrl}/relationship-path`, request);
+  }
+
+  /**
+   * Get root persons (top-level ancestors with no parents) for a tree.
+   * Useful for showing the "top level" of a family hierarchy.
+   * Results are limited to 50 to prevent performance issues.
+   */
+  getRootPersons(treeId: string): Observable<RootPersonsResponse> {
+    return this.http.get<RootPersonsResponse>(`${this.apiUrl}/${treeId}/root-persons`);
   }
 }

@@ -33,22 +33,15 @@
               <div class="pending-links__persons-grid">
                 <div class="pending-links__person-card">
                   <span class="pending-links__person-label">{{ 'links.source' | translate }}</span>
-                  <span class="pending-links__person-name">{{ link.sourcePersonName || ('common.unknown' | translate) }}</span>
+                  <span class="pending-links__person-name">{{ link.sourcePersonName }}</span>
                   <span class="pending-links__tree-name">{{ link.sourceTreeName }}</span>
                 </div>
                 <div class="pending-links__person-card">
                   <span class="pending-links__person-label">{{ 'links.target' | translate }}</span>
-                  <span class="pending-links__person-name">{{ link.targetPersonName || ('common.unknown' | translate) }}</span>
+                  <span class="pending-links__person-name">{{ link.targetPersonName }}</span>
                   <span class="pending-links__tree-name">{{ link.targetTreeName }}</span>
                 </div>
               </div>
-
-              <!-- Notes -->
-              @if (link.notes) {
-                <div class="pending-links__notes">
-                  {{ link.notes }}
-                </div>
-              }
 
               <!-- Meta -->
               <div class="pending-links__meta">
@@ -105,13 +98,6 @@
       </div>
 
       <div class="review-modal__body">
-        <label class="review-modal__label">{{ 'common.notesOptional' | translate }}</label>
-        <textarea
-          [(ngModel)]="reviewNotes"
-          rows="3"
-          class="review-modal__textarea"
-          [placeholder]="'links.decisionNotesPlaceholder' | translate"></textarea>
-
         <div class="review-modal__actions">
           <button
             type="button"

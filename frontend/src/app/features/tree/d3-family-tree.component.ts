@@ -20,6 +20,7 @@ import { Sex } from '../../core/models/person.models';
 import { TreeLinksSummary, PersonLinkSummary, PersonLinkType, PersonLinkTypeLabels } from '../../core/models/family-tree.models';
 import { I18nService } from '../../core/i18n';
 import { PersonMediaService } from '../../core/services/person-media.service';
+import { FamilyRelationshipTypeService } from '../../core/services/family-relationship-type.service';
 
 interface D3Node {
   id: string;
@@ -52,6 +53,7 @@ interface D3Link {
 export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestroy {
   private readonly i18n = inject(I18nService);
   private readonly mediaService = inject(PersonMediaService);
+  private readonly relTypeService = inject(FamilyRelationshipTypeService);
 
   // Avatar cache: mediaId -> dataUrl
   private avatarCache = new Map<string, string>();
@@ -72,6 +74,7 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
   @Output() crossTreeLinkClicked = new EventEmitter<PersonLinkSummary>();
   @Output() findRelationshipClicked = new EventEmitter<TreePersonNode>();
   @Output() addRelationshipClicked = new EventEmitter<TreePersonNode>();
+  @Output() viewMediaClicked = new EventEmitter<TreePersonNode>();
 
   private svg: d3.Selection<SVGSVGElement, unknown, null, undefined> | null = null;
   private container: d3.Selection<SVGGElement, unknown, null, undefined> | null = null;
@@ -116,6 +119,25 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
 
   ngOnDestroy(): void {
     // Cleanup
+  }
+
+  /**
+   * Get generation label from FamilyRelationshipTypes DB table,
+   * falling back to i18n key, then to a hardcoded default.
+   */
+  private getRelTypeLabel(englishName: string, i18nKey: string, fallback: string): string {
+    // Try DB relationship types first (source of truth per user requirement)
+    const relType = this.relTypeService.types().find(
+      t => t.nameEnglish.toLowerCase() === englishName.toLowerCase()
+    );
+    if (relType) {
+      const dbName = this.relTypeService.getLocalizedName(relType);
+      if (dbName) return dbName;
+    }
+    // Fall back to i18n JSON translations
+    const i18nText = this.i18n.t(i18nKey);
+    if (i18nText && i18nText !== i18nKey) return i18nText;
+    return fallback;
   }
 
   private initSvg(): void {
@@ -163,6 +185,9 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
 
     // Load avatars then render
     this.loadAvatarsForNodes(nodes).then(() => {
+      // Start with invisible content for fade-in
+      this.container!.style('opacity', '0');
+
       // Draw generation bands first (behind everything)
       this.drawGenerationBands(nodes);
 
@@ -175,8 +200,11 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
       // Draw generation labels (on top, fixed position)
       this.drawGenerationLabels(nodes);
 
-      // Center the view
-      setTimeout(() => this.centerTree(), 100);
+      // Fit the entire tree into view, then fade in
+      setTimeout(() => {
+        this.fitToScreen();
+        this.container!.transition().duration(300).style('opacity', '1');
+      }, 100);
     });
   }
 
@@ -283,14 +311,13 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
 
   private getDisplayName(person: TreePersonNode): string {
     const lang = this.i18n.currentLang();
-    const unknown = this.i18n.t('common.unknown');
     if (lang === 'ar') {
-      return person.nameArabic || person.nameEnglish || person.primaryName || unknown;
+      return person.nameArabic || person.nameEnglish || person.primaryName || '';
     }
     if (lang === 'nob') {
-      return person.nameNobiin || person.nameEnglish || person.primaryName || unknown;
+      return person.nameNobiin || person.nameEnglish || person.primaryName || '';
     }
-    return person.nameEnglish || person.nameArabic || person.primaryName || unknown;
+    return person.nameEnglish || person.nameArabic || person.primaryName || '';
   }
 
   private createD3Node(person: TreePersonNode, x: number, y: number, generation: number): D3Node {
@@ -687,6 +714,9 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
 
       // Add relationship button (top-right corner, appears on hover)
       this.drawAddRelationshipButton(g, node);
+
+      // View media button (bottom-left corner, appears on hover)
+      this.drawViewMediaButton(g, node);
     });
   }
 
@@ -771,24 +801,28 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
       const isCollapsed = this.collapsedGenerations.has(gen);
       const isRoot = gen === 0;
 
-      // Determine label text based on generation
+      // Determine label text based on generation using DB relationship types
       let labelText: string;
       if (gen === 0) {
         labelText = this.i18n.t('tree.generation.root') || 'Root';
       } else if (gen < 0) {
         const absGen = Math.abs(gen);
         if (absGen === 1) {
-          labelText = this.i18n.t('tree.generation.parents') || 'Parents';
+          labelText = this.getRelTypeLabel('Parent', 'tree.generation.parents', 'Parents');
         } else if (absGen === 2) {
-          labelText = this.i18n.t('tree.generation.grandparents') || 'Grandparents';
+          labelText = this.getRelTypeLabel('Grandparent', 'tree.generation.grandparents', 'Grandparents');
+        } else if (absGen === 3) {
+          labelText = this.getRelTypeLabel('Great-Grandparent', 'tree.generation.greatGrandparents', `Gen -${absGen}`);
         } else {
           labelText = `Gen -${absGen}`;
         }
       } else {
         if (gen === 1) {
-          labelText = this.i18n.t('tree.generation.children') || 'Children';
+          labelText = this.getRelTypeLabel('Child', 'tree.generation.children', 'Children');
         } else if (gen === 2) {
-          labelText = this.i18n.t('tree.generation.grandchildren') || 'Grandchildren';
+          labelText = this.getRelTypeLabel('Grandchild', 'tree.generation.grandchildren', 'Grandchildren');
+        } else if (gen === 3) {
+          labelText = this.getRelTypeLabel('Great-Grandchild', 'tree.generation.greatGrandchildren', `Gen +${gen}`);
         } else {
           labelText = `Gen +${gen}`;
         }
@@ -871,6 +905,7 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
 
   /**
    * Toggle collapse state for a generation and re-render
+   * Preserves current zoom/pan position for smooth experience
    */
   private toggleGenerationCollapse(generation: number): void {
     if (this.collapsedGenerations.has(generation)) {
@@ -878,7 +913,39 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
     } else {
       this.collapsedGenerations.add(generation);
     }
-    this.renderTree();
+
+    // Save current zoom transform before re-render
+    const currentTransform = this.svg ? d3.zoomTransform(this.svg.node()!) : null;
+    this.renderTreePreservingView(currentTransform);
+  }
+
+  /**
+   * Re-render tree but restore previous zoom/pan position
+   * Used when collapsing/expanding generations (no data change, just visibility)
+   */
+  private renderTreePreservingView(transform: d3.ZoomTransform | null): void {
+    if (!this.treeData || !this.container) return;
+
+    // Clear previous content
+    this.container.selectAll('*').remove();
+
+    // Build node and link data
+    const { nodes, links } = this.buildTreeData(this.treeData);
+    this.currentLinks = links;
+    this.currentNodes = nodes;
+
+    // Load avatars then render
+    this.loadAvatarsForNodes(nodes).then(() => {
+      this.drawGenerationBands(nodes);
+      this.drawLinks(links);
+      this.drawNodes(nodes);
+      this.drawGenerationLabels(nodes);
+
+      // Restore previous zoom/pan position instead of fitting to screen
+      if (transform && this.svg && this.zoom) {
+        this.svg.call(this.zoom.transform, transform);
+      }
+    });
   }
 
   private drawFindRelationshipButton(
@@ -989,6 +1056,64 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
     });
   }
 
+  private drawViewMediaButton(
+    g: d3.Selection<SVGGElement, D3Node, null, undefined>,
+    node: D3Node
+  ): void {
+    // Position at bottom-left corner
+    const buttonX = 5;
+    const buttonY = this.nodeHeight - 5;
+
+    const button = g.append('g')
+      .attr('class', 'view-media-btn')
+      .attr('transform', `translate(${buttonX}, ${buttonY})`)
+      .style('opacity', 0)
+      .style('cursor', 'pointer')
+      .on('click', (event: MouseEvent) => {
+        event.stopPropagation();
+        this.viewMediaClicked.emit(node.data);
+      });
+
+    // Button background (purple - distinct from blue/green)
+    button.append('circle')
+      .attr('r', 12)
+      .attr('fill', '#7B1FA2')
+      .attr('stroke', 'white')
+      .attr('stroke-width', 2);
+
+    // Image icon using Font Awesome Unicode glyph
+    button.append('text')
+      .attr('class', 'node-icon-solid')
+      .attr('text-anchor', 'middle')
+      .attr('dominant-baseline', 'central')
+      .attr('fill', 'white')
+      .attr('font-size', '10px')
+      .text('\uf03e'); // fa-image Unicode
+
+    // Show button on node hover (integrate with existing handlers)
+    const existingMouseEnter = g.on('mouseenter');
+    g.on('mouseenter', function(this: SVGGElement, event: MouseEvent, d: any) {
+      if (existingMouseEnter) {
+        (existingMouseEnter as any).call(this, event, d);
+      }
+      d3.select(this).select('.view-media-btn')
+        .transition()
+        .duration(200)
+        .style('opacity', 1);
+    });
+
+    const existingMouseLeave = g.on('mouseleave');
+    g.on('mouseleave', function(this: SVGGElement, event: MouseEvent, d: any) {
+      if (existingMouseLeave) {
+        (existingMouseLeave as any).call(this, event, d);
+      }
+      d3.select(this).select('.view-media-btn')
+        .transition()
+        .duration(200)
+        .style('opacity', 0);
+    });
+  }
+
   private drawCrossTreeBadge(
     g: d3.Selection<SVGGElement, D3Node, null, undefined>,
     node: D3Node
@@ -1048,39 +1173,67 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
     const tooltip = this.tooltipRef.nativeElement;
     const content = tooltip.querySelector('.tooltip-content') as HTMLElement;
 
-    // Build tooltip content
-    let html = `<div class="tooltip-header">Cross-Tree Links (${node.crossTreeLinks.length})</div>`;
+    // SECURITY FIX: Build tooltip using DOM API (textContent) instead of innerHTML
+    // to prevent XSS from user-controlled data (person names, tree names, town names)
+    content.textContent = '';
 
+    // Header
+    const header = document.createElement('div');
+    header.className = 'tooltip-header';
+    header.textContent = `Cross-Tree Links (${node.crossTreeLinks.length})`;
+    content.appendChild(header);
+
+    // Each link item
     node.crossTreeLinks.forEach(link => {
       const typeClass = link.linkType === PersonLinkType.SamePerson ? 'same'
         : link.linkType === PersonLinkType.Ancestor ? 'ancestor' : 'related';
       const typeLabel = PersonLinkTypeLabels[link.linkType];
 
-      html += `
-        <div class="tooltip-link-item" data-link-id="${link.linkId}" data-person-id="${link.linkedPersonId}" data-tree-id="${link.linkedTreeId}">
-          <span class="link-type-badge ${typeClass}">${typeLabel}</span>
-          <div class="link-info">
-            <div class="link-person">${link.linkedPersonName}</div>
-            <div class="link-tree">${link.linkedTreeName}</div>
-            ${link.linkedTownName ? `<div class="link-town">${link.linkedTownName}</div>` : ''}
-          </div>
-          <span class="jump-icon">→</span>
-        </div>
-      `;
-    });
+      const item = document.createElement('div');
+      item.className = 'tooltip-link-item';
+      item.dataset['linkId'] = link.linkId;
+      item.dataset['personId'] = link.linkedPersonId;
+      item.dataset['treeId'] = link.linkedTreeId;
 
-    content.innerHTML = html;
+      const badge = document.createElement('span');
+      badge.className = `link-type-badge ${typeClass}`;
+      badge.textContent = typeLabel;
+      item.appendChild(badge);
 
-    // Add click handlers to link items
-    content.querySelectorAll('.tooltip-link-item').forEach(item => {
+      const info = document.createElement('div');
+      info.className = 'link-info';
+
+      const personDiv = document.createElement('div');
+      personDiv.className = 'link-person';
+      personDiv.textContent = link.linkedPersonName; // Safe: textContent escapes HTML
+      info.appendChild(personDiv);
+
+      const treeDiv = document.createElement('div');
+      treeDiv.className = 'link-tree';
+      treeDiv.textContent = link.linkedTreeName; // Safe: textContent escapes HTML
+      info.appendChild(treeDiv);
+
+      if (link.linkedTownName) {
+        const townDiv = document.createElement('div');
+        townDiv.className = 'link-town';
+        townDiv.textContent = link.linkedTownName; // Safe: textContent escapes HTML
+        info.appendChild(townDiv);
+      }
+
+      item.appendChild(info);
+
+      const jumpIcon = document.createElement('span');
+      jumpIcon.className = 'jump-icon';
+      jumpIcon.textContent = '→';
+      item.appendChild(jumpIcon);
+
+      // Attach click handler directly (no need for querySelectorAll after)
       item.addEventListener('click', () => {
-        const linkId = item.getAttribute('data-link-id');
-        const link = node.crossTreeLinks?.find(l => l.linkId === linkId);
-        if (link) {
-          this.crossTreeLinkClicked.emit(link);
-          this.hideCrossTreeTooltip();
-        }
+        this.crossTreeLinkClicked.emit(link);
+        this.hideCrossTreeTooltip();
       });
+
+      content.appendChild(item);
     });
 
     // Position tooltip near the click
@@ -1133,7 +1286,7 @@ export class D3FamilyTreeComponent implements AfterViewInit, OnChanges, OnDestro
   }
 
   private getInitials(name: string): string {
-    if (!name || name === this.i18n.t('common.unknown')) return '?';
+    if (!name) return '?';
     const parts = name.trim().split(/\s+/);
     if (parts.length === 1) {
       return parts[0].charAt(0).toUpperCase();

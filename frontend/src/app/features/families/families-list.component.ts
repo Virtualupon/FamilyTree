@@ -61,12 +61,12 @@ export class FamiliesListComponent implements OnInit {
     nameAr: '',
     nameLocal: '',
     description: '',
-    color: '#667eea'
+    color: '#187573'
   };
 
   // Color options
   colorOptions = [
-    '#667eea', '#764ba2', '#3b82f6', '#10b981', '#f59e0b',
+    '#187573', '#C17E3E', '#3b82f6', '#10b981', '#f59e0b',
     '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'
   ];
 
@@ -126,7 +126,7 @@ export class FamiliesListComponent implements OnInit {
       nameAr: '',
       nameLocal: '',
       description: '',
-      color: '#667eea'
+      color: '#187573'
     };
     this.saveError.set(null);
     this.showModal = true;
@@ -141,7 +141,7 @@ export class FamiliesListComponent implements OnInit {
       nameAr: family.nameAr || '',
       nameLocal: family.nameLocal || '',
       description: '',
-      color: family.color || '#667eea'
+      color: family.color || '#187573'
     };
     this.saveError.set(null);
     this.showModal = true;
@@ -220,16 +220,7 @@ export class FamiliesListComponent implements OnInit {
   }
 
   getLocalizedName(family: FamilyListItem): string {
-    const lang = this.i18n.currentLang();
-    switch (lang) {
-      case 'ar':
-        return family.nameAr || family.name;
-      case 'nob':
-        return family.nameLocal || family.name;
-      case 'en':
-      default:
-        return family.nameEn || family.name;
-    }
+    return this.i18n.getFamilyName(family);
   }
 
   hasMultipleNames(family: FamilyListItem): boolean {

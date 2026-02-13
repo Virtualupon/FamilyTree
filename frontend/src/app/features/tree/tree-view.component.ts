@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, signal, computed, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed, effect, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -7,6 +7,7 @@ import { Subject, takeUntil, debounceTime } from 'rxjs';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatSliderModule } from '@angular/material/slider';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -33,6 +34,7 @@ import { RelationshipFinderDialogComponent, RelationshipFinderDialogResult } fro
 import { AddRelationshipDialogComponent, RelationshipDialogData, RelationshipDialogType } from '../people/add-relationship-dialog.component';
 import { PersonFormDialogComponent, PersonFormDialogData } from '../people/person-form-dialog.component';
 import { RelationshipPathViewComponent } from './relationship-path-view.component';
+import { PersonMediaSheetComponent, PersonMediaSheetData } from './person-media-sheet.component';
 
 @Component({
   selector: 'app-tree-view',
@@ -43,6 +45,7 @@ import { RelationshipPathViewComponent } from './relationship-path-view.componen
     MatButtonModule,
     MatSelectModule,
     MatSlideToggleModule,
+    MatSliderModule,
     MatMenuModule,
     MatTooltipModule,
     MatBottomSheetModule,
@@ -87,7 +90,7 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
   treeData = signal<TreePersonNode | null>(null);
   crossTreeLinks = signal<TreeLinksSummary | null>(null);
   loading = signal(false);
-  viewMode = signal<'pedigree' | 'descendants' | 'hourglass' | 'timeline' | 'familySheet'>('pedigree');
+  viewMode = signal<'pedigree' | 'descendants' | 'hourglass' | 'timeline' | 'familySheet'>('descendants');
 
   // Signal for selected person avatar
   selectedPersonAvatarUrl = signal<string | null>(null);
@@ -101,6 +104,22 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
   generations = 3;
   includeSpouses = true;
   
+  // Reload tree when selected tree changes
+  private previousTreeId: string | null = null;
+  private treeChangeEffect = effect(() => {
+    const currentTreeId = this.treeContext.effectiveTreeId();
+    if (this.previousTreeId !== null && currentTreeId !== this.previousTreeId) {
+      // Clear current view and reload
+      this.treeData.set(null);
+      this.selectedPerson.set(null);
+      this.crossTreeLinks.set(null);
+      this.avatarCache.forEach(url => URL.revokeObjectURL(url));
+      this.avatarCache.clear();
+      this.avatarLoading.clear();
+    }
+    this.previousTreeId = currentTreeId;
+  });
+
   // Zoom & Pan
   zoom = signal(1);
   panX = signal(0);
@@ -227,6 +246,12 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
     return 'pedigree'; // Default fallback
   }
   
+  onGenerationsChange(value: number): void {
+    // Ensure generations is always a number (select can return string)
+    this.generations = +value;
+    this.loadTree();
+  }
+
   onSettingsChange(): void {
     this.loadTree();
   }
@@ -361,14 +386,13 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
 
   getDisplayName(person: { primaryName?: string | null; nameArabic?: string | null; nameEnglish?: string | null; nameNobiin?: string | null }): string {
     const lang = this.i18n.currentLang();
-    const unknown = this.i18n.t('common.unknown');
     if (lang === 'ar') {
-      return person.nameArabic || person.nameEnglish || person.primaryName || unknown;
+      return person.nameArabic || person.nameEnglish || person.primaryName || '';
     }
     if (lang === 'nob') {
-      return person.nameNobiin || person.nameEnglish || person.primaryName || unknown;
+      return person.nameNobiin || person.nameEnglish || person.primaryName || '';
     }
-    return person.nameEnglish || person.nameArabic || person.primaryName || unknown;
+    return person.nameEnglish || person.nameArabic || person.primaryName || '';
   }
 
   formatYear(dateStr: string | undefined): string {
@@ -744,6 +768,19 @@ export class TreeViewComponent implements OnInit, OnDestroy, AfterViewInit {
         const message = this.i18n.t('relationship.relationshipCreated');
         this.snackBar.open(message, this.i18n.t('common.close'), { duration: 3000 });
       }
+    });
+  }
+
+  // View media for a person (from D3 tree)
+  onViewMedia(person: TreePersonNode): void {
+    const data: PersonMediaSheetData = {
+      personId: person.id,
+      personName: person.primaryName || person.nameEnglish || person.nameArabic || ''
+    };
+
+    this.bottomSheet.open(PersonMediaSheetComponent, {
+      data,
+      panelClass: 'ft-bottom-sheet'
     });
   }
 }

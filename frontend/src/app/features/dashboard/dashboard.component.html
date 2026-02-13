@@ -264,7 +264,7 @@
               {{ getInitials(getPersonDisplayName(person)) }}
             </div>
             <div class="recent-item__content">
-              <span class="recent-item__name">{{ getPersonDisplayName(person) || ('common.unknown' | translate) }}</span>
+              <span class="recent-item__name">{{ getPersonDisplayName(person) }}</span>
               <span class="recent-item__meta">
                 @if (person.birthDate) {
                   {{ formatYear(person.birthDate) }}

@@ -60,6 +60,15 @@
 
   <!-- Quick Links -->
   <div class="quick-links">
+    <a routerLink="/pending-links" class="quick-link">
+      <mat-card>
+        <mat-card-content>
+          <i class="fa-solid fa-link" aria-hidden="true"></i>
+          <span>{{ 'nav.pendingLinks' | translate }}</span>
+          <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+        </mat-card-content>
+      </mat-card>
+    </a>
     <a routerLink="/admin/countries" class="quick-link">
       <mat-card>
         <mat-card-content>
@@ -92,6 +101,60 @@
         <mat-card-content>
           <i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i>
           <span>{{ 'admin.storageMigration.title' | translate }}</span>
+          <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+        </mat-card-content>
+      </mat-card>
+    </a>
+    <a routerLink="/admin/duplicates" class="quick-link">
+      <mat-card>
+        <mat-card-content>
+          <i class="fa-solid fa-people-arrows" aria-hidden="true"></i>
+          <span>{{ 'admin.duplicateDetection.title' | translate }}</span>
+          <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+        </mat-card-content>
+      </mat-card>
+    </a>
+    <a routerLink="/admin/predictions" class="quick-link">
+      <mat-card>
+        <mat-card-content>
+          <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+          <span>{{ 'admin.predictions.title' | translate }}</span>
+          <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+        </mat-card-content>
+      </mat-card>
+    </a>
+    <a routerLink="/admin/suggestions" class="quick-link">
+      <mat-card>
+        <mat-card-content>
+          <i class="fa-solid fa-lightbulb" aria-hidden="true"></i>
+          <span>{{ 'admin.suggestions.title' | translate }}</span>
+          <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+        </mat-card-content>
+      </mat-card>
+    </a>
+    <a routerLink="/admin/media-approval" class="quick-link">
+      <mat-card>
+        <mat-card-content>
+          <i class="fa-solid fa-clipboard-check" aria-hidden="true"></i>
+          <span>{{ 'media.approvalQueue' | translate }}</span>
+          <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+        </mat-card-content>
+      </mat-card>
+    </a>
+    <a routerLink="/admin/support-tickets" class="quick-link">
+      <mat-card>
+        <mat-card-content>
+          <i class="fa-solid fa-headset" aria-hidden="true"></i>
+          <span>{{ 'support.admin.title' | translate }}</span>
+          <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+        </mat-card-content>
+      </mat-card>
+    </a>
+    <a routerLink="/admin/activity-logs" class="quick-link">
+      <mat-card>
+        <mat-card-content>
+          <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
+          <span>{{ 'admin.activityLogs.title' | translate }}</span>
           <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
         </mat-card-content>
       </mat-card>
@@ -480,6 +543,17 @@
               </button>
             </mat-card-actions>
           </mat-card>
+        </div>
+      </mat-tab>
+
+      <!-- Analytics Tab -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <i class="fa-solid fa-chart-line" aria-hidden="true"></i>
+          <span>{{ 'admin.analytics.title' | translate }}</span>
+        </ng-template>
+        <div class="tab-content">
+          <app-analytics-tab></app-analytics-tab>
         </div>
       </mat-tab>
     </mat-tab-group>

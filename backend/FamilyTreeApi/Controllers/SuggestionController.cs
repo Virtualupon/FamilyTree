@@ -139,8 +139,7 @@ public class SuggestionController : ControllerBase
                 ["BirthPlace"] = request.BirthPlace ?? "",
                 ["DeathDate"] = request.DeathDate ?? "",
                 ["DeathPlace"] = request.DeathPlace ?? "",
-                ["Occupation"] = request.Occupation ?? "",
-                ["Notes"] = request.Notes ?? ""
+                ["Occupation"] = request.Occupation ?? ""
             };
 
             var suggestionType = SuggestionType.AddPerson;
@@ -457,7 +456,7 @@ public class SuggestionController : ControllerBase
     /// Get suggestion queue for admin review
     /// </summary>
     [HttpGet("queue")]
-    [Authorize(Roles = "Admin,SuperAdmin")]
+    [Authorize(Roles = "Developer,Admin,SuperAdmin")]
     public async Task<ActionResult<SuggestionListResponse>> GetSuggestionQueue(
         [FromQuery] Guid? townId,
         [FromQuery] Guid? treeId,
@@ -500,7 +499,7 @@ public class SuggestionController : ControllerBase
     /// Update suggestion status (generic status update)
     /// </summary>
     [HttpPut("{id:guid}/status")]
-    [Authorize(Roles = "Admin,SuperAdmin")]
+    [Authorize(Roles = "Developer,Admin,SuperAdmin")]
     public async Task<ActionResult<SuggestionDetailDto>> UpdateStatus(
         Guid id,
         [FromBody] UpdateSuggestionStatusRequest request)
@@ -526,7 +525,7 @@ public class SuggestionController : ControllerBase
     /// Approve a suggestion and apply changes
     /// </summary>
     [HttpPost("{id:guid}/approve")]
-    [Authorize(Roles = "Admin,SuperAdmin")]
+    [Authorize(Roles = "Developer,Admin,SuperAdmin")]
     public async Task<ActionResult<SuggestionDetailDto>> ApproveSuggestion(
         Guid id,
         [FromBody] ApproveRequest? request = null)
@@ -552,7 +551,7 @@ public class SuggestionController : ControllerBase
     /// Reject a suggestion
     /// </summary>
     [HttpPost("{id:guid}/reject")]
-    [Authorize(Roles = "Admin,SuperAdmin")]
+    [Authorize(Roles = "Developer,Admin,SuperAdmin")]
     public async Task<ActionResult<SuggestionDetailDto>> RejectSuggestion(
         Guid id,
         [FromBody] RejectRequest request)
@@ -579,7 +578,7 @@ public class SuggestionController : ControllerBase
     /// Request more information from submitter
     /// </summary>
     [HttpPost("{id:guid}/request-info")]
-    [Authorize(Roles = "Admin,SuperAdmin")]
+    [Authorize(Roles = "Developer,Admin,SuperAdmin")]
     public async Task<ActionResult<SuggestionDetailDto>> RequestMoreInfo(
         Guid id,
         [FromBody] RequestInfoRequest request)
@@ -606,7 +605,7 @@ public class SuggestionController : ControllerBase
     /// Rollback an approved suggestion
     /// </summary>
     [HttpPost("{id:guid}/rollback")]
-    [Authorize(Roles = "Admin,SuperAdmin")]
+    [Authorize(Roles = "Developer,Admin,SuperAdmin")]
     public async Task<ActionResult> RollbackSuggestion(
         Guid id,
         [FromBody] RollbackRequest request)
@@ -632,7 +631,7 @@ public class SuggestionController : ControllerBase
     /// Soft delete a suggestion
     /// </summary>
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "Admin,SuperAdmin")]
+    [Authorize(Roles = "Developer,Admin,SuperAdmin")]
     public async Task<ActionResult> DeleteSuggestion(Guid id)
     {
         try
@@ -660,7 +659,7 @@ public class SuggestionController : ControllerBase
     /// Get pending suggestions count by town (for admin dashboard)
     /// </summary>
     [HttpGet("pending-by-town")]
-    [Authorize(Roles = "Admin,SuperAdmin")]
+    [Authorize(Roles = "Developer,Admin,SuperAdmin")]
     public async Task<ActionResult<List<PendingByTownDto>>> GetPendingByTown()
     {
         try
@@ -679,7 +678,7 @@ public class SuggestionController : ControllerBase
     /// Get suggestion statistics
     /// </summary>
     [HttpGet("statistics")]
-    [Authorize(Roles = "Admin,SuperAdmin")]
+    [Authorize(Roles = "Developer,Admin,SuperAdmin")]
     public async Task<ActionResult<SuggestionStatsDto>> GetStatistics(
         [FromQuery] Guid? townId,
         [FromQuery] Guid? treeId,

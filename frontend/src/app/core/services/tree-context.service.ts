@@ -2,11 +2,8 @@ import { Injectable, signal, computed, inject } from '@angular/core';
 import { FamilyTreeService } from './family-tree.service';
 import { TownService } from './town.service';
 import { AuthService } from './auth.service';
-import { AdminService } from './admin.service';
 import { FamilyTreeListItem } from '../models/family-tree.models';
 import { TownListItem } from '../models/town.models';
-import { forkJoin, of } from 'rxjs';
-import { catchError, map, switchMap, take } from 'rxjs/operators';
 
 /**
  * TreeContext manages the currently selected tree for the user.
@@ -22,7 +19,6 @@ export class TreeContextService {
   private readonly authService = inject(AuthService);
   private readonly treeService = inject(FamilyTreeService);
   private readonly townService = inject(TownService);
-  private readonly adminService = inject(AdminService);
 
   private readonly STORAGE_KEY = 'selected_tree_id';
   private readonly TOWN_STORAGE_KEY = 'selected_town_id';
@@ -71,8 +67,8 @@ export class TreeContextService {
     const user = this.authService.getCurrentUser();
     if (!user) return false;
 
-    // SuperAdmin/Admin without a selected tree and no token orgId needs to select
-    if (user.systemRole === 'SuperAdmin' || user.systemRole === 'Admin') {
+    // Developer/SuperAdmin/Admin without a selected tree and no token orgId needs to select
+    if (user.systemRole === 'Developer' || user.systemRole === 'SuperAdmin' || user.systemRole === 'Admin') {
       return !this.selectedTreeId() && !user.orgId;
     }
 
@@ -83,7 +79,7 @@ export class TreeContextService {
   showTreeSelector = computed(() => {
     const user = this.authService.getCurrentUser();
     if (!user) return false;
-    return user.systemRole === 'SuperAdmin' || user.systemRole === 'Admin';
+    return user.systemRole === 'Developer' || user.systemRole === 'SuperAdmin' || user.systemRole === 'Admin';
   });
 
   // Computed: effective tree ID to use for API calls
@@ -100,28 +96,10 @@ export class TreeContextService {
     // Load trees and towns when auth state changes
     this.authService.currentUser$.subscribe(user => {
       if (user) {
-        // Check if token is expired before making API calls
-        if (this.authService.needsTokenRefresh()) {
-          // Token expired - try to refresh before loading data
-          this.authService.refreshToken().pipe(
-            take(1),
-            catchError(() => {
-              // Refresh failed - clear state and let interceptor handle logout
-              this.clearState();
-              return of(null);
-            })
-          ).subscribe(response => {
-            if (response) {
-              // Token refreshed successfully - now load data
-              this.loadAvailableTrees();
-              this.loadAvailableTowns();
-            }
-          });
-        } else {
-          // Token is valid - load data immediately
-          this.loadAvailableTrees();
-          this.loadAvailableTowns();
-        }
+        // With HttpOnly cookies, the interceptor handles token refresh on 401.
+        // Just load data — if the token is expired, the interceptor will refresh it.
+        this.loadAvailableTrees();
+        this.loadAvailableTowns();
       } else {
         this.clearState();
       }
@@ -144,8 +122,8 @@ export class TreeContextService {
 
     this.loading.set(true);
 
-    if (user.systemRole === 'SuperAdmin') {
-      // SuperAdmin: load all trees
+    if (user.systemRole === 'Developer' || user.systemRole === 'SuperAdmin') {
+      // Developer/SuperAdmin: load all trees
       this.treeService.getMyTrees().subscribe({
         next: (trees) => {
           this.availableTrees.set(trees);
@@ -157,37 +135,8 @@ export class TreeContextService {
         }
       });
     } else if (user.systemRole === 'Admin') {
-      // Admin: load assigned trees + member trees
-      forkJoin({
-        memberTrees: this.treeService.getMyTrees().pipe(catchError(() => of([]))),
-        assignments: this.adminService.getUserAssignments(user.id).pipe(catchError(() => of([])))
-      }).pipe(
-        map(({ memberTrees, assignments }) => {
-          // Merge and deduplicate
-          const allTrees = [...memberTrees];
-          const memberTreeIds = new Set(memberTrees.map(t => t.id));
-
-          // Add assigned trees that aren't already in memberTrees
-          for (const assignment of assignments) {
-            if (!memberTreeIds.has(assignment.treeId)) {
-              allTrees.push({
-                id: assignment.treeId,
-                name: assignment.treeName || 'Unknown Tree',
-                description: null,
-                isPublic: false,
-                coverImageUrl: null,
-                personCount: 0,
-                userRole: null, // Admin assignment, not membership
-                townId: '',     // Not available from assignment - loaded later via API
-                townName: '',   // Not available from assignment - loaded later via API
-                createdAt: assignment.assignedAt
-              });
-            }
-          }
-
-          return allTrees;
-        })
-      ).subscribe({
+      // Admin: load member trees (admin controller requires SuperAdmin+ so use getMyTrees)
+      this.treeService.getMyTrees().subscribe({
         next: (trees) => {
           this.availableTrees.set(trees);
           this.autoSelectTree(trees);
@@ -280,7 +229,7 @@ export class TreeContextService {
   showTownSelector = computed(() => {
     const user = this.authService.getCurrentUser();
     if (!user) return false;
-    if (user.systemRole === 'SuperAdmin') return true;
+    if (user.systemRole === 'Developer' || user.systemRole === 'SuperAdmin') return true;
     if (user.systemRole === 'Admin') return this.assignedTowns().length > 0;
     return false;
   });
@@ -296,8 +245,8 @@ export class TreeContextService {
 
     this.loadingTowns.set(true);
 
-    if (user.systemRole === 'SuperAdmin') {
-      // SuperAdmin: load all towns
+    if (user.systemRole === 'Developer' || user.systemRole === 'SuperAdmin') {
+      // Developer/SuperAdmin: load all towns
       this.townService.getTowns({ page: 1, pageSize: 1000 }).subscribe({
         next: (result) => {
           this.availableTowns.set(result.items);
@@ -320,19 +269,17 @@ export class TreeContextService {
         }
       });
     } else if (user.systemRole === 'Admin') {
-      // Admin: load only assigned towns
-      this.adminService.getUserTownAssignments(user.id).subscribe({
-        next: (assignments) => {
-          const towns = assignments
-            .filter(a => a.isActive)
-            .map(a => ({
-              id: a.townId,
-              name: a.townName || 'Unknown Town',
-              nameEn: a.townNameEn || null,
-              nameAr: a.townNameAr || null,
-              nameLocal: a.townNameLocal || null,
-              treeCount: a.treeCount
-            }));
+      // Admin: load assigned towns via auth endpoint (admin controller requires SuperAdmin+)
+      this.authService.getMyTowns().subscribe({
+        next: (response) => {
+          const towns = response.assignedTowns.map(t => ({
+            id: t.id,
+            name: t.name,
+            nameEn: t.nameEn || null,
+            nameAr: t.nameAr || null,
+            nameLocal: null as string | null,
+            treeCount: t.treeCount || 0
+          }));
           this.assignedTowns.set(towns);
           // Also populate availableTowns for compatibility
           this.availableTowns.set(towns.map(t => ({
@@ -342,9 +289,7 @@ export class TreeContextService {
             nameAr: t.nameAr || undefined,
             nameLocal: t.nameLocal || undefined,
             country: '',
-            region: '',
             treeCount: t.treeCount,
-            personCount: 0,
             createdAt: new Date().toISOString()
           })));
 
@@ -396,7 +341,7 @@ export class TreeContextService {
 
     // Auto-select first town for Admin/SuperAdmin
     const user = this.authService.getCurrentUser();
-    if (user && (user.systemRole === 'SuperAdmin' || user.systemRole === 'Admin')) {
+    if (user && (user.systemRole === 'Developer' || user.systemRole === 'SuperAdmin' || user.systemRole === 'Admin')) {
       if (towns.length > 0 && !this.selectedTownId()) {
         this.selectTown(towns[0].id);
         // Load trees for the auto-selected town

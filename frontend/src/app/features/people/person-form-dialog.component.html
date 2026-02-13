@@ -28,13 +28,34 @@
       <!-- Basic Info Tab -->
       <mat-tab [label]="'personForm.basicInfo' | translate">
         <div class="form-tab-content">
-          <!-- Primary Name -->
+          <!-- Avatar Section -->
+          <div class="avatar-section">
+            @if (data.person) {
+              <app-person-avatar
+                [person]="data.person"
+                [editable]="!isViewer()"
+                size="xlarge"
+                (avatarChanged)="onAvatarChanged()">
+              </app-person-avatar>
+            } @else {
+              <div class="avatar-placeholder">
+                <div class="avatar-placeholder__circle">
+                  <i class="fa-solid fa-camera" aria-hidden="true"></i>
+                </div>
+                <span class="avatar-placeholder__hint">{{ 'personForm.avatarAfterSave' | translate }}</span>
+              </div>
+            }
+          </div>
+
+          <!-- Given Name (first name only — full patronymic name is computed from parent links) -->
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>{{ 'personForm.fullName' | translate }} *</mat-label>
-            <input matInput formControlName="primaryName" autocomplete="name">
+            <mat-label>{{ 'personForm.givenName' | translate }} *</mat-label>
+            <input matInput formControlName="primaryName" autocomplete="given-name"
+                   [placeholder]="'personForm.givenNamePlaceholder' | translate">
             @if (form.get('primaryName')?.hasError('required')) {
               <mat-error>{{ 'common.required' | translate }}</mat-error>
             }
+            <mat-hint>{{ 'personForm.givenNameHint' | translate }}</mat-hint>
           </mat-form-field>
 
           <!-- Sex -->
@@ -217,72 +238,38 @@
               }
             </mat-autocomplete>
           </mat-form-field>
-
-          <!-- Notes Section (Single field based on current language) -->
-          <div class="form-section">
-            <h4 class="form-section__title">
-              <i class="fa-solid fa-note-sticky" aria-hidden="true"></i>
-              {{ 'personForm.notes' | translate }}
-            </h4>
-
-            <!-- Single Notes Field (based on current UI language) -->
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>{{ getNotesLabelKey() | translate }}</mat-label>
-              <textarea matInput
-                        formControlName="currentNotes"
-                        rows="4"
-                        [dir]="isNotesRtl() ? 'rtl' : 'ltr'"></textarea>
-              <mat-hint>{{ 'personForm.notesAutoTranslateHint' | translate }}</mat-hint>
-            </mat-form-field>
-
-            <!-- Translation Status Indicator -->
-            @if (translationStatus() !== 'idle') {
-              <div class="translation-status" [class.translation-status--translating]="translationStatus() === 'translating'"
-                   [class.translation-status--success]="translationStatus() === 'success'"
-                   [class.translation-status--error]="translationStatus() === 'error'">
-                @if (translationStatus() === 'translating') {
-                  <mat-spinner diameter="16"></mat-spinner>
-                  <span>{{ 'personForm.translatingNotes' | translate }}</span>
-                }
-                @if (translationStatus() === 'success') {
-                  <i class="fa-solid fa-check-circle" aria-hidden="true"></i>
-                  <span>{{ 'personForm.translationComplete' | translate }}</span>
-                }
-                @if (translationStatus() === 'error') {
-                  <i class="fa-solid fa-exclamation-circle" aria-hidden="true"></i>
-                  <span>{{ 'personForm.translationFailed' | translate }}</span>
-                }
-              </div>
-            }
-          </div>
         </div>
       </mat-tab>
 
       <!-- Names Tab -->
       <mat-tab [label]="'personForm.names' | translate">
         <div class="form-tab-content">
-          <p class="names-hint">{{ 'personForm.namesHint' | translate }}</p>
+          <p class="names-hint">{{ 'personForm.namesGivenHint' | translate }}</p>
 
-          <!-- Arabic Name -->
+          <!-- Arabic Given Name -->
           <mat-form-field appearance="outline" class="full-width name-field-arabic">
-            <mat-label>الاسم بالعربية (Arabic Name)</mat-label>
+            <mat-label>{{ 'personForm.arabicGivenName' | translate }}</mat-label>
             <input matInput formControlName="nameArabic" dir="rtl"
-                   (blur)="onArabicNameBlur()">
+                   (blur)="onArabicNameBlur()"
+                   [placeholder]="'personForm.arabicGivenNamePlaceholder' | translate">
             <i class="fa-solid fa-font" matSuffix aria-hidden="true"></i>
           </mat-form-field>
 
-          <!-- English Name -->
+          <!-- English Given Name -->
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>Name in English</mat-label>
+            <mat-label>{{ 'personForm.englishGivenName' | translate }}</mat-label>
             <input matInput formControlName="nameEnglish"
-                   (blur)="onEnglishNameBlur()">
+                   (blur)="onEnglishNameBlur()"
+                   [placeholder]="'personForm.englishGivenNamePlaceholder' | translate">
             <i class="fa-solid fa-font" matSuffix aria-hidden="true"></i>
           </mat-form-field>
 
-          <!-- Nobiin Name -->
+          <!-- Nobiin Given Name -->
           <mat-form-field appearance="outline" class="full-width">
-            <mat-label>ⲣⲁⲛ ⲛⲟⲃⲓⲓⲛ (Nobiin Name)</mat-label>
-            <input matInput formControlName="nameNobiin">
+            <mat-label>{{ 'personForm.nobiinGivenName' | translate }}</mat-label>
+            <input matInput formControlName="nameNobiin"
+                   (blur)="onNobiinNameBlur()"
+                   [placeholder]="'personForm.nobiinGivenNamePlaceholder' | translate">
             <i class="fa-solid fa-font" matSuffix aria-hidden="true"></i>
             <mat-hint>{{ 'personForm.nobiinOptional' | translate }}</mat-hint>
           </mat-form-field>

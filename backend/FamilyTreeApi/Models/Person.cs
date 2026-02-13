@@ -66,21 +66,6 @@ public class Person
     public string? Ethnicity { get; set; }
 
     /// <summary>
-    /// Notes in English/default language
-    /// </summary>
-    public string? Notes { get; set; }
-
-    /// <summary>
-    /// Notes in Arabic
-    /// </summary>
-    public string? NotesAr { get; set; }
-
-    /// <summary>
-    /// Notes in Nobiin
-    /// </summary>
-    public string? NotesNob { get; set; }
-
-    /// <summary>
     /// Reference to the profile picture/avatar media file.
     /// </summary>
     public Guid? AvatarMediaId { get; set; }

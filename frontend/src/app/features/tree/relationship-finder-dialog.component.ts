@@ -75,7 +75,7 @@ export class RelationshipFinderDialogComponent implements OnInit, OnDestroy {
       name = person.nameEnglish || person.nameArabic || person.primaryName;
     }
     
-    return name || this.i18n.t('common.unknown');
+    return name || '';
   }
 
   get fromPersonSex(): Sex {
@@ -168,12 +168,12 @@ export class RelationshipFinderDialogComponent implements OnInit, OnDestroy {
 
   // Helper to get display name from SearchPersonItem
   getPersonDisplayName(person: SearchPersonItem | null): string {
-    return person ? getPrimaryName(person) : this.i18n.t('common.unknown');
+    return person ? getPrimaryName(person) : '';
   }
 
   // Helper to get full lineage name (Person + Father + Grandfather)
   getPersonLineageName(person: SearchPersonItem | null): string {
-    if (!person) return this.i18n.t('common.unknown');
+    if (!person) return '';
 
     const lang = this.i18n.currentLang();
     const parts: string[] = [];
@@ -202,12 +202,12 @@ export class RelationshipFinderDialogComponent implements OnInit, OnDestroy {
     if (fatherName) parts.push(fatherName);
     if (grandfatherName) parts.push(grandfatherName);
 
-    return parts.join(' ') || this.i18n.t('common.unknown');
+    return parts.join(' ');
   }
 
   // Helper to get full display with lineage: Name Father Grandfather - (Town)
   getPersonFullDisplayName(person: SearchPersonItem | null): string {
-    if (!person) return this.i18n.t('common.unknown');
+    if (!person) return '';
 
     let result = this.getPersonLineageName(person);
 

@@ -24,6 +24,7 @@ public class AuthService : IAuthService
     private readonly IEmailService _emailService;
     private readonly ISecureCryptoService _cryptoService;
     private readonly RateLimitConfiguration _rateLimitConfig;
+    private readonly IAuditLogService _auditLogService;
 
     public AuthService(
         UserManager<ApplicationUser> userManager,
@@ -34,7 +35,8 @@ public class AuthService : IAuthService
         IRateLimitService rateLimitService,
         IEmailService emailService,
         ISecureCryptoService cryptoService,
-        IOptions<RateLimitConfiguration> rateLimitConfig)
+        IOptions<RateLimitConfiguration> rateLimitConfig,
+        IAuditLogService auditLogService)
     {
         _userManager = userManager;
         _signInManager = signInManager;
@@ -45,6 +47,7 @@ public class AuthService : IAuthService
         _emailService = emailService;
         _cryptoService = cryptoService;
         _rateLimitConfig = rateLimitConfig.Value;
+        _auditLogService = auditLogService;
     }
 
     public async Task<TokenResponse> LoginAsync(LoginRequest request)
@@ -76,6 +79,10 @@ public class AuthService : IAuthService
         var accessTokenExpMinutes = _configuration.GetValue<int>("Jwt:AccessTokenExpirationMinutes", 15);
 
         var userDto = await BuildUserDtoAsync(user);
+
+        await _auditLogService.LogAsync(
+            user.Id, "Login", "Auth", Guid.Empty,
+            $"User logged in: {user.Email}");
 
         return new TokenResponse(
             accessToken,
@@ -444,6 +451,10 @@ public class AuthService : IAuthService
             // 13. Clear rate limits for this email
             await _rateLimitService.ResetAsync($"register:email:{normalizedEmail}:daily");
 
+            await _auditLogService.LogAsync(
+                user.Id, "Register", "Auth", Guid.Empty,
+                $"User registered: {user.Email}");
+
             _logger.LogInformation("User registered successfully: {Email}", MaskEmail(normalizedEmail));
 
             return new CompleteRegistrationResponse(
@@ -788,6 +799,10 @@ public class AuthService : IAuthService
         var rawRefreshToken = GenerateRefreshToken();
         await _userManager.SetAuthenticationTokenAsync(validUser, "FamilyTreeApi", "RefreshToken", rawRefreshToken);
 
+        // Update LastActiveAt on every token refresh to track active sessions
+        validUser.LastActiveAt = DateTime.UtcNow;
+        await _userManager.UpdateAsync(validUser);
+
         var accessToken = await GenerateAccessTokenAsync(validUser);
         var accessTokenExpMinutes = _configuration.GetValue<int>("Jwt:AccessTokenExpirationMinutes", 15);
 
@@ -835,7 +850,8 @@ public class AuthService : IAuthService
 
         // Get Identity roles for user
         var userRoles = await _userManager.GetRolesAsync(user);
-        var systemRole = userRoles.Contains("SuperAdmin") ? "SuperAdmin"
+        var systemRole = userRoles.Contains("Developer") ? "Developer"
+                       : userRoles.Contains("SuperAdmin") ? "SuperAdmin"
                        : userRoles.Contains("Admin") ? "Admin"
                        : "User";
 
@@ -863,6 +879,8 @@ public class AuthService : IAuthService
         {
             claims.Add(new Claim("orgId", orgUser.OrgId.ToString()));
             claims.Add(new Claim("treeRole", orgUser.Role.ToString()));
+            // Also add tree role as ClaimTypes.Role so [Authorize(Roles = "...")] works for tree members
+            claims.Add(new Claim(ClaimTypes.Role, orgUser.Role.ToString()));
         }
 
         var accessTokenExpMinutes = _configuration.GetValue<int>("Jwt:AccessTokenExpirationMinutes", 15);
@@ -899,7 +917,8 @@ public class AuthService : IAuthService
 
         // Get system role from Identity
         var userRoles = await _userManager.GetRolesAsync(user);
-        var systemRole = userRoles.Contains("SuperAdmin") ? "SuperAdmin"
+        var systemRole = userRoles.Contains("Developer") ? "Developer"
+                       : userRoles.Contains("SuperAdmin") ? "SuperAdmin"
                        : userRoles.Contains("Admin") ? "Admin"
                        : "User";
 
@@ -1021,6 +1040,10 @@ public class AuthService : IAuthService
         user.SelectedTownId = townId;
         await _userManager.UpdateAsync(user);
 
+        await _auditLogService.LogAsync(
+            user.Id, "SelectTown", "Auth", Guid.Empty,
+            $"User selected town: {townId}");
+
         // Generate new token with town claim
         var accessToken = await GenerateAccessTokenWithTownAsync(userId, townId);
 
@@ -1056,7 +1079,8 @@ public class AuthService : IAuthService
 
         // Get Identity roles for user
         var userRoles = await _userManager.GetRolesAsync(user);
-        var systemRole = userRoles.Contains("SuperAdmin") ? "SuperAdmin"
+        var systemRole = userRoles.Contains("Developer") ? "Developer"
+                       : userRoles.Contains("SuperAdmin") ? "SuperAdmin"
                        : userRoles.Contains("Admin") ? "Admin"
                        : "User";
 

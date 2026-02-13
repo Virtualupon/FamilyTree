@@ -30,6 +30,31 @@ export interface ParentChildResponse {
   isAdopted: boolean;
   isBiological: boolean;
   notes: string | null;
+  /** Spouses/partners of the new parent who could also be linked as parent of the child */
+  suggestedAdditionalParents?: SuggestedParentDto[] | null;
+}
+
+export interface SuggestedParentDto {
+  personId: string;
+  personName: string | null;
+  personNameArabic?: string | null;
+  personNameEnglish?: string | null;
+  personNameNobiin?: string | null;
+  personSex: Sex | null;
+  unionId: string;
+}
+
+export interface SuggestedChildLinkDto {
+  childId: string;
+  childName: string | null;
+  childNameArabic?: string | null;
+  childNameEnglish?: string | null;
+  childNameNobiin?: string | null;
+  childSex: Sex | null;
+  existingParentId: string;
+  existingParentName: string | null;
+  suggestedParentId: string;
+  suggestedParentName: string | null;
 }
 
 export interface AddParentChildRequest {
@@ -84,6 +109,8 @@ export interface UnionResponse {
   members: UnionMemberDto[];
   createdAt: string;
   updatedAt: string;
+  /** Children of one member who are NOT yet linked to the other member(s) */
+  suggestedChildLinks?: SuggestedChildLinkDto[] | null;
 }
 
 export interface UnionMemberDto {
@@ -421,21 +448,31 @@ export class RelationshipService {
    * Get display name for relationship type (translated)
    */
   getRelationshipTypeName(type: ParentChildRelationshipType): string {
+    // Return empty string for Unknown type or undefined/null
+    if (type == null || type === ParentChildRelationshipType.Unknown) {
+      return '';
+    }
     const keys: Record<ParentChildRelationshipType, string> = {
       [ParentChildRelationshipType.Biological]: 'personDetail.relationshipTypes.biological',
       [ParentChildRelationshipType.Adopted]: 'personDetail.relationshipTypes.adopted',
       [ParentChildRelationshipType.Foster]: 'personDetail.relationshipTypes.foster',
       [ParentChildRelationshipType.Step]: 'personDetail.relationshipTypes.step',
       [ParentChildRelationshipType.Guardian]: 'personDetail.relationshipTypes.guardian',
-      [ParentChildRelationshipType.Unknown]: 'personDetail.relationshipTypes.unknown'
+      [ParentChildRelationshipType.Unknown]: ''
     };
-    return this.i18n.t(keys[type] || 'personDetail.relationshipTypes.unknown');
+    const key = keys[type];
+    if (!key) return '';
+    return this.i18n.t(key) || '';
   }
 
   /**
    * Get display name for union type (translated)
    */
   getUnionTypeName(type: UnionType): string {
+    // Return empty string for Unknown type or undefined/null
+    if (type == null || type === UnionType.Unknown) {
+      return '';
+    }
     const keys: Record<UnionType, string> = {
       [UnionType.Marriage]: 'personDetail.unionTypes.marriage',
       [UnionType.CivilUnion]: 'personDetail.unionTypes.civilUnion',
@@ -446,8 +483,10 @@ export class RelationshipService {
       [UnionType.Widowed]: 'personDetail.unionTypes.widowed',
       [UnionType.Separated]: 'personDetail.unionTypes.separated',
       [UnionType.Annulled]: 'personDetail.unionTypes.annulled',
-      [UnionType.Unknown]: 'personDetail.unionTypes.unknown'
+      [UnionType.Unknown]: ''
     };
-    return this.i18n.t(keys[type] || 'personDetail.unionTypes.unknown');
+    const key = keys[type];
+    if (!key) return '';
+    return this.i18n.t(key) || '';
   }
 }

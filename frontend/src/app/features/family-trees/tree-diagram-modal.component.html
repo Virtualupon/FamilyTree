@@ -1,0 +1,139 @@
+<div class="modal-backdrop" (click)="onBackdropClick($event)">
+  <div class="modal tree-diagram-modal" (click)="$event.stopPropagation()">
+    <!-- Header -->
+    <div class="modal-header">
+      <div class="header-content">
+        <div class="header-icon">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
+          </svg>
+        </div>
+        <div class="header-text">
+          <h2>{{ 'treeDiagram.title' | translate }}</h2>
+          <p class="subtitle">{{ treeName || rootPersons()?.treeName }}</p>
+        </div>
+      </div>
+      <button class="modal-close" (click)="onClose()">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="modal-body">
+      <!-- Loading State -->
+      @if (loading()) {
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>{{ 'common.loading' | translate }}</p>
+        </div>
+      }
+
+      <!-- Error State -->
+      @if (error()) {
+        <div class="error-state">
+          <svg class="error-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+          <p>{{ error() }}</p>
+          <button class="btn-secondary" (click)="retry()">{{ 'common.retry' | translate }}</button>
+        </div>
+      }
+
+      <!-- Root Persons Content -->
+      @if (!loading() && !error() && rootPersons()) {
+        <!-- Stats Summary -->
+        <div class="stats-summary">
+          <div class="stat-item">
+            <span class="stat-value">{{ rootPersons()!.totalCount }}</span>
+            <span class="stat-label">{{ 'treeDiagram.foundingAncestors' | translate }}</span>
+          </div>
+          @if (rootPersons()!.hasMore) {
+            <div class="stat-warning">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <span>{{ 'treeDiagram.showingLimit' | translate:{ limit: rootPersons()!.maxLimit } }}</span>
+            </div>
+          }
+        </div>
+
+        <!-- Root Persons Grid -->
+        @if (rootPersons()!.rootPersons.length > 0) {
+          <div class="root-persons-grid">
+            @for (person of rootPersons()!.rootPersons; track person.id) {
+              <div class="root-person-card" [routerLink]="['/people', person.id]" (click)="onClose()">
+                <!-- Person Avatar -->
+                <div class="person-avatar" [ngClass]="getGenderClass(person.sex)">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                  </svg>
+                </div>
+
+                <!-- Person Info -->
+                <div class="person-info">
+                  <h4 class="person-name">{{ getLocalizedName(person) }}</h4>
+
+                  <div class="person-dates">
+                    @if (person.birthDate) {
+                      <span class="date">{{ formatYear(person.birthDate) }}</span>
+                    }
+                    @if (person.birthDate && person.deathDate) {
+                      <span class="separator">-</span>
+                    }
+                    @if (person.deathDate) {
+                      <span class="date">{{ formatYear(person.deathDate) }}</span>
+                    }
+                    @if (!person.birthDate && !person.deathDate && person.isLiving) {
+                      <span class="living-badge">{{ 'personForm.isLiving' | translate }}</span>
+                    }
+                  </div>
+
+                  <!-- Descendant Stats -->
+                  <div class="descendant-stats">
+                    <div class="stat-row">
+                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                      </svg>
+                      <span class="descendants-count">{{ person.descendantCount }}</span>
+                      <span class="label">{{ 'treeDiagram.descendants' | translate }}</span>
+                    </div>
+                    <div class="stat-row">
+                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                      </svg>
+                      <span class="generations-count">{{ person.generationDepth }}</span>
+                      <span class="label">{{ 'treeDiagram.generations' | translate }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Arrow indicator -->
+                <svg class="card-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+              </div>
+            }
+          </div>
+        } @else {
+          <!-- Empty State -->
+          <div class="empty-state">
+            <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
+            </svg>
+            <h3>{{ 'treeDiagram.noRootPersons' | translate }}</h3>
+            <p>{{ 'treeDiagram.noRootPersonsHint' | translate }}</p>
+          </div>
+        }
+      }
+    </div>
+
+    <!-- Footer -->
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="onClose()">
+        {{ 'common.close' | translate }}
+      </button>
+    </div>
+  </div>
+</div>

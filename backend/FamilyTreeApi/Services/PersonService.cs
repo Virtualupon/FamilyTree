@@ -1,5 +1,7 @@
 // File: Services/PersonService.cs
+using System.Text.Json;
 using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using FamilyTreeApi.DTOs;
 using FamilyTreeApi.Models;
@@ -22,6 +24,7 @@ public class PersonService : IPersonService
     private readonly INameTransliterationService? _transliterationService;
     private readonly IMediaService _mediaService;
     private readonly ITreeCacheService _treeCache;
+    private readonly IAuditLogService _auditLogService;
     private readonly IMapper _mapper;
     private readonly ILogger<PersonService> _logger;
 
@@ -30,6 +33,7 @@ public class PersonService : IPersonService
         IOrgRepository orgRepository,
         IMediaService mediaService,
         ITreeCacheService treeCache,
+        IAuditLogService auditLogService,
         IMapper mapper,
         ILogger<PersonService> logger,
         INameTransliterationService? transliterationService = null)
@@ -38,6 +42,7 @@ public class PersonService : IPersonService
         _orgRepository = orgRepository;
         _mediaService = mediaService;
         _treeCache = treeCache;
+        _auditLogService = auditLogService;
         _mapper = mapper;
         _logger = logger;
         _transliterationService = transliterationService;
@@ -109,7 +114,22 @@ public class PersonService : IPersonService
     {
         try
         {
-            var (orgId, error) = await ResolveOrgIdAsync(treeId, userContext, cancellationToken);
+            // READ operation: Use "find entity first" pattern to handle multi-org JWT bug.
+            // The treeId from the frontend may not match because effectiveTreeId() can return
+            // the wrong value for users with multiple tree memberships.
+            Guid? effectiveTreeId = treeId;
+
+            if (!effectiveTreeId.HasValue || effectiveTreeId == Guid.Empty)
+            {
+                // No treeId provided — find the person first to determine their tree
+                var personLookup = await _personRepository.GetByIdAsync(id, cancellationToken);
+                if (personLookup != null)
+                {
+                    effectiveTreeId = personLookup.OrgId;
+                }
+            }
+
+            var (orgId, error) = await ResolveOrgIdAsync(effectiveTreeId, userContext, cancellationToken);
             if (orgId == null)
             {
                 return ServiceResult<PersonResponseDto>.Failure(error!);
@@ -123,6 +143,9 @@ public class PersonService : IPersonService
             }
 
             var dto = _mapper.Map<PersonResponseDto>(person);
+
+            // SECURITY: Apply privacy filter before returning to client
+            dto = ApplyPrivacyFilter(dto, userContext);
 
             return ServiceResult<PersonResponseDto>.Success(dto);
         }
@@ -201,6 +224,12 @@ public class PersonService : IPersonService
 
         _logger.LogInformation("Person created: {PersonId} in Org: {OrgId}", person.Id, orgId);
 
+        await _auditLogService.LogAsync(
+            userContext.UserId, "Create", "Person", person.Id,
+            $"Created person: {person.PrimaryName}",
+            newValuesJson: JsonSerializer.Serialize(new { person.Id, person.PrimaryName, person.Sex }),
+            cancellationToken: cancellationToken);
+
         var responseDto = _mapper.Map<PersonResponseDto>(createdPerson!);
         return ServiceResult<PersonResponseDto>.Success(responseDto);
     }
@@ -249,9 +278,6 @@ public class PersonService : IPersonService
         if (dto.Religion != null) person.Religion = dto.Religion;
         if (dto.Nationality != null) person.Nationality = dto.Nationality;
         if (dto.Ethnicity != null) person.Ethnicity = dto.Ethnicity;
-        if (dto.Notes != null) person.Notes = dto.Notes;
-        if (dto.NotesAr != null) person.NotesAr = dto.NotesAr;
-        if (dto.NotesNob != null) person.NotesNob = dto.NotesNob;
         if (dto.IsVerified.HasValue) person.IsVerified = dto.IsVerified.Value;
         if (dto.NeedsReview.HasValue) person.NeedsReview = dto.NeedsReview.Value;
         if (dto.AvatarMediaId.HasValue) person.AvatarMediaId = dto.AvatarMediaId.Value == Guid.Empty ? null : dto.AvatarMediaId.Value;
@@ -264,6 +290,11 @@ public class PersonService : IPersonService
         await _treeCache.InvalidatePersonAsync(id, orgId.Value, cancellationToken);
 
         _logger.LogInformation("Person updated: {PersonId}", id);
+
+        await _auditLogService.LogAsync(
+            userContext.UserId, "Update", "Person", id,
+            $"Updated person: {person.PrimaryName}",
+            cancellationToken: cancellationToken);
 
         var responseDto = _mapper.Map<PersonResponseDto>(person);
         return ServiceResult<PersonResponseDto>.Success(responseDto);
@@ -318,6 +349,11 @@ public class PersonService : IPersonService
         _logger.LogInformation("Person deleted: {PersonId} with {ParentChildCount} parent-child links, {UnionCount} union memberships, and {TagCount} tags",
             id, parentChildRecords.Count, unionMemberships.Count, personTags.Count);
 
+        await _auditLogService.LogAsync(
+            userContext.UserId, "Delete", "Person", id,
+            $"Deleted person: {person.PrimaryName}",
+            cancellationToken: cancellationToken);
+
         return ServiceResult.Success();
     }
 
@@ -329,6 +365,7 @@ public class PersonService : IPersonService
         Guid personId,
         UploadPersonAvatarRequest request,
         UserContext userContext,
+        Guid? treeId = null,
         CancellationToken cancellationToken = default)
     {
         if (!userContext.CanContribute())
@@ -344,9 +381,16 @@ public class PersonService : IPersonService
                 $"Invalid image type. Allowed: {string.Join(", ", allowedTypes)}");
         }
 
+        // Resolve org ID (supports Admin users with multiple trees)
+        var (orgId, error) = await ResolveOrgIdAsync(treeId, userContext, cancellationToken);
+        if (orgId == null)
+        {
+            return ServiceResult<UploadPersonAvatarResponse>.Failure(error!);
+        }
+
         // Get person
         var person = await _personRepository.FirstOrDefaultAsync(
-            p => p.Id == personId && p.OrgId == userContext.OrgId, cancellationToken);
+            p => p.Id == personId && p.OrgId == orgId, cancellationToken);
 
         if (person == null)
         {
@@ -383,6 +427,11 @@ public class PersonService : IPersonService
 
             _logger.LogInformation("Avatar uploaded for person {PersonId}, media {MediaId}", personId, newMedia.Id);
 
+            await _auditLogService.LogAsync(
+                userContext.UserId, "UploadAvatar", "Person", personId,
+                $"Uploaded avatar for person: {person.PrimaryName}",
+                cancellationToken: cancellationToken);
+
             return ServiceResult<UploadPersonAvatarResponse>.Success(new UploadPersonAvatarResponse
             {
                 PersonId = personId,
@@ -414,6 +463,7 @@ public class PersonService : IPersonService
         Guid personId,
         bool deleteMedia,
         UserContext userContext,
+        Guid? treeId = null,
         CancellationToken cancellationToken = default)
     {
         if (!userContext.CanEdit())
@@ -421,8 +471,15 @@ public class PersonService : IPersonService
             return ServiceResult.Forbidden();
         }
 
+        // Resolve org ID (supports Admin users with multiple trees)
+        var (orgId, error) = await ResolveOrgIdAsync(treeId, userContext, cancellationToken);
+        if (orgId == null)
+        {
+            return ServiceResult.Failure(error!);
+        }
+
         var person = await _personRepository.FirstOrDefaultAsync(
-            p => p.Id == personId && p.OrgId == userContext.OrgId, cancellationToken);
+            p => p.Id == personId && p.OrgId == orgId, cancellationToken);
 
         if (person == null)
         {
@@ -466,8 +523,8 @@ public class PersonService : IPersonService
         UserContext userContext,
         CancellationToken cancellationToken)
     {
-        // SuperAdmin can access any tree
-        if (userContext.IsSuperAdmin)
+        // Developer/SuperAdmin can access any tree
+        if (userContext.IsDeveloper || userContext.IsSuperAdmin)
         {
             if (requestedTreeId.HasValue)
             {
@@ -531,24 +588,74 @@ public class PersonService : IPersonService
             return (null, "You must be assigned to a tree or be a member of one.");
         }
 
-        // Regular user - must be a member
+        // Regular user - must be a member or have town-based access
+        // Note: userContext.OrgId may be the FIRST of multiple orgId JWT claims (multi-org bug).
+        // A user with multiple tree memberships may have a different tree selected than
+        // the one returned by FindFirst("orgId"). Always verify via IsUserMemberOfOrgAsync.
+
+        // If a specific tree was requested, verify membership
+        if (requestedTreeId.HasValue)
+        {
+            // Quick check: does the requested tree match the token orgId?
+            if (requestedTreeId.Value == userContext.OrgId)
+            {
+                return (requestedTreeId, null);
+            }
+
+            // Full membership check via OrgUsers table
+            var isMemberRegular = await _orgRepository.IsUserMemberOfOrgAsync(
+                userContext.UserId, requestedTreeId.Value, cancellationToken);
+
+            if (isMemberRegular)
+            {
+                return (requestedTreeId, null);
+            }
+
+            // Check if tree exists in user's town (read-only browse access)
+            // First try using the user's own tree to determine their town
+            if (userContext.OrgId.HasValue)
+            {
+                var userTree = await _orgRepository.QueryNoTracking()
+                    .Where(o => o.Id == userContext.OrgId.Value)
+                    .Select(o => new { o.TownId })
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (userTree?.TownId != null)
+                {
+                    var requestedTree = await _orgRepository.QueryNoTracking()
+                        .Where(o => o.Id == requestedTreeId.Value)
+                        .Select(o => new { o.TownId })
+                        .FirstOrDefaultAsync(cancellationToken);
+
+                    if (requestedTree?.TownId != null && requestedTree.TownId == userTree.TownId)
+                    {
+                        return (requestedTreeId, null);
+                    }
+                }
+            }
+
+            // Fallback: check if the requested tree is in the user's selected town
+            // (handles case where user's first JWT orgId is in a different town)
+            if (userContext.SelectedTownId.HasValue)
+            {
+                var requestedTree = await _orgRepository.QueryNoTracking()
+                    .Where(o => o.Id == requestedTreeId.Value)
+                    .Select(o => new { o.TownId })
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (requestedTree?.TownId != null && requestedTree.TownId == userContext.SelectedTownId.Value)
+                {
+                    return (requestedTreeId, null);
+                }
+            }
+
+            return (null, "You are not a member of this tree.");
+        }
+
+        // No specific tree requested - use token orgId
         if (userContext.OrgId == null)
         {
             return (null, "You must be a member of a family tree. Please create or join one first.");
-        }
-
-        // If a specific tree was requested, verify membership
-        if (requestedTreeId.HasValue && requestedTreeId.Value != userContext.OrgId.Value)
-        {
-            var isMember = await _orgRepository.IsUserMemberOfOrgAsync(
-                userContext.UserId, requestedTreeId.Value, cancellationToken);
-
-            if (!isMember)
-            {
-                return (null, "You are not a member of this tree.");
-            }
-
-            return (requestedTreeId, null);
         }
 
         return (userContext.OrgId, null);
@@ -694,5 +801,106 @@ public class PersonService : IPersonService
 
         // Default to English/Latin
         return "English";
+    }
+
+    // ============================================================================
+    // PRIVACY ENFORCEMENT
+    // ============================================================================
+
+    /// <summary>
+    /// Apply server-side privacy filtering to a PersonResponseDto.
+    /// SECURITY: Ensures PII is stripped based on PrivacyLevel even if frontend is bypassed.
+    /// Admins (Developer, SuperAdmin, Admin) can see all data.
+    /// </summary>
+    private PersonResponseDto ApplyPrivacyFilter(PersonResponseDto dto, UserContext userContext)
+    {
+        // Admins always see full data
+        if (userContext.IsDeveloper || userContext.IsSuperAdmin || userContext.IsAdmin)
+            return dto;
+
+        // Public data is always visible
+        if (dto.PrivacyLevel == PrivacyLevel.Public)
+            return dto;
+
+        // FamilyOnly: visible to members of the same org/tree
+        if (dto.PrivacyLevel == PrivacyLevel.FamilyOnly)
+        {
+            if (userContext.OrgId.HasValue && userContext.OrgId == dto.OrgId)
+                return dto;
+
+            // Not in the same family — strip PII
+            return StripPii(dto);
+        }
+
+        // InitialsOnly: show initials instead of full names
+        if (dto.PrivacyLevel == PrivacyLevel.InitialsOnly)
+        {
+            // Family members see full data
+            if (userContext.OrgId.HasValue && userContext.OrgId == dto.OrgId)
+                return dto;
+
+            return dto with
+            {
+                PrimaryName = GetInitials(dto.PrimaryName),
+                NameArabic = GetInitials(dto.NameArabic),
+                NameEnglish = GetInitials(dto.NameEnglish),
+                NameNobiin = GetInitials(dto.NameNobiin),
+                Occupation = null,
+                Education = null,
+                Religion = null,
+                Nationality = null,
+                Ethnicity = null
+            };
+        }
+
+        // Private: only admins and family members can see
+        if (dto.PrivacyLevel == PrivacyLevel.Private)
+        {
+            // Family members see full data
+            if (userContext.OrgId.HasValue && userContext.OrgId == dto.OrgId)
+                return dto;
+
+            return StripPii(dto);
+        }
+
+        return dto;
+    }
+
+    /// <summary>
+    /// Strip all PII from a PersonResponseDto, keeping only structural info.
+    /// </summary>
+    private static PersonResponseDto StripPii(PersonResponseDto dto)
+    {
+        return dto with
+        {
+            PrimaryName = null,
+            NameArabic = null,
+            NameEnglish = null,
+            NameNobiin = null,
+            BirthDate = null,
+            BirthPlace = null,
+            BirthPlaceId = null,
+            DeathDate = null,
+            DeathPlace = null,
+            DeathPlaceId = null,
+            Occupation = null,
+            Education = null,
+            Religion = null,
+            Nationality = null,
+            Ethnicity = null,
+            AvatarMediaId = null
+        };
+    }
+
+    /// <summary>
+    /// Get initials from a name string (e.g., "John Smith" -> "J. S.")
+    /// </summary>
+    private static string? GetInitials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return null;
+
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var initials = string.Join(". ", parts.Select(p => p[0].ToString().ToUpper()));
+        return initials + ".";
     }
 }

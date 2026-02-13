@@ -72,6 +72,7 @@ public interface IPersonService
         Guid personId,
         UploadPersonAvatarRequest request,
         UserContext userContext,
+        Guid? treeId = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -81,6 +82,7 @@ public interface IPersonService
         Guid personId,
         bool deleteMedia,
         UserContext userContext,
+        Guid? treeId = null,
         CancellationToken cancellationToken = default);
 }
 
@@ -152,18 +154,29 @@ public class UserContext
     public string SystemRole { get; init; } = "User";
     public string TreeRole { get; init; } = "Viewer";
 
+    public bool IsDeveloper => SystemRole == "Developer";
     public bool IsSuperAdmin => SystemRole == "SuperAdmin";
     public bool IsAdmin => SystemRole == "Admin";
 
+    /// <summary>
+    /// Returns true if the user has Developer or SuperAdmin privileges (admin-panel access).
+    /// </summary>
+    public bool HasAdminPanelAccess => IsDeveloper || IsSuperAdmin;
+
+    /// <summary>
+    /// Returns true if the user has Developer, SuperAdmin, or Admin privileges.
+    /// </summary>
+    public bool HasAdminOrHigherAccess => IsDeveloper || IsSuperAdmin || IsAdmin;
+
     public bool CanEdit()
     {
-        if (IsSuperAdmin || IsAdmin) return true;
+        if (IsDeveloper || IsSuperAdmin || IsAdmin) return true;
         return TreeRole is "Owner" or "Admin" or "Editor";
     }
 
     public bool CanContribute()
     {
-        if (IsSuperAdmin || IsAdmin) return true;
+        if (IsDeveloper || IsSuperAdmin || IsAdmin) return true;
         return TreeRole is "Owner" or "Admin" or "Editor" or "Contributor";
     }
 }

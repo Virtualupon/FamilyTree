@@ -71,6 +71,9 @@ public class MediaUploadRequest
     public PrivacyLevel Visibility { get; set; } = PrivacyLevel.FamilyOnly;
     public string? Copyright { get; set; }
     public string? MetadataJson { get; set; }
+
+    /// <summary>Tag names to apply to this media (created if new, max 20)</summary>
+    public List<string>? Tags { get; set; }
 }
 
 /// <summary>
@@ -113,6 +116,12 @@ public class MediaResponse
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
+    /// <summary>Approval status: Approved, Pending, Rejected</summary>
+    public string ApprovalStatus { get; set; } = "Approved";
+
+    /// <summary>Tags applied to this media</summary>
+    public List<string> Tags { get; set; } = new();
+
     /// <summary>Persons linked to this media (populated via projection)</summary>
     public List<LinkedPersonDto> LinkedPersons { get; set; } = new();
 }
@@ -140,6 +149,12 @@ public class MediaSearchRequest
     /// Defaults to true so Media Gallery shows only actual media, not profile pictures.
     /// </summary>
     public bool ExcludeAvatars { get; set; } = true;
+
+    /// <summary>Filter by approval status (null = show approved only for regular users, all for admins)</summary>
+    public string? ApprovalStatus { get; set; }
+
+    /// <summary>Filter by tag name</summary>
+    public string? Tag { get; set; }
 }
 
 /// <summary>
@@ -187,6 +202,9 @@ public class MediaUploadWithPersonsDto
     /// <summary>Person IDs to link this media to</summary>
     [Required]
     public List<Guid> PersonIds { get; set; } = new();
+
+    /// <summary>Tag names to apply to this media (created if new, max 20)</summary>
+    public List<string>? Tags { get; set; }
 }
 
 /// <summary>
@@ -196,9 +214,6 @@ public record LinkedPersonDto(
     Guid PersonId,
     string? PersonName,
     bool IsPrimary,
-    string? Notes,
-    string? NotesAr,
-    string? NotesNob,
     DateTime LinkedAt
 );
 
@@ -318,4 +333,63 @@ public class SignedUrlRequest
 {
     /// <summary>Expiration time in seconds (default: 3600 = 1 hour, max: 86400 = 24 hours)</summary>
     public int ExpiresInSeconds { get; set; } = 3600;
+}
+
+// ============================================
+// Media Approval DTOs
+// ============================================
+
+/// <summary>
+/// Request for approving or rejecting media
+/// </summary>
+public class MediaApprovalRequest
+{
+    /// <summary>Optional reviewer notes / reason</summary>
+    [MaxLength(500)]
+    public string? ReviewerNotes { get; set; }
+}
+
+/// <summary>
+/// Query parameters for the media approval queue
+/// </summary>
+public class MediaApprovalQueueRequest
+{
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 20;
+    public MediaKind? Kind { get; set; }
+    public string? SearchTerm { get; set; }
+}
+
+/// <summary>
+/// Item in the media approval queue
+/// </summary>
+public class MediaApprovalQueueItem
+{
+    public Guid Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string? TreeName { get; set; }
+    public string FileName { get; set; } = string.Empty;
+    public string? MimeType { get; set; }
+    public long FileSize { get; set; }
+    public string Kind { get; set; } = string.Empty;
+    public string ApprovalStatus { get; set; } = string.Empty;
+    public string? UploaderName { get; set; }
+    public long? UploadedByUserId { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public string? Title { get; set; }
+    public string? Description { get; set; }
+    public List<string> Tags { get; set; } = new();
+    public List<LinkedPersonDto> LinkedPersons { get; set; } = new();
+}
+
+/// <summary>
+/// Paginated response for the media approval queue
+/// </summary>
+public class MediaApprovalQueueResponse
+{
+    public List<MediaApprovalQueueItem> Items { get; set; } = new();
+    public int Total { get; set; }
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+    public int TotalPages { get; set; }
 }

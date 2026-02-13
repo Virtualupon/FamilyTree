@@ -100,7 +100,7 @@ public class MediaController : ControllerBase
     /// Delete a media item
     /// </summary>
     [HttpDelete("{id}")]
-    [Authorize(Roles = "0,1,2")]
+    [Authorize(Roles = "Developer,SuperAdmin,Admin")]
     public async Task<IActionResult> DeleteMedia(Guid id)
     {
         var userContext = BuildUserContext();
@@ -145,6 +145,59 @@ public class MediaController : ControllerBase
         var result = await _mediaManagementService.GetSignedUrlAsync(id, expiresInSeconds, userContext);
 
         return HandleResult(result);
+    }
+
+    // ============================================================================
+    // MEDIA APPROVAL
+    // ============================================================================
+
+    /// <summary>
+    /// Get the media approval queue (pending items)
+    /// </summary>
+    [HttpGet("approval-queue")]
+    [Authorize(Roles = "Developer,SuperAdmin,Admin")]
+    public async Task<ActionResult<MediaApprovalQueueResponse>> GetApprovalQueue([FromQuery] MediaApprovalQueueRequest request)
+    {
+        var userContext = BuildUserContext();
+        var result = await _mediaManagementService.GetApprovalQueueAsync(request, userContext);
+
+        return HandleResult(result);
+    }
+
+    /// <summary>
+    /// Approve a pending media item
+    /// </summary>
+    [HttpPost("{id}/approve")]
+    [Authorize(Roles = "Developer,SuperAdmin,Admin")]
+    public async Task<IActionResult> ApproveMedia(Guid id, [FromBody] MediaApprovalRequest? request)
+    {
+        var userContext = BuildUserContext();
+        var result = await _mediaManagementService.ApproveMediaAsync(id, request ?? new MediaApprovalRequest(), userContext);
+
+        if (!result.IsSuccess)
+        {
+            return HandleError(result);
+        }
+
+        return Ok(new { message = "Media approved." });
+    }
+
+    /// <summary>
+    /// Reject a pending media item
+    /// </summary>
+    [HttpPost("{id}/reject")]
+    [Authorize(Roles = "Developer,SuperAdmin,Admin")]
+    public async Task<IActionResult> RejectMedia(Guid id, [FromBody] MediaApprovalRequest? request)
+    {
+        var userContext = BuildUserContext();
+        var result = await _mediaManagementService.RejectMediaAsync(id, request ?? new MediaApprovalRequest(), userContext);
+
+        if (!result.IsSuccess)
+        {
+            return HandleError(result);
+        }
+
+        return Ok(new { message = "Media rejected." });
     }
 
     // ============================================================================

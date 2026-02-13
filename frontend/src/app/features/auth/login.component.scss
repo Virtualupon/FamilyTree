@@ -159,6 +159,18 @@
   }
 }
 
+.nubian-auth__help-link {
+  margin-top: 0.75rem !important;
+  font-size: 0.875rem;
+
+  a {
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+}
+
 /* Responsive adjustments */
 @media (max-width: 480px) {
   .nubian-auth__card {

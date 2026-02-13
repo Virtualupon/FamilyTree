@@ -14,6 +14,7 @@ public class PersonMediaService : IPersonMediaService
     private readonly IFileStorageService _fileStorage;
     private readonly IMediaService _mediaService;
     private readonly IMediaTranslationService _translationService;
+    private readonly IAuditLogService _auditLogService;
     private readonly ILogger<PersonMediaService> _logger;
 
     // Allowed MIME types per media kind
@@ -47,12 +48,14 @@ public class PersonMediaService : IPersonMediaService
         IFileStorageService fileStorage,
         IMediaService mediaService,
         IMediaTranslationService translationService,
+        IAuditLogService auditLogService,
         ILogger<PersonMediaService> logger)
     {
         _personMediaRepository = personMediaRepository;
         _fileStorage = fileStorage;
         _mediaService = mediaService;
         _translationService = translationService;
+        _auditLogService = auditLogService;
         _logger = logger;
     }
 
@@ -191,14 +194,20 @@ public class PersonMediaService : IPersonMediaService
                     personId,
                     null, // Will be populated when querying
                     link.IsPrimary,
-                    link.Notes,
-                    link.NotesAr,
-                    link.NotesNob,
                     link.LinkedAt
                 ));
             }
 
             await _personMediaRepository.SaveChangesAsync(cancellationToken);
+
+            // Audit log for each person linked
+            foreach (var personId in dto.PersonIds)
+            {
+                await _auditLogService.LogAsync(
+                    userContext.UserId, "Upload", "PersonMedia", mediaResult.Id,
+                    $"Uploaded and linked media to person {personId}",
+                    cancellationToken: cancellationToken);
+            }
 
             _logger.LogInformation(
                 "Uploaded media {MediaId} and linked to {Count} persons",
@@ -262,9 +271,6 @@ public class PersonMediaService : IPersonMediaService
                         pl.PersonId,
                         pl.Person?.PrimaryName,
                         pl.IsPrimary,
-                        pl.Notes,
-                        pl.NotesAr,
-                        pl.NotesNob,
                         pl.LinkedAt
                     )).ToList()
                     : new List<LinkedPersonDto>();
@@ -354,9 +360,6 @@ public class PersonMediaService : IPersonMediaService
                 pl.PersonId,
                 pl.Person?.PrimaryName,
                 pl.IsPrimary,
-                pl.Notes,
-                pl.NotesAr,
-                pl.NotesNob,
                 pl.LinkedAt
             )).ToList();
 
@@ -402,9 +405,6 @@ public class PersonMediaService : IPersonMediaService
                 pl.PersonId,
                 pl.Person?.PrimaryName,
                 pl.IsPrimary,
-                pl.Notes,
-                pl.NotesAr,
-                pl.NotesNob,
                 pl.LinkedAt
             ));
 
@@ -455,7 +455,6 @@ public class PersonMediaService : IPersonMediaService
                 PersonId = personId,
                 MediaId = mediaId,
                 IsPrimary = dto.IsPrimary,
-                Notes = dto.Notes,
                 LinkedAt = DateTime.UtcNow
             };
 
@@ -494,6 +493,11 @@ public class PersonMediaService : IPersonMediaService
 
             _personMediaRepository.Remove(link);
             await _personMediaRepository.SaveChangesAsync(cancellationToken);
+
+            await _auditLogService.LogAsync(
+                userContext.UserId, "Unlink", "PersonMedia", mediaId,
+                $"Unlinked media from person {personId}",
+                cancellationToken: cancellationToken);
 
             _logger.LogInformation("Unlinked person {PersonId} from media {MediaId}", personId, mediaId);
 

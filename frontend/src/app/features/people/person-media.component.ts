@@ -87,6 +87,7 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
   personSearchQuery = '';
   mediaDescription = '';
   mediaNotes = '';  // Notes about the tagged people in the media
+  mediaTagsInput = '';  // Comma-separated tag names
   personSearchResults = signal<SearchPersonItem[]>([]);
   isSearching = signal(false);
   private searchSubject = new Subject<string>();
@@ -185,6 +186,7 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
     this.showUploadDialog.set(true);
     this.selectedFile.set(null);
     this.personSearchQuery = '';
+    this.mediaTagsInput = '';
     this.personSearchResults.set([]);
 
     // Immediately pre-select current person (don't wait for API)
@@ -345,7 +347,6 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
   // Helper to get full lineage name (Person + Father + Grandfather)
   getSearchPersonName(person: SearchPersonItem): string {
     const lang = this.i18n.currentLang();
-    const unknown = this.i18n.t('common.unknown');
     const parts: string[] = [];
 
     // Get person's name based on language
@@ -372,7 +373,7 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
     if (fatherName) parts.push(fatherName);
     if (grandfatherName) parts.push(grandfatherName);
 
-    return parts.join(' ') || unknown;
+    return parts.join(' ');
   }
 
   // Get location name (town or country fallback) based on current language
@@ -417,6 +418,12 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
       const personIds = persons.map(p => p.id);
       console.log('[MediaUpload] Person IDs for upload:', personIds);
 
+      // Parse tags from comma-separated input
+      const tags = this.mediaTagsInput
+        .split(',')
+        .map(t => t.trim())
+        .filter(t => t.length > 0);
+
       // Validate and prepare upload
       console.log('[MediaUpload] Validating and preparing upload...');
       const payload = await this.mediaService.validateAndPrepareUpload(
@@ -425,6 +432,9 @@ export class PersonMediaComponent implements OnInit, OnDestroy {
         undefined, // title
         this.mediaDescription.trim() || undefined  // description
       );
+      if (tags.length > 0) {
+        payload.tags = tags;
+      }
       console.log('[MediaUpload] Payload prepared:', {
         fileName: payload.fileName,
         mimeType: payload.mimeType,

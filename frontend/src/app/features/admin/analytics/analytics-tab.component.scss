@@ -1,0 +1,575 @@
+// Analytics Tab Styles — Nubian Theme
+$teal: #187573;
+$gold: #C17E3E;
+$orange: #E85D35;
+$green: #2D7A3E;
+$beige: #F4E4D7;
+$dark: #2c3e50;
+
+.analytics-tab {
+  padding: 24px 0;
+
+  @media (max-width: 600px) {
+    padding: 12px 0;
+  }
+}
+
+// Period Toggle
+.period-toggle {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 24px;
+
+  @media (max-width: 600px) {
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+
+  mat-button-toggle-group {
+    border-radius: 8px;
+    border: 1px solid $beige;
+
+    @media (max-width: 480px) {
+      font-size: 12px;
+    }
+
+    .mat-button-toggle-checked {
+      background: $teal;
+      color: #fff;
+    }
+  }
+}
+
+// Loading / Error
+.loading-container {
+  display: flex;
+  justify-content: center;
+  padding: 80px 0;
+}
+
+.error-container {
+  text-align: center;
+  padding: 60px 20px;
+  color: $orange;
+
+  i {
+    font-size: 40px;
+    margin-bottom: 12px;
+  }
+
+  p {
+    font-size: 16px;
+    margin-bottom: 16px;
+  }
+
+  .retry-btn {
+    background: $teal;
+    color: #fff;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+
+    i {
+      font-size: 14px;
+      margin-right: 6px;
+      color: #fff;
+    }
+
+    &:hover {
+      background: darken($teal, 5%);
+    }
+  }
+}
+
+// Section
+.analytics-section {
+  margin-bottom: 32px;
+
+  @media (max-width: 600px) {
+    margin-bottom: 20px;
+  }
+
+  .section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: $dark;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    @media (max-width: 600px) {
+      font-size: 16px;
+      margin-bottom: 12px;
+    }
+
+    i {
+      color: $teal;
+    }
+
+    .inline-spinner {
+      display: inline-block;
+      margin-left: 8px;
+    }
+  }
+
+  .sub-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #666;
+    margin: 16px 0 8px;
+
+    @media (max-width: 600px) {
+      font-size: 13px;
+    }
+  }
+
+  h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 12px;
+
+    @media (max-width: 600px) {
+      font-size: 13px;
+    }
+  }
+}
+
+// Two Column Layout
+.two-col-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  @media (max-width: 600px) {
+    gap: 12px;
+  }
+}
+
+// Growth Row
+.growth-row {
+  display: grid;
+  grid-template-columns: 1fr 200px;
+  gap: 16px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+
+  @media (max-width: 600px) {
+    gap: 12px;
+  }
+}
+
+.growth-chart-card {
+  min-height: 320px;
+}
+
+.growth-summary-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  @media (max-width: 768px) {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  @media (max-width: 600px) {
+    gap: 8px;
+  }
+}
+
+// Mini Stat Cards
+.mini-stat-card {
+  text-align: center;
+  padding: 12px;
+
+  @media (max-width: 768px) {
+    flex: 1 1 auto;
+    min-width: 100px;
+  }
+
+  @media (max-width: 600px) {
+    padding: 8px;
+  }
+
+  mat-card-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .mini-stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.2;
+
+    @media (max-width: 600px) {
+      font-size: 22px;
+    }
+  }
+
+  .mini-stat-label {
+    font-size: 12px;
+    color: #888;
+    margin-top: 4px;
+
+    @media (max-width: 600px) {
+      font-size: 10px;
+    }
+  }
+}
+
+// Active Users
+.active-users-card {
+  h4 {
+    margin-bottom: 12px;
+  }
+}
+
+.active-users-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  text-align: center;
+
+  @media (max-width: 480px) {
+    gap: 4px;
+  }
+}
+
+.active-stat {
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  border-radius: 8px;
+  background: #f9f9f9;
+
+  @media (max-width: 480px) {
+    padding: 6px;
+  }
+
+  .active-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: $teal;
+
+    @media (max-width: 600px) {
+      font-size: 20px;
+    }
+
+    @media (max-width: 480px) {
+      font-size: 18px;
+    }
+  }
+
+  .active-label {
+    font-size: 11px;
+    color: #888;
+    text-transform: uppercase;
+
+    @media (max-width: 480px) {
+      font-size: 9px;
+    }
+  }
+}
+
+// Engagement Cards
+.engagement-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.donut-card {
+  display: flex;
+  justify-content: center;
+}
+
+// Content Stats
+.content-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+
+  @media (max-width: 480px) {
+    gap: 6px;
+  }
+}
+
+.content-stat {
+  text-align: center;
+  padding: 8px;
+  background: #f9f9f9;
+  border-radius: 8px;
+
+  @media (max-width: 480px) {
+    padding: 6px;
+  }
+
+  .content-stat-value {
+    display: block;
+    font-size: 20px;
+    font-weight: 700;
+    color: $teal;
+
+    @media (max-width: 600px) {
+      font-size: 16px;
+    }
+  }
+
+  .content-stat-label {
+    font-size: 11px;
+    color: #888;
+
+    @media (max-width: 480px) {
+      font-size: 9px;
+    }
+  }
+}
+
+// Contributors Table
+.contributors-table {
+  width: 100%;
+
+  .contributor-name {
+    display: block;
+    font-weight: 500;
+  }
+
+  .contributor-email {
+    display: block;
+    font-size: 12px;
+    color: #888;
+  }
+}
+
+// Data Quality
+.quality-header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.completeness-circle {
+  text-align: center;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 4px solid $teal;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  .completeness-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: $teal;
+  }
+
+  .completeness-label {
+    font-size: 9px;
+    color: #888;
+    text-transform: uppercase;
+  }
+}
+
+.quality-breakdown {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+
+  @media (max-width: 480px) {
+    gap: 6px;
+  }
+}
+
+.quality-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px;
+  background: #fef7f0;
+  border-radius: 8px;
+  border-left: 3px solid $orange;
+
+  @media (max-width: 480px) {
+    padding: 6px;
+  }
+
+  .quality-count {
+    font-size: 20px;
+    font-weight: 700;
+    color: $orange;
+
+    @media (max-width: 600px) {
+      font-size: 16px;
+    }
+  }
+
+  .quality-label {
+    font-size: 11px;
+    color: #888;
+    text-align: center;
+
+    @media (max-width: 480px) {
+      font-size: 9px;
+    }
+  }
+}
+
+// Suggestions
+.suggestion-stats-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.suggestion-stat {
+  text-align: center;
+
+  .suggestion-value {
+    display: block;
+    font-size: 28px;
+    font-weight: 700;
+    color: $teal;
+  }
+
+  .suggestion-label {
+    font-size: 12px;
+    color: #888;
+  }
+}
+
+// Activity Stats
+.activity-stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+
+  @media (max-width: 600px) {
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+// Table Responsive Wrapper
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+// Audit Table
+.audit-table {
+  width: 100%;
+  font-size: 13px;
+  min-width: 400px; // Ensures horizontal scroll on small screens
+
+  @media (max-width: 600px) {
+    font-size: 12px;
+  }
+
+  th, td {
+    @media (max-width: 600px) {
+      padding: 8px 6px;
+    }
+  }
+
+  .action-badge {
+    background: $teal;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+
+    @media (max-width: 600px) {
+      padding: 2px 6px;
+      font-size: 10px;
+    }
+  }
+}
+
+// Contributors Table mobile
+.contributors-table {
+  @media (max-width: 600px) {
+    font-size: 12px;
+
+    th, td {
+      padding: 8px 6px;
+    }
+  }
+}
+
+// Empty text
+.empty-text {
+  text-align: center;
+  color: #aaa;
+  padding: 20px;
+  font-style: italic;
+}
+
+// Material Card overrides for analytics
+mat-card {
+  border-radius: 12px;
+  border: 1px solid #f0ebe5;
+
+  @media (max-width: 600px) {
+    border-radius: 8px;
+  }
+}
+
+// Paginator mobile styles
+mat-paginator {
+  @media (max-width: 600px) {
+    ::ng-deep {
+      .mat-mdc-paginator-container {
+        flex-wrap: wrap;
+        justify-content: center;
+        padding: 8px 0;
+      }
+
+      .mat-mdc-paginator-page-size {
+        margin-right: 0;
+        margin-bottom: 8px;
+      }
+
+      .mat-mdc-paginator-range-label {
+        margin: 0 8px;
+      }
+    }
+  }
+}
+
+// Completeness circle mobile
+.completeness-circle {
+  @media (max-width: 480px) {
+    width: 80px;
+    height: 80px;
+    border-width: 3px;
+
+    .completeness-value {
+      font-size: 18px;
+    }
+
+    .completeness-label {
+      font-size: 8px;
+    }
+  }
+}

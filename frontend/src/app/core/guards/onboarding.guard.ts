@@ -41,8 +41,8 @@ export const townSelectedGuard: CanActivateFn = () => {
     return false;
   }
 
-  // SuperAdmin doesn't need town selection - has access to all towns
-  if (user.systemRole === 'SuperAdmin') {
+  // Developer/SuperAdmin doesn't need town selection - has access to all towns
+  if (user.systemRole === 'Developer' || user.systemRole === 'SuperAdmin') {
     return true;
   }
 
@@ -80,8 +80,8 @@ export const onboardingCompleteGuard: CanActivateFn = () => {
     return false;
   }
 
-  // Then check town selection (SuperAdmin and Admin bypass - they have assigned towns)
-  if (user.systemRole !== 'SuperAdmin' && user.systemRole !== 'Admin' && authService.needsTownSelection()) {
+  // Then check town selection (Developer, SuperAdmin and Admin bypass - they have assigned towns)
+  if (user.systemRole !== 'Developer' && user.systemRole !== 'SuperAdmin' && user.systemRole !== 'Admin' && authService.needsTownSelection()) {
     router.navigate(['/onboarding/town']);
     return false;
   }
@@ -106,8 +106,8 @@ export const onboardingInProgressGuard: CanActivateFn = () => {
 
   // If onboarding is complete, redirect to dashboard
   const needsLanguage = authService.needsLanguageSelection();
-  // SuperAdmin and Admin don't need town selection - they have assigned towns
-  const needsTown = user.systemRole !== 'SuperAdmin' && user.systemRole !== 'Admin' && authService.needsTownSelection();
+  // Developer, SuperAdmin and Admin don't need town selection - they have assigned towns
+  const needsTown = user.systemRole !== 'Developer' && user.systemRole !== 'SuperAdmin' && user.systemRole !== 'Admin' && authService.needsTownSelection();
 
   if (!needsLanguage && !needsTown) {
     router.navigate(['/dashboard']);

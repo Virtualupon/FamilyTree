@@ -42,7 +42,7 @@ export class PersonNameAvatarComponent implements OnChanges, OnDestroy {
   private lastLoadedMediaId: string | null = null;
 
   get displayName(): string {
-    if (!this.person) return this.i18n.t('common.unknown');
+    if (!this.person) return '';
 
     const lang = this.i18n.currentLang();
     if (lang === 'ar') {

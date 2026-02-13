@@ -143,7 +143,6 @@ export interface PersonLink {
   targetTreeName: string | null;
   linkType: PersonLinkType;
   confidence: number;
-  notes: string | null;
   status: PersonLinkStatus;
   createdByName: string | null;
   approvedByName: string | null;
@@ -155,12 +154,10 @@ export interface CreatePersonLinkRequest {
   targetPersonId: string;
   linkType: PersonLinkType;
   confidence?: number;
-  notes?: string;
 }
 
 export interface ApprovePersonLinkRequest {
   approve: boolean;
-  notes?: string;
 }
 
 export interface PersonLinkSearchResult {

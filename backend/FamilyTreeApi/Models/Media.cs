@@ -1,6 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 using FamilyTreeApi.Models.Enums;
 
+// ReSharper disable CollectionNeverUpdated.Global
+
 namespace FamilyTreeApi.Models;
 
 public class Media
@@ -74,6 +76,17 @@ public class Media
     [MaxLength(50)]
     public string? Category { get; set; }
 
+    // Approval workflow
+    public MediaApprovalStatus ApprovalStatus { get; set; } = MediaApprovalStatus.Approved;
+    public long? ReviewedByUserId { get; set; }
+    public DateTime? ReviewedAt { get; set; }
+
+    [MaxLength(500)]
+    public string? ReviewerNotes { get; set; }
+
     /// <summary>Persons linked to this media (many-to-many via PersonMedia junction)</summary>
     public ICollection<PersonMedia> PersonLinks { get; set; } = new List<PersonMedia>();
+
+    /// <summary>Tags applied to this media (many-to-many via MediaTag junction)</summary>
+    public ICollection<MediaTag> MediaTags { get; set; } = new List<MediaTag>();
 }

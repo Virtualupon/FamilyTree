@@ -12,7 +12,7 @@ public class CreateUnionRequest
     public DateTime? EndDate { get; set; }
     public DatePrecision EndPrecision { get; set; } = DatePrecision.Unknown;
     public Guid? EndPlaceId { get; set; }
-    public string? Notes { get; set; }
+    public List<CreateNoteDto>? Notes { get; set; }
     public List<Guid> MemberIds { get; set; } = new();
 }
 
@@ -25,7 +25,7 @@ public class UpdateUnionRequest
     public DateTime? EndDate { get; set; }
     public DatePrecision? EndPrecision { get; set; }
     public Guid? EndPlaceId { get; set; }
-    public string? Notes { get; set; }
+    public List<CreateNoteDto>? Notes { get; set; }
 }
 
 public class AddUnionMemberRequest
@@ -57,7 +57,7 @@ public class UnionResponse
     public DatePrecision EndPrecision { get; set; }
     public Guid? EndPlaceId { get; set; }
     public string? EndPlace { get; set; }
-    public string? Notes { get; set; }
+    public List<GetNoteDto>? Notes { get; set; }
     public List<UnionMemberDto> Members { get; set; } = new();
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
@@ -117,10 +117,28 @@ public record UnionResponseDto(
     DatePrecision EndPrecision,
     Guid? EndPlaceId,
     string? EndPlace,
-    string? Notes,
     List<UnionMemberDto> Members,
     DateTime CreatedAt,
-    DateTime UpdatedAt
+    DateTime UpdatedAt,
+    List<SuggestedChildLinkDto>? SuggestedChildLinks = null,
+    List<GetNoteDto>? Notes = null
+);
+
+/// <summary>
+/// Represents a child of one union member who is NOT yet linked to the other member(s).
+/// Returned when creating/updating a union to prompt the user to link spouses to children.
+/// </summary>
+public record SuggestedChildLinkDto(
+    Guid ChildId,
+    string? ChildName,
+    string? ChildNameArabic,
+    string? ChildNameEnglish,
+    string? ChildNameNobiin,
+    Sex? ChildSex,
+    Guid ExistingParentId,
+    string? ExistingParentName,
+    Guid SuggestedParentId,
+    string? SuggestedParentName
 );
 
 public record CreateUnionDto(
@@ -132,7 +150,7 @@ public record CreateUnionDto(
     DateTime? EndDate = null,
     DatePrecision EndPrecision = DatePrecision.Unknown,
     Guid? EndPlaceId = null,
-    string? Notes = null,
+    List<CreateNoteDto>? Notes = null,
     List<Guid>? MemberIds = null
 );
 
@@ -144,7 +162,7 @@ public record UpdateUnionDto(
     DateTime? EndDate = null,
     DatePrecision? EndPrecision = null,
     Guid? EndPlaceId = null,
-    string? Notes = null
+    List<CreateNoteDto>? Notes = null
 );
 
 public record AddUnionMemberDto(Guid PersonId);

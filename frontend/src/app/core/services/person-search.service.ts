@@ -64,6 +64,28 @@ export class PersonSearchService {
   }
 
   /**
+   * Global search across ALL trees (no treeId filter).
+   * Used for cross-tree relationship linking where the target person
+   * may be in a different tree, town, or country.
+   */
+  globalSearch(
+    query?: string,
+    page = 1,
+    pageSize = 20
+  ): Observable<PersonSearchResult> {
+    let params = new HttpParams()
+      .set('page', page.toString())
+      .set('pageSize', pageSize.toString());
+
+    if (query && query.trim()) {
+      params = params.set('q', query.trim());
+    }
+
+    // Intentionally no treeId — backend will search all accessible trees
+    return this.http.get<PersonSearchResult>(`${this.apiUrl}/persons`, { params });
+  }
+
+  /**
    * Advanced search with full filtering (POST /api/search/persons)
    */
   search(request: PersonSearchRequest): Observable<PersonSearchResult> {

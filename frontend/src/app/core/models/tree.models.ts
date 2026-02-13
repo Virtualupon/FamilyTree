@@ -74,3 +74,47 @@ export interface CommonAncestor {
   generationsFromPerson1: number;
   generationsFromPerson2: number;
 }
+
+// ============================================================================
+// ROOT PERSONS (TOP LEVEL) MODELS
+// ============================================================================
+
+/**
+ * Response containing root persons (ancestors with no parents) of a tree
+ */
+export interface RootPersonsResponse {
+  /** List of root persons (top-level ancestors) - limited to maxLimit */
+  rootPersons: RootPersonSummary[];
+  /** Total count of root persons in the tree (may exceed returned list if truncated) */
+  totalCount: number;
+  /** Whether more root persons exist beyond the returned limit */
+  hasMore: boolean;
+  /** Tree ID these root persons belong to */
+  treeId: string;
+  /** Tree name for display */
+  treeName: string;
+  /** Maximum number of root persons returned (for client awareness) */
+  maxLimit: number;
+}
+
+/**
+ * Summary info for a root person
+ */
+export interface RootPersonSummary {
+  id: string;
+  primaryName: string;
+  nameArabic?: string | null;
+  nameEnglish?: string | null;
+  nameNobiin?: string | null;
+  sex: Sex;
+  birthDate?: string | null;
+  deathDate?: string | null;
+  isLiving: boolean;
+  avatarMediaId?: string | null;
+  /** Number of descendants (children, grandchildren, etc.) */
+  descendantCount: number;
+  /** Number of direct children */
+  childCount: number;
+  /** Number of generations below this person (capped at maxDepth) */
+  generationDepth: number;
+}

@@ -102,6 +102,22 @@ public class TreeController : ControllerBase
         return HandleResult(result);
     }
 
+    /// <summary>
+    /// Get root persons (top-level ancestors with no parents) for a tree.
+    /// Useful for showing the "top level" of a family hierarchy.
+    /// Results are limited to 50 to prevent performance issues.
+    /// </summary>
+    [HttpGet("{treeId}/root-persons")]
+    public async Task<ActionResult<RootPersonsResponse>> GetRootPersons(
+        Guid treeId,
+        CancellationToken cancellationToken)
+    {
+        var userContext = BuildUserContext();
+        var result = await _treeViewService.GetRootPersonsAsync(treeId, userContext, cancellationToken);
+
+        return HandleResult(result);
+    }
+
     // ============================================================================
     // PRIVATE HELPER METHODS
     // ============================================================================
@@ -115,6 +131,7 @@ public class TreeController : ControllerBase
         {
             UserId = GetUserId(),
             OrgId = TryGetOrgIdFromToken(),
+            SelectedTownId = TryGetSelectedTownIdFromToken(),
             SystemRole = GetSystemRole(),
             TreeRole = GetTreeRole()
         };
@@ -138,6 +155,16 @@ public class TreeController : ControllerBase
             return null;
         }
         return orgId;
+    }
+
+    private Guid? TryGetSelectedTownIdFromToken()
+    {
+        var townIdClaim = User.FindFirst("selectedTownId")?.Value;
+        if (string.IsNullOrEmpty(townIdClaim) || !Guid.TryParse(townIdClaim, out var townId))
+        {
+            return null;
+        }
+        return townId;
     }
 
     private string GetSystemRole()

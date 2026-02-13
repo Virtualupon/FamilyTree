@@ -65,10 +65,16 @@ export class LoginComponent {
       },
       error: (error) => {
         this.loading = false;
+        let message: string;
+        if (error.status === 0) {
+          message = this.i18n.t('auth.serverUnavailable');
+        } else {
+          message = error.error?.message || this.i18n.t('auth.loginFailed');
+        }
         this.snackBar.open(
-          error.error?.message || this.i18n.t('auth.loginFailed'),
+          message,
           this.i18n.t('common.close'),
-          { duration: 3000, panelClass: ['error-snackbar'] }
+          { duration: 5000, panelClass: ['error-snackbar'] }
         );
       }
     });

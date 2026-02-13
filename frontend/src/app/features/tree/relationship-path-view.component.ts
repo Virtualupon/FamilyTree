@@ -507,7 +507,7 @@ export class RelationshipPathViewComponent implements AfterViewInit, OnDestroy {
     // First try the DB-based system with type ID
     if (typeId != null && typeId > 0) {
       const name = this.relationshipTypeService.getLocalizedNameById(typeId);
-      if (name && name !== 'Unknown' && name !== this.i18n.t('common.unknown')) {
+      if (name) {
         return name;
       }
     }
@@ -537,7 +537,7 @@ export class RelationshipPathViewComponent implements AfterViewInit, OnDestroy {
       'relationship.spouseOf': 'Spouse'
     };
 
-    return translations[key] || key?.replace('relationship.', '') || 'Unknown';
+    return translations[key] || key?.replace('relationship.', '') || '';
   }
 
   private getInitials(name: string | null): string {

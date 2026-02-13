@@ -42,9 +42,6 @@ public class MappingProfile : Profile
             .ForCtorParam("Religion", opt => opt.MapFrom(src => src.Religion))
             .ForCtorParam("Nationality", opt => opt.MapFrom(src => src.Nationality))
             .ForCtorParam("Ethnicity", opt => opt.MapFrom(src => src.Ethnicity))
-            .ForCtorParam("Notes", opt => opt.MapFrom(src => src.Notes))
-            .ForCtorParam("NotesAr", opt => opt.MapFrom(src => src.NotesAr))
-            .ForCtorParam("NotesNob", opt => opt.MapFrom(src => src.NotesNob))
             .ForCtorParam("IsVerified", opt => opt.MapFrom(src => src.IsVerified))
             .ForCtorParam("NeedsReview", opt => opt.MapFrom(src => src.NeedsReview))
             .ForCtorParam("HasConflict", opt => opt.MapFrom(src => src.HasConflict))
@@ -100,7 +97,6 @@ public class MappingProfile : Profile
             .ForCtorParam("PersonId", opt => opt.MapFrom(src => src.PersonId))
             .ForCtorParam("PersonName", opt => opt.MapFrom(src => src.Person != null ? src.Person.PrimaryName : null))
             .ForCtorParam("IsPrimary", opt => opt.MapFrom(src => src.IsPrimary))
-            .ForCtorParam("Notes", opt => opt.MapFrom(src => src.Notes))
             .ForCtorParam("LinkedAt", opt => opt.MapFrom(src => src.LinkedAt));
     }
 }

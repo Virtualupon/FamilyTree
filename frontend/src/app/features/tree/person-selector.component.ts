@@ -155,7 +155,7 @@ export class PersonSelectorComponent implements OnInit, OnDestroy {
 
     // Build full name: "Name Father Grandfather"
     const parts = [personName, fatherName, grandfatherName].filter(p => p);
-    return parts.join(' ') || this.i18n.t('common.unknown');
+    return parts.join(' ');
   }
 
   // Get location name (town or country fallback) based on current language

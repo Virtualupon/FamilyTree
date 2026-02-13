@@ -330,7 +330,6 @@ export interface SuggestAddPersonRequest {
   deathDate?: string;
   deathPlace?: string;
   occupation?: string;
-  notes?: string;
   // Optional relationship
   relatedPersonId?: string;
   relationshipType?: 'parent' | 'child' | 'spouse';

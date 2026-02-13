@@ -694,7 +694,7 @@ export class TreePeopleListComponent implements OnInit, OnDestroy {
     if (lang === 'nob' && person.nameNobiin) {
       return person.nameNobiin;
     }
-    return person.nameEnglish || person.nameArabic || person.primaryName || this.i18n.t('common.unknown');
+    return person.nameEnglish || person.nameArabic || person.primaryName || '';
   }
 
   hasSecondaryName(person: PersonListItem): boolean {

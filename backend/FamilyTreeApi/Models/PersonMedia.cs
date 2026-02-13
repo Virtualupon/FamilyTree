@@ -25,15 +25,6 @@ public class PersonMedia
     /// <summary>Display order when showing person's media</summary>
     public int SortOrder { get; set; } = 0;
 
-    /// <summary>Notes about this person in the media in English (or original input language)</summary>
-    public string? Notes { get; set; }
-
-    /// <summary>Notes in Arabic (auto-translated)</summary>
-    public string? NotesAr { get; set; }
-
-    /// <summary>Notes in Nobiin (auto-translated)</summary>
-    public string? NotesNob { get; set; }
-
     /// <summary>When this record was created</summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

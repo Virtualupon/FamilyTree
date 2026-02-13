@@ -64,8 +64,7 @@ export class PendingLinksComponent implements OnInit {
     this.submitting.set(true);
 
     this.linkService.reviewLink(link.id, {
-      approve: this.isApproving,
-      notes: this.reviewNotes || undefined
+      approve: this.isApproving
     }).subscribe({
       next: () => {
         this.showReviewModal = false;

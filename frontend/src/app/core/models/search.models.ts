@@ -222,7 +222,6 @@ export interface PersonDetailsResult {
   education: string | null;
   religion: string | null;
   nationality: string | null;
-  notes: string | null;
   isLiving: boolean;
   /** @deprecated Use nameArabic, nameEnglish, nameNobiin directly */
   names?: SearchPersonName[];
@@ -233,18 +232,36 @@ export interface PersonDetailsResult {
 }
 
 export interface RelatedPerson {
-  id: string;
-  primaryName: string | null;
+  personId: string;
+  name: string | null;
   sex: Sex;
   birthYear: number | null;
+  deathYear: number | null;
   isLiving: boolean;
+  relationshipId: string | null;
   relationshipType: string | null;
+  /** Specific subtype: father, mother, stepfather, stepmother, son, daughter, brother, sister, halfBrother, halfSister, stepBrother, stepSister */
+  relationshipSubType: string | null;
+  /** For parents: true if biological, false if step-parent */
+  isBiological?: boolean;
+  /** For siblings: 'full', 'half', or 'step' */
+  siblingType?: string;
 }
 
-export interface SpouseInfo extends RelatedPerson {
+export interface SpouseInfo {
+  personId: string;
+  name: string | null;
+  sex: Sex;
+  birthYear: number | null;
+  deathYear: number | null;
+  isLiving: boolean;
   unionId: string;
+  relationshipType: string;
+  /** Specific subtype: husband, wife */
+  relationshipSubType: string | null;
   unionType: number;
-  marriageDate: string | null;
+  startDate: string | null;
+  endDate: string | null;
 }
 
 // ============================================================================

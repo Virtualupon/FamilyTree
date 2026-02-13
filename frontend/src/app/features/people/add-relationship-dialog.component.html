@@ -32,6 +32,7 @@
   <app-person-search
     [excludePersonId]="data.personId"
     [placeholder]="'relationships.typeNameSearch' | translate"
+    [crossTreeSearch]="true"
     (personSelected)="onPersonSelectedFromSearch($event)">
   </app-person-search>
 

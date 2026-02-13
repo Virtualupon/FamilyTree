@@ -1,4 +1,29 @@
 .people-page {
+  &__context {
+    display: flex;
+    align-items: center;
+    gap: var(--ft-spacing-sm);
+    margin-bottom: var(--ft-spacing-sm);
+    font-size: var(--ft-font-size-sm);
+    color: var(--ft-text-secondary);
+  }
+
+  &__context-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+
+    i {
+      font-size: 0.75rem;
+      opacity: 0.7;
+    }
+  }
+
+  &__context-sep {
+    font-size: 0.6rem;
+    opacity: 0.4;
+  }
+
   &__header {
     display: flex;
     justify-content: space-between;
@@ -95,4 +120,333 @@ mat-divider {
 
 .text-error {
   color: var(--ft-error) !important;
+}
+
+// =============================================================================
+// Founding Ancestors Hero Section
+// =============================================================================
+
+.ancestors-hero {
+  background: linear-gradient(135deg, #187573 0%, #0D5654 100%);
+  border-radius: 12px;
+  margin-bottom: var(--ft-spacing-lg);
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(24, 117, 115, 0.15);
+
+  &--loading {
+    height: 80px;
+    position: relative;
+  }
+
+  &--collapsed {
+    .ancestors-hero__header {
+      border-bottom: none;
+    }
+  }
+
+  &--no-ancestors {
+    // Simpler look when no ancestor cards to show
+    background: linear-gradient(135deg, #187573 0%, #145f5d 100%);
+  }
+
+  &__shimmer {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg,
+      rgba(255,255,255,0) 0%,
+      rgba(255,255,255,0.08) 50%,
+      rgba(255,255,255,0) 100%
+    );
+    animation: shimmer 1.5s infinite;
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    padding: var(--ft-spacing-md) var(--ft-spacing-lg);
+    user-select: none;
+    transition: background 0.2s ease;
+
+    &--clickable {
+      cursor: pointer;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.05);
+      }
+    }
+  }
+
+  &__title-row {
+    display: flex;
+    align-items: center;
+    gap: var(--ft-spacing-md);
+    width: 100%;
+  }
+
+  &__tree-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  &__title-text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__tree-name {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: white;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__subtitle {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.3;
+  }
+
+  &__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ft-spacing-sm);
+    margin-top: 2px;
+  }
+
+  &__town,
+  &__ancestor-count,
+  &__loading-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.65);
+
+    i {
+      font-size: 10px;
+    }
+  }
+
+  &__town {
+    color: rgba(255, 255, 255, 0.75);
+  }
+
+  &__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  }
+
+  &__content {
+    padding: 0 var(--ft-spacing-lg) var(--ft-spacing-md);
+    animation: fadeSlideIn 0.25s ease;
+  }
+
+  &__persons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ft-spacing-sm);
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: center;
+    margin-top: var(--ft-spacing-md);
+    padding-top: var(--ft-spacing-sm);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  &__tree-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+    }
+
+    i {
+      font-size: 12px;
+    }
+  }
+}
+
+// Ancestor Cards
+.ancestor-card {
+  display: flex;
+  align-items: center;
+  gap: var(--ft-spacing-sm);
+  padding: var(--ft-spacing-sm) var(--ft-spacing-md);
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 0;
+  flex: 1 1 240px;
+  max-width: 360px;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.18);
+    transform: translateY(-1px);
+  }
+
+  &__avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    font-size: 14px;
+    color: white;
+    overflow: hidden;
+
+    &--male {
+      background: rgba(66, 165, 245, 0.3);
+      border: 2px solid rgba(66, 165, 245, 0.5);
+    }
+
+    &--female {
+      background: rgba(239, 83, 80, 0.3);
+      border: 2px solid rgba(239, 83, 80, 0.5);
+    }
+  }
+
+  &__avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  &__info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__name {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: white;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__stats {
+    display: flex;
+    gap: var(--ft-spacing-sm);
+    margin-top: 2px;
+  }
+
+  &__stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.6);
+
+    i {
+      font-size: 10px;
+    }
+  }
+
+  &__arrow {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.4);
+    flex-shrink: 0;
+  }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// RTL Support
+:host-context([dir="rtl"]) {
+  .ancestor-card__arrow {
+    transform: scaleX(-1);
+  }
+
+  .ancestors-hero__tree-btn i {
+    transform: scaleX(-1);
+  }
+}
+
+// Responsive
+@media (max-width: 600px) {
+  .ancestors-hero {
+    border-radius: 8px;
+    margin-bottom: var(--ft-spacing-md);
+
+    &__header {
+      padding: var(--ft-spacing-sm) var(--ft-spacing-md);
+    }
+
+    &__tree-name {
+      font-size: 1rem;
+    }
+
+    &__content {
+      padding: 0 var(--ft-spacing-md) var(--ft-spacing-sm);
+    }
+
+    &__persons {
+      flex-direction: column;
+    }
+  }
+
+  .ancestor-card {
+    max-width: none;
+    flex: 1 1 100%;
+  }
 }

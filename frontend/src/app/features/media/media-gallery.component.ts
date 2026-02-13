@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -11,6 +11,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Subject, of } from 'rxjs';
 import {
   debounceTime,
@@ -22,8 +24,13 @@ import {
 } from 'rxjs/operators';
 
 import { MediaService } from '../../core/services/media.service';
+import { AuthService } from '../../core/services/auth.service';
+import { SuggestionService } from '../../core/services/suggestion.service';
+import { TreeContextService } from '../../core/services/tree-context.service';
 import { I18nService, TranslatePipe } from '../../core/i18n';
 import { MediaItem, MediaKind, MediaSearchParams, CachedSignedUrl } from '../../core/models/media.models';
+import { SuggestionType, ConfidenceLevel } from '../../core/models/suggestion.models';
+import { ConfirmDialogComponent, ConfirmDialogData } from '../../shared/components/confirm-dialog.component';
 
 type ViewMode = 'grid' | 'list';
 
@@ -43,6 +50,8 @@ type ViewMode = 'grid' | 'list';
     MatIconModule,
     MatButtonToggleModule,
     MatSnackBarModule,
+    MatDialogModule,
+    MatTooltipModule,
     TranslatePipe
   ],
   templateUrl: './media-gallery.component.html',
@@ -50,15 +59,37 @@ type ViewMode = 'grid' | 'list';
 })
 export class MediaGalleryComponent implements OnInit, OnDestroy {
   private readonly mediaService = inject(MediaService);
+  private readonly authService = inject(AuthService);
+  private readonly suggestionService = inject(SuggestionService);
+  private readonly treeContext = inject(TreeContextService);
   private readonly i18n = inject(I18nService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly dialog = inject(MatDialog);
 
   private readonly destroy$ = new Subject<void>();
   private readonly searchSubject = new Subject<string>();
 
+  // Reload media when the selected tree changes
+  private previousTreeId: string | null = null;
+  private treeChangeEffect = effect(() => {
+    const currentTreeId = this.treeContext.effectiveTreeId();
+    if (this.previousTreeId !== null && currentTreeId !== this.previousTreeId) {
+      this.page.set(1);
+      this.media.set([]);
+      this.mediaService.clearCache();
+      this.signedUrls.set(new Map());
+      this.signedUrlLoading.set(new Map());
+      this.signedUrlErrors.set(new Map());
+      this.signedUrlRetryCount.clear();
+      this.loadMedia();
+    }
+    this.previousTreeId = currentTreeId;
+  });
+
   // Form controls
   searchControl = new FormControl('');
   kindFilter = signal<MediaKind | null>(null);
+  tagFilter = signal<string>('');
 
   // State signals
   media = signal<MediaItem[]>([]);
@@ -162,6 +193,7 @@ export class MediaGalleryComponent implements OnInit, OnDestroy {
       pageSize: this.pageSize(),
       kind: this.kindFilter() ?? undefined,
       searchTerm: searchTerm || this.searchControl.value || undefined,
+      tag: this.tagFilter() || undefined,
       excludeAvatars: true // Always exclude avatars from gallery view
     };
 
@@ -335,9 +367,22 @@ export class MediaGalleryComponent implements OnInit, OnDestroy {
     this.viewMode.set(mode);
   }
 
+  onTagFilterChange(tag: string): void {
+    this.tagFilter.set(tag);
+    this.page.set(1);
+    this.loadMedia();
+  }
+
+  clearTagFilter(): void {
+    this.tagFilter.set('');
+    this.page.set(1);
+    this.loadMedia();
+  }
+
   clearFilters(): void {
     this.searchControl.setValue('');
     this.kindFilter.set(null);
+    this.tagFilter.set('');
     this.page.set(1);
     this.loadMedia();
   }
@@ -470,5 +515,207 @@ export class MediaGalleryComponent implements OnInit, OnDestroy {
   formatDate(dateStr?: string): string {
     if (!dateStr) return '';
     return new Date(dateStr).toLocaleDateString();
+  }
+
+  // ============================================
+  // Role checks
+  // ============================================
+
+  /**
+   * Check if current user can directly delete media (Admin, SuperAdmin, or Developer).
+   */
+  canDelete(): boolean {
+    return this.authService.isAdminOrHigher();
+  }
+
+  // ============================================
+  // Delete (Admin/SuperAdmin only)
+  // ============================================
+
+  /**
+   * Delete a media item from the gallery (grid/list view).
+   * Opens a confirmation dialog, then removes the item on success.
+   * Only available for Admin/SuperAdmin/Developer roles.
+   */
+  deleteMedia(item: MediaItem, event: MouseEvent): void {
+    event.stopPropagation(); // Prevent lightbox from opening
+
+    let message = this.i18n.t('media.confirmDeleteMedia', { name: item.title || item.fileName });
+    if (item.linkedPersons && item.linkedPersons.length > 1) {
+      message += ' ' + this.i18n.t('media.linkedMultiplePeopleWarning', { count: item.linkedPersons.length });
+    }
+
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '420px',
+      data: {
+        title: this.i18n.t('common.delete'),
+        message,
+        confirmText: this.i18n.t('common.delete'),
+        cancelText: this.i18n.t('common.cancel'),
+        confirmColor: 'warn',
+        icon: 'warning'
+      } as ConfirmDialogData
+    });
+
+    dialogRef.afterClosed().subscribe(confirmed => {
+      if (confirmed) {
+        this.performDelete(item);
+      }
+    });
+  }
+
+  /**
+   * Delete the currently viewed lightbox media item.
+   * Closes lightbox after successful deletion.
+   * Only available for Admin/SuperAdmin/Developer roles.
+   */
+  deleteLightboxMedia(): void {
+    const item = this.lightboxMedia();
+    if (!item) return;
+
+    let message = this.i18n.t('media.confirmDeleteMedia', { name: item.title || item.fileName });
+    if (item.linkedPersons && item.linkedPersons.length > 1) {
+      message += ' ' + this.i18n.t('media.linkedMultiplePeopleWarning', { count: item.linkedPersons.length });
+    }
+
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '420px',
+      data: {
+        title: this.i18n.t('common.delete'),
+        message,
+        confirmText: this.i18n.t('common.delete'),
+        cancelText: this.i18n.t('common.cancel'),
+        confirmColor: 'warn',
+        icon: 'warning'
+      } as ConfirmDialogData
+    });
+
+    dialogRef.afterClosed().subscribe(confirmed => {
+      if (confirmed) {
+        this.closeLightbox();
+        this.performDelete(item);
+      }
+    });
+  }
+
+  /**
+   * Execute the delete API call and update UI state.
+   */
+  private performDelete(item: MediaItem): void {
+    this.mediaService.deleteMedia(item.id).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: () => {
+        // Remove item from the local list (optimistic UI)
+        this.media.update(items => items.filter(m => m.id !== item.id));
+        this.totalCount.update(count => Math.max(0, count - 1));
+
+        // Clean up signed URL cache for this item
+        this.mediaService.invalidateCache(item.id);
+        const urlMap = new Map(this.signedUrls());
+        urlMap.delete(item.id);
+        this.signedUrls.set(urlMap);
+
+        this.snackBar.open(
+          this.i18n.t('media.deleted'),
+          this.i18n.t('common.close'),
+          { duration: 3000 }
+        );
+      },
+      error: (err) => {
+        this.snackBar.open(
+          err.error?.message || this.i18n.t('media.failedDeleteMedia'),
+          this.i18n.t('common.close'),
+          { duration: 5000 }
+        );
+      }
+    });
+  }
+
+  // ============================================
+  // Suggest Delete (Regular users)
+  // ============================================
+
+  /**
+   * Suggest deleting a media item (for non-admin users).
+   * Creates a RemoveMedia suggestion that admins review.
+   */
+  suggestDeleteMedia(item: MediaItem, event: MouseEvent): void {
+    event.stopPropagation();
+
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '420px',
+      data: {
+        title: this.i18n.t('media.suggestDelete'),
+        message: this.i18n.t('media.suggestDeleteMessage', { name: item.title || item.fileName }),
+        confirmText: this.i18n.t('media.submitSuggestion'),
+        cancelText: this.i18n.t('common.cancel'),
+        confirmColor: 'primary',
+        icon: 'info'
+      } as ConfirmDialogData
+    });
+
+    dialogRef.afterClosed().subscribe(confirmed => {
+      if (confirmed) {
+        this.performSuggestDelete(item);
+      }
+    });
+  }
+
+  /**
+   * Suggest deleting the currently viewed lightbox media item.
+   */
+  suggestDeleteLightboxMedia(): void {
+    const item = this.lightboxMedia();
+    if (!item) return;
+
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '420px',
+      data: {
+        title: this.i18n.t('media.suggestDelete'),
+        message: this.i18n.t('media.suggestDeleteMessage', { name: item.title || item.fileName }),
+        confirmText: this.i18n.t('media.submitSuggestion'),
+        cancelText: this.i18n.t('common.cancel'),
+        confirmColor: 'primary',
+        icon: 'info'
+      } as ConfirmDialogData
+    });
+
+    dialogRef.afterClosed().subscribe(confirmed => {
+      if (confirmed) {
+        this.closeLightbox();
+        this.performSuggestDelete(item);
+      }
+    });
+  }
+
+  /**
+   * Submit a RemoveMedia suggestion via the suggestion system.
+   */
+  private performSuggestDelete(item: MediaItem): void {
+    this.suggestionService.createSuggestion({
+      treeId: item.orgId,
+      type: SuggestionType.RemoveMedia,
+      targetMediaId: item.id,
+      confidence: ConfidenceLevel.Certain,
+      submitterNotes: this.i18n.t('media.suggestDeleteNote', { name: item.title || item.fileName })
+    }).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: () => {
+        this.snackBar.open(
+          this.i18n.t('media.suggestionSubmitted'),
+          this.i18n.t('common.close'),
+          { duration: 3000 }
+        );
+      },
+      error: (err) => {
+        this.snackBar.open(
+          err.error?.message || this.i18n.t('media.failedSuggestDelete'),
+          this.i18n.t('common.close'),
+          { duration: 5000 }
+        );
+      }
+    });
   }
 }

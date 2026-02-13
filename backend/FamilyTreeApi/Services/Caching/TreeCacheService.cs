@@ -44,6 +44,11 @@ public class TreeCacheService : ITreeCacheService
         => _cache.GetAsync<RelationshipPathResponse>(
             CacheKeyBuilder.RelationshipPath(person1Id, person2Id, orgId), ct);
 
+    public Task<RootPersonsResponse?> GetRootPersonsAsync(
+        Guid treeId, CancellationToken ct = default)
+        => _cache.GetAsync<RootPersonsResponse>(
+            CacheKeyBuilder.RootPersons(treeId), ct);
+
     // =========================================================================
     // SET METHODS
     // =========================================================================
@@ -78,6 +83,14 @@ public class TreeCacheService : ITreeCacheService
             CacheKeyBuilder.RelationshipPath(person1Id, person2Id, orgId),
             data,
             CacheLifeTime.Long, // 6 hours
+            ct);
+
+    public Task SetRootPersonsAsync(
+        Guid treeId, RootPersonsResponse data, CancellationToken ct = default)
+        => _cache.SetAsync(
+            CacheKeyBuilder.RootPersons(treeId),
+            data,
+            CacheLifeTime.Short, // 5 minutes as per audit recommendation
             ct);
 
     // =========================================================================

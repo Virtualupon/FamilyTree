@@ -37,6 +37,12 @@ public class ApplicationUser : IdentityUser<long>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime LastLoginAt { get; set; } = DateTime.UtcNow;
 
+    /// <summary>
+    /// Tracks last user activity (updated on token refresh).
+    /// Used for admin dashboard "active users" reporting.
+    /// </summary>
+    public DateTime LastActiveAt { get; set; } = DateTime.UtcNow;
+
     public virtual ICollection<ApplicationUserRole> UserRoles { get; set; } = new List<ApplicationUserRole>();
     
     public virtual ICollection<ApplicationUserClaim> Claims { get; set; } = new List<ApplicationUserClaim>();

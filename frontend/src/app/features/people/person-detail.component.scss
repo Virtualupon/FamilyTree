@@ -111,39 +111,16 @@
   color: rgba(0, 0, 0, 0.6);
 }
 
-.notes-section,
 .names-section {
   margin-top: 24px;
   padding-top: 16px;
   border-top: 1px solid #e0e0e0;
 }
 
-.notes-section h4,
 .names-section h4 {
   margin: 0 0 8px 0;
   font-size: 14px;
   color: rgba(0, 0, 0, 0.6);
-}
-
-.note-item {
-  margin-bottom: 16px;
-}
-
-.note-item p {
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  margin: 8px 0 0 0;
-  padding: 12px;
-  background: rgba(0, 0, 0, 0.02);
-  border-radius: 8px;
-  border-left: 3px solid var(--nubian-teal, #187573);
-  line-height: 1.6;
-}
-
-.note-item p.notes-arabic {
-  border-left: none;
-  border-right: 3px solid var(--nubian-teal, #187573);
-  font-family: 'Noto Naskh Arabic', 'Arabic Typesetting', serif;
 }
 
 .name-item {

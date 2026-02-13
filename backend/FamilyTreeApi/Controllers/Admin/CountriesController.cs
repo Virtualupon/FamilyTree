@@ -13,7 +13,7 @@ namespace FamilyTreeApi.Controllers.Admin;
 /// </summary>
 [ApiController]
 [Route("api/admin/countries")]
-[Authorize(Roles = "SuperAdmin")]
+[Authorize(Roles = "Developer,SuperAdmin")]
 public class CountriesController : ControllerBase
 {
     private readonly ApplicationDbContext _context;

@@ -4,12 +4,14 @@ using FamilyTreeApi.DTOs;
 namespace FamilyTreeApi.Services;
 
 /// <summary>
-/// Service interface for Admin operations (SuperAdmin only).
+/// Service interface for Admin operations (Developer/SuperAdmin only).
+/// All methods require UserContext for service-layer authorization (defense in depth).
 /// </summary>
 public interface IAdminService
 {
     // User Management
     Task<ServiceResult<List<UserSystemRoleResponse>>> GetAllUsersAsync(
+        UserContext userContext,
         CancellationToken cancellationToken = default);
 
     Task<ServiceResult<UserSystemRoleResponse>> CreateUserAsync(
@@ -25,10 +27,12 @@ public interface IAdminService
 
     // Admin Tree Assignments (legacy)
     Task<ServiceResult<List<AdminAssignmentResponse>>> GetAllAssignmentsAsync(
+        UserContext userContext,
         CancellationToken cancellationToken = default);
 
     Task<ServiceResult<List<AdminAssignmentResponse>>> GetUserAssignmentsAsync(
         long userId,
+        UserContext userContext,
         CancellationToken cancellationToken = default);
 
     Task<ServiceResult<AdminAssignmentResponse>> CreateAssignmentAsync(
@@ -38,14 +42,17 @@ public interface IAdminService
 
     Task<ServiceResult> DeleteAssignmentAsync(
         Guid assignmentId,
+        UserContext userContext,
         CancellationToken cancellationToken = default);
 
     // Admin Town Assignments (town-scoped access)
     Task<ServiceResult<List<AdminTownAssignmentResponse>>> GetAllTownAssignmentsAsync(
+        UserContext userContext,
         CancellationToken cancellationToken = default);
 
     Task<ServiceResult<List<AdminTownAssignmentResponse>>> GetUserTownAssignmentsAsync(
         long userId,
+        UserContext userContext,
         CancellationToken cancellationToken = default);
 
     Task<ServiceResult<AdminTownAssignmentResponse>> CreateTownAssignmentAsync(
@@ -60,10 +67,12 @@ public interface IAdminService
 
     Task<ServiceResult> DeleteTownAssignmentAsync(
         Guid assignmentId,
+        UserContext userContext,
         CancellationToken cancellationToken = default);
 
     Task<ServiceResult> DeactivateTownAssignmentAsync(
         Guid assignmentId,
+        UserContext userContext,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -71,10 +80,12 @@ public interface IAdminService
     /// </summary>
     Task<ServiceResult<AdminLoginResponse>> GetAdminTownsAsync(
         long userId,
+        UserContext userContext,
         CancellationToken cancellationToken = default);
 
     // Statistics
     Task<ServiceResult<AdminStatsDto>> GetStatsAsync(
+        UserContext userContext,
         CancellationToken cancellationToken = default);
 }
 

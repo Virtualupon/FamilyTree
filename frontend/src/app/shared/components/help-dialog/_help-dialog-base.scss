@@ -4,30 +4,30 @@
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-// Color Variables (WCAG AA Compliant)
+// Color Variables — Nubian Heritage Theme (WCAG AA Compliant)
 // -----------------------------------------------------------------------------
 
-// User theme (green)
-$user-primary: #388E3C;
-$user-primary-dark: #1B5E20;
-$user-primary-light: #E8F5E9;
+// User theme (Nubian Teal)
+$user-primary: #187573;
+$user-primary-dark: #0D5654;
+$user-primary-light: #E6F5F5;
 
-// Admin theme (blue)
-$admin-primary: #1976D2;
-$admin-primary-dark: #0D47A1;
-$admin-primary-light: #E3F2FD;
+// Admin theme (Nubian Gold)
+$admin-primary: #C17E3E;
+$admin-primary-dark: #8B5A2B;
+$admin-primary-light: #FFF8F0;
 
-// SuperAdmin theme (purple)
-$superadmin-primary: #7B1FA2;
-$superadmin-primary-dark: #4A148C;
-$superadmin-primary-light: #F3E5F5;
+// SuperAdmin theme (Nubian Orange)
+$superadmin-primary: #E85D35;
+$superadmin-primary-dark: #A53618;
+$superadmin-primary-light: #FFF3EF;
 
-// Neutral colors
-$text-primary: #212121;
-$text-secondary: #666666;
-$text-muted: #999999;
-$border-color: #E0E0E0;
-$background-light: #FAFAFA;
+// Neutral colors (Nubian palette)
+$text-primary: #2D2D2D;
+$text-secondary: #6B6B6B;
+$text-muted: #9CA3AF;
+$border-color: #F4E4D7;
+$background-light: #FAF7F1;
 $background-white: #FFFFFF;
 
 // -----------------------------------------------------------------------------
@@ -266,7 +266,7 @@ $help-transition: all 0.2s ease;
 // -----------------------------------------------------------------------------
 
 %tip-box {
-  @include help-box(#FFF8E1, #FFC107);
+  @include help-box(#FFF8F0, $admin-primary);  // Nubian Gold border
   margin: $help-spacing 0;
 
   .tip-header {
@@ -274,7 +274,7 @@ $help-transition: all 0.2s ease;
     align-items: center;
     gap: $help-spacing-xs;
     font-weight: 500;
-    color: #F57C00;
+    color: $admin-primary-dark;  // Nubian Gold dark
     margin-bottom: $help-spacing-xs;
 
     mat-icon {
@@ -291,7 +291,7 @@ $help-transition: all 0.2s ease;
 }
 
 %note-box {
-  @include help-box(#E3F2FD, #1976D2);
+  @include help-box($user-primary-light, $user-primary);  // Nubian Teal
   margin: $help-spacing 0;
 
   .note-header {
@@ -299,7 +299,7 @@ $help-transition: all 0.2s ease;
     align-items: center;
     gap: $help-spacing-xs;
     font-weight: 500;
-    color: #1565C0;
+    color: $user-primary-dark;  // Nubian Teal dark
     margin-bottom: $help-spacing-xs;
 
     mat-icon {
@@ -316,7 +316,7 @@ $help-transition: all 0.2s ease;
 }
 
 %warning-box {
-  @include help-box(#FFEBEE, #F44336);
+  @include help-box(#FFF3EF, #D32F2F);  // Keep red for warnings (semantic)
   margin: $help-spacing 0;
 
   .warning-header {

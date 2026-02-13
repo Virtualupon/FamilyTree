@@ -41,7 +41,19 @@
       </mat-select>
     </mat-form-field>
 
-    @if (searchControl.value || kindFilter()) {
+    <mat-form-field appearance="outline" class="media-gallery__tag-filter">
+      <mat-label>{{ 'media.filterByTag' | translate }}</mat-label>
+      <input matInput [value]="tagFilter()" (keyup.enter)="onTagFilterChange($any($event.target).value)" [placeholder]="'media.tagPlaceholder' | translate">
+      @if (tagFilter()) {
+        <button matSuffix mat-icon-button (click)="clearTagFilter()">
+          <mat-icon>close</mat-icon>
+        </button>
+      } @else {
+        <mat-icon matSuffix>label</mat-icon>
+      }
+    </mat-form-field>
+
+    @if (searchControl.value || kindFilter() || tagFilter()) {
       <button mat-stroked-button (click)="clearFilters()">
         <mat-icon>clear</mat-icon>
         {{ 'common.clear' | translate }}
@@ -144,7 +156,7 @@
             @if (item.linkedPersons && item.linkedPersons.length > 0) {
               <div class="media-card__tagged">
                 @for (person of item.linkedPersons.slice(0, 2); track person.personId) {
-                  <span class="media-card__person-name">{{ person.personName || 'Unknown' }}</span>
+                  <span class="media-card__person-name">{{ person.personName }}</span>
                 }
                 @if (item.linkedPersons.length > 2) {
                   <span class="media-card__more">+{{ item.linkedPersons.length - 2 }}</span>
@@ -159,6 +171,25 @@
               <mat-icon>people</mat-icon>
               <span>{{ item.linkedPersons.length }}</span>
             </div>
+          }
+
+          <!-- Delete Button (Admin/SuperAdmin - hover) -->
+          @if (canDelete()) {
+            <button class="media-card__delete"
+                    mat-icon-button
+                    color="warn"
+                    (click)="deleteMedia(item, $event)"
+                    [matTooltip]="'common.delete' | translate">
+              <mat-icon>delete</mat-icon>
+            </button>
+          } @else {
+            <!-- Suggest Delete Button (Regular users - hover) -->
+            <button class="media-card__delete media-card__delete--suggest"
+                    mat-icon-button
+                    (click)="suggestDeleteMedia(item, $event)"
+                    [matTooltip]="'media.suggestDelete' | translate">
+              <mat-icon>delete_outline</mat-icon>
+            </button>
           }
         </div>
       }
@@ -187,12 +218,30 @@
           @if (item.linkedPersons && item.linkedPersons.length > 0) {
             <div class="media-list-item__tagged">
               @for (person of item.linkedPersons.slice(0, 3); track person.personId) {
-                <span class="media-list-item__person-chip">{{ person.personName || 'Unknown' }}</span>
+                <span class="media-list-item__person-chip">{{ person.personName }}</span>
               }
               @if (item.linkedPersons.length > 3) {
                 <span class="media-list-item__more">+{{ item.linkedPersons.length - 3 }}</span>
               }
             </div>
+          }
+
+          <!-- Delete / Suggest Delete -->
+          @if (canDelete()) {
+            <button class="media-list-item__delete"
+                    mat-icon-button
+                    color="warn"
+                    (click)="deleteMedia(item, $event)"
+                    [matTooltip]="'common.delete' | translate">
+              <mat-icon>delete</mat-icon>
+            </button>
+          } @else {
+            <button class="media-list-item__delete"
+                    mat-icon-button
+                    (click)="suggestDeleteMedia(item, $event)"
+                    [matTooltip]="'media.suggestDelete' | translate">
+              <mat-icon>delete_outline</mat-icon>
+            </button>
           }
         </div>
       }
@@ -221,9 +270,24 @@
        role="dialog"
        aria-modal="true">
 
-    <button class="media-lightbox__close" mat-icon-button (click)="closeLightbox()">
-      <mat-icon>close</mat-icon>
-    </button>
+    <div class="media-lightbox__toolbar">
+      @if (canDelete()) {
+        <button class="media-lightbox__delete" mat-icon-button
+                (click)="deleteLightboxMedia()"
+                [matTooltip]="'common.delete' | translate">
+          <mat-icon>delete</mat-icon>
+        </button>
+      } @else {
+        <button class="media-lightbox__delete" mat-icon-button
+                (click)="suggestDeleteLightboxMedia()"
+                [matTooltip]="'media.suggestDelete' | translate">
+          <mat-icon>delete_outline</mat-icon>
+        </button>
+      }
+      <button class="media-lightbox__close" mat-icon-button (click)="closeLightbox()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
 
     <div class="media-lightbox__content">
       <!-- Loading -->
@@ -319,7 +383,7 @@
                 <a [routerLink]="['/people', person.personId]"
                    class="media-lightbox__person"
                    (click)="closeLightbox()">
-                  {{ person.personName || 'Unknown' }}
+                  {{ person.personName }}
                   @if (person.isPrimary) {
                     <span class="media-lightbox__primary-badge">
                       {{ 'media.primary' | translate }}

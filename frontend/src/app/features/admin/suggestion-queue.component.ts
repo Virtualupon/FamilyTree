@@ -508,7 +508,7 @@ export class SuggestionQueueComponent implements OnInit {
 
   isSuperAdmin = computed(() => {
     const user = this.authService.getCurrentUser();
-    return user?.systemRole === 'SuperAdmin';
+    return user?.systemRole === 'Developer' || user?.systemRole === 'SuperAdmin';
   });
 
   ngOnInit(): void {
@@ -623,7 +623,7 @@ export class SuggestionQueueComponent implements OnInit {
       case SuggestionType.RemoveRelationship: return 'suggestion.types.removeRelationship';
       case SuggestionType.MergePerson: return 'suggestion.types.mergePerson';
       case SuggestionType.SplitPerson: return 'suggestion.types.splitPerson';
-      default: return 'common.unknown';
+      default: return '';
     }
   }
 
@@ -634,7 +634,7 @@ export class SuggestionQueueComponent implements OnInit {
       case SuggestionStatus.Rejected: return 'suggestion.status.rejected';
       case SuggestionStatus.NeedsInfo: return 'suggestion.status.needsInfo';
       case SuggestionStatus.Withdrawn: return 'suggestion.status.withdrawn';
-      default: return 'common.unknown';
+      default: return '';
     }
   }
 

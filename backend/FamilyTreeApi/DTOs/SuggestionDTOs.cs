@@ -293,7 +293,7 @@ public record ProposedPersonValues(
     string? DeathDateType,
     Guid? DeathPlaceId,
     string? Occupation,
-    string? Notes
+    List<CreateNoteDto>? Notes = null
 );
 
 /// <summary>
@@ -312,9 +312,9 @@ public record ProposedPersonUpdateValues(
     string? DeathDateType,
     Guid? DeathPlaceId,
     string? Occupation,
-    string? Notes,
     // What fields are being updated
-    List<string> ChangedFields
+    List<string> ChangedFields,
+    List<CreateNoteDto>? Notes = null
 );
 
 /// <summary>
@@ -323,7 +323,7 @@ public record ProposedPersonUpdateValues(
 public record ProposedRelationshipValues(
     RelationshipType RelationshipType,
     ConfidenceLevel Confidence,
-    string? Notes
+    List<CreateNoteDto>? Notes = null
 );
 
 /// <summary>
@@ -337,7 +337,7 @@ public record ProposedUnionValues(
     string? EndDate,
     string? EndDateType,
     Guid? EndPlaceId,
-    string? Notes
+    List<CreateNoteDto>? Notes = null
 );
 
 /// <summary>
@@ -369,7 +369,6 @@ public record SuggestAddPersonRequest(
     string? DeathDate,
     string? DeathPlace,
     string? Occupation,
-    string? Notes,
     // Optional relationship
     Guid? RelatedPersonId,
     string? RelationshipType, // "parent", "child", "spouse"

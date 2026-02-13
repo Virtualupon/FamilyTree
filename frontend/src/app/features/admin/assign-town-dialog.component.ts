@@ -66,10 +66,7 @@ export class AssignTownDialogComponent implements AfterViewInit {
   }
 
   getLocalizedTownName(town: TownListItem): string {
-    const lang = this.i18n.currentLang();
-    if (lang === 'ar' && town.nameAr) return town.nameAr;
-    if (lang === 'en' && town.nameEn) return town.nameEn;
-    return town.name;
+    return this.i18n.getTownName(town);
   }
 
   onSelectOpened(selectType: string) {

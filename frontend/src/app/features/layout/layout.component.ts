@@ -20,6 +20,8 @@ import { NetworkService } from '../../core/services/network.service';
 import { UpdateService } from '../../core/services/update.service';
 import { I18nService, TranslatePipe, Language, LanguageConfig } from '../../core/i18n';
 import { HelpDialogService } from '../../shared/components/help-dialog/help-dialog.service';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { SubmitTicketDialogComponent } from '../support/submit-ticket-dialog.component';
 
 interface NavItem {
   icon: string;
@@ -44,6 +46,7 @@ interface NavItem {
     MatRippleModule,
     MatSelectModule,
     MatFormFieldModule,
+    MatDialogModule,
     TranslatePipe
   ],
   template: `
@@ -179,12 +182,38 @@ interface NavItem {
                 <span>{{ item.labelKey | translate }}</span>
               </a>
             }
+
+            <!-- More Menu (overflow items) -->
+            @if (visibleOverflowItems().length > 0) {
+              <button
+                class="layout__nav-item layout__nav-more"
+                [matMenuTriggerFor]="moreNavMenu">
+                <i class="fa-solid fa-ellipsis" aria-hidden="true"></i>
+                <span>{{ 'nav.more' | translate }}</span>
+              </button>
+              <mat-menu #moreNavMenu="matMenu" class="layout__more-menu">
+                @for (item of visibleOverflowItems(); track item.route) {
+                  <a mat-menu-item [routerLink]="item.route"
+                     routerLinkActive="layout__more-item--active">
+                    <i class="fa-solid" [ngClass]="getFaIconClass(item.icon)" aria-hidden="true"></i>
+                    <span>{{ item.labelKey | translate }}</span>
+                  </a>
+                }
+              </mat-menu>
+            }
           </nav>
-          
-          <div class="layout__spacer"></div>
-          
+
           <!-- Actions -->
           <div class="layout__actions">
+            <!-- Report Issue Button -->
+            <button
+              mat-icon-button
+              (click)="openReportIssue()"
+              [matTooltip]="'support.reportIssue' | translate"
+              class="layout__report-btn">
+              <i class="fa-solid fa-bug" aria-hidden="true"></i>
+            </button>
+
             <!-- Help Button -->
             <button
               mat-icon-button
@@ -199,7 +228,7 @@ interface NavItem {
               mat-icon-button
               [matMenuTriggerFor]="langMenu"
               [matTooltip]="'Language'">
-              <span class="layout__lang-flag">{{ getCurrentLangFlag() }}</span>
+              <img class="layout__lang-flag" [src]="'assets/flags/' + getCurrentLangFlag() + '.svg'" alt="Language">
             </button>
             <mat-menu #langMenu="matMenu" class="layout__lang-menu">
               @for (lang of i18n.supportedLanguages; track lang.code) {
@@ -207,7 +236,7 @@ interface NavItem {
                   mat-menu-item
                   (click)="setLanguage(lang.code)"
                   [class.layout__lang-item--active]="i18n.currentLang() === lang.code">
-                  <span class="layout__lang-flag">{{ lang.flag }}</span>
+                  <img class="layout__lang-flag" [src]="'assets/flags/' + lang.flag + '.svg'" [alt]="lang.name">
                   <span>{{ lang.nativeName }}</span>
                   @if (i18n.currentLang() === lang.code) {
                     <i class="fa-solid fa-check" aria-hidden="true"></i>
@@ -293,7 +322,7 @@ interface NavItem {
           }
 
           <nav class="layout__mobile-nav">
-            @for (item of visibleNavItems(); track item.route) {
+            @for (item of allVisibleNavItems(); track item.route) {
               <a
                 class="layout__mobile-nav-item"
                 [routerLink]="item.route"
@@ -318,7 +347,7 @@ interface NavItem {
                     class="layout__mobile-lang-btn"
                     [class.layout__mobile-lang-btn--active]="i18n.currentLang() === lang.code"
                     (click)="setLanguage(lang.code)">
-                    <span>{{ lang.flag }}</span>
+                    <img class="layout__lang-flag" [src]="'assets/flags/' + lang.flag + '.svg'" [alt]="lang.name">
                     <span>{{ lang.code.toUpperCase() }}</span>
                   </button>
                 }
@@ -631,8 +660,16 @@ interface NavItem {
         align-items: center;
         gap: 1px;
         margin-inline-start: var(--ft-spacing-xs);
-        flex-shrink: 1;
+        flex: 1;
         min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none; // Firefox
+        -ms-overflow-style: none; // IE/Edge
+
+        &::-webkit-scrollbar {
+          display: none; // Chrome/Safari
+        }
 
         @media (min-width: 1400px) {
           gap: var(--ft-spacing-xs);
@@ -682,14 +719,20 @@ interface NavItem {
         }
       }
 
-      &__spacer {
-        flex: 1;
+      // "More" overflow button
+      &__nav-more {
+        cursor: pointer;
+        border: none;
+        background: none;
+        font-family: inherit;
       }
-      
+
       &__actions {
         display: flex;
         align-items: center;
         gap: var(--ft-spacing-xs);
+        flex-shrink: 0;
+        margin-inline-start: var(--ft-spacing-sm);
       }
 
       &__help-btn {
@@ -705,8 +748,11 @@ interface NavItem {
       }
 
       &__lang-flag {
-        font-size: 1.25rem;
-        line-height: 1;
+        width: 24px;
+        height: 16px;
+        object-fit: cover;
+        border-radius: 2px;
+        vertical-align: middle;
       }
       
       &__lang-item--active {
@@ -1051,35 +1097,54 @@ export class LayoutComponent implements OnInit {
   readonly networkService = inject(NetworkService);
   private readonly updateService = inject(UpdateService); // Initialized to check for updates
   private readonly helpDialogService = inject(HelpDialogService);
+  private readonly dialog = inject(MatDialog);
 
   mobileMenuOpen = signal(false);
   currentUser = computed(() => this.authService.getCurrentUser());
   
-  // All navigation items with optional role restrictions
-  allNavItems: NavItem[] = [
+  // Primary nav items — always shown in the top bar
+  private primaryNavItems: NavItem[] = [
     { icon: 'dashboard', labelKey: 'nav.dashboard', route: '/dashboard' },
-    { icon: 'location_city', labelKey: 'nav.towns', route: '/towns', roles: ['SuperAdmin', 'Admin'] },
     { icon: 'forest', labelKey: 'nav.myTrees', route: '/trees' },
     { icon: 'people', labelKey: 'nav.people', route: '/people' },
+    { icon: 'admin_panel_settings', labelKey: 'nav.admin', route: '/admin', roles: ['Developer', 'SuperAdmin'] }
+  ];
+
+  // Overflow nav items — shown inside the "More" dropdown menu
+  private overflowNavItems: NavItem[] = [
+    { icon: 'location_city', labelKey: 'nav.towns', route: '/towns', roles: ['Developer', 'SuperAdmin', 'Admin'] },
     { icon: 'account_tree', labelKey: 'nav.familyTree', route: '/tree' },
     { icon: 'photo_library', labelKey: 'nav.media', route: '/media' },
-    { icon: 'link', labelKey: 'nav.pendingLinks', route: '/pending-links', roles: ['SuperAdmin', 'Admin'] },
-    { icon: 'admin_panel_settings', labelKey: 'nav.admin', route: '/admin', roles: ['SuperAdmin'] }
+    { icon: 'support_agent', labelKey: 'nav.support', route: '/support' }
   ];
-  
-  // Computed visible nav items based on user role
-  visibleNavItems = computed(() => {
+
+  // All nav items combined (for mobile side menu)
+  private get allNavItems(): NavItem[] {
+    return [...this.primaryNavItems, ...this.overflowNavItems];
+  }
+
+  // Filter by role
+  private filterByRole(items: NavItem[]): NavItem[] {
     const user = this.currentUser();
-    return this.allNavItems.filter(item => {
-      if (!item.roles) return true; // No role restriction
+    return items.filter(item => {
+      if (!item.roles) return true;
       if (!user?.systemRole) return false;
       return item.roles.includes(user.systemRole);
     });
-  });
-  
+  }
+
+  // Primary items visible in top bar
+  visibleNavItems = computed(() => this.filterByRole(this.primaryNavItems));
+
+  // Overflow items visible in "More" menu
+  visibleOverflowItems = computed(() => this.filterByRole(this.overflowNavItems));
+
+  // All visible items (for mobile side menu)
+  allVisibleNavItems = computed(() => this.filterByRole(this.allNavItems));
+
   // Bottom nav shows first 4 visible items (for mobile)
   bottomNavItems = computed(() => {
-    return this.visibleNavItems().slice(0, 4);
+    return this.allVisibleNavItems().slice(0, 4);
   });
   
   ngOnInit(): void {
@@ -1111,7 +1176,7 @@ export class LayoutComponent implements OnInit {
   
   getCurrentLangFlag(): string {
     const lang = this.i18n.supportedLanguages.find(l => l.code === this.i18n.currentLang());
-    return lang?.flag || '🌐';
+    return lang?.flag || 'gb';
   }
   
   setLanguage(lang: Language): void {
@@ -1141,13 +1206,28 @@ export class LayoutComponent implements OnInit {
     this.helpDialogService.openHelp();
   }
 
+  openReportIssue(): void {
+    this.dialog.open(SubmitTicketDialogComponent, {
+      width: '600px',
+      maxWidth: '95vw',
+      maxHeight: '90vh'
+    });
+  }
+
   selectTree(treeId: string): void {
     this.treeContext.selectTree(treeId);
+
+    // If on a person detail page, navigate back to people list
+    // (the person may not exist in the new tree)
+    const currentUrl = this.router.url.split('?')[0];
+    if (/^\/people\/[^/]+$/.test(currentUrl)) {
+      this.router.navigate(['/people']);
+    }
   }
 
   selectTown(townId: string): void {
     const user = this.authService.getCurrentUser();
-    const isAdmin = user?.systemRole === 'Admin' || user?.systemRole === 'SuperAdmin';
+    const isAdmin = user?.systemRole === 'Developer' || user?.systemRole === 'Admin' || user?.systemRole === 'SuperAdmin';
 
     // Call API to get new token with selectedTownId claim
     const selectObs = isAdmin
@@ -1178,17 +1258,8 @@ export class LayoutComponent implements OnInit {
     return this.getLocalizedTownName(town);
   }
 
-  getLocalizedTownName(town: { name: string; nameEn: string | null; nameAr: string | null; nameLocal: string | null }): string {
-    const lang = this.i18n.currentLang();
-    switch (lang) {
-      case 'ar':
-        return town.nameAr || town.name;
-      case 'nob':
-        return town.nameLocal || town.name;
-      case 'en':
-      default:
-        return town.nameEn || town.name;
-    }
+  getLocalizedTownName(town: { name: string; nameEn?: string | null; nameAr?: string | null; nameLocal?: string | null }): string {
+    return this.i18n.getTownName(town);
   }
 
   /**
@@ -1204,6 +1275,7 @@ export class LayoutComponent implements OnInit {
       'photo_library': 'fa-images',
       'link': 'fa-link',
       'admin_panel_settings': 'fa-user-shield',
+      'people_alt': 'fa-people-arrows',
       'settings': 'fa-gear',
       'logout': 'fa-right-from-bracket',
       'menu': 'fa-bars',
@@ -1259,7 +1331,10 @@ export class LayoutComponent implements OnInit {
       'rate_review': 'fa-star-half-stroke',
       'tips_and_updates': 'fa-lightbulb',
       'history': 'fa-clock-rotate-left',
-      'link_off': 'fa-link-slash'
+      'link_off': 'fa-link-slash',
+      'support_agent': 'fa-headset',
+      'confirmation_number': 'fa-ticket',
+      'bug_report': 'fa-bug'
     };
     return iconMap[materialIcon] || 'fa-circle';
   }

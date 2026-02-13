@@ -21,8 +21,6 @@ public class ParentChild
     [MaxLength(50)]
     public string? Certainty { get; set; }
 
-    public string? Notes { get; set; }
-
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Soft delete fields

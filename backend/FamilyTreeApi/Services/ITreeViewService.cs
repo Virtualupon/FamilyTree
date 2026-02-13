@@ -44,4 +44,14 @@ public interface ITreeViewService
         RelationshipPathRequest request,
         UserContext userContext,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get root persons (top-level ancestors with no parents) for a tree.
+    /// These are the starting points for visualizing the family hierarchy.
+    /// Results are limited to prevent performance issues with malformed trees.
+    /// </summary>
+    Task<ServiceResult<RootPersonsResponse>> GetRootPersonsAsync(
+        Guid treeId,
+        UserContext userContext,
+        CancellationToken cancellationToken = default);
 }

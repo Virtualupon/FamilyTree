@@ -7,10 +7,8 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Dapper;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Npgsql;
-using FamilyTreeApi.Data;
 using FamilyTreeApi.DTOs.Search;
 using FamilyTreeApi.Repositories.Interfaces;
 
@@ -22,7 +20,7 @@ namespace FamilyTreeApi.Repositories.Implementations;
 /// </summary>
 public sealed class PersonSearchRepository : IPersonSearchRepository
 {
-    private readonly string _connectionString;
+    private readonly NpgsqlDataSource _dataSource;
     private readonly ILogger<PersonSearchRepository> _logger;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -32,11 +30,10 @@ public sealed class PersonSearchRepository : IPersonSearchRepository
     };
 
     public PersonSearchRepository(
-        ApplicationDbContext context,
+        NpgsqlDataSource dataSource,
         ILogger<PersonSearchRepository> logger)
     {
-        _connectionString = context.Database.GetConnectionString()
-            ?? throw new InvalidOperationException("Database connection string not found");
+        _dataSource = dataSource;
         _logger = logger;
     }
 
@@ -48,7 +45,7 @@ public sealed class PersonSearchRepository : IPersonSearchRepository
         PersonSearchRequest request,
         CancellationToken cancellationToken = default)
     {
-        await using var connection = new NpgsqlConnection(_connectionString);
+        await using var connection = _dataSource.CreateConnection();
         await connection.OpenAsync(cancellationToken);
 
         var sql = @"
@@ -287,7 +284,7 @@ public sealed class PersonSearchRepository : IPersonSearchRepository
         RelationshipPathRequest request,
         CancellationToken cancellationToken = default)
     {
-        await using var connection = new NpgsqlConnection(_connectionString);
+        await using var connection = _dataSource.CreateConnection();
         await connection.OpenAsync(cancellationToken);
 
         // SQL function that returns direct relationship labels with i18n keys
@@ -368,7 +365,7 @@ public sealed class PersonSearchRepository : IPersonSearchRepository
         FamilyTreeDataRequest request,
         CancellationToken cancellationToken = default)
     {
-        await using var connection = new NpgsqlConnection(_connectionString);
+        await using var connection = _dataSource.CreateConnection();
         await connection.OpenAsync(cancellationToken);
 
         var sql = @"
@@ -437,7 +434,7 @@ public sealed class PersonSearchRepository : IPersonSearchRepository
         Guid personId,
         CancellationToken cancellationToken = default)
     {
-        await using var connection = new NpgsqlConnection(_connectionString);
+        await using var connection = _dataSource.CreateConnection();
         await connection.OpenAsync(cancellationToken);
 
         var sql = @"
@@ -585,7 +582,6 @@ public sealed class PersonSearchRepository : IPersonSearchRepository
             DeathPlaceId = (Guid?)row.death_place_id,
             DeathPlaceName = (string?)row.death_place_name,
             IsLiving = (bool)row.is_living,
-            Notes = (string?)row.notes,
             FamilyId = (Guid?)row.family_id,
             FamilyName = (string?)row.family_name,
             OrgId = (Guid)row.org_id,

@@ -167,7 +167,7 @@ public class TownImageController : ControllerBase
     /// Upload new town image using Base64 - SuperAdmin only
     /// </summary>
     [HttpPost("upload/base64")]
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize(Roles = "Developer,SuperAdmin")]
     public async Task<ActionResult<TownImageDto>> UploadImage([FromBody] UploadTownImageRequest request)
     {
         try
@@ -208,7 +208,7 @@ public class TownImageController : ControllerBase
     /// Get all images (including inactive) - SuperAdmin only
     /// </summary>
     [HttpGet]
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize(Roles = "Developer,SuperAdmin")]
     public async Task<ActionResult<List<TownImageDto>>> GetAllImages(
         [FromQuery] Guid? townId,
         [FromQuery] bool includeInactive = true)
@@ -221,7 +221,7 @@ public class TownImageController : ControllerBase
     /// Get single image by ID - SuperAdmin only
     /// </summary>
     [HttpGet("{id}")]
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize(Roles = "Developer,SuperAdmin")]
     public async Task<ActionResult<TownImageDto>> GetImageById(Guid id)
     {
         var image = await _townImageService.GetImageByIdAsync(id);
@@ -237,7 +237,7 @@ public class TownImageController : ControllerBase
     /// Update image metadata - SuperAdmin only
     /// </summary>
     [HttpPut("{id}")]
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize(Roles = "Developer,SuperAdmin")]
     public async Task<ActionResult<TownImageDto>> UpdateImage(
         Guid id,
         [FromBody] UpdateTownImageRequest request)
@@ -257,7 +257,7 @@ public class TownImageController : ControllerBase
     /// Delete town image - SuperAdmin only
     /// </summary>
     [HttpDelete("{id}")]
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize(Roles = "Developer,SuperAdmin")]
     public async Task<ActionResult> DeleteImage(Guid id)
     {
         var success = await _townImageService.DeleteImageAsync(id);
@@ -275,7 +275,7 @@ public class TownImageController : ControllerBase
     /// Reorder images for a town - SuperAdmin only
     /// </summary>
     [HttpPut("town/{townId}/reorder")]
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize(Roles = "Developer,SuperAdmin")]
     public async Task<ActionResult> ReorderImages(
         Guid townId,
         [FromBody] ReorderTownImagesRequest request)
@@ -296,7 +296,7 @@ public class TownImageController : ControllerBase
     /// Toggle image active status - SuperAdmin only
     /// </summary>
     [HttpPatch("{id}/toggle-active")]
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize(Roles = "Developer,SuperAdmin")]
     public async Task<ActionResult<TownImageDto>> ToggleActive(Guid id)
     {
         var image = await _townImageService.ToggleActiveAsync(id, GetUserId());

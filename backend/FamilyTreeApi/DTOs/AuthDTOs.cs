@@ -137,10 +137,10 @@ public record SetLanguageResponse(
 public record SelectTownRequest(Guid TownId);
 
 /// <summary>
-/// Response after town is selected, includes new access token with town claim
+/// Response after town is selected. Access token is set via HttpOnly cookie, NOT in body.
 /// </summary>
 public record SelectTownResponse(
-    string AccessToken,
+    string? AccessToken,
     Guid TownId,
     string TownName
 );

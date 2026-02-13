@@ -37,8 +37,7 @@ export class PersonLinksComponent implements OnInit {
   selectedMatch = signal<PersonLinkSearchResult | null>(null);
   newLink: Partial<CreatePersonLinkRequest> = {
     linkType: PersonLinkType.SamePerson,
-    confidence: 100,
-    notes: ''
+    confidence: 100
   };
   creating = signal(false);
   createError = signal<string | null>(null);
@@ -94,8 +93,7 @@ export class PersonLinksComponent implements OnInit {
       sourcePersonId: this.personId,
       targetPersonId: match.id,
       linkType: this.newLink.linkType || PersonLinkType.SamePerson,
-      confidence: this.newLink.confidence || 100,
-      notes: this.newLink.notes
+      confidence: this.newLink.confidence || 100
     };
 
     this.linkService.createLink(request).subscribe({

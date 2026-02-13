@@ -67,10 +67,15 @@ var configuration = builder.Configuration;
 // -------------------------------
 var connectionString = GetConnectionString(configuration);
 
-// OPTIMIZED: Configure DbContext with connection resiliency, pooling, and NoTracking default
+// Register a shared NpgsqlDataSource as singleton so EF Core and Dapper share ONE connection pool.
+var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
+var npgsqlDataSource = dataSourceBuilder.Build();
+services.AddSingleton(npgsqlDataSource);
+
+// OPTIMIZED: Configure DbContext with shared data source, connection resiliency, and NoTracking default
 services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
 {
-    options.UseNpgsql(connectionString, npgsqlOptions =>
+    options.UseNpgsql(npgsqlDataSource, npgsqlOptions =>
     {
         // Enable automatic retry on transient failures
         npgsqlOptions.EnableRetryOnFailure(
@@ -160,6 +165,21 @@ services.AddAuthentication(options =>
         ClockSkew = TimeSpan.FromMinutes(validationParams.GetValue<int>("ClockSkew")),
         IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(bearerTokenKey))
+    };
+
+    // Read JWT from HttpOnly cookie instead of Authorization header
+    options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            // Try cookie first, then fall back to Authorization header for backward compatibility
+            var accessToken = context.Request.Cookies["access_token"];
+            if (!string.IsNullOrEmpty(accessToken))
+            {
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
     };
 });
 
@@ -282,6 +302,7 @@ services.AddScoped<IFamilyTreeService, FamilyTreeService>();
 services.AddScoped<IPersonLinkService, PersonLinkService>();
 services.AddScoped<ITownService, TownService>();
 services.AddScoped<IAdminService, AdminService>();
+services.AddScoped<IAnalyticsService, AnalyticsService>();
 services.AddScoped<IMediaManagementService, MediaManagementService>();
 services.AddScoped<IPersonMediaService, PersonMediaService>();
 services.AddScoped<IFamilyRelationshipTypeService, FamilyRelationshipTypeService>();
@@ -298,6 +319,9 @@ services.AddScoped<ITownImageService, TownImageService>();
 services.AddScoped<IAuditLogService, AuditLogService>();
 services.AddScoped<ISuggestionService, SuggestionService>();
 
+// Support Ticket System
+services.AddScoped<ISupportTicketService, SupportTicketService>();
+
 // Cache Infrastructure Services
 services.AddSingleton<ICacheOptionsProvider, CacheOptionsProvider>();
 services.AddSingleton<IResilientCacheService, ResilientCacheService>();
@@ -305,6 +329,21 @@ services.AddScoped<ITreeCacheService, TreeCacheService>();
 
 // Storage Migration Service (Singleton - has instance state for progress tracking)
 services.AddSingleton<IStorageMigrationService, StorageMigrationService>();
+
+// Notes Service (centralized entity notes)
+services.AddScoped<INoteService, NoteService>();
+
+// Duplicate Detection Services
+services.AddScoped<IDuplicateDetectionRepository, DuplicateDetectionRepository>();
+services.AddScoped<IDuplicateDetectionService, DuplicateDetectionService>();
+
+// Relationship Prediction Services
+services.AddScoped<FamilyTreeApi.Services.Prediction.Rules.IPredictionRule, FamilyTreeApi.Services.Prediction.Rules.SpouseChildGapRule>();
+services.AddScoped<FamilyTreeApi.Services.Prediction.Rules.IPredictionRule, FamilyTreeApi.Services.Prediction.Rules.MissingUnionRule>();
+services.AddScoped<FamilyTreeApi.Services.Prediction.Rules.IPredictionRule, FamilyTreeApi.Services.Prediction.Rules.SiblingParentGapRule>();
+services.AddScoped<FamilyTreeApi.Services.Prediction.Rules.IPredictionRule, FamilyTreeApi.Services.Prediction.Rules.PatronymicNameRule>();
+services.AddScoped<FamilyTreeApi.Services.Prediction.Rules.IPredictionRule, FamilyTreeApi.Services.Prediction.Rules.AgeFamilyRule>();
+services.AddScoped<FamilyTreeApi.Services.Prediction.IRelationshipPredictionService, FamilyTreeApi.Services.Prediction.RelationshipPredictionService>();
 
 // -------------------------------
 // TRANSLATION SERVICES
@@ -420,6 +459,9 @@ using (var scope = app.Services.CreateScope())
         // Create database schema
         await context.Database.EnsureCreatedAsync();
 
+        // Apply SQL migration scripts (idempotent — safe to re-run)
+        await ApplySqlScriptsAsync(context, app.Logger);
+
         // Seed initial data
         await SeedDataAsync(scopedServices);
 
@@ -506,6 +548,12 @@ else
     });
 }
 
+// ForwardedHeaders MUST be first — before routing, auth, and any middleware that reads client IP
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
+
 //app.UseHttpsRedirection();
 app.UseCors();
 
@@ -561,11 +609,6 @@ app.MapGet("/", () => Results.Ok(new
 }))
 .WithName("Status")
 .WithOpenApi();
-
-app.UseForwardedHeaders(new ForwardedHeadersOptions
-{
-    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
-});
 
 // -------------------------------
 // RUN
@@ -656,7 +699,7 @@ static async Task SeedDataAsync(IServiceProvider services)
     var logger = services.GetRequiredService<ILogger<Program>>();
 
     // Seed Identity roles
-    var systemRoles = new[] { "SuperAdmin", "Admin", "User" };
+    var systemRoles = new[] { "Developer", "SuperAdmin", "Admin", "User" };
     foreach (var roleName in systemRoles)
     {
         if (!await roleManager.RoleExistsAsync(roleName))
@@ -761,5 +804,69 @@ static async Task SeedDataAsync(IServiceProvider services)
 
         await context.SaveChangesAsync();
         logger.LogInformation("Created sample person: {Name}", person.PrimaryName);
+    }
+}
+
+static async Task ApplySqlScriptsAsync(ApplicationDbContext context, Microsoft.Extensions.Logging.ILogger logger)
+{
+    // SQL scripts that must be applied/re-applied on startup.
+    // These use CREATE OR REPLACE / DROP IF EXISTS so they are idempotent.
+    var scriptsToApply = new[]
+    {
+        "025_FixSearchSoftDelete.sql",
+        "029_EnhanceRelationshipFinding.sql",
+        "030_DetectDuplicateCandidates.sql",
+        "032_CreatePredictedRelationships.sql",
+        "033_StandardizeNotesToTable.sql"
+    };
+
+    // Try multiple possible locations for the Scripts folder
+    var possibleBases = new[]
+    {
+        AppContext.BaseDirectory,                    // bin/Debug/net8.0/
+        Directory.GetCurrentDirectory(),             // project root when running with dotnet run
+        Path.Combine(AppContext.BaseDirectory, "..","..","..") // navigate up from bin/Debug/net8.0
+    };
+
+    string? scriptsDir = null;
+    foreach (var basePath in possibleBases)
+    {
+        var candidate = Path.Combine(basePath, "Scripts");
+        if (Directory.Exists(candidate))
+        {
+            scriptsDir = candidate;
+            break;
+        }
+    }
+
+    if (scriptsDir == null)
+    {
+        logger.LogWarning("SQL Scripts directory not found. Skipping SQL migration scripts. Searched in: {Paths}",
+            string.Join(", ", possibleBases.Select(b => Path.Combine(b, "Scripts"))));
+        return;
+    }
+
+    logger.LogInformation("Applying SQL migration scripts from: {ScriptsDir}", scriptsDir);
+
+    foreach (var scriptName in scriptsToApply)
+    {
+        var scriptPath = Path.Combine(scriptsDir, scriptName);
+        if (!File.Exists(scriptPath))
+        {
+            logger.LogDebug("SQL script not found, skipping: {Script}", scriptName);
+            continue;
+        }
+
+        try
+        {
+            var sql = await File.ReadAllTextAsync(scriptPath);
+            await context.Database.ExecuteSqlRawAsync(sql);
+            logger.LogInformation("Applied SQL script: {Script}", scriptName);
+        }
+        catch (Exception ex)
+        {
+            // Log but don't fail startup — the functions may already exist
+            logger.LogWarning(ex, "Failed to apply SQL script {Script}. This may be expected if the functions already exist.", scriptName);
+        }
     }
 }

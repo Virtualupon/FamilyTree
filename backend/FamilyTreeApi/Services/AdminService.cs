@@ -10,9 +10,9 @@ using FamilyTreeApi.Repositories;
 namespace FamilyTreeApi.Services;
 
 /// <summary>
-/// Admin service implementation containing all SuperAdmin business logic.
+/// Admin service implementation containing all Developer/SuperAdmin business logic.
 /// Uses repositories for data access and AutoMapper for DTO mapping.
-/// Services do NOT reference DbContext directly (except through repositories).
+/// All methods enforce service-layer authorization (defense in depth).
 /// </summary>
 public class AdminService : IAdminService
 {
@@ -65,35 +65,53 @@ public class AdminService : IAdminService
     // ============================================================================
 
     public async Task<ServiceResult<List<UserSystemRoleResponse>>> GetAllUsersAsync(
+        UserContext userContext,
         CancellationToken cancellationToken = default)
     {
+        // Authorization: Developer or SuperAdmin only
+        if (!userContext.HasAdminPanelAccess)
+            return ServiceResult<List<UserSystemRoleResponse>>.Forbidden("Access denied. Developer or SuperAdmin role required.");
+
         try
         {
-            var users = await _userManager.Users.ToListAsync(cancellationToken);
-            var result = new List<UserSystemRoleResponse>();
+            // PERFORMANCE FIX: Single query with eager loading instead of N+1 queries.
+            // Previously: 1 query for users + N queries for roles + N queries for tree count = 2N+1 queries.
+            // Now: 1 query with Include for roles and a subquery for tree count.
+            var usersWithRoles = await _userManager.Users
+                .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                .Select(u => new
+                {
+                    u.Id,
+                    Email = u.Email ?? "",
+                    u.FirstName,
+                    u.LastName,
+                    u.CreatedAt,
+                    RoleNames = u.UserRoles.Select(ur => ur.Role.Name).ToList(),
+                    TreeCount = u.OrgUsers.Count
+                })
+                .OrderBy(u => u.Email)
+                .ToListAsync(cancellationToken);
 
-            foreach (var user in users)
+            var result = usersWithRoles.Select(u =>
             {
-                var roles = await _userManager.GetRolesAsync(user);
-                var primaryRole = roles.Contains("SuperAdmin") ? "SuperAdmin"
-                                : roles.Contains("Admin") ? "Admin"
+                var primaryRole = u.RoleNames.Contains("Developer") ? "Developer"
+                                : u.RoleNames.Contains("SuperAdmin") ? "SuperAdmin"
+                                : u.RoleNames.Contains("Admin") ? "Admin"
                                 : "User";
 
-                var treeCount = await _orgUserRepository.CountAsync(ou => ou.UserId == user.Id, cancellationToken);
-
-                result.Add(new UserSystemRoleResponse(
-                    user.Id,
-                    user.Email ?? "",
-                    user.FirstName,
-                    user.LastName,
+                return new UserSystemRoleResponse(
+                    u.Id,
+                    u.Email,
+                    u.FirstName,
+                    u.LastName,
                     primaryRole,
-                    treeCount,
-                    user.CreatedAt
-                ));
-            }
+                    u.TreeCount,
+                    u.CreatedAt
+                );
+            }).ToList();
 
-            return ServiceResult<List<UserSystemRoleResponse>>.Success(
-                result.OrderBy(u => u.Email).ToList());
+            return ServiceResult<List<UserSystemRoleResponse>>.Success(result);
         }
         catch (Exception ex)
         {
@@ -107,8 +125,19 @@ public class AdminService : IAdminService
         UserContext userContext,
         CancellationToken cancellationToken = default)
     {
+        // Authorization: Developer or SuperAdmin only
+        if (!userContext.HasAdminPanelAccess)
+            return ServiceResult<UserSystemRoleResponse>.Forbidden("Access denied. Developer or SuperAdmin role required.");
+
         try
         {
+            // Developer role cannot be assigned through the API — it is immutable
+            if (request.SystemRole == "Developer")
+            {
+                return ServiceResult<UserSystemRoleResponse>.Forbidden(
+                    "Cannot assign Developer role through the API. Developer role is immutable.");
+            }
+
             // Validate role value
             var validRoles = new[] { "User", "Admin", "SuperAdmin" };
             if (!validRoles.Contains(request.SystemRole))
@@ -182,6 +211,10 @@ public class AdminService : IAdminService
         UserContext userContext,
         CancellationToken cancellationToken = default)
     {
+        // Authorization: Developer or SuperAdmin only
+        if (!userContext.HasAdminPanelAccess)
+            return ServiceResult<UserSystemRoleResponse>.Forbidden("Access denied. Developer or SuperAdmin role required.");
+
         try
         {
             // Can't change own role
@@ -189,6 +222,13 @@ public class AdminService : IAdminService
             {
                 return ServiceResult<UserSystemRoleResponse>.Failure(
                     "Cannot change your own system role");
+            }
+
+            // Developer role cannot be assigned through the API — it is immutable
+            if (request.SystemRole == "Developer")
+            {
+                return ServiceResult<UserSystemRoleResponse>.Forbidden(
+                    "Cannot assign Developer role through the API. Developer role is immutable.");
             }
 
             // Validate role value
@@ -205,12 +245,19 @@ public class AdminService : IAdminService
                 return ServiceResult<UserSystemRoleResponse>.NotFound("User not found");
             }
 
-            // Remove from all system roles first
-            var currentRoles = await _userManager.GetRolesAsync(user);
-            var systemRoles = currentRoles.Where(r => validRoles.Contains(r)).ToList();
-            if (systemRoles.Any())
+            // Developer's role cannot be changed by anyone
+            var targetUserRoles = await _userManager.GetRolesAsync(user);
+            if (targetUserRoles.Contains("Developer"))
             {
-                await _userManager.RemoveFromRolesAsync(user, systemRoles);
+                return ServiceResult<UserSystemRoleResponse>.Forbidden(
+                    "Cannot change a Developer's system role. Developer role is immutable.");
+            }
+
+            // Remove from all system roles first
+            var currentRoles = targetUserRoles.Where(r => validRoles.Contains(r)).ToList();
+            if (currentRoles.Any())
+            {
+                await _userManager.RemoveFromRolesAsync(user, currentRoles);
             }
 
             // Add to new role
@@ -250,8 +297,13 @@ public class AdminService : IAdminService
     // ============================================================================
 
     public async Task<ServiceResult<List<AdminAssignmentResponse>>> GetAllAssignmentsAsync(
+        UserContext userContext,
         CancellationToken cancellationToken = default)
     {
+        // Authorization: Developer or SuperAdmin only
+        if (!userContext.HasAdminPanelAccess)
+            return ServiceResult<List<AdminAssignmentResponse>>.Forbidden("Access denied. Developer or SuperAdmin role required.");
+
         try
         {
             var assignments = await _adminAssignmentRepository
@@ -286,8 +338,16 @@ public class AdminService : IAdminService
 
     public async Task<ServiceResult<List<AdminAssignmentResponse>>> GetUserAssignmentsAsync(
         long userId,
+        UserContext userContext,
         CancellationToken cancellationToken = default)
     {
+        // Authorization: Developer/SuperAdmin can see any user, Admin can see own only
+        if (!userContext.HasAdminOrHigherAccess)
+            return ServiceResult<List<AdminAssignmentResponse>>.Forbidden("Access denied.");
+
+        if (userContext.IsAdmin && userContext.UserId != userId)
+            return ServiceResult<List<AdminAssignmentResponse>>.Forbidden("Admins can only view their own assignments.");
+
         try
         {
             var assignments = await _adminAssignmentRepository
@@ -325,6 +385,10 @@ public class AdminService : IAdminService
         UserContext userContext,
         CancellationToken cancellationToken = default)
     {
+        // Authorization: Developer or SuperAdmin only
+        if (!userContext.HasAdminPanelAccess)
+            return ServiceResult<AdminAssignmentResponse>.Forbidden("Access denied. Developer or SuperAdmin role required.");
+
         try
         {
             var user = await _userManager.FindByIdAsync(request.UserId.ToString());
@@ -395,8 +459,13 @@ public class AdminService : IAdminService
 
     public async Task<ServiceResult> DeleteAssignmentAsync(
         Guid assignmentId,
+        UserContext userContext,
         CancellationToken cancellationToken = default)
     {
+        // Authorization: Developer or SuperAdmin only
+        if (!userContext.HasAdminPanelAccess)
+            return ServiceResult.Forbidden("Access denied. Developer or SuperAdmin role required.");
+
         try
         {
             var assignment = await _adminAssignmentRepository.GetByIdAsync(assignmentId, cancellationToken);
@@ -408,7 +477,7 @@ public class AdminService : IAdminService
             _adminAssignmentRepository.Remove(assignment);
             await _adminAssignmentRepository.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Admin assignment removed: {AssignmentId}", assignmentId);
+            _logger.LogInformation("Admin assignment removed: {AssignmentId} by {AdminId}", assignmentId, userContext.UserId);
 
             return ServiceResult.Success();
         }
@@ -424,8 +493,13 @@ public class AdminService : IAdminService
     // ============================================================================
 
     public async Task<ServiceResult<AdminStatsDto>> GetStatsAsync(
+        UserContext userContext,
         CancellationToken cancellationToken = default)
     {
+        // Authorization: Developer or SuperAdmin only
+        if (!userContext.HasAdminPanelAccess)
+            return ServiceResult<AdminStatsDto>.Forbidden("Access denied. Developer or SuperAdmin role required.");
+
         try
         {
             // Get counts
@@ -499,8 +573,13 @@ public class AdminService : IAdminService
     // ============================================================================
 
     public async Task<ServiceResult<List<AdminTownAssignmentResponse>>> GetAllTownAssignmentsAsync(
+        UserContext userContext,
         CancellationToken cancellationToken = default)
     {
+        // Authorization: Developer or SuperAdmin only
+        if (!userContext.HasAdminPanelAccess)
+            return ServiceResult<List<AdminTownAssignmentResponse>>.Forbidden("Access denied. Developer or SuperAdmin role required.");
+
         try
         {
             var assignments = await _adminTownAssignmentRepository
@@ -526,8 +605,16 @@ public class AdminService : IAdminService
 
     public async Task<ServiceResult<List<AdminTownAssignmentResponse>>> GetUserTownAssignmentsAsync(
         long userId,
+        UserContext userContext,
         CancellationToken cancellationToken = default)
     {
+        // Authorization: Developer/SuperAdmin can see any user, Admin can see own only
+        if (!userContext.HasAdminOrHigherAccess)
+            return ServiceResult<List<AdminTownAssignmentResponse>>.Forbidden("Access denied.");
+
+        if (userContext.IsAdmin && userContext.UserId != userId)
+            return ServiceResult<List<AdminTownAssignmentResponse>>.Forbidden("Admins can only view their own town assignments.");
+
         try
         {
             var assignments = await _adminTownAssignmentRepository
@@ -555,6 +642,10 @@ public class AdminService : IAdminService
         UserContext userContext,
         CancellationToken cancellationToken = default)
     {
+        // Authorization: Developer or SuperAdmin only
+        if (!userContext.HasAdminPanelAccess)
+            return ServiceResult<AdminTownAssignmentResponse>.Forbidden("Access denied. Developer or SuperAdmin role required.");
+
         try
         {
             var user = await _userManager.FindByIdAsync(request.UserId.ToString());
@@ -630,6 +721,10 @@ public class AdminService : IAdminService
         UserContext userContext,
         CancellationToken cancellationToken = default)
     {
+        // Authorization: Developer or SuperAdmin only
+        if (!userContext.HasAdminPanelAccess)
+            return ServiceResult<List<AdminTownAssignmentResponse>>.Forbidden("Access denied. Developer or SuperAdmin role required.");
+
         try
         {
             var user = await _userManager.FindByIdAsync(request.UserId.ToString());
@@ -700,8 +795,13 @@ public class AdminService : IAdminService
 
     public async Task<ServiceResult> DeleteTownAssignmentAsync(
         Guid assignmentId,
+        UserContext userContext,
         CancellationToken cancellationToken = default)
     {
+        // Authorization: Developer or SuperAdmin only
+        if (!userContext.HasAdminPanelAccess)
+            return ServiceResult.Forbidden("Access denied. Developer or SuperAdmin role required.");
+
         try
         {
             var assignment = await _adminTownAssignmentRepository.GetByIdAsync(assignmentId, cancellationToken);
@@ -713,7 +813,7 @@ public class AdminService : IAdminService
             _adminTownAssignmentRepository.Remove(assignment);
             await _adminTownAssignmentRepository.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Admin town assignment deleted: {AssignmentId}", assignmentId);
+            _logger.LogInformation("Admin town assignment deleted: {AssignmentId} by {AdminId}", assignmentId, userContext.UserId);
 
             return ServiceResult.Success();
         }
@@ -726,8 +826,13 @@ public class AdminService : IAdminService
 
     public async Task<ServiceResult> DeactivateTownAssignmentAsync(
         Guid assignmentId,
+        UserContext userContext,
         CancellationToken cancellationToken = default)
     {
+        // Authorization: Developer or SuperAdmin only
+        if (!userContext.HasAdminPanelAccess)
+            return ServiceResult.Forbidden("Access denied. Developer or SuperAdmin role required.");
+
         try
         {
             var assignment = await _adminTownAssignmentRepository.GetByIdAsync(assignmentId, cancellationToken);
@@ -739,7 +844,7 @@ public class AdminService : IAdminService
             assignment.IsActive = false;
             await _adminTownAssignmentRepository.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Admin town assignment deactivated: {AssignmentId}", assignmentId);
+            _logger.LogInformation("Admin town assignment deactivated: {AssignmentId} by {AdminId}", assignmentId, userContext.UserId);
 
             return ServiceResult.Success();
         }
@@ -752,8 +857,16 @@ public class AdminService : IAdminService
 
     public async Task<ServiceResult<AdminLoginResponse>> GetAdminTownsAsync(
         long userId,
+        UserContext userContext,
         CancellationToken cancellationToken = default)
     {
+        // Authorization: Developer/SuperAdmin can see any user, Admin can see own only
+        if (!userContext.HasAdminOrHigherAccess)
+            return ServiceResult<AdminLoginResponse>.Forbidden("Access denied.");
+
+        if (userContext.IsAdmin && userContext.UserId != userId)
+            return ServiceResult<AdminLoginResponse>.Forbidden("Admins can only view their own towns.");
+
         try
         {
             var user = await _userManager.FindByIdAsync(userId.ToString());

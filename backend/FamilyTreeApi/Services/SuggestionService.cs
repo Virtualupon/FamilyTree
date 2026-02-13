@@ -765,8 +765,7 @@ public partial class SuggestionService : ISuggestionService
             BirthDate = GetDateValue(proposedValues, "birthDate"),
             DeathDate = GetDateValue(proposedValues, "deathDate"),
             Occupation = GetStringValue(proposedValues, "occupation"),
-            Nationality = GetStringValue(proposedValues, "nationality"),
-            Notes = $"Created from suggestion #{suggestion.Id}. {GetStringValue(proposedValues, "notes") ?? ""}"
+            Nationality = GetStringValue(proposedValues, "nationality")
         };
 
         // Call the PersonService to create the person
@@ -819,8 +818,7 @@ public partial class SuggestionService : ISuggestionService
             BirthDate = GetDateValue(proposedValues, "birthDate"),
             DeathDate = GetDateValue(proposedValues, "deathDate"),
             Occupation = GetStringValue(proposedValues, "occupation"),
-            Nationality = GetStringValue(proposedValues, "nationality"),
-            Notes = GetStringValue(proposedValues, "notes")
+            Nationality = GetStringValue(proposedValues, "nationality")
         };
 
         // Call the PersonService to update the person
@@ -881,8 +879,7 @@ public partial class SuggestionService : ISuggestionService
         // Prepare the relationship request
         var request = new AddParentChildRequest
         {
-            RelationshipType = suggestion.RelationshipType ?? Models.Enums.RelationshipType.Biological,
-            Notes = $"Created from suggestion #{suggestion.Id}"
+            RelationshipType = suggestion.RelationshipType ?? Models.Enums.RelationshipType.Biological
         };
 
         // Call the ParentChildService to create the relationship
@@ -930,7 +927,6 @@ public partial class SuggestionService : ISuggestionService
             EndDate: null,
             EndPrecision: Models.Enums.DatePrecision.Unknown,
             EndPlaceId: null,
-            Notes: $"Created from suggestion #{suggestion.Id}",
             MemberIds: new List<Guid> { suggestion.TargetPersonId.Value, suggestion.SecondaryPersonId.Value }
         );
 
@@ -1070,8 +1066,7 @@ public partial class SuggestionService : ISuggestionService
             BirthDate = GetDateValue(proposedValues, "birthDate"),
             DeathDate = GetDateValue(proposedValues, "deathDate"),
             Occupation = GetStringValue(proposedValues, "occupation"),
-            Nationality = GetStringValue(proposedValues, "nationality"),
-            Notes = $"Split from person {suggestion.TargetPersonId}. {GetStringValue(proposedValues, "notes") ?? ""}"
+            Nationality = GetStringValue(proposedValues, "nationality")
         };
 
         var result = await _personService.CreatePersonAsync(createPersonDto, userContext, ct);
@@ -1158,8 +1153,7 @@ public partial class SuggestionService : ISuggestionService
             StartPlaceId: GetGuidValue(proposedValues, "startPlaceId"),
             EndDate: GetDateValue(proposedValues, "endDate"),
             EndPrecision: GetEnumValue<Models.Enums.DatePrecision>(proposedValues, "endPrecision"),
-            EndPlaceId: GetGuidValue(proposedValues, "endPlaceId"),
-            Notes: GetStringValue(proposedValues, "notes")
+            EndPlaceId: GetGuidValue(proposedValues, "endPlaceId")
         );
 
         var result = await _unionService.UpdateUnionAsync(

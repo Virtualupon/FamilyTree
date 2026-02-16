@@ -1,4 +1,5 @@
 // Analytics Tab Styles — Nubian Theme
+@use 'sass:color';
 $teal: #187573;
 $gold: #C17E3E;
 $orange: #E85D35;
@@ -78,7 +79,7 @@ $dark: #2c3e50;
     }
 
     &:hover {
-      background: darken($teal, 5%);
+      background: color.adjust($teal, $lightness: -5%);
     }
   }
 }

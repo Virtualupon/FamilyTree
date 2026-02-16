@@ -16,7 +16,7 @@ import { CommonModule } from '@angular/common';
 import * as d3 from 'd3';
 import { TreePersonNode } from '../../core/models/tree.models';
 import { Sex } from '../../core/models/person.models';
-import { I18nService, TranslatePipe } from '../../core/i18n';
+import { I18nService } from '../../core/i18n';
 import { PersonMediaService } from '../../core/services/person-media.service';
 
 interface TimelineNode {
@@ -69,7 +69,7 @@ function getColorForGeneration(generation: number): string {
 @Component({
   selector: 'app-timeline-view',
   standalone: true,
-  imports: [CommonModule, TranslatePipe],
+  imports: [CommonModule],
   templateUrl: './timeline-view.component.html',
   styleUrls: ['./timeline-view.component.scss']
 })

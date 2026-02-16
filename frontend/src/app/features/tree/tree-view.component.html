@@ -181,16 +181,16 @@
 
       <!-- Zoom Controls for Timeline -->
       <div class="tree-zoom-controls">
-        <button mat-icon-button (click)="timelineViewComponent?.zoomIn()" [matTooltip]="'tree.zoomIn' | translate">
+        <button mat-icon-button (click)="timelineViewComponent.zoomIn()" [matTooltip]="'tree.zoomIn' | translate">
           <i class="fa-solid fa-plus" aria-hidden="true"></i>
         </button>
-        <button mat-icon-button (click)="timelineViewComponent?.zoomOut()" [matTooltip]="'tree.zoomOut' | translate">
+        <button mat-icon-button (click)="timelineViewComponent.zoomOut()" [matTooltip]="'tree.zoomOut' | translate">
           <i class="fa-solid fa-minus" aria-hidden="true"></i>
         </button>
-        <button mat-icon-button (click)="timelineViewComponent?.resetZoom()" [matTooltip]="'tree.resetView' | translate">
+        <button mat-icon-button (click)="timelineViewComponent.resetZoom()" [matTooltip]="'tree.resetView' | translate">
           <i class="fa-solid fa-crosshairs" aria-hidden="true"></i>
         </button>
-        <button mat-icon-button (click)="timelineViewComponent?.fitToScreen()" [matTooltip]="'tree.fitToScreen' | translate">
+        <button mat-icon-button (click)="timelineViewComponent.fitToScreen()" [matTooltip]="'tree.fitToScreen' | translate">
           <i class="fa-solid fa-expand" aria-hidden="true"></i>
         </button>
       </div>

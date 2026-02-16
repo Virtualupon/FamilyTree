@@ -121,7 +121,7 @@ import {
               <div class="metadata-grid">
                 <div class="metadata-item">
                   <span class="metadata-item__label">{{ 'suggestion.submittedBy' | translate }}</span>
-                  <span class="metadata-item__value">{{ suggestion()!.submitter?.name || suggestion()!.submitter?.email }}</span>
+                  <span class="metadata-item__value">{{ suggestion()!.submitter.name || suggestion()!.submitter.email }}</span>
                 </div>
                 <div class="metadata-item">
                   <span class="metadata-item__label">{{ 'suggestion.submittedAt' | translate }}</span>

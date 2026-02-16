@@ -97,7 +97,7 @@
                 @for (child of parentFamily()!.children; track child.id; let i = $index) {
                   <div class="family-sheet__child"
                        [class.family-sheet__child--selected]="child.id === selectedPersonId"
-                       [class.family-sheet__child--current]="child.id === person?.id"
+                       [class.family-sheet__child--current]="child.id === person.id"
                        (click)="onPersonClick(child)"
                        (dblclick)="onPersonDoubleClick(child)">
                     <span class="family-sheet__child-number">{{ i + 1 }}.</span>
@@ -113,7 +113,7 @@
                     <div class="family-sheet__child-info">
                       <span class="family-sheet__child-name">
                         {{ getDisplayName(child) }}
-                        @if (child.id === person?.id) {
+                        @if (child.id === person.id) {
                           <span class="family-sheet__current-badge">★</span>
                         }
                       </span>
@@ -157,7 +157,7 @@
             <!-- Partner 1 (Husband) -->
             <div class="family-sheet__parent"
                  [class.family-sheet__parent--selected]="ownFamily()!.partner1?.id === selectedPersonId"
-                 [class.family-sheet__parent--current]="ownFamily()!.partner1?.id === person?.id"
+                 [class.family-sheet__parent--current]="ownFamily()!.partner1?.id === person.id"
                  (click)="ownFamily()!.partner1 && onPersonClick(ownFamily()!.partner1!)"
                  (dblclick)="ownFamily()!.partner1 && onPersonDoubleClick(ownFamily()!.partner1!)">
               <div class="family-sheet__avatar"
@@ -173,7 +173,7 @@
                 <span class="family-sheet__role">{{ getRoleLabel(ownFamily()!.partner1, false) }}</span>
                 <span class="family-sheet__name">
                   {{ getDisplayName(ownFamily()!.partner1) }}
-                  @if (ownFamily()!.partner1?.id === person?.id) {
+                  @if (ownFamily()!.partner1?.id === person.id) {
                     <span class="family-sheet__current-badge">★</span>
                   }
                 </span>
@@ -213,7 +213,7 @@
             <!-- Partner 2 (Wife) -->
             <div class="family-sheet__parent"
                  [class.family-sheet__parent--selected]="ownFamily()!.partner2?.id === selectedPersonId"
-                 [class.family-sheet__parent--current]="ownFamily()!.partner2?.id === person?.id"
+                 [class.family-sheet__parent--current]="ownFamily()!.partner2?.id === person.id"
                  (click)="ownFamily()!.partner2 && onPersonClick(ownFamily()!.partner2!)"
                  (dblclick)="ownFamily()!.partner2 && onPersonDoubleClick(ownFamily()!.partner2!)">
               <div class="family-sheet__avatar"
@@ -229,7 +229,7 @@
                 <span class="family-sheet__role">{{ getRoleLabel(ownFamily()!.partner2, false) }}</span>
                 <span class="family-sheet__name">
                   {{ getDisplayName(ownFamily()!.partner2) }}
-                  @if (ownFamily()!.partner2?.id === person?.id) {
+                  @if (ownFamily()!.partner2?.id === person.id) {
                     <span class="family-sheet__current-badge">★</span>
                   }
                 </span>

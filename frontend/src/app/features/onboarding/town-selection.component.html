@@ -115,8 +115,10 @@
           @if (loading) {
             <mat-spinner diameter="20"></mat-spinner>
           } @else {
-            <span>{{ 'common.continue' | translate }}</span>
-            <mat-icon>arrow_forward</mat-icon>
+            <ng-container>
+              <span>{{ 'common.continue' | translate }}</span>
+              <mat-icon>arrow_forward</mat-icon>
+            </ng-container>
           }
         </button>
       </mat-card-actions>

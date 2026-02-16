@@ -380,9 +380,9 @@
   }
   
   &__content {
-    @include container;
     padding-top: $spacing-xl;
     padding-bottom: $spacing-2xl;
+    @include container;
   }
 }
 

@@ -4,17 +4,17 @@
 // ============================================
 //
 // Usage in components:
-// @import 'styles/nubian-theme';
-// 
+// @use 'styles/nubian-theme' as *;
+//
 // Or in global styles:
-// @import 'nubian-theme';
+// @use 'nubian-theme' as *;
 //
 // ============================================
 
 // Import all theme partials
-@import 'nubian-variables';
-@import 'nubian-mixins';
-@import 'nubian-components';
+@use 'nubian-variables' as *;
+@use 'nubian-mixins' as *;
+@use 'nubian-components';
 
 // ============================================
 // CSS CUSTOM PROPERTIES (for runtime theming)

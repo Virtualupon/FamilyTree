@@ -3,8 +3,8 @@
 // Apply these classes to components for consistent theming
 // ============================================
 
-@import 'nubian-variables';
-@import 'nubian-mixins';
+@use 'nubian-variables' as *;
+@use 'nubian-mixins' as *;
 
 // ============================================
 // AUTH PAGES (Login, Register)
